@@ -85,5 +85,5 @@ if [[ "$MODE" == "evaluate" ]]; then
         exit 1
     fi
 
-    python ${PAREVAL_ROOT}/drivers/run-all.py "$@"
+    PYTHONPATH="${PAREVAL_ROOT}:${PYTHONPATH}" python ${PAREVAL_ROOT}/drivers/run-all.py "$@"
 fi

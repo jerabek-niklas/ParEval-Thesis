@@ -6,12 +6,10 @@
 import copy
 import logging
 import os
-from os import PathLike, environ
-import shlex
+from os import PathLike
 import subprocess
 import sys
 import tempfile
-from typing import List
 
 # local imports
 sys.path.append("..")
