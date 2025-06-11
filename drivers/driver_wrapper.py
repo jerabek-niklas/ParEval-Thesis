@@ -167,6 +167,7 @@ class DriverWrapper(ABC):
         self, 
         parallelism_model: str = "serial", 
         launch_configs: dict = {"format": "{exec_path} {args}", "params": [{}]},
+        build_configs: Optional[dict] = None,
         problem_sizes: dict = {},
         scratch_dir: Optional[PathLike] = None,
         build_timeout: int = 20,
@@ -180,6 +181,7 @@ class DriverWrapper(ABC):
         self.validator = VALIDATORS[parallelism_model]
         self.scratch_dir = scratch_dir
         self.launch_configs = launch_configs[parallelism_model]
+        self.build_configs = build_configs
         self.problem_sizes = problem_sizes
         self.build_timeout = build_timeout
         self.run_timeout = run_timeout
@@ -213,15 +215,15 @@ class DriverWrapper(ABC):
 
     def test_all_outputs_in_prompt(self, prompt: dict) -> dict:
         """ Run all the generated outputs in the given prompt. """
-        root = prompt["language"]
+        lang = prompt["language"]
         type = prompt["problem_type"]
         name = prompt["name"]
         ext = LANGUAGE_EXTENSIONS[prompt["language"]]
-        if root == "cpp" and self.parallelism_model in ["cuda", "hip"]:
+        if lang == "cpp" and self.parallelism_model in ["cuda", "hip"]:
             ext = ".cu"
-        driver_root = f"{name}"
+        driver_dirname = f"{name}"
         driver_base = DRIVER_MAP[self.parallelism_model]
-        test_driver_file = os.path.join(root, "benchmarks", type, driver_root, driver_base + ext)
+        test_driver_file = os.path.join(lang, "benchmarks", type, driver_dirname, driver_base + ext)
         problem_size = self.problem_sizes.get(name, {}).get(self.parallelism_model, "(1<<18)")
 
         outputs = []
