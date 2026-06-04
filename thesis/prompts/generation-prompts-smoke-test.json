@@ -1,0 +1,23 @@
+[
+  {
+    "problem_type": "geometry",
+    "language": "cpp",
+    "name": "13_geometry_closest_pair_2d",
+    "parallelism_model": "serial",
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
+  },
+  {
+    "problem_type": "geometry",
+    "language": "cpp",
+    "name": "13_geometry_closest_pair_2d",
+    "parallelism_model": "omp",
+    "prompt": "#include <omp.h>\n\nstruct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   Use OpenMP to compute in parallel.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
+  },
+  {
+    "problem_type": "geometry",
+    "language": "cpp",
+    "name": "13_geometry_closest_pair_2d",
+    "parallelism_model": "mpi",
+    "prompt": "#include <mpi.h>\n\nstruct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The final result is returned on rank 0.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
+  }
+]

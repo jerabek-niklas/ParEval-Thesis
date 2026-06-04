@@ -14,3 +14,4 @@ a.out
 
 # editor buffers
 *~
+.venv/
