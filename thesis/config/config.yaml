@@ -1,0 +1,120 @@
+# experiments/config.yaml
+
+experiment:
+  name: pareval_static_analysis_thesis
+  description: "Evaluation of LLM-generated Serial, OpenMP, and MPI code with static analysis and correctness tests"
+  schema_version: "experiment.v1"
+
+profiles:
+  smoke:
+    run_id: smoke_001
+    prompt_limit: 3
+    num_samples_per_prompt: 1
+
+  pilot:
+    run_id: pilot_001
+    prompt_limit: 30
+    num_samples_per_prompt: 1
+
+  full:
+    run_id: full_001
+    prompt_limit: null
+    num_samples_per_prompt: 1
+
+prompts:
+  path: thesis/prompts/generation-prompts-thesis.json
+  prompt_field: prompt
+  execution_models:
+    - serial
+    - omp
+    - mpi
+  problem_types: null
+
+generation_defaults:
+  max_output_tokens: 4096
+  temperature: 0.2
+  top_p: 0.95
+  timeout_seconds: 120
+  retry_attempts: 2
+  sleep_seconds_between_requests: 0.0
+  system_prompt: |
+    You are an expert C++ and parallel programming assistant.
+    Complete the given function according to the prompt.
+    Return only the generated C++ code needed to complete the function.
+    Do not include Markdown, explanations, or extra text.
+    Preserve the required execution model: Serial, OpenMP, or MPI.
+
+models:
+  - id: openai_gpt55
+    enabled: true
+    provider: openai
+    model_name: gpt-5.5
+    api_key_env: OPENAI_API_KEY
+    reasoning_effort: low
+
+  - id: gemini_best
+    enabled: false
+    provider: gemini
+    model_name: replace_with_gemini_model_name
+    api_key_env: GEMINI_API_KEY
+
+  - id: claude_best
+    enabled: false
+    provider: anthropic
+    model_name: replace_with_claude_model_name
+    api_key_env: ANTHROPIC_API_KEY
+    thinking_budget_tokens: null
+
+  - id: qwen_best
+    enabled: false
+    provider: openai_compatible
+    model_name: replace_with_qwen_model_name
+    base_url: replace_with_qwen_base_url
+    api_key_env: QWEN_API_KEY
+
+  - id: deepseek_best
+    enabled: false
+    provider: openai_compatible
+    model_name: replace_with_deepseek_model_name
+    base_url: replace_with_deepseek_base_url
+    api_key_env: DEEPSEEK_API_KEY
+
+outputs:
+  root: thesis/results
+  raw_dir: thesis/results/raw
+  intermediate_dir: thesis/results/intermediate
+  processed_dir: thesis/results/processed
+
+stages:
+  generation:
+    enabled: true
+    output_file_name: generations.jsonl
+    summary_file_name: generation_summary.json
+
+  compilation:
+    enabled: true
+    output_file_name: compilation.jsonl
+
+  static_analysis:
+    enabled: true
+    tools:
+      - clang_tidy
+      - cppcheck
+      - infer
+    output_file_name: static_analysis.jsonl
+
+  correctness_tests:
+    enabled: true
+    output_file_name: correctness.jsonl
+
+  enhanced_tests:
+    enabled: false
+    output_file_name: enhanced_tests.jsonl
+
+  repair:
+    enabled: false
+    max_iterations: 3
+    strategies:
+      - static_feedback
+      - test_feedback
+      - combined_feedback

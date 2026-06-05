@@ -5,6 +5,8 @@
 *.pyc
 __pycache__
 .env
+.env.*
+!.env.example
 
 # cpp
 *.out
@@ -15,3 +17,7 @@ a.out
 # editor buffers
 *~
 .venv/
+
+thesis/results/raw/
+thesis/results/intermediate/
+thesis/results/cache/
