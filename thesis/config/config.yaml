@@ -52,16 +52,17 @@ models:
     api_key_env: OPENAI_API_KEY
     reasoning_effort: low
 
-  - id: gemini_best
-    enabled: false
+  - id: gemini_31_pro
+    enabled: true
     provider: gemini
-    model_name: replace_with_gemini_model_name
+    model_name: gemini-3.1-pro-preview
     api_key_env: GEMINI_API_KEY
+    thinking_level: medium
 
-  - id: claude_best
-    enabled: false
+  - id: claude_opus_48
+    enabled: true
     provider: anthropic
-    model_name: replace_with_claude_model_name
+    model_name: claude-opus-4-8
     api_key_env: ANTHROPIC_API_KEY
     thinking_budget_tokens: null
 
