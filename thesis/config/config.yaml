@@ -73,12 +73,28 @@ models:
     base_url: replace_with_qwen_base_url
     api_key_env: QWEN_API_KEY
 
-  - id: deepseek_best
+  - id: qwen3_coder_api
+    enabled: true
+    provider: openai_compatible
+    model_name: qwen3-coder-plus
+    base_url_env: OPENAI_BASE_URL
+    api_key_env: QWEN_API_KEY
+
+  - id: qwen3_coder_30b_api
     enabled: false
     provider: openai_compatible
-    model_name: replace_with_deepseek_model_name
-    base_url: replace_with_deepseek_base_url
-    api_key_env: DEEPSEEK_API_KEY
+    model_name: "<provider_model_name_for_qwen3_coder_30b>"
+    base_url: "<provider_base_url>"
+    api_key_env: QWEN_API_KEY
+
+  - id: deepseek_v4_pro
+    enabled: true
+    provider: openai_compatible
+    model_name: deepseek-v4-pro
+    base_url_env: OPENAI_BASE_URL
+    api_key_env: QWEN_API_KEY
+    extra_body:
+      enable_thinking: false
 
 outputs:
   root: thesis/results
