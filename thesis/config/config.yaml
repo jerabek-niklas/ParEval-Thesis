@@ -77,8 +77,8 @@ models:
     enabled: true
     provider: openai_compatible
     model_name: qwen3-coder-plus
-    base_url_env: OPENAI_BASE_URL
-    api_key_env: QWEN_API_KEY
+    base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
+    api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
 
   - id: qwen3_coder_30b_api
     enabled: false
@@ -91,8 +91,8 @@ models:
     enabled: true
     provider: openai_compatible
     model_name: deepseek-v4-pro
-    base_url_env: OPENAI_BASE_URL
-    api_key_env: QWEN_API_KEY
+    base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
+    api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
     extra_body:
       enable_thinking: false
 
