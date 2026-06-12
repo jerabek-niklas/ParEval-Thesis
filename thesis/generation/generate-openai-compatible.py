@@ -83,7 +83,7 @@ class OpenAICompatibleAdapter:
         model_config: dict[str, Any],
         generation_defaults: dict[str, Any],
         system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         retry_attempts: int,
         sleep_seconds: float,
     ) -> common.GenerationResult:
@@ -93,7 +93,7 @@ class OpenAICompatibleAdapter:
             "model": model_config["model_name"],
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                *messages,
             ],
             "max_tokens": int(params["max_output_tokens"]),
         }

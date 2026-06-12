@@ -71,10 +71,17 @@ class ProviderAdapter(Protocol):
         model_config: dict[str, Any],
         generation_defaults: dict[str, Any],
         system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         retry_attempts: int,
         sleep_seconds: float,
     ) -> GenerationResult:
+        """Run one model call on a conversation.
+
+        messages is a provider-agnostic list of {"role": "user"|"assistant",
+        "content": str}. Initial generation passes a single user message;
+        the repair loop passes the growing conversation. The system prompt
+        is supplied separately and mapped to the provider's mechanism.
+        """
         ...
 
 
@@ -573,7 +580,7 @@ def run_generation(adapter: ProviderAdapter) -> None:
                     model_config=model_config,
                     generation_defaults=generation_defaults,
                     system_prompt=system_prompt,
-                    user_prompt=user_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
                     retry_attempts=retry_attempts,
                     sleep_seconds=sleep_seconds,
                 )

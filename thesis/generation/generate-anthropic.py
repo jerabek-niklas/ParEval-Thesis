@@ -58,7 +58,7 @@ class AnthropicAdapter:
         model_config: dict[str, Any],
         generation_defaults: dict[str, Any],
         system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         retry_attempts: int,
         sleep_seconds: float,
     ) -> common.GenerationResult:
@@ -73,7 +73,7 @@ class AnthropicAdapter:
                 model=model_config["model_name"],
                 max_tokens=max_tokens,
                 system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}],
+                messages=messages,
             ),
             retry_attempts=retry_attempts,
             sleep_seconds=sleep_seconds,

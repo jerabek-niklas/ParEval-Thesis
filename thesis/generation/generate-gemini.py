@@ -53,7 +53,7 @@ class GeminiAdapter:
         model_config: dict[str, Any],
         generation_defaults: dict[str, Any],
         system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         retry_attempts: int,
         sleep_seconds: float,
     ) -> common.GenerationResult:
@@ -77,10 +77,18 @@ class GeminiAdapter:
 
         generation_config = types.GenerateContentConfig(**config_payload)
 
+        contents = [
+            types.Content(
+                role="model" if message["role"] == "assistant" else "user",
+                parts=[types.Part(text=message["content"])],
+            )
+            for message in messages
+        ]
+
         response = common.call_with_retries(
             fn=lambda: client.models.generate_content(
                 model=model_config["model_name"],
-                contents=user_prompt,
+                contents=contents,
                 config=generation_config,
             ),
             retry_attempts=retry_attempts,

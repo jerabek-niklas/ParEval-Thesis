@@ -1,6 +1,6 @@
 # Repair Loop Design — Conversational Feedback for Code Improvement
 
-Status: design (not yet implemented)
+Status: design; adapter messages extension implemented (step 3 done)
 Depends on: generation stage (generation.v2), assembly stage (assembly.v1),
 static analysis stage and correctness test stage (both not yet implemented).
 
