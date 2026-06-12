@@ -1,5 +1,4 @@
-"""
-OpenAI generation script for the thesis pipeline.
+"""OpenAI generation script (Responses API) for the thesis pipeline.
 
 Called by:
     thesis/generation/generate.py
@@ -7,678 +6,145 @@ Called by:
 Example:
     python thesis/generation/generate-openai.py --config thesis/config/config.yaml --profile smoke --model-id openai_gpt55
 
-Expected config structure:
-
-profiles:
-  smoke:
-    run_id: smoke_001
-    prompt_limit: 3
-    num_samples_per_prompt: 1
-
-prompts:
-  path: thesis/prompts/generation-prompts-thesis.json
-  prompt_field: prompt
-  execution_models:
-    - serial
-    - omp
-    - mpi
-  problem_types: null
-
-generation_defaults:
-  max_output_tokens: 1024
-  temperature: 0.2
-  top_p: 0.95
-  timeout_seconds: 120
-  retry_attempts: 2
-  sleep_seconds_between_requests: 0.0
-  system_prompt: |
-    You are an expert C++ and parallel programming assistant.
-    Complete the given function according to the prompt.
-    Return only the generated C++ code needed to complete the function.
-    Do not include Markdown, explanations, or extra text.
-    Preserve the required execution model: Serial, OpenMP, or MPI.
-
-models:
-  - id: openai_gpt55
-    enabled: true
-    provider: openai
-    model_name: gpt-5.5
-    api_key_env: OPENAI_API_KEY
-    reasoning_effort: medium
-
-outputs:
-  raw_dir: thesis/results/raw
+Notes:
+    Reasoning models on the Responses API do not accept temperature/top_p,
+    so they are never sent and recorded as None. Reasoning tokens count
+    toward max_output_tokens; truncation is detected via response.status ==
+    "incomplete" with incomplete_details.reason == "max_output_tokens".
 """
 
 from __future__ import annotations
 
-import argparse
-import json
-import os
-import re
 import sys
-import time
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from openai import OpenAI
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from thesis.config.load_config import load_config  # noqa: E402
-
-
-DEFAULT_SYSTEM_PROMPT = """You are an expert C++ and parallel programming assistant.
-Complete the given function according to the prompt.
-Return only the generated C++ code needed to complete the function.
-Do not include Markdown, explanations, or extra text.
-Preserve the required execution model: Serial, OpenMP, or MPI.
-"""
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Generate code with an OpenAI model for thesis ParEval prompts."
-    )
-
-    parser.add_argument(
-        "--config",
-        required=True,
-        help="Path to thesis config YAML.",
-    )
-
-    parser.add_argument(
-        "--profile",
-        required=True,
-        help="Profile name from config, e.g. smoke, pilot, full.",
-    )
-
-    parser.add_argument(
-        "--model-id",
-        required=True,
-        help="Model id from config, e.g. openai_gpt55.",
-    )
-
-    parser.add_argument(
-        "--restart",
-        action="store_true",
-        help="Delete existing generation output and start from scratch.",
-    )
-
-    return parser.parse_args()
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def read_json(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as file:
-        return json.load(file)
-
-
-def write_json(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
-
-
-def append_jsonl(path: Path, item: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("a", encoding="utf-8") as file:
-        file.write(json.dumps(item, ensure_ascii=False) + "\n")
-
-
-def load_resume_state(path: Path) -> set[str]:
-    """Return sample_ids of successful records; drop failed records for retry.
-
-    Only records with status.success == True are treated as existing. Failed
-    records are removed from the JSONL so that retried samples do not create
-    duplicate sample_ids (validate_generations.py enforces uniqueness).
-    """
-    if not path.exists():
-        return set()
-
-    successful_ids: set[str] = set()
-    kept_lines: list[str] = []
-    dropped_count = 0
-
-    with path.open("r", encoding="utf-8") as file:
-        for line in file:
-            if not line.strip():
-                continue
-
-            try:
-                item = json.loads(line)
-            except json.JSONDecodeError:
-                dropped_count += 1
-                continue
-
-            sample_id = item.get("sample_id")
-            success = (item.get("status") or {}).get("success") is True
-
-            if success and sample_id:
-                successful_ids.add(sample_id)
-                kept_lines.append(line if line.endswith("\n") else line + "\n")
-            else:
-                dropped_count += 1
-
-    if dropped_count > 0:
-        with path.open("w", encoding="utf-8") as file:
-            file.writelines(kept_lines)
-
-        print(
-            f"Resume: dropped {dropped_count} failed/invalid record(s) "
-            f"from {path} so they can be retried."
-        )
-
-    return successful_ids
-
-
-def sanitize_for_id(value: Any) -> str:
-    text = str(value)
-    text = text.replace("/", "_").replace("\\", "_")
-    text = re.sub(r"[^A-Za-z0-9_.-]+", "_", text)
-    text = re.sub(r"_+", "_", text)
-    return text.strip("_")
-
-
-def make_sample_id(model_id: str, prompt: dict[str, Any], sample_index: int) -> str:
-    return "__".join(
-        [
-            sanitize_for_id(model_id),
-            sanitize_for_id(prompt.get("problem_type", "unknown_problem_type")),
-            sanitize_for_id(prompt.get("name", "unknown_name")),
-            sanitize_for_id(prompt.get("parallelism_model", "unknown_model")),
-            f"sample_{sample_index}",
-        ]
-    )
-
-
-def get_profile(config: dict[str, Any], profile_name: str) -> dict[str, Any]:
-    profiles = config.get("profiles", {})
-
-    if profile_name not in profiles:
-        available = ", ".join(profiles.keys())
-        raise KeyError(
-            f"Profile '{profile_name}' not found. Available profiles: {available}"
-        )
-
-    return profiles[profile_name]
-
-
-def get_model_config(config: dict[str, Any], model_id: str) -> dict[str, Any]:
-    models = config.get("models", [])
-
-    matches = [model for model in models if model.get("id") == model_id]
-
-    if not matches:
-        raise KeyError(f"Model id '{model_id}' not found in config.")
-
-    if len(matches) > 1:
-        raise ValueError(f"Model id '{model_id}' appears multiple times in config.")
-
-    model = matches[0]
-
-    if model.get("provider") != "openai":
-        raise ValueError(
-            f"Model '{model_id}' has provider '{model.get('provider')}', "
-            "but generate-openai.py only supports provider 'openai'."
-        )
-
-    if not model.get("enabled", False):
-        raise ValueError(f"Model '{model_id}' is not enabled in config.")
-
-    return model
-
-
-def filter_prompts(
-    prompts: list[dict[str, Any]],
-    execution_models: list[str] | None,
-    problem_types: list[str] | None,
-    prompt_limit: int | None,
-) -> list[dict[str, Any]]:
-    filtered = prompts
-
-    if execution_models:
-        allowed_execution_models = set(execution_models)
-        filtered = [
-            prompt
-            for prompt in filtered
-            if prompt.get("parallelism_model") in allowed_execution_models
-        ]
-
-    if problem_types:
-        allowed_problem_types = set(problem_types)
-        filtered = [
-            prompt
-            for prompt in filtered
-            if prompt.get("problem_type") in allowed_problem_types
-        ]
-
-    if prompt_limit is not None:
-        filtered = filtered[: int(prompt_limit)]
-
-    return filtered
-
-
-def remove_markdown_fence(text: str) -> str:
-    pattern = re.compile(
-        r"```(?:cpp|c\+\+|cxx|C\+\+)?\s*(.*?)```",
-        flags=re.DOTALL | re.IGNORECASE,
-    )
-
-    match = pattern.search(text)
-
-    if match:
-        return match.group(1).strip()
-
-    return text.strip()
-
-
-def clean_generated_code(raw_text: str) -> str:
-    """
-    Conservative first-pass cleaning.
-
-    We intentionally keep this light. Raw output is always preserved.
-    Later pipeline stages can perform stricter code normalization if needed.
-    """
-    return remove_markdown_fence(raw_text)
-
-
-def get_output_paths(
-    config: dict[str, Any],
-    profile: dict[str, Any],
-    model_config: dict[str, Any],
-) -> tuple[Path, Path]:
-    run_id = profile["run_id"]
-    model_id = model_config["id"]
-
-    outputs = config.get("outputs", {})
-    raw_dir = Path(outputs.get("raw_dir", "thesis/results/raw"))
-
-    output_dir = raw_dir / run_id / model_id
-
-    generations_path = output_dir / "generations.jsonl"
-    summary_path = output_dir / "generation_summary.json"
-
-    return generations_path, summary_path
-
-
-def extract_response_text(response: Any) -> str:
-    """
-    Primary path: response.output_text.
-    Fallback: manually collect text parts.
-    """
-    output_text = getattr(response, "output_text", None)
-
-    if output_text:
-        return output_text
-
-    output_items = getattr(response, "output", None)
-
-    if not output_items:
-        raise RuntimeError("OpenAI response contains neither output_text nor output items.")
-
-    texts: list[str] = []
-
-    for item in output_items:
-        content = getattr(item, "content", None)
-
-        if not content:
-            continue
-
-        for part in content:
-            text = getattr(part, "text", None)
-            if text:
-                texts.append(text)
-
-    if not texts:
-        raise RuntimeError("Could not extract text from OpenAI response.")
-
-    return "\n".join(texts)
-
-def safe_model_dump(obj: Any) -> dict[str, Any] | str | None:
-    if obj is None:
-        return None
-
-    if hasattr(obj, "model_dump"):
-        try:
-            return obj.model_dump()
-        except Exception:
-            return repr(obj)
-
-    return repr(obj)
-
-
-def extract_usage(response: Any) -> dict[str, Any] | None:
-    usage = getattr(response, "usage", None)
-
-    if usage is None:
-        return None
-
-    if hasattr(usage, "model_dump"):
-        return usage.model_dump()
-
-    if isinstance(usage, dict):
-        return usage
-
-    return None
-
-
-def build_openai_payload(
-    model_name: str,
-    system_prompt: str,
-    user_prompt: str,
-    max_output_tokens: int,
-    reasoning_effort: str | None,
-) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "model": model_name,
-        "input": [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": user_prompt,
-            },
-        ],
-        "max_output_tokens": max_output_tokens,
-    }
-
-    if reasoning_effort:
-        payload["reasoning"] = {"effort": reasoning_effort}
-
-    return payload
-
-
-def call_openai_with_retries(
-    client: OpenAI,
-    payload: dict[str, Any],
-    retry_attempts: int,
-    sleep_seconds: float,
-) -> Any:
-    last_error: Exception | None = None
-
-    for attempt in range(retry_attempts + 1):
-        try:
-            return client.responses.create(**payload)
-        except Exception as error:
-            last_error = error
-
-            if attempt >= retry_attempts:
-                break
-
-            wait_time = sleep_seconds if sleep_seconds > 0 else min(2 ** attempt, 10)
-            print(
-                f"OpenAI call failed on attempt {attempt + 1}/{retry_attempts + 1}: {error}"
-            )
-            print(f"Retrying in {wait_time:.1f}s...")
-            time.sleep(wait_time)
-
-    assert last_error is not None
-    raise last_error
-
-
-def build_empty_record(
-    run_id: str,
-    model_config: dict[str, Any],
-    prompt: dict[str, Any],
-    prompt_field: str,
-    sample_index: int,
-    generation_defaults: dict[str, Any],
-) -> dict[str, Any]:
-    sample_id = make_sample_id(
-        model_id=model_config["id"],
-        prompt=prompt,
-        sample_index=sample_index,
-    )
-
-    return {
-        "schema_version": "generation.v1",
-        "run_id": run_id,
-        "sample_id": sample_id,
-        "created_at_utc": utc_now_iso(),
-        "model": {
-            "id": model_config["id"],
-            "provider": model_config["provider"],
-            "model_name": model_config["model_name"],
-        },
-        "prompt": {
-            "problem_type": prompt.get("problem_type"),
-            "name": prompt.get("name"),
-            "language": prompt.get("language"),
-            "parallelism_model": prompt.get("parallelism_model"),
-            "prompt_field": prompt_field,
-            "prompt_text": prompt.get(prompt_field),
-        },
-        "generation_parameters": {
-            "sample_index": sample_index,
-            "max_output_tokens": generation_defaults.get("max_output_tokens"),
-            # Reasoning models on the Responses API do not accept temperature/top_p,
-            # so they are never sent. Record None instead of the config defaults.
+from thesis.generation import common  # noqa: E402
+
+
+class OpenAIAdapter:
+    provider = "openai"
+    default_api_key_env = "OPENAI_API_KEY"
+
+    def create_client(self, model_config: dict[str, Any], api_key: str) -> OpenAI:
+        return OpenAI(api_key=api_key)
+
+    def generation_parameters(
+        self,
+        model_config: dict[str, Any],
+        generation_defaults: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "max_output_tokens": common.get_param(
+                model_config, generation_defaults, "max_output_tokens", 4096
+            ),
+            # Reasoning models on the Responses API do not accept
+            # temperature/top_p; never sent, recorded as None.
             "temperature": None,
             "top_p": None,
             "reasoning_effort": model_config.get("reasoning_effort"),
-        },
-        "output": {
-            "raw_text": None,
-            "cleaned_code": None,
-        },
-        "api_response": {
-            "response_id": None,
-            "usage": None,
-        },
-        "status": {
-            "success": False,
-            "error_type": None,
-            "error_message": None,
-            "duration_seconds": None,
-        },
-    }
+        }
 
+    def generate(
+        self,
+        client: OpenAI,
+        model_config: dict[str, Any],
+        generation_defaults: dict[str, Any],
+        system_prompt: str,
+        user_prompt: str,
+        retry_attempts: int,
+        sleep_seconds: float,
+    ) -> common.GenerationResult:
+        params = self.generation_parameters(model_config, generation_defaults)
 
-def main() -> None:
-    args = parse_args()
+        payload: dict[str, Any] = {
+            "model": model_config["model_name"],
+            "input": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "max_output_tokens": int(params["max_output_tokens"]),
+        }
 
-    config_path = Path(args.config).resolve()
-    config = load_config(config_path)
+        if params["reasoning_effort"]:
+            payload["reasoning"] = {"effort": params["reasoning_effort"]}
 
-    profile = get_profile(config, args.profile)
-    model_config = get_model_config(config, args.model_id)
-
-    prompts_config = config.get("prompts", {})
-    generation_defaults = config.get("generation_defaults", {})
-
-    run_id = profile["run_id"]
-
-    prompts_path = Path(prompts_config["path"])
-    prompt_field = prompts_config.get("prompt_field", "prompt")
-    execution_models = prompts_config.get("execution_models")
-    problem_types = prompts_config.get("problem_types")
-
-    prompt_limit = profile.get("prompt_limit")
-    num_samples_per_prompt = int(profile.get("num_samples_per_prompt", 1))
-
-    max_output_tokens = int(generation_defaults.get("max_output_tokens", 1024))
-    retry_attempts = int(generation_defaults.get("retry_attempts", 2))
-    sleep_seconds = float(generation_defaults.get("sleep_seconds_between_requests", 0.0))
-    system_prompt = generation_defaults.get("system_prompt", DEFAULT_SYSTEM_PROMPT)
-
-    api_key_env = model_config.get("api_key_env", "OPENAI_API_KEY")
-    api_key = os.environ.get(api_key_env)
-
-    if not api_key:
-        raise EnvironmentError(
-            f"Missing API key environment variable '{api_key_env}' "
-            f"for model '{model_config['id']}'."
+        response = common.call_with_retries(
+            fn=lambda: client.responses.create(**payload),
+            retry_attempts=retry_attempts,
+            sleep_seconds=sleep_seconds,
+            label="OpenAI",
         )
 
-    generations_path, summary_path = get_output_paths(
-        config=config,
-        profile=profile,
-        model_config=model_config,
-    )
+        finish_reason, truncated = self._extract_finish_state(response)
 
-    if args.restart and generations_path.exists():
-        generations_path.unlink()
+        try:
+            raw_text = self._extract_text(response)
+        except Exception as error:
+            error.raw_response = response  # type: ignore[attr-defined]
+            raise
 
-    prompts = read_json(prompts_path)
+        return common.GenerationResult(
+            raw_text=raw_text,
+            finish_reason=finish_reason,
+            truncated=truncated,
+            response_id=getattr(response, "id", None),
+            usage=common.safe_model_dump(getattr(response, "usage", None)),
+        )
 
-    if not isinstance(prompts, list):
-        raise ValueError(f"Expected list in prompts JSON: {prompts_path}")
+    @staticmethod
+    def _extract_finish_state(response: Any) -> tuple[str | None, bool]:
+        status = getattr(response, "status", None)
 
-    prompts = filter_prompts(
-        prompts=prompts,
-        execution_models=execution_models,
-        problem_types=problem_types,
-        prompt_limit=prompt_limit,
-    )
+        if status != "incomplete":
+            return status, False
 
-    existing_sample_ids = load_resume_state(generations_path)
+        details = getattr(response, "incomplete_details", None)
+        reason = getattr(details, "reason", None) if details is not None else None
 
-    client = OpenAI(api_key=api_key)
+        finish_reason = f"incomplete:{reason}" if reason else "incomplete"
 
-    requested_count = len(prompts) * num_samples_per_prompt
+        return finish_reason, reason == "max_output_tokens"
 
-    summary: dict[str, Any] = {
-        "schema_version": "generation_summary.v1",
-        "run_id": run_id,
-        "model_id": model_config["id"],
-        "provider": "openai",
-        "model_name": model_config["model_name"],
-        "created_at_utc": utc_now_iso(),
-        "config_path": str(config_path),
-        "prompts_path": str(prompts_path),
-        "generations_path": str(generations_path),
-        "num_prompts": len(prompts),
-        "num_samples_per_prompt": num_samples_per_prompt,
-        "counts": {
-            "requested": requested_count,
-            "success": 0,
-            "error": 0,
-            "skipped_existing": 0,
-        },
-    }
+    @staticmethod
+    def _extract_text(response: Any) -> str:
+        output_text = getattr(response, "output_text", None)
 
-    print("OpenAI generation")
-    print("=================")
-    print(f"Run ID:    {run_id}")
-    print(f"Model ID:  {model_config['id']}")
-    print(f"Model:     {model_config['model_name']}")
-    print(f"Prompts:   {len(prompts)}")
-    print(f"Samples:   {num_samples_per_prompt} per prompt")
-    print(f"Output:    {generations_path}")
-    print()
+        if output_text:
+            return output_text
 
-    for prompt in prompts:
-        if prompt_field not in prompt:
-            raise KeyError(
-                f"Prompt field '{prompt_field}' missing for "
-                f"{prompt.get('name')} / {prompt.get('parallelism_model')}"
+        output_items = getattr(response, "output", None)
+
+        if not output_items:
+            raise RuntimeError(
+                "OpenAI response contains neither output_text nor output items."
             )
 
-        user_prompt = prompt[prompt_field]
+        texts: list[str] = []
 
-        for sample_index in range(num_samples_per_prompt):
-            record = build_empty_record(
-                run_id=run_id,
-                model_config=model_config,
-                prompt=prompt,
-                prompt_field=prompt_field,
-                sample_index=sample_index,
-                generation_defaults={
-                    **generation_defaults,
-                    "max_output_tokens": max_output_tokens,
-                },
-            )
+        for item in output_items:
+            content = getattr(item, "content", None)
 
-            sample_id = record["sample_id"]
-
-            if sample_id in existing_sample_ids:
-                summary["counts"]["skipped_existing"] += 1
+            if not content:
                 continue
 
-            started_at = time.time()
-            response = None
+            for part in content:
+                text = getattr(part, "text", None)
+                if text:
+                    texts.append(text)
 
-            try:
-                payload = build_openai_payload(
-                    model_name=model_config["model_name"],
-                    system_prompt=system_prompt,
-                    user_prompt=user_prompt,
-                    max_output_tokens=max_output_tokens,
-                    reasoning_effort=model_config.get("reasoning_effort"),
-                )
+        if not texts:
+            raise RuntimeError("Could not extract text from OpenAI response.")
 
-                response = call_openai_with_retries(
-                    client=client,
-                    payload=payload,
-                    retry_attempts=retry_attempts,
-                    sleep_seconds=sleep_seconds,
-                )
-
-                raw_text = extract_response_text(response)
-                cleaned_code = clean_generated_code(raw_text)
-
-                record["output"]["raw_text"] = raw_text
-                record["output"]["cleaned_code"] = cleaned_code
-                record["api_response"]["response_id"] = getattr(response, "id", None)
-                record["api_response"]["usage"] = extract_usage(response)
-
-                record["status"]["success"] = True
-                summary["counts"]["success"] += 1
-
-            except Exception as error:
-                record["status"]["success"] = False
-                record["status"]["error_type"] = type(error).__name__
-                record["status"]["error_message"] = str(error)
-                record["api_response"]["raw_response_debug"] = (
-                    safe_model_dump(response) if response is not None else None
-                )
-
-                summary["counts"]["error"] += 1
-
-            record["status"]["duration_seconds"] = round(time.time() - started_at, 3)
-            append_jsonl(generations_path, record)
-
-            done = (
-                summary["counts"]["success"]
-                + summary["counts"]["error"]
-                + summary["counts"]["skipped_existing"]
-            )
-
-            print(
-                f"[{done}/{requested_count}] "
-                f"{prompt.get('problem_type')} | "
-                f"{prompt.get('name')} | "
-                f"{prompt.get('parallelism_model')} | "
-                f"sample {sample_index} | "
-                f"{'success' if record['status']['success'] else 'error'}"
-            )
-
-            if sleep_seconds > 0:
-                time.sleep(sleep_seconds)
-
-    summary["finished_at_utc"] = utc_now_iso()
-    write_json(summary_path, summary)
-
-    print()
-    print("Finished OpenAI generation.")
-    print(f"Success:          {summary['counts']['success']}")
-    print(f"Errors:           {summary['counts']['error']}")
-    print(f"Skipped existing: {summary['counts']['skipped_existing']}")
-    print(f"Summary:          {summary_path}")
+        return "\n".join(texts)
 
 
 if __name__ == "__main__":
-    main()
+    common.run_generation(OpenAIAdapter())

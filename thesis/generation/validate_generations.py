@@ -65,12 +65,16 @@ REQUIRED_OUTPUT_FIELDS = {
     "cleaned_code",
 }
 
+REQUIRED_OUTPUT_FIELDS_V2 = REQUIRED_OUTPUT_FIELDS | {"finish_reason"}
+
 REQUIRED_STATUS_FIELDS = {
     "success",
     "error_type",
     "error_message",
     "duration_seconds",
 }
+
+REQUIRED_STATUS_FIELDS_V2 = REQUIRED_STATUS_FIELDS | {"truncated"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -190,6 +194,10 @@ def validate_record(record: dict[str, Any]) -> tuple[list[str], list[str]]:
     line = record.get("_line_number", "?")
     sample_id = record.get("sample_id", "<missing sample_id>")
 
+    is_v2 = record.get("schema_version") == "generation.v2"
+    required_output_fields = REQUIRED_OUTPUT_FIELDS_V2 if is_v2 else REQUIRED_OUTPUT_FIELDS
+    required_status_fields = REQUIRED_STATUS_FIELDS_V2 if is_v2 else REQUIRED_STATUS_FIELDS
+
     top_missing = missing_fields(record, REQUIRED_TOP_LEVEL_FIELDS)
 
     if top_missing:
@@ -238,7 +246,7 @@ def validate_record(record: dict[str, Any]) -> tuple[list[str], list[str]]:
     if output is None:
         errors.append(f"line {line}, sample {sample_id}: field 'output' is not an object")
     else:
-        output_missing = missing_fields(output, REQUIRED_OUTPUT_FIELDS)
+        output_missing = missing_fields(output, required_output_fields)
 
         if output_missing:
             errors.append(
@@ -250,7 +258,7 @@ def validate_record(record: dict[str, Any]) -> tuple[list[str], list[str]]:
     if status is None:
         errors.append(f"line {line}, sample {sample_id}: field 'status' is not an object")
     else:
-        status_missing = missing_fields(status, REQUIRED_STATUS_FIELDS)
+        status_missing = missing_fields(status, required_status_fields)
 
         if status_missing:
             errors.append(

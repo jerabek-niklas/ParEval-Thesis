@@ -5,7 +5,7 @@ import yaml
 from dotenv import load_dotenv
 
 
-def load_config(config_path: str | Path) -> dict[str, Any]:
+def load_config(config_path: str | Path, validate_keys: bool = False) -> dict[str, Any]:
     load_dotenv()
 
     path = Path(config_path)
@@ -16,7 +16,11 @@ def load_config(config_path: str | Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    validate_api_key_envs(config)
+    # Off by default: validating every model's key would make it impossible
+    # to run a single model or validate result files without all keys set.
+    # The provider scripts check their own key via common.get_api_key.
+    if validate_keys:
+        validate_api_key_envs(config)
 
     return config
 

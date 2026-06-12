@@ -31,12 +31,20 @@ prompts:
   problem_types: null
 
 generation_defaults:
-  max_output_tokens: 4096
-  temperature: 0.2
-  top_p: 0.95
+  # Reasoning/thinking tokens count toward the output budget on GPT-5.5
+  # (Responses API) and Claude Fable 5; 4096 caused truncation risk.
+  max_output_tokens: 16384
+  # Greedy decoding for reproducibility. Sent only to models that support it
+  # (Gemini, Qwen, DeepSeek). GPT-5.5 and Claude Fable 5 do not accept
+  # temperature/top_p; for those the records log null.
+  temperature: 0.0
+  # Irrelevant at temperature 0 and unsupported on several models; not sent.
+  top_p: null
   timeout_seconds: 120
   retry_attempts: 2
   sleep_seconds_between_requests: 0.0
+  # Single source of truth for the system prompt. The provider scripts have
+  # no hardcoded fallback; this field is required.
   system_prompt: |
     You are an expert C++ and parallel programming assistant.
     Complete the given function according to the prompt.
@@ -59,12 +67,11 @@ models:
     api_key_env: GEMINI_API_KEY
     thinking_level: medium
 
-  - id: claude_opus_48
+  - id: claude_fable_5
     enabled: true
     provider: anthropic
-    model_name: claude-opus-4-8
+    model_name: claude-fable-5
     api_key_env: ANTHROPIC_API_KEY
-    thinking_budget_tokens: null
 
   - id: qwen_best
     enabled: false
