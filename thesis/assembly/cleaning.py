@@ -30,10 +30,34 @@ CODE_LINE_PATTERN = re.compile(
     r"^\s*(#\s*include|#\s*define|#\s*pragma|//|/\*|template\b|using\b|typedef\b|"
     r"namespace\b|struct\b|class\b|enum\b|inline\b|static\b|constexpr\b|extern\b|"
     r"void\b|int\b|long\b|short\b|float\b|double\b|bool\b|char\b|auto\b|size_t\b|"
-    r"unsigned\b|signed\b|std::)"
+    r"unsigned\b|signed\b|std::|"
+    r"for\b|if\b|while\b|do\b|switch\b|return\b|else\b)"
 )
 
 INCLUDE_OR_USING_PATTERN = re.compile(r"^\s*(#\s*include\b|using\s+namespace\b)")
+
+
+def is_prose_line(line: str) -> bool:
+    """Conservative prose detection for unfenced responses.
+
+    A line only counts as prose (and may be dropped from the edges of the
+    response) if nothing about it looks like code: no statement or brace
+    characters, not indented (code bodies are), and no code-keyword start.
+    When in doubt the line is kept — wrongly kept prose produces an obvious
+    compile error, wrongly dropped code silently corrupts the sample.
+    """
+    stripped = line.strip()
+
+    if not stripped:
+        return False
+
+    if line.startswith((" ", "\t")):
+        return False
+
+    if any(char in stripped for char in (";", "{", "}", "#")):
+        return False
+
+    return not CODE_LINE_PATTERN.match(line)
 
 
 @dataclass
@@ -47,6 +71,7 @@ class CleaningMetadata:
     kept_pre_signature_lines: int = 0
     relocated_includes: list[str] = field(default_factory=list)
     braces_balanced: bool = True
+    auto_closed: bool = False
     signature_suspect: bool = False
 
     def to_dict(self) -> dict[str, Any]:
@@ -92,26 +117,27 @@ def extract_code(raw_text: str, metadata: CleaningMetadata | None = None) -> str
 
     lines = raw_text.splitlines()
 
-    # leading prose: drop lines until the first code-like line
+    # leading prose: drop lines only while they are clearly prose
     start = 0
-    for index, line in enumerate(lines):
-        if line.strip() and CODE_LINE_PATTERN.match(line):
-            start = index
-            break
-    else:
-        # nothing looked like code; keep everything rather than destroy it
+    while start < len(lines) and (
+        not lines[start].strip() or is_prose_line(lines[start])
+    ):
+        if lines[start].strip():
+            metadata.dropped_leading_lines += 1
+        start += 1
+
+    if start == len(lines):
+        # everything looked like prose; keep the input rather than destroy it
         return raw_text.strip()
 
-    metadata.dropped_leading_lines = start
-
-    # trailing prose: cut after the line containing the last closing brace
+    # trailing prose: same rule from the bottom
     end = len(lines)
-    for index in range(len(lines) - 1, -1, -1):
-        if "}" in lines[index]:
-            end = index + 1
-            break
-
-    metadata.dropped_trailing_lines = len(lines) - end
+    while end > start and (
+        not lines[end - 1].strip() or is_prose_line(lines[end - 1])
+    ):
+        if lines[end - 1].strip():
+            metadata.dropped_trailing_lines += 1
+        end -= 1
 
     return "\n".join(lines[start:end]).strip()
 
@@ -273,12 +299,13 @@ def relocate_includes(code: str, metadata: CleaningMetadata) -> tuple[list[str],
 # ---------------------------------------------------------------------------
 
 
-def braces_balanced(text: str) -> bool:
-    """Check whether all braces in the given source text are balanced.
+def brace_balance(text: str) -> int | None:
+    """Return the final brace balance of the source text, or None.
 
-    Ignores braces inside string/char literals and comments. A negative
-    balance at any point or a non-zero final balance indicates broken or
-    truncated output. Intended to be called on the fully assembled file.
+    Ignores braces inside string/char literals and comments. Returns None
+    if the balance ever goes negative (a closing brace without an opener);
+    otherwise the number of unclosed braces (0 == balanced). Intended to be
+    called on the fully assembled file.
     """
     balance = 0
     index = 0
@@ -322,11 +349,15 @@ def braces_balanced(text: str) -> bool:
             elif char == "}":
                 balance -= 1
                 if balance < 0:
-                    return False
+                    return None
 
         index += 1
 
-    return balance == 0
+    return balance
+
+
+def braces_balanced(text: str) -> bool:
+    return brace_balance(text) == 0
 
 
 # ---------------------------------------------------------------------------

@@ -150,6 +150,11 @@ def assemble_model(
     if assembly_path.exists():
         assembly_path.unlink()
 
+    assembly_stage = (config.get("stages") or {}).get("assembly") or {}
+    auto_close_single_brace = bool(
+        assembly_stage.get("auto_close_single_brace", True)
+    )
+
     counts = {"assembled": 0, "skipped": 0, "warnings": 0}
     pareval_outputs: dict[str, dict[str, Any]] = {}
 
@@ -189,7 +194,24 @@ def assemble_model(
 
             result = cleaning.clean_for_assembly(prompt_text, raw_text)
             content = assemble_content(prompt_text, result)
-            result.metadata.braces_balanced = cleaning.braces_balanced(content)
+
+            balance = cleaning.brace_balance(content)
+
+            # Some models treat the task as "fill in the body" and leave the
+            # function's closing brace to the scaffold. If exactly one brace
+            # is missing at EOF and the generation was not truncated, close
+            # it deterministically and flag it (auto_closed) so the rate of
+            # this format deviation stays reportable per model.
+            if (
+                auto_close_single_brace
+                and balance == 1
+                and not entry["generation_truncated"]
+            ):
+                content = content.rstrip("\n") + "\n}\n"
+                balance = cleaning.brace_balance(content)
+                result.metadata.auto_closed = True
+
+            result.metadata.braces_balanced = balance == 0
 
             source_path = sources_dir / sample_id / "generated-code.hpp"
             source_path.parent.mkdir(parents=True, exist_ok=True)

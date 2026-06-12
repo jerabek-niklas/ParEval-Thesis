@@ -171,8 +171,113 @@ def test_patch_signature() -> None:
     )
 
 
+LU_PROMPT = """/* Factorize the matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.
+   Store the results for L and U into the original matrix A. 
+   A is an NxN matrix stored in row-major.
+   Use OpenMP to compute in parallel.
+   Example:
+
+   input: [[4, 3], [6, 3]]
+   output: [[4, 3], [1.5, -1.5]]
+*/
+void luFactorize(std::vector<double> &A, size_t N) {"""
+
+
+def assemble_lu(raw_text: str, auto_close: bool = True):
+    result = cleaning.clean_for_assembly(LU_PROMPT, raw_text)
+    content = assemble_content(LU_PROMPT, result)
+    balance = cleaning.brace_balance(content)
+
+    if auto_close and balance == 1:
+        content = content.rstrip("\n") + "\n}\n"
+        balance = cleaning.brace_balance(content)
+        result.metadata.auto_closed = True
+
+    result.metadata.braces_balanced = balance == 0
+    return content, result
+
+
+def test_regression_smoke_gpt55() -> None:
+    """Real GPT-5.5 smoke output: unfenced body starting with a for-loop.
+
+    Regression for the leading-prose heuristic dropping control-flow lines.
+    """
+    print("regression: GPT-5.5 unfenced body starting with for-loop")
+    raw = (
+        "    for (size_t k = 0; k < N; ++k) {\n"
+        "        double pivot = A[k * N + k];\n\n"
+        "        for (size_t i = k + 1; i < N; ++i) {\n"
+        "            A[i * N + k] /= pivot;\n\n"
+        "            double factor = A[i * N + k];\n"
+        "            for (size_t j = k + 1; j < N; ++j) {\n"
+        "                A[i * N + j] -= factor * A[k * N + j];\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "}"
+    )
+    content, result = assemble_lu(raw)
+    check("no lines dropped", result.metadata.dropped_leading_lines == 0)
+    check("braces balanced", result.metadata.braces_balanced)
+    check("not auto-closed", not result.metadata.auto_closed)
+    check("for-loop present", "for (size_t k = 0" in content)
+
+
+def test_regression_smoke_gemini() -> None:
+    """Real Gemini smoke output: unfenced, unindented first for-line."""
+    print("regression: Gemini unfenced body, unindented first line")
+    raw = (
+        "for (size_t k = 0; k < N; ++k) {\n"
+        "        double akk = A[k * N + k];\n"
+        "        #pragma omp parallel for\n"
+        "        for (size_t i = k + 1; i < N; ++i) {\n"
+        "            A[i * N + k] /= akk;\n"
+        "            double aik = A[i * N + k];\n"
+        "            for (size_t j = k + 1; j < N; ++j) {\n"
+        "                A[i * N + j] -= aik * A[k * N + j];\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "}"
+    )
+    content, result = assemble_lu(raw)
+    check("no lines dropped", result.metadata.dropped_leading_lines == 0)
+    check("braces balanced", result.metadata.braces_balanced)
+
+
+def test_regression_smoke_deepseek_auto_close() -> None:
+    """Real DeepSeek smoke output: body without the function's closing brace."""
+    print("regression: DeepSeek body missing the closing brace (auto-close)")
+    raw = (
+        "#pragma omp parallel\n"
+        "{\n"
+        "    for (size_t k = 0; k < N; ++k) {\n"
+        "        #pragma omp for\n"
+        "        for (size_t i = k + 1; i < N; ++i) {\n"
+        "            A[i * N + k] /= A[k * N + k];\n"
+        "        }\n"
+        "        #pragma omp for collapse(2)\n"
+        "        for (size_t i = k + 1; i < N; ++i) {\n"
+        "            for (size_t j = k + 1; j < N; ++j) {\n"
+        "                A[i * N + j] -= A[i * N + k] * A[k * N + j];\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "}"
+    )
+    content, result = assemble_lu(raw)
+    check("auto-closed", result.metadata.auto_closed)
+    check("braces balanced after close", result.metadata.braces_balanced)
+
+    content_off, result_off = assemble_lu(raw, auto_close=False)
+    check("flagged unbalanced when disabled", not result_off.metadata.braces_balanced)
+
+
 def main() -> None:
     tests = [
+        test_regression_smoke_gpt55,
+        test_regression_smoke_gemini,
+        test_regression_smoke_deepseek_auto_close,
         test_plain_body,
         test_fenced_full_function,
         test_full_prompt_echo_with_includes,
