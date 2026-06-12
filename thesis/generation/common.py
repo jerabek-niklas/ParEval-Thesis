@@ -301,22 +301,16 @@ def make_sample_id(model_id: str, prompt: dict[str, Any], sample_index: int) -> 
     )
 
 
-def remove_markdown_fence(text: str) -> str:
-    pattern = re.compile(
-        r"```(?:cpp|c\+\+|cxx|C\+\+)?\s*(.*?)```",
-        flags=re.DOTALL | re.IGNORECASE,
-    )
-
-    match = pattern.search(text)
-
-    if match:
-        return match.group(1).strip()
-
-    return text.strip()
-
-
 def clean_generated_code(raw_text: str) -> str:
-    return remove_markdown_fence(raw_text)
+    """Informational quick clean stored in generation records.
+
+    Delegates to the single cleaning implementation. The authoritative,
+    prompt-aware cleaning happens in thesis/assembly/assemble_sources.py,
+    which re-derives everything from raw_text.
+    """
+    from thesis.assembly.cleaning import extract_code
+
+    return extract_code(raw_text)
 
 
 # ---------------------------------------------------------------------------

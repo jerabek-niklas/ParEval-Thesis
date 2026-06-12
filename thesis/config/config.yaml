@@ -115,6 +115,15 @@ stages:
     output_file_name: generations.jsonl
     summary_file_name: generation_summary.json
 
+  assembly:
+    enabled: true
+    output_file_name: assembly.jsonl
+    # caps for repair feedback, see thesis/docs/repair-loop-design.md
+    feedback_caps:
+      compiler_lines: 50
+      static_findings: 15
+      test_failures: 10
+
   compilation:
     enabled: true
     output_file_name: compilation.jsonl
