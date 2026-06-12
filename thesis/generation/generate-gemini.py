@@ -135,11 +135,19 @@ def append_jsonl(path: Path, item: dict[str, Any]) -> None:
         file.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
-def read_existing_sample_ids(path: Path) -> set[str]:
+def load_resume_state(path: Path) -> set[str]:
+    """Return sample_ids of successful records; drop failed records for retry.
+
+    Only records with status.success == True are treated as existing. Failed
+    records are removed from the JSONL so that retried samples do not create
+    duplicate sample_ids (validate_generations.py enforces uniqueness).
+    """
     if not path.exists():
         return set()
 
-    sample_ids: set[str] = set()
+    successful_ids: set[str] = set()
+    kept_lines: list[str] = []
+    dropped_count = 0
 
     with path.open("r", encoding="utf-8") as file:
         for line in file:
@@ -149,13 +157,28 @@ def read_existing_sample_ids(path: Path) -> set[str]:
             try:
                 item = json.loads(line)
             except json.JSONDecodeError:
+                dropped_count += 1
                 continue
 
             sample_id = item.get("sample_id")
-            if sample_id:
-                sample_ids.add(sample_id)
+            success = (item.get("status") or {}).get("success") is True
 
-    return sample_ids
+            if success and sample_id:
+                successful_ids.add(sample_id)
+                kept_lines.append(line if line.endswith("\n") else line + "\n")
+            else:
+                dropped_count += 1
+
+    if dropped_count > 0:
+        with path.open("w", encoding="utf-8") as file:
+            file.writelines(kept_lines)
+
+        print(
+            f"Resume: dropped {dropped_count} failed/invalid record(s) "
+            f"from {path} so they can be retried."
+        )
+
+    return successful_ids
 
 
 def sanitize_for_id(value: Any) -> str:
@@ -364,6 +387,7 @@ def build_gemini_config(
     max_output_tokens: int,
     temperature: float | None,
     top_p: float | None,
+    thinking_level: str | None,
 ) -> types.GenerateContentConfig:
     config_payload: dict[str, Any] = {
         "system_instruction": system_prompt,
@@ -375,6 +399,11 @@ def build_gemini_config(
 
     if top_p is not None:
         config_payload["top_p"] = top_p
+
+    if thinking_level is not None:
+        config_payload["thinking_config"] = types.ThinkingConfig(
+            thinking_level=thinking_level
+        )
 
     return types.GenerateContentConfig(**config_payload)
 
@@ -450,6 +479,7 @@ def build_empty_record(
             "max_output_tokens": generation_defaults.get("max_output_tokens"),
             "temperature": generation_defaults.get("temperature"),
             "top_p": generation_defaults.get("top_p"),
+            "thinking_level": model_config.get("thinking_level"),
         },
         "output": {
             "raw_text": None,
@@ -528,7 +558,7 @@ def main() -> None:
         prompt_limit=prompt_limit,
     )
 
-    existing_sample_ids = read_existing_sample_ids(generations_path)
+    existing_sample_ids = load_resume_state(generations_path)
 
     client = genai.Client(api_key=api_key)
 
@@ -537,6 +567,7 @@ def main() -> None:
         max_output_tokens=max_output_tokens,
         temperature=float(temperature) if temperature is not None else None,
         top_p=float(top_p) if top_p is not None else None,
+        thinking_level=model_config.get("thinking_level"),
     )
 
     requested_count = len(prompts) * num_samples_per_prompt
@@ -600,6 +631,7 @@ def main() -> None:
                 continue
 
             started_at = time.time()
+            response = None
 
             try:
                 response = call_gemini_with_retries(
@@ -628,9 +660,9 @@ def main() -> None:
                 record["status"]["error_type"] = type(error).__name__
                 record["status"]["error_message"] = str(error)
 
-                if "response" in locals():
+                if response is not None:
                     record["api_response"]["raw_response_debug"] = safe_model_dump(
-                        locals().get("response")
+                        response
                     )
 
                 summary["counts"]["error"] += 1
