@@ -116,6 +116,7 @@ def test_registry() -> None:
     register_default_tools("g++")
     check("compiler registered", "compiler" in framework.registered_tools())
     check("cppcheck registered", "cppcheck" in framework.registered_tools())
+    check("clang_tidy registered", "clang_tidy" in framework.registered_tools())
 
 
 def test_finding_serialization() -> None:
@@ -132,6 +133,65 @@ def test_finding_serialization() -> None:
     check("round-trips through json", json.loads(json.dumps(d))["tool"] == "compiler")
 
 
+def test_clang_tidy_helpers() -> None:
+    print("clang-tidy helpers: offset->line and blocking classification")
+    from thesis.evaluation.tools import offset_to_line_col, is_blocking_check
+
+    text = "line1\nline2\nline3\n"
+    check("offset 0 -> (1,1)", offset_to_line_col(text, 0) == (1, 1))
+    check("offset 6 -> (2,1)", offset_to_line_col(text, 6) == (2, 1))
+    check("offset 8 -> (2,3)", offset_to_line_col(text, 8) == (2, 3))
+
+    check("bugprone blocking", is_blocking_check("bugprone-use-after-move"))
+    check("clang-analyzer blocking", is_blocking_check("clang-analyzer-cplusplus.NewDeleteLeaks"))
+    check("concurrency blocking", is_blocking_check("concurrency-mt-unsafe"))
+    check("mpi blocking", is_blocking_check("mpi-type-mismatch"))
+    check("openmp blocking", is_blocking_check("openmp-use-default-none"))
+    check("performance not blocking", not is_blocking_check("performance-for-range-copy"))
+
+
+def test_clang_tidy_yaml_parse() -> None:
+    print("clang-tidy export-fixes YAML parsing")
+    import tempfile
+    from thesis.evaluation.tools import ClangTidyTool
+    from thesis.evaluation.framework import AssembledSample
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "generated-code.hpp"
+        src.write_text("void f() {\n  int x = 0;\n  (void)x;\n}\n")
+
+        fixes = Path(tmp) / "fixes.yaml"
+        fixes.write_text(
+            "---\n"
+            f"MainSourceFile: '{src}'\n"
+            "Diagnostics:\n"
+            "  - DiagnosticName: bugprone-use-after-move\n"
+            "    DiagnosticMessage:\n"
+            "      Message: 'used after move'\n"
+            f"      FilePath: '{src}'\n"
+            "      FileOffset: 13\n"
+            "    Level: Warning\n"
+            "  - DiagnosticName: performance-for-range-copy\n"
+            "    DiagnosticMessage:\n"
+            "      Message: 'expensive copy'\n"
+            f"      FilePath: '{src}'\n"
+            "      FileOffset: 13\n"
+            "    Level: Warning\n"
+        )
+
+        sample = AssembledSample(
+            sample_id="x", model_id="m", run_id="r", execution_model="serial",
+            problem_type="p", name="n", source_path=src,
+            benchmark_dir=Path(tmp), model_driver_file="", assembly_entry={},
+        )
+
+        findings = ClangTidyTool()._parse_fixes(fixes, sample)
+        check("two findings parsed", len(findings) == 2)
+        check("bugprone is blocking", findings[0].blocking)
+        check("performance not blocking", not findings[1].blocking)
+        check("line computed from offset", findings[0].line == 2)
+
+
 def main() -> None:
     tests = [
         test_build_config,
@@ -139,6 +199,8 @@ def main() -> None:
         test_launch_config,
         test_gcc_parser,
         test_cppcheck_parser,
+        test_clang_tidy_helpers,
+        test_clang_tidy_yaml_parse,
         test_registry,
         test_finding_serialization,
     ]

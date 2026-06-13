@@ -18,6 +18,8 @@ import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import yaml
+
 from thesis.evaluation.build_config import get_build_config
 from thesis.evaluation.framework import (
     AssembledSample,
@@ -282,6 +284,202 @@ class CppcheckTool:
         return findings
 
 
+# Curated clang-tidy check set for parallel C++ correctness/quality.
+# bugprone/concurrency/clang-analyzer/mpi/openmp are the blocking groups;
+# performance is enabled but logged-only (a quality signal, not a gate).
+CLANG_TIDY_BLOCKING_GROUPS = (
+    "bugprone-",
+    "concurrency-",
+    "clang-analyzer-",
+    "mpi-",
+    "openmp-",
+)
+
+CLANG_TIDY_CHECKS = ",".join(
+    [
+        "-*",  # start from nothing, enable explicitly
+        "bugprone-*",
+        "concurrency-*",
+        "clang-analyzer-*",
+        "mpi-*",
+        "openmp-*",
+        "performance-*",
+        "cppcoreguidelines-narrowing-conversions",
+        "misc-*",
+        # noisy/irrelevant misc checks for short benchmark kernels
+        "-misc-include-cleaner",
+        "-misc-use-anonymous-namespace",
+    ]
+)
+
+# clang-tidy Level -> normalized severity
+CLANG_TIDY_LEVEL = {
+    "Error": "error",
+    "Warning": "warning",
+    "Remark": "info",
+    "Note": "note",
+}
+
+
+def offset_to_line_col(text: str, offset: int) -> tuple[int, int]:
+    """Convert a byte offset into (line, column), both 1-based.
+
+    clang-tidy's -export-fixes reports byte offsets, not line/col. The
+    assembled source is small, so a direct scan is fine.
+    """
+    if offset < 0 or offset > len(text):
+        return (0, 0)
+
+    preceding = text[:offset]
+    line = preceding.count("\n") + 1
+    last_newline = preceding.rfind("\n")
+    column = offset - last_newline  # 1-based: char after the newline is col 1
+
+    return (line, column)
+
+
+def is_blocking_check(check_id: str) -> bool:
+    return any(check_id.startswith(group) for group in CLANG_TIDY_BLOCKING_GROUPS)
+
+
+class ClangTidyTool:
+    """Run clang-tidy with the curated check set and parse -export-fixes YAML.
+
+    The Clang Static Analyzer runs via the clang-analyzer-* checks, so this
+    one tool covers both clang-tidy and the static analyzer. Findings are
+    attributed to the model source file; diagnostics in driver/benchmark
+    code are dropped (still recoverable from raw output).
+    """
+
+    name = "clang_tidy"
+
+    def __init__(self, primary_compiler: str = "g++", timeout: float = 180.0):
+        # primary_compiler only affects the -std/flags passed after `--`;
+        # clang-tidy always uses its own clang front-end for parsing.
+        self.timeout = timeout
+
+    def is_available(self) -> bool:
+        return binary_available("clang-tidy")
+
+    def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
+        config = get_build_config(sample.execution_model, context.primary_compiler)
+
+        compile_flags = ["-std=c++17", f"-D{config.macro}"]
+
+        if config.needs_openmp:
+            compile_flags.append("-fopenmp")
+
+        # The assembled generated-code.hpp is never compiled standalone: the
+        # benchmark's cpu.cc includes utilities.hpp (which defines NO_INLINE
+        # and pulls in the std headers) immediately before it. Reproduce that
+        # context with a forced include so clang-tidy parses the same TU the
+        # compiler sees; without it every sample fails to parse.
+        utilities_header = context.drivers_cpp_dir / "utilities.hpp"
+        if utilities_header.exists():
+            compile_flags += ["-include", str(utilities_header)]
+
+        for include_dir in context.include_dirs(sample):
+            compile_flags += ["-I", include_dir]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fixes_path = Path(tmp) / "fixes.yaml"
+
+            argv = [
+                "clang-tidy",
+                f"--checks={CLANG_TIDY_CHECKS}",
+                f"--export-fixes={fixes_path}",
+                # only surface diagnostics from the model's own file
+                f"--header-filter=^$",
+                str(sample.source_path),
+                "--",
+                *compile_flags,
+            ]
+
+            result = run_command(argv, timeout=self.timeout)
+
+            findings = self._parse_fixes(fixes_path, sample)
+
+        # A clang-diagnostic-error among the findings means clang-tidy could
+        # not parse the TU; treat it as blocking so the sample is never
+        # silently counted as clean. (Normal findings also yield exit 1, so
+        # exit code alone is not a reliable signal.)
+        for finding in findings:
+            if finding.check_id.startswith("clang-diagnostic-error"):
+                finding.blocking = True
+
+        return ToolResult(
+            tool=self.name,
+            ran=True,
+            exit_code=result.returncode,
+            duration_seconds=result.duration_seconds,
+            findings=findings,
+            raw_stdout=result.stdout,
+            raw_stderr=result.stderr,
+        )
+
+    def _parse_fixes(self, fixes_path: Path, sample: AssembledSample) -> list[Finding]:
+        if not fixes_path.exists():
+            return []
+
+        content = fixes_path.read_text(encoding="utf-8")
+
+        if not content.strip():
+            return []
+
+        try:
+            data = yaml.safe_load(content)
+        except yaml.YAMLError:
+            return []
+
+        if not data or "Diagnostics" not in data:
+            return []
+
+        model_file = sample.source_path.name
+        # cache file contents for offset->line, keyed by path
+        file_cache: dict[str, str] = {}
+        findings: list[Finding] = []
+
+        for diagnostic in data["Diagnostics"]:
+            check_id = diagnostic.get("DiagnosticName", "unknown")
+            level = diagnostic.get("Level", "Warning")
+            severity = CLANG_TIDY_LEVEL.get(level, "warning")
+
+            message_block = diagnostic.get("DiagnosticMessage", {})
+            message = message_block.get("Message", "")
+            file_path = message_block.get("FilePath", "")
+            file_offset = message_block.get("FileOffset", 0)
+
+            file_name = Path(file_path).name if file_path else None
+
+            # attribute to model source only
+            if file_name != model_file:
+                continue
+
+            if file_path not in file_cache:
+                try:
+                    file_cache[file_path] = Path(file_path).read_text(encoding="utf-8")
+                except OSError:
+                    file_cache[file_path] = ""
+
+            line, column = offset_to_line_col(file_cache[file_path], file_offset)
+
+            findings.append(
+                Finding(
+                    tool=self.name,
+                    check_id=check_id,
+                    severity=severity,
+                    message=message,
+                    file=file_name,
+                    line=line if line else None,
+                    column=column if column else None,
+                    blocking=is_blocking_check(check_id),
+                )
+            )
+
+        return findings
+
+
 def register_default_tools(primary_compiler: str = "g++") -> None:
     register_tool(CompilerDiagnosticTool(primary_compiler=primary_compiler))
     register_tool(CppcheckTool())
+    register_tool(ClangTidyTool(primary_compiler=primary_compiler))

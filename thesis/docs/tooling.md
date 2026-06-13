@@ -33,8 +33,25 @@ the "iterations to clean" metric meaningless.
 | MPI | MUST | deadlocks, type mismatches, request leaks |
 | MPI | OpenMPI `--mca mpi_param_check 1` | parameter errors |
 
-Implemented so far: the two compiler diagnostic tools and cppcheck. The
-rest plug into the same Tool interface (thesis/evaluation/framework.py).
+Implemented so far: the two compiler diagnostic tools, cppcheck, and
+clang-tidy (with the curated check set; the Clang Static Analyzer runs via
+its `clang-analyzer-*` checks). The rest plug into the same Tool interface
+(thesis/evaluation/framework.py).
+
+### clang-tidy specifics
+
+- Check set: `bugprone-*`, `concurrency-*`, `clang-analyzer-*`, `mpi-*`,
+  `openmp-*` (blocking) plus `performance-*` and selected `misc-*`
+  (logged). Parsed from `--export-fixes` YAML, which reports byte offsets;
+  these are converted to line/column against the assembled source.
+- The model file is never compiled standalone — the benchmark's `cpu.cc`
+  includes `utilities.hpp` (which defines `NO_INLINE` and pulls in the std
+  headers) immediately before `generated-code.hpp`. clang-tidy therefore
+  force-includes `utilities.hpp` so it analyses the same translation unit
+  the compiler sees; without it every sample fails to parse.
+- A `clang-diagnostic-error` in the output means clang-tidy could not parse
+  the TU; it is forced blocking so an unanalysable sample is never counted
+  clean.
 
 ## Tier 2 — supplementary, logged
 
