@@ -1,0 +1,9 @@
+# Slim dependencies for the thesis pipeline (generation, assembly, analysis).
+# Deliberately separate from the upstream ParEval requirements.txt, which
+# targets local HuggingFace inference (torch etc.) that this pipeline
+# does not use.
+anthropic>=0.40
+openai>=1.50
+google-genai>=1.0
+PyYAML>=6.0
+python-dotenv>=1.0
