@@ -67,8 +67,16 @@ models:
     api_key_env: GEMINI_API_KEY
     thinking_level: medium
 
-  - id: claude_fable_5
+  - id: claude_opus_48
     enabled: true
+    provider: anthropic
+    model_name: claude-opus-4-8
+    api_key_env: ANTHROPIC_API_KEY
+
+  - id: claude_fable_5
+    # Temporarily disabled: Fable 5 is not currently available via the API.
+    # Re-enable (and consider disabling claude_opus_48) once it is back.
+    enabled: false
     provider: anthropic
     model_name: claude-fable-5
     api_key_env: ANTHROPIC_API_KEY
