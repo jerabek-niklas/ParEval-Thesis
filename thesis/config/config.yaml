@@ -141,10 +141,20 @@ stages:
 
   static_analysis:
     enabled: true
+    # compiler/clang_tidy/cppcheck/infer run in the main pareval-thesis
+    # container; parcoach runs in its own container (LLVM 15) — invoke
+    # run_static_analysis.py inside parcoach-demo:2.4.1 with --tools parcoach;
+    # llov runs in the pareval-llov container (docker/Dockerfile.llov) with
+    # --tools llov. Results merge per tool into static_analysis.jsonl.
+    # Tools whose binaries are absent in the current environment are skipped
+    # with a warning, so this list can name all of them.
     tools:
+      - compiler
       - clang_tidy
       - cppcheck
       - infer
+      - parcoach
+      - llov
     output_file_name: static_analysis.jsonl
 
   correctness_tests:

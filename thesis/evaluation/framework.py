@@ -296,10 +296,17 @@ def iter_assembled_samples(
             name = parts[-3] if len(parts) >= 3 else "unknown"
             problem_type = parts[-4] if len(parts) >= 4 else "unknown"
 
-            source_path = Path(entry["source_path"])
+            # Paths in assembly.jsonl may have been written on a different OS
+            # (e.g. generated on Windows, then analyzed in the Linux
+            # container). Backslashes are not separators on POSIX, so
+            # normalize to forward slashes before building the Path; this
+            # resolves correctly on both platforms.
+            source_path = Path(entry["source_path"].replace("\\", "/"))
 
             if not source_path.is_absolute():
                 source_path = repo_root / source_path
+
+            benchmark_dir_raw = drivers.get("benchmark_dir", "").replace("\\", "/")
 
             yield AssembledSample(
                 sample_id=sample_id,
@@ -309,7 +316,7 @@ def iter_assembled_samples(
                 problem_type=problem_type,
                 name=name,
                 source_path=source_path,
-                benchmark_dir=repo_root / drivers.get("benchmark_dir", ""),
+                benchmark_dir=repo_root / benchmark_dir_raw,
                 model_driver_file=drivers.get("model_driver", ""),
                 assembly_entry=entry,
             )

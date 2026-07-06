@@ -1,8 +1,19 @@
+# Python 3.8 compatibility (LLOV container): keep annotations lazy so
+# `str | Path` unions do not evaluate at import time.
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 import os
 import yaml
-from dotenv import load_dotenv
+
+# Optional: dotenv only feeds API keys to the generation stage. Analysis-only
+# environments (e.g. the PARCOACH container) do not ship it and do not need it.
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover
+    def load_dotenv() -> None:
+        pass
 
 
 def load_config(config_path: str | Path, validate_keys: bool = False) -> dict[str, Any]:

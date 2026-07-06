@@ -1,0 +1,42 @@
+# LLOV analysis environment for the ParEval thesis pipeline.
+#
+# Base: the LLOV paper-artifact image (Ubuntu 18.04, LLOV plugin +
+# patched clang 7.1.0 under /home/llvm/Work/LLOV). The base ships only
+# Python 3.6 without PyYAML, which cannot run the thesis pipeline
+# (requires >= 3.7); this derived image adds Python 3.8 + PyYAML so
+# run_static_analysis.py can execute directly inside the container.
+#
+# Build (repo root):
+#   docker build -t pareval-llov -f docker/Dockerfile.llov .
+#
+# Run (LLOV analyzes the OpenMP samples; results merge into static_analysis.jsonl):
+#   docker run --rm -u 0 -v "$(pwd)":/workspace -w /workspace pareval-llov \
+#     python3.8 thesis/evaluation/run_static_analysis.py \
+#     --config thesis/config/config.yaml --profile smoke --tools llov
+
+FROM utpalbora/llvm:llov
+
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.8 \
+        python3.8-distutils \
+        python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3.8 -m pip install --no-cache-dir PyYAML
+
+# Build-time self-test: the LLOV pass must flag a known OpenMP race and
+# pass a race-free loop, with its canonical benchmark flags.
+RUN set -e; \
+    cd /tmp; \
+    LLOV=/home/llvm/Work/LLOV; \
+    FLAGS="-Xclang -disable-O0-optnone -mllvm -polly-process-unprofitable -mllvm -polly-invariant-load-hoisting -mllvm -polly-ignore-parameter-bounds -mllvm -polly-dependences-on-demand -g"; \
+    printf 'void k(double *A, int N){\n#pragma omp parallel for\nfor(int i=0;i<N-1;i++) A[i]=A[i+1]*2.0;\n}\n' > race.cc; \
+    printf 'void k(double *A, int N){\n#pragma omp parallel for\nfor(int i=0;i<N;i++) A[i]=A[i]*2.0;\n}\n' > free.cc; \
+    $LLOV/bin/clang++ -Xclang -load -Xclang $LLOV/lib/OpenMPVerify.so -fopenmp -std=c++17 $FLAGS -c race.cc -o /dev/null 2>&1 | grep -q "Data Race detected"; \
+    $LLOV/bin/clang++ -Xclang -load -Xclang $LLOV/lib/OpenMPVerify.so -fopenmp -std=c++17 $FLAGS -c free.cc -o /dev/null 2>&1 | grep -q "Data Race Free"; \
+    python3.8 -c "import yaml"; \
+    rm -f race.cc free.cc; \
+    echo "llov self-test passed"
+
+WORKDIR /workspace

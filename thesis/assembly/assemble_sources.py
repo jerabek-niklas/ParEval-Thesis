@@ -120,10 +120,12 @@ def driver_paths(record: dict[str, Any]) -> dict[str, Any]:
         parallelism_model, ""
     )
 
+    # Store POSIX (forward-slash) paths so the JSONL is portable: it may be
+    # written on Windows and consumed in the Linux analysis container.
     return {
-        "benchmark_dir": str(benchmark_dir),
+        "benchmark_dir": benchmark_dir.as_posix(),
         "benchmark_dir_exists": (REPO_ROOT / benchmark_dir).is_dir(),
-        "model_driver": str(model_driver),
+        "model_driver": model_driver.as_posix(),
         "model_driver_exists": (REPO_ROOT / model_driver).is_file(),
     }
 
@@ -218,7 +220,7 @@ def assemble_model(
             source_path.write_text(content, encoding="utf-8")
 
             entry["assembled"] = True
-            entry["source_path"] = str(source_path)
+            entry["source_path"] = source_path.as_posix()
             entry["cleaning"] = result.metadata.to_dict()
             entry["drivers"] = driver_paths(record)
 

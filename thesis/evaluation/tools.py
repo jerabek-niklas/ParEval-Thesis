@@ -13,6 +13,7 @@ reproducible from the JSONL alone.
 
 from __future__ import annotations
 
+import json
 import re
 import tempfile
 import xml.etree.ElementTree as ET
@@ -30,6 +31,56 @@ from thesis.evaluation.framework import (
     register_tool,
     run_command,
 )
+
+# Problem size the drivers require via -DDRIVER_PROBLEM_SIZE. The value is
+# irrelevant to static analysis (it only sizes the benchmark data), but
+# utilities.hpp #errors out when it is undefined, so every tool that parses a
+# real translation unit must define it (mirrors the compile stage).
+DRIVER_PROBLEM_SIZE_DEFINE = "DRIVER_PROBLEM_SIZE=(1<<8)"
+
+
+def mpi_include_flags() -> list[str]:
+    """`-I` flags for the MPI headers.
+
+    The compile stage uses the mpicxx wrapper, which injects these
+    automatically. clang-tidy and cppcheck parse with clang / their own
+    front-end instead, so for MPI samples they need the MPI include dirs
+    explicitly, otherwise <mpi.h> (pulled in by utilities.hpp) is not found.
+    Uses OpenMPI's `--showme:incdirs` (the containers ship OpenMPI); returns
+    empty if no MPI compiler wrapper is found or it is not OpenMPI, in which
+    case the tool degrades to a partial parse rather than crashing. Tries
+    mpicxx first (main toolchain image), then mpic++ (PARCOACH image).
+    """
+    wrapper = next(
+        (w for w in ("mpicxx", "mpic++") if binary_available(w)), None
+    )
+
+    if wrapper is None:
+        return []
+
+    result = run_command([wrapper, "--showme:incdirs"], timeout=15.0)
+
+    if result.returncode != 0 or not result.stdout.strip():
+        return []
+
+    flags: list[str] = []
+    for include_dir in result.stdout.split():
+        flags += ["-I", include_dir]
+
+    return flags
+
+
+def findings_in_model_file(findings: list[Finding], model_file: str) -> list[Finding]:
+    """Keep only findings located in the model's generated-code.hpp.
+
+    The analyzers parse the full translation unit (the benchmark's cpu.cc,
+    which includes the assembled generated-code.hpp), so their raw output
+    also carries diagnostics from the driver, benchmark and helper headers.
+    Only the model's own file is attributable to the LLM; everything else is
+    dropped (still recoverable from the persisted raw output).
+    """
+    return [f for f in findings if f.file == model_file]
+
 
 # gcc/clang diagnostic line:
 #   file:line:col: severity: message [-Wflag]
@@ -114,13 +165,12 @@ class CompilerDiagnosticTool:
 
         with tempfile.TemporaryDirectory() as tmp:
             exec_path = str(Path(tmp) / "a.out")
-            problem_size = '(1<<8)'
 
             argv = config.base_command(
                 sources=[str(model_driver), str(benchmark_driver)],
                 output_path=exec_path,
                 include_dirs=context.include_dirs(sample),
-                extra_flags=[f'-DDRIVER_PROBLEM_SIZE={problem_size}'],
+                extra_flags=[f'-D{DRIVER_PROBLEM_SIZE_DEFINE}'],
             )
 
             result = run_command(argv, timeout=self.build_timeout)
@@ -190,7 +240,14 @@ CPPCHECK_BLOCKING_SEVERITIES = {"error"}
 
 
 class CppcheckTool:
-    """Run cppcheck and parse its XML (version 2) output."""
+    """Run cppcheck over the full translation unit and parse its XML output.
+
+    cppcheck analyzes the benchmark's cpu.cc (which includes utilities.hpp,
+    baseline.hpp and the assembled generated-code.hpp) with the same defines
+    and include paths as the compile stage, so it sees real types and context
+    instead of an isolated fragment. Its raw output then contains diagnostics
+    from the whole TU; only those located in the model file are kept.
+    """
 
     name = "cppcheck"
 
@@ -201,12 +258,26 @@ class CppcheckTool:
         return binary_available("cppcheck")
 
     def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
+        config = get_build_config(sample.execution_model, context.primary_compiler)
+
+        benchmark_driver = sample.benchmark_dir / "cpu.cc"
+
+        if not benchmark_driver.exists():
+            return ToolResult(
+                tool=self.name,
+                ran=False,
+                exit_code=None,
+                duration_seconds=0.0,
+                error=f"missing benchmark driver: {benchmark_driver}",
+            )
+
         include_flags: list[str] = []
 
         for include_dir in context.include_dirs(sample):
             include_flags += ["-I", include_dir]
 
-        config = get_build_config(sample.execution_model, context.primary_compiler)
+        if sample.execution_model == "mpi":
+            include_flags += mpi_include_flags()
 
         argv = [
             "cppcheck",
@@ -215,16 +286,19 @@ class CppcheckTool:
             "--language=c++",
             "--std=c++17",
             f"-D{config.macro}",
+            f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
             "--xml",
             "--xml-version=2",
             *include_flags,
-            str(sample.source_path),
+            str(benchmark_driver),
         ]
 
         result = run_command(argv, timeout=self.timeout)
 
-        # cppcheck writes results as XML to stderr.
-        findings = self._parse_xml(result.stderr)
+        # cppcheck writes results as XML to stderr; keep only model-file findings.
+        findings = findings_in_model_file(
+            self._parse_xml(result.stderr), sample.source_path.name
+        )
 
         return ToolResult(
             tool=self.name,
@@ -301,14 +375,32 @@ CLANG_TIDY_CHECKS = ",".join(
         "bugprone-*",
         "concurrency-*",
         "clang-analyzer-*",
+        # The Clang SA MPI checker is opt-in. On this clang-tidy (LLVM 18) the
+        # clang-analyzer-* glob already runs opt-in checkers, but we name it
+        # explicitly so the MPI static-analysis method is deliberate and
+        # greppable, and stays enabled regardless of how a given clang-tidy
+        # version treats the glob. This is the path-sensitive MPI method,
+        # distinct from the AST-based mpi-* checks below and from PARCOACH's
+        # dataflow analysis.
+        "clang-analyzer-optin.mpi.MPI-Checker",
         "mpi-*",
         "openmp-*",
         "performance-*",
         "cppcoreguidelines-narrowing-conversions",
         "misc-*",
-        # noisy/irrelevant misc checks for short benchmark kernels
-        "-misc-include-cleaner",
-        "-misc-use-anonymous-namespace",
+        # Excluded checks: systematic false positives that fire on (nearly)
+        # every sample and would poison the repair loop. Documented in full in
+        # thesis/docs/static-analysis-filtering.md.
+        "-misc-include-cleaner",  # IWYU-style noise on short kernels
+        "-misc-use-anonymous-namespace",  # irrelevant for header-embedded code
+        # The assembled model code is, by scaffold design, always a function
+        # definition inside a .hpp that cpu.cc includes -> fires 100% of the time.
+        "-misc-definitions-in-headers",
+        # OpenMPI macros (MPI_COMM_WORLD, MPI_DOUBLE, ...) expand to C-style
+        # void* casts inside <mpi.h>; the diagnostic is attributed to the
+        # model's line although the cast lives in the MPI header -> fires on
+        # essentially all MPI samples.
+        "-bugprone-casting-through-void",
     ]
 )
 
@@ -364,19 +456,35 @@ class ClangTidyTool:
     def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
         config = get_build_config(sample.execution_model, context.primary_compiler)
 
-        compile_flags = ["-std=c++17", f"-D{config.macro}"]
+        benchmark_driver = sample.benchmark_dir / "cpu.cc"
+
+        if not benchmark_driver.exists():
+            return ToolResult(
+                tool=self.name,
+                ran=False,
+                exit_code=None,
+                duration_seconds=0.0,
+                error=f"missing benchmark driver: {benchmark_driver}",
+            )
+
+        # clang-tidy parses with clang directly, so reproduce the compiler's
+        # translation unit: analyze the benchmark's cpu.cc (which includes
+        # utilities.hpp, baseline.hpp and the assembled generated-code.hpp)
+        # with the same defines and include paths the compile stage uses. The
+        # assembled generated-code.hpp resolves via the -I on its source dir,
+        # exactly as in the real build. Findings are attributed back to the
+        # model file afterwards.
+        compile_flags = [
+            "-std=c++17",
+            f"-D{config.macro}",
+            f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
+        ]
 
         if config.needs_openmp:
             compile_flags.append("-fopenmp")
 
-        # The assembled generated-code.hpp is never compiled standalone: the
-        # benchmark's cpu.cc includes utilities.hpp (which defines NO_INLINE
-        # and pulls in the std headers) immediately before it. Reproduce that
-        # context with a forced include so clang-tidy parses the same TU the
-        # compiler sees; without it every sample fails to parse.
-        utilities_header = context.drivers_cpp_dir / "utilities.hpp"
-        if utilities_header.exists():
-            compile_flags += ["-include", str(utilities_header)]
+        if sample.execution_model == "mpi":
+            compile_flags += mpi_include_flags()
 
         for include_dir in context.include_dirs(sample):
             compile_flags += ["-I", include_dir]
@@ -388,9 +496,12 @@ class ClangTidyTool:
                 "clang-tidy",
                 f"--checks={CLANG_TIDY_CHECKS}",
                 f"--export-fixes={fixes_path}",
-                # only surface diagnostics from the model's own file
-                f"--header-filter=^$",
-                str(sample.source_path),
+                # cpu.cc is the main file, so its diagnostics are exported
+                # regardless; this limits exported *header* diagnostics to the
+                # model file (driver/benchmark headers stay out). _parse_fixes
+                # then attributes strictly to generated-code.hpp.
+                "--header-filter=generated-code\\.hpp$",
+                str(benchmark_driver),
                 "--",
                 *compile_flags,
             ]
@@ -479,7 +590,576 @@ class ClangTidyTool:
         return findings
 
 
+# Infer severity -> normalized severity. Infer marks genuine C/C++ defects
+# (null-deref, resource/memory leak, uninitialized value, ...) as ERROR; those
+# are the blocking subset, consistent with how the other tools gate.
+INFER_SEVERITY = {
+    "ERROR": "error",
+    "WARNING": "warning",
+    "INFO": "info",
+    "ADVICE": "info",
+    "LIKE": "info",
+}
+
+
+class InferTool:
+    """Run Meta Infer over the full translation unit and parse report.json.
+
+    Infer provides a detection method (interprocedural analysis via separation
+    logic / bi-abduction: null dereference, resource/memory leaks,
+    uninitialized values, ...) that is independent of the AST/dataflow checks
+    in clang-tidy and cppcheck, so it strengthens the generic-C++ redundancy
+    tier. It captures the same TU as the compile stage (`cpu.cc` including the
+    assembled generated-code.hpp) with its own bundled clang, then findings are
+    attributed back to the model file.
+    """
+
+    name = "infer"
+
+    def __init__(self, primary_compiler: str = "g++", timeout: float = 300.0):
+        # Infer uses its own bundled clang for capture regardless of the
+        # primary compiler; the parameter is kept for a uniform constructor.
+        self.timeout = timeout
+
+    def is_available(self) -> bool:
+        return binary_available("infer")
+
+    def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
+        config = get_build_config(sample.execution_model, context.primary_compiler)
+
+        benchmark_driver = sample.benchmark_dir / "cpu.cc"
+
+        if not benchmark_driver.exists():
+            return ToolResult(
+                tool=self.name,
+                ran=False,
+                exit_code=None,
+                duration_seconds=0.0,
+                error=f"missing benchmark driver: {benchmark_driver}",
+            )
+
+        compile_flags = [
+            "-std=c++17",
+            f"-D{config.macro}",
+            f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
+        ]
+
+        if config.needs_openmp:
+            compile_flags.append("-fopenmp")
+
+        if sample.execution_model == "mpi":
+            compile_flags += mpi_include_flags()
+
+        for include_dir in context.include_dirs(sample):
+            compile_flags += ["-I", include_dir]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / "infer-out"
+
+            # `infer run` = capture (its clang parses the TU) + analyze.
+            # Compile-only (`-c`); no binary is produced or needed.
+            #
+            # --headers is REQUIRED: the model code lives in generated-code.hpp,
+            # an included header. Without it Infer analyzes only the .cc it
+            # captures (cpu.cc) and silently skips all header code, so it could
+            # never report a finding in the model file. Diagnostics in the other
+            # headers (utilities.hpp, baseline.hpp, system) are attributed away
+            # by findings_in_model_file below.
+            argv = [
+                "infer",
+                "run",
+                "--headers",
+                "-o",
+                str(out_dir),
+                "--keep-going",
+                "--",
+                "clang++",
+                "-c",
+                str(benchmark_driver),
+                *compile_flags,
+            ]
+
+            result = run_command(argv, timeout=self.timeout)
+
+            findings = findings_in_model_file(
+                self._parse_report(out_dir / "report.json"),
+                sample.source_path.name,
+            )
+
+        return ToolResult(
+            tool=self.name,
+            ran=True,
+            exit_code=result.returncode,
+            duration_seconds=result.duration_seconds,
+            findings=findings,
+            raw_stdout=result.stdout,
+            raw_stderr=result.stderr,
+        )
+
+    def _parse_report(self, report_path: Path) -> list[Finding]:
+        if not report_path.exists():
+            return []
+
+        try:
+            data = json.loads(report_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return []
+
+        if not isinstance(data, list):
+            return []
+
+        findings: list[Finding] = []
+
+        for item in data:
+            infer_severity = item.get("severity", "WARNING")
+
+            findings.append(
+                Finding(
+                    tool=self.name,
+                    check_id=item.get("bug_type", "unknown"),
+                    severity=INFER_SEVERITY.get(infer_severity, "warning"),
+                    message=item.get("qualifier", ""),
+                    file=Path(item.get("file", "")).name or None,
+                    line=item.get("line") or None,
+                    column=item.get("column") or None,
+                    blocking=infer_severity == "ERROR",
+                )
+            )
+
+        return findings
+
+
+# ---------------------------------------------------------------------------
+# PARCOACH (MPI collective verification on LLVM IR)
+# ---------------------------------------------------------------------------
+
+# Attribute tokens that may precede the return type in an LLVM `declare`.
+LLVM_DECLARE_ATTR_TOKENS = {
+    "dso_local", "noundef", "signext", "zeroext", "inreg", "nonnull",
+    "dereferenceable", "align", "nocapture", "readonly", "writeonly",
+    "noalias", "returned", "immarg", "nofree", "captures", "range",
+}
+
+LLVM_DECLARE_RE = re.compile(r"^declare\s+(.*?)\s*@([\w.$-]+)\((.*)$")
+
+
+def stub_external_declares(ll_text: str) -> str:
+    """Rewrite LLVM textual IR: give trivial bodies to external declarations.
+
+    PARCOACH 2.4.1 hard-crashes (std::out_of_range in its ExtInfo external-
+    function model) on declarations it does not know — reliably triggered by
+    the C++ allocation/throw symbols (operator new/delete, __throw_*) that any
+    std::vector kernel emits. Turning those declares into definitions with
+    trivial bodies removes the ExtInfo lookup entirely.
+
+    Kept as declarations (must NOT be stubbed):
+      - MPI_* / PMPI_*: the subject of the analysis (PARCOACH models these),
+      - llvm.* intrinsics: cannot be given bodies.
+
+    Safety: stub bodies contain no MPI calls, so they cannot add or mask
+    collective-ordering errors; only alias precision may degrade.
+    """
+    out: list[str] = []
+
+    for line in ll_text.splitlines(keepends=True):
+        match = LLVM_DECLARE_RE.match(line.rstrip())
+
+        if not match:
+            out.append(line)
+            continue
+
+        ret_part, name, rest = match.groups()
+
+        if name.startswith(("llvm.", "MPI_", "PMPI_")):
+            out.append(line)
+            continue
+
+        tokens = [
+            t for t in ret_part.split()
+            if t.split("(")[0] not in LLVM_DECLARE_ATTR_TOKENS
+        ]
+        return_type = " ".join(tokens) if tokens else "void"
+
+        # find the matching close of the parameter list
+        depth = 1
+        end = 0
+        for end, char in enumerate(rest):
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+
+        params = rest[:end]
+        body = "  ret void" if return_type == "void" else f"  ret {return_type} undef"
+        out.append(f"define {return_type} @{name}({params}) {{\n{body}\n}}\n")
+
+    return "".join(out)
+
+
+# PARCOACH warning line, e.g.:
+#   PARCOACH: /path/generated-code.hpp: warning: MPI_Bcast line 8 possibly
+#   not called by all processes because of conditional(s) line(s)  7
+#   (/path/generated-code.hpp) (Call Ordering Error)
+PARCOACH_WARNING_RE = re.compile(
+    r"PARCOACH:\s+(?P<file>[^:]+):\s+warning:\s+"
+    r"(?P<collective>\w+)\s+line\s+(?P<line>\d+)\s+(?P<message>.*)"
+)
+
+
+def parse_parcoach_output(output: str) -> list[Finding]:
+    findings: list[Finding] = []
+
+    for raw_line in output.splitlines():
+        match = PARCOACH_WARNING_RE.search(raw_line)
+
+        if not match:
+            continue
+
+        message = f"{match.group('collective')} {match.group('message')}".strip()
+
+        findings.append(
+            Finding(
+                tool="parcoach",
+                check_id="parcoach-collective-ordering",
+                severity="warning",
+                message=message,
+                file=Path(match.group("file")).name,
+                line=int(match.group("line")),
+                column=None,
+                # A collective possibly not reached by all ranks is a genuine
+                # MPI correctness defect class (deadlock risk) — gate on it.
+                blocking=True,
+            )
+        )
+
+    return findings
+
+
+class ParcoachTool:
+    """Run PARCOACH's static MPI collective verification on the model kernel.
+
+    Runs in the dedicated PARCOACH container (LLVM 15), not in the main
+    toolchain image — invoke run_static_analysis.py inside
+    registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1 with
+    `--tools parcoach`.
+
+    Pipeline per sample (MPI samples only):
+      1. Build a REDUCED translation unit: <vector> + utilities.hpp +
+         generated-code.hpp — without the benchmark driver. The driver's
+         C++ machinery crashes/hangs PARCOACH and is irrelevant to the
+         collectives in the model function.
+      2. Compile with the container's clang-15 using -fno-exceptions
+         -fno-rtti (removes exception landingpads that segfault PARCOACH's
+         Andersen AA) and -DOMPI_SKIP_MPICXX (drops OpenMPI C++ bindings it
+         cannot model).
+      3. stub_external_declares(): trivial bodies for non-MPI externals
+         (works around PARCOACH's fatal ExtInfo lookup).
+      4. parcoach <stubbed.ll>, parse warnings, attribute to the model file.
+    """
+
+    name = "parcoach"
+
+    def __init__(self, timeout: float = 180.0):
+        self.timeout = timeout
+
+    def _clang(self) -> str | None:
+        import shutil
+
+        found = shutil.which("clang")
+        if found:
+            return found
+
+        fallback = Path("/usr/lib/llvm-15/bin/clang")
+        return str(fallback) if fallback.exists() else None
+
+    def is_available(self) -> bool:
+        return binary_available("parcoach") and self._clang() is not None
+
+    def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
+        if sample.execution_model != "mpi":
+            return ToolResult(
+                tool=self.name,
+                ran=False,
+                exit_code=None,
+                duration_seconds=0.0,
+                error=(
+                    "not applicable: parcoach verifies MPI collectives "
+                    f"(execution model is '{sample.execution_model}')"
+                ),
+            )
+
+        clang = self._clang()
+
+        include_flags: list[str] = []
+        for include_dir in context.include_dirs(sample):
+            include_flags += ["-I", include_dir]
+
+        include_flags += mpi_include_flags()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            reduced_tu = Path(tmp) / "reduced.cc"
+            reduced_tu.write_text(
+                '#include <vector>\n'
+                '#include "utilities.hpp"\n'
+                '#include "generated-code.hpp"\n',
+                encoding="utf-8",
+            )
+
+            ll_path = Path(tmp) / "kernel.ll"
+
+            compile_argv = [
+                clang,
+                "-std=c++17",
+                "-fno-exceptions",
+                "-fno-rtti",
+                "-DOMPI_SKIP_MPICXX",
+                "-DUSE_MPI",
+                f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
+                "-g",
+                "-S",
+                "-emit-llvm",
+                "-c",
+                str(reduced_tu),
+                *include_flags,
+                "-o",
+                str(ll_path),
+            ]
+
+            compile_result = run_command(compile_argv, timeout=self.timeout)
+
+            if compile_result.returncode != 0 or not ll_path.exists():
+                return ToolResult(
+                    tool=self.name,
+                    ran=True,
+                    exit_code=compile_result.returncode,
+                    duration_seconds=compile_result.duration_seconds,
+                    raw_stdout=compile_result.stdout,
+                    raw_stderr=compile_result.stderr,
+                    error="clang -emit-llvm failed for the reduced TU",
+                )
+
+            stubbed_path = Path(tmp) / "kernel.stubbed.ll"
+            stubbed_path.write_text(
+                stub_external_declares(ll_path.read_text(encoding="utf-8")),
+                encoding="utf-8",
+            )
+
+            result = run_command(
+                ["parcoach", str(stubbed_path)], timeout=self.timeout
+            )
+
+        findings = findings_in_model_file(
+            parse_parcoach_output(result.stdout + "\n" + result.stderr),
+            sample.source_path.name,
+        )
+
+        error = None
+        if result.timed_out:
+            error = "parcoach timed out"
+        elif result.returncode != 0:
+            # PARCOACH crashing must never look like a clean sample.
+            error = f"parcoach exited with {result.returncode}"
+
+        return ToolResult(
+            tool=self.name,
+            ran=True,
+            exit_code=result.returncode,
+            duration_seconds=result.duration_seconds,
+            findings=findings,
+            raw_stdout=result.stdout,
+            raw_stderr=result.stderr,
+            error=error,
+        )
+
+
+# ---------------------------------------------------------------------------
+# LLOV (static OpenMP data-race detection, polyhedral analysis)
+# ---------------------------------------------------------------------------
+
+# Canonical LLOV invocation flags, taken from the benchmark configuration
+# shipped inside the LLOV artifact image (OmpSCR llov.cf.mk, OSCR_CPP_REPORT).
+# Without them the pass either reports a race for everything (-O0 optnone
+# blocks Polly) or analyzes nothing (-O1/-O2 pre-transform the region).
+LLOV_ANALYSIS_FLAGS = (
+    "-Xclang", "-disable-O0-optnone",
+    "-mllvm", "-polly-process-unprofitable",
+    "-mllvm", "-polly-invariant-load-hoisting",
+    "-mllvm", "-polly-ignore-parameter-bounds",
+    "-mllvm", "-polly-dependences-on-demand",
+    "-g",
+)
+
+# LLOV verdict lines followed by location lines, e.g.:
+#   Data Race detected.
+#   Source : /path/file.hpp:13
+#   Sink : /path/file.hpp:13
+# or
+#   Region Not Analyzed by the verifier. Loop -> <unnamed loop>
+#   File : /path/file.hpp:13
+# ("Region is Data Race Free." blocks produce no finding.)
+LLOV_LOCATION_RE = re.compile(
+    r"^\s*(?:Source|Sink|File)\s*:\s*(?P<file>.+?):(?P<line>\d+)\s*$"
+)
+
+
+def parse_llov_output(output: str) -> list[Finding]:
+    """Parse LLOV's verdict blocks into findings.
+
+    Emits one finding per 'Data Race detected.' block (blocking) and one
+    info finding per 'Region Not Analyzed' block — the latter keeps LLOV's
+    honest "could not analyze" verdict visible per sample instead of
+    conflating it with "race free".
+    """
+    findings: list[Finding] = []
+    pending: Finding | None = None
+
+    def flush() -> None:
+        nonlocal pending
+        if pending is not None:
+            findings.append(pending)
+            pending = None
+
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+
+        if line.startswith("Data Race detected"):
+            flush()
+            pending = Finding(
+                tool="llov",
+                check_id="llov-data-race",
+                severity="warning",
+                message="Data race detected (LLOV polyhedral analysis)",
+                blocking=True,
+            )
+        elif line.startswith("Region Not Analyzed"):
+            flush()
+            pending = Finding(
+                tool="llov",
+                check_id="llov-region-not-analyzed",
+                severity="info",
+                message="OpenMP region not analyzable by LLOV (no race verdict)",
+                blocking=False,
+            )
+        elif line.startswith("Region is Data Race Free"):
+            flush()
+        else:
+            match = LLOV_LOCATION_RE.match(line)
+            if match and pending is not None and pending.file is None:
+                pending.file = Path(match.group("file")).name
+                pending.line = int(match.group("line"))
+
+    flush()
+    return findings
+
+
+class LLOVTool:
+    """Run LLOV's static OpenMP data-race verification on the model kernel.
+
+    Runs in the dedicated LLOV container (LLOV artifact image + Python 3.8,
+    see docker/Dockerfile.llov), not in the main toolchain image — invoke
+    run_static_analysis.py inside `pareval-llov` with `--tools llov`.
+
+    LLOV is a compile-time LLVM pass: the analysis happens during a plugin
+    compile of a REDUCED translation unit (<vector> + utilities.hpp +
+    generated-code.hpp, no benchmark driver) with LLOV's own clang 7.1 and
+    the canonical Polly flags from its benchmark configuration. OpenMP
+    samples only; verdicts: race (blocking) / not-analyzed (info) / race
+    free (no finding).
+    """
+
+    name = "llov"
+
+    def __init__(self, llov_home: str = "/home/llvm/Work/LLOV", timeout: float = 180.0):
+        import os
+
+        self.llov_home = Path(os.environ.get("LLOV_HOME", llov_home))
+        self.timeout = timeout
+
+    @property
+    def _clang(self) -> Path:
+        return self.llov_home / "bin" / "clang++"
+
+    @property
+    def _plugin(self) -> Path:
+        return self.llov_home / "lib" / "OpenMPVerify.so"
+
+    def is_available(self) -> bool:
+        return self._clang.exists() and self._plugin.exists()
+
+    def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
+        if sample.execution_model != "omp":
+            return ToolResult(
+                tool=self.name,
+                ran=False,
+                exit_code=None,
+                duration_seconds=0.0,
+                error=(
+                    "not applicable: llov verifies OpenMP data races "
+                    f"(execution model is '{sample.execution_model}')"
+                ),
+            )
+
+        include_flags: list[str] = []
+        for include_dir in context.include_dirs(sample):
+            include_flags += ["-I", include_dir]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            reduced_tu = Path(tmp) / "reduced.cc"
+            reduced_tu.write_text(
+                '#include <vector>\n'
+                '#include "utilities.hpp"\n'
+                '#include "generated-code.hpp"\n',
+                encoding="utf-8",
+            )
+
+            argv = [
+                str(self._clang),
+                "-Xclang", "-load", "-Xclang", str(self._plugin),
+                "-fopenmp",
+                "-std=c++17",
+                *LLOV_ANALYSIS_FLAGS,
+                "-DUSE_OMP",
+                f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
+                *include_flags,
+                "-c",
+                str(reduced_tu),
+                "-o",
+                str(Path(tmp) / "out.o"),
+            ]
+
+            result = run_command(argv, timeout=self.timeout)
+
+        findings = findings_in_model_file(
+            parse_llov_output(result.stdout + "\n" + result.stderr),
+            sample.source_path.name,
+        )
+
+        error = None
+        if result.timed_out:
+            error = "llov timed out"
+        elif result.returncode != 0:
+            # A failed plugin compile means no analysis happened — must not
+            # be mistaken for a race-free sample.
+            error = f"llov clang exited with {result.returncode}"
+
+        return ToolResult(
+            tool=self.name,
+            ran=True,
+            exit_code=result.returncode,
+            duration_seconds=result.duration_seconds,
+            findings=findings,
+            raw_stdout=result.stdout,
+            raw_stderr=result.stderr,
+            error=error,
+        )
+
+
 def register_default_tools(primary_compiler: str = "g++") -> None:
     register_tool(CompilerDiagnosticTool(primary_compiler=primary_compiler))
     register_tool(CppcheckTool())
     register_tool(ClangTidyTool(primary_compiler=primary_compiler))
+    register_tool(InferTool(primary_compiler=primary_compiler))
+    register_tool(ParcoachTool())
+    register_tool(LLOVTool())

@@ -4,6 +4,7 @@
 #   - gcc/g++ (OpenMP, AddressSanitizer, ThreadSanitizer, UBSan)
 #   - clang / clang-tidy / clang-tools (Clang Static Analyzer)
 #   - cppcheck
+#   - Meta Infer (separation-logic static analysis)
 #   - OpenMPI (mpicxx, mpirun)
 #   - Python 3 + thesis pipeline dependencies
 #
@@ -13,8 +14,7 @@
 # Run (repo mounted, results land directly in the repo):
 #   docker run --rm -it -v "$(pwd)":/workspace --env-file .env pareval-thesis
 #
-# Tool versions are recorded at build time in /opt/toolchain-versions.txt
-# (cite these in the thesis methodology chapter).
+# Tool versions are recorded at build time in /opt/toolchain-versions.txt (for methodology chapter).
 
 FROM ubuntu:24.04
 
@@ -35,7 +35,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         time \
         ca-certificates \
+        curl \
+        xz-utils \
     && rm -rf /var/lib/apt/lists/*
+
+# Meta Infer (static analysis via separation logic / bi-abduction). The 1.1.0
+# release binary bundles its own clang and runs on Ubuntu 24.04; it adds a
+# detection method independent of clang-tidy/cppcheck (interprocedural
+# null-deref, resource/memory leaks, uninitialized values). Verified that its
+# bundled clang parses modern libstdc++ + <mpi.h>.
+ARG INFER_VERSION=1.1.0
+RUN curl -sSL "https://github.com/facebook/infer/releases/download/v${INFER_VERSION}/infer-linux64-v${INFER_VERSION}.tar.xz" \
+        | tar -C /opt -xJ \
+    && ln -s "/opt/infer-linux64-v${INFER_VERSION}/bin/infer" /usr/local/bin/infer \
+    && infer --version
 
 # OpenMPI inside containers: runs as root, and benchmark rank counts may
 # exceed available cores (oversubscribe).
@@ -49,7 +62,7 @@ ENV OMPI_ALLOW_RUN_AS_ROOT=1 \
 COPY thesis/requirements.txt /tmp/thesis-requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/thesis-requirements.txt
 
-# Record exact tool versions for reproducibility / methodology chapter.
+# Exact tool versions for reproducibility / methodology chapter.
 RUN { \
         echo "== toolchain versions ($(date -u +%Y-%m-%dT%H:%M:%SZ)) =="; \
         gcc --version | head -1; \
@@ -58,6 +71,7 @@ RUN { \
         clang-tidy --version | grep -i version; \
         cppcheck --version; \
         mpirun --version | head -1; \
+        infer --version | head -1; \
         python3 --version; \
     } > /opt/toolchain-versions.txt \
     && cat /opt/toolchain-versions.txt
@@ -76,7 +90,11 @@ RUN set -e; \
     g++ -std=c++17 -fsanitize=address t.cc -o t_asan && ./t_asan; \
     clang-tidy --checks='bugprone-*' t.cc -- -std=c++17 > /dev/null; \
     cppcheck --enable=warning t.cc > /dev/null 2>&1; \
-    rm -f t.cc o.cc m.cc t_serial t_omp t_mpi t_tsan t_asan; \
+    printf 'int deref(int*p){return *p;}\nint hf(){int*q=0;return deref(q);}\n' > ih.hpp; \
+    printf '#include "ih.hpp"\n' > ic.cc; \
+    infer run --headers -o /tmp/infer-out --keep-going -- clang++ -std=c++17 -c ic.cc > /dev/null 2>&1; \
+    grep -q NULL_DEREFERENCE /tmp/infer-out/report.json; \
+    rm -rf t.cc o.cc m.cc ih.hpp ic.cc t_serial t_omp t_mpi t_tsan t_asan infer-out; \
     echo "toolchain self-test passed"
 
 WORKDIR /workspace

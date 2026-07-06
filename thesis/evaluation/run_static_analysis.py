@@ -19,6 +19,7 @@ a partial toolchain still produces partial results instead of crashing.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -60,6 +61,35 @@ def resolve_tool_names(config: dict[str, Any], override: list[str] | None) -> li
     return stage.get("tools", ["compiler", "cppcheck"])
 
 
+def load_existing_records(output_path: Path) -> dict[str, dict[str, Any]]:
+    """Load prior static_analysis.jsonl records keyed by sample_id.
+
+    Re-runs merge per tool instead of discarding the file: the pipeline runs
+    different tool subsets in different containers (main toolchain image vs.
+    the PARCOACH image), and each invocation must not destroy the results of
+    the other.
+    """
+    records: dict[str, dict[str, Any]] = {}
+
+    if not output_path.exists():
+        return records
+
+    with output_path.open("r", encoding="utf-8") as file:
+        for line in file:
+            if line.strip():
+                entry = json.loads(line)
+                records[entry["sample_id"]] = entry
+
+    return records
+
+
+def record_has_blocking(record: dict[str, Any]) -> bool:
+    return any(
+        tool_data.get("num_blocking", 0) > 0
+        for tool_data in record.get("tools", {}).values()
+    )
+
+
 def run_model(
     context: framework.EvaluationContext,
     intermediate_dir: Path,
@@ -69,8 +99,7 @@ def run_model(
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / "static_analysis.jsonl"
 
-    if output_path.exists():
-        output_path.unlink()
+    records = load_existing_records(output_path)
 
     available_tools = []
     for name in tool_names:
@@ -90,17 +119,20 @@ def run_model(
     ):
         samples_seen += 1
 
-        record: dict[str, Any] = {
-            "schema_version": STATIC_ANALYSIS_SCHEMA_VERSION,
-            "run_id": run_id,
-            "model_id": model_id,
-            "sample_id": sample.sample_id,
-            "execution_model": sample.execution_model,
-            "created_at_utc": common.utc_now_iso(),
-            "tools": {},
-        }
+        record = records.get(sample.sample_id)
 
-        sample_has_blocking = False
+        if record is None:
+            record = {
+                "schema_version": STATIC_ANALYSIS_SCHEMA_VERSION,
+                "run_id": run_id,
+                "model_id": model_id,
+                "sample_id": sample.sample_id,
+                "execution_model": sample.execution_model,
+                "tools": {},
+            }
+            records[sample.sample_id] = record
+
+        record["created_at_utc"] = common.utc_now_iso()
 
         for tool in available_tools:
             result = tool.run(sample, context)
@@ -109,14 +141,15 @@ def run_model(
             per_tool_findings[tool.name] += len(result.findings)
             per_tool_blocking[tool.name] += len(result.blocking_findings)
 
-            if result.blocking_findings:
-                sample_has_blocking = True
-
-        record["has_blocking_findings"] = sample_has_blocking
-        if sample_has_blocking:
+        # Recompute over ALL tools in the record (merged across invocations).
+        record["has_blocking_findings"] = record_has_blocking(record)
+        if record["has_blocking_findings"]:
             samples_with_blocking += 1
 
-        common.append_jsonl(output_path, record)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as file:
+        for entry in records.values():
+            file.write(json.dumps(entry) + "\n")
 
     summary = {
         "model_id": model_id,
