@@ -1,0 +1,5 @@
+== llov container (pareval-llov, base utpalbora/llvm:llov) ==
+clang: /home/llvm/Work/LLOV/bin/clang++
+clang version 7.1.0  (git@github.com-utpalbora:utpalbora/LLVMOMPVerify 93321be55c75b340df54c9a208d52e8ec5113dab)
+plugin: /home/llvm/Work/LLOV/lib/OpenMPVerify.so
+python: 3.8.0

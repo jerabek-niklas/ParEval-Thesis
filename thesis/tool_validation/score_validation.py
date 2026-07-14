@@ -30,7 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from thesis.tool_validation.cwe_map import matches  # noqa: E402
+from thesis.tool_validation.cwe_map import matches, matches_strict  # noqa: E402
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
@@ -89,7 +89,8 @@ def usable(row: dict) -> bool:
 def score(rows: List[dict]) -> List[dict]:
     """Per (suite, tool) confusion counts and metrics."""
     buckets: Dict[tuple, dict] = defaultdict(
-        lambda: {"tp": 0, "fn": 0, "fp": 0, "tn": 0, "skipped": 0, "errors": 0}
+        lambda: {"tp": 0, "fn": 0, "fp": 0, "tn": 0, "tp_strict": 0,
+                 "skipped": 0, "errors": 0}
     )
 
     for row in rows:
@@ -108,6 +109,13 @@ def score(rows: List[dict]) -> List[dict]:
 
         if row["label"] == "bad":
             bucket["tp" if found else "fn"] += 1
+
+            # ADDITIVE strict view (category-aware TP; == lax for juliet/drb,
+            # see cwe_map.matches_strict). Existing columns stay untouched.
+            if matches_strict(
+                row["suite"], row["classes"], row["tool"], row.get("findings", [])
+            ):
+                bucket["tp_strict"] += 1
         else:
             bucket["fp" if found else "tn"] += 1
 
@@ -119,6 +127,9 @@ def score(rows: List[dict]) -> List[dict]:
         fpr = fp / (fp + tn) if fp + tn else 0.0
         precision = tp / (tp + fp) if tp + fp else 0.0
         f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+
+        tp_strict = b["tp_strict"]
+        recall_strict = tp_strict / (tp + fn) if tp + fn else 0.0
 
         table.append(
             {
@@ -132,6 +143,8 @@ def score(rows: List[dict]) -> List[dict]:
                 "fp_rate": round(fpr, 3),
                 "precision": round(precision, 3),
                 "f1": round(f1, 3),
+                "tp_strict": tp_strict,
+                "recall_strict": round(recall_strict, 3),
                 "skipped": b["skipped"],
                 "errors": b["errors"],
             }
@@ -198,9 +211,74 @@ def write_csv(path: Path, rows: List[dict]) -> None:
         writer.writerows(rows)
 
 
+DEFINITIONS = """## Definitions
+
+**Row unit.** One row of the underlying data is one (kernel, tool) run.
+A *kernel* is one labeled testcase variant (Juliet: bad/good compile of one
+testcase file; DRB: one `-yes`/`-no` micro-benchmark; MBI: one generated
+program).
+
+**Confusion counts.** `tp`/`fn` are counted over bad-labeled kernels,
+`fp`/`tn` over good-labeled kernels. What makes a finding count ("the tool
+detected it") is suite-specific:
+
+- *Juliet*: a finding counts only if its check_id is mapped to the
+  testcase's CWE class (type-aware matching, `cwe_map.py`) — unrelated
+  findings on a bad kernel do NOT count.
+- *DRB*: a race-family finding (`tsan-data-race`, `llov-data-race`,
+  `helgrind-race`, `drd-conflicting-access`, `parcoach-*`) on the kernel
+  counts; DRB has a single defect category, so this is equivalent to
+  category-aware matching.
+- *MBI*: any defect-identifying finding of the tool's family counts
+  (capability markers like `must-unsupported` never count). This lax view
+  is category-BLIND: a tool reporting e.g. a request leak on a kernel
+  labeled `callmatching` still counts as tp. See `tp_strict` below.
+
+**Metrics.**
+- `recall = tp / (tp + fn)` — share of known-bad kernels the tool flags.
+- `fp_rate = fp / (fp + tn)` — alarm rate on known-clean kernels.
+- `precision = tp / (tp + fp)` — trustworthiness of a single report.
+- `f1` — harmonic mean of precision and recall.
+- `tp_strict`, `recall_strict` — ADDITIVE category-aware view: the finding
+  must identify the kernel's labeled defect category (mapping justified
+  per check_id in `cwe_map.py`). For Juliet and DRB strict == lax by
+  construction; the columns differ only on MBI. Both views are reportable:
+  lax = "tool raises a defect report on a defective kernel", strict =
+  "tool identifies the labeled defect class".
+
+**skipped / errors.** `skipped` = kernel does not compile in this
+environment; `errors` = the tool itself failed (timeout, crash, missing
+report). Both are excluded from every metric — a tool failure is not a
+negative result.
+
+**Overlap table.** Computed over bad-labeled kernels that BOTH tools
+processed without error (`common_kernels`), using the lax detection view:
+`both` / `only_a` / `only_b` / `neither`, and
+`jaccard = both / (both + only_a + only_b)`.
+IMPORTANT: overlap is KERNEL-level — "both tools flagged something
+class-relevant on the same kernel", NOT "both tools reported the same
+defect at the same location". On Juliet (one CWE per kernel) kernel-level
+closely approximates bug-level; on DRB a line-level sample shows the tools
+report the same code region (same or ±2 lines), so the approximation holds
+there too; on MBI tools may report different manifestations of the same
+labeled defect.
+
+**Footnotes.**
+- Dynamic tools (asan_ubsan, memcheck, tsan*, must) only detect a bug if
+  the test execution triggers it; their recall is not directly comparable
+  to static tools.
+- `clang_sa` and `clang_tidy_ast` are VIRTUAL tools: one clang-tidy run,
+  findings partitioned by check_id prefix (`clang-analyzer-*` = symbolic
+  execution vs. AST matchers) — redundancy is defined over detection
+  methods, and clang-tidy bundles two.
+- `tsan_noarcher`, `helgrind`, `drd` are inclusion/exclusion-justification
+  measurements, not pipeline tools.
+"""
+
+
 def markdown_table(rows: List[dict]) -> str:
     if not rows:
-        return "_keine Daten_\n"
+        return "_no data_\n"
 
     headers = list(rows[0])
     lines = [
@@ -227,25 +305,15 @@ def main() -> None:
     write_csv(RESULTS_DIR / "overlap.csv", overlaps)
 
     summary = ["# Tool-Validation Summary\n"]
-    summary.append("## Metriken (pro Suite und Tool)\n")
+    summary.append(DEFINITIONS)
+    summary.append("\n## Metrics (per suite and tool)\n")
     summary.append(markdown_table(metrics))
-    summary.append("\n## Paarweiser Overlap (bad-Kernels, beide Tools gelaufen)\n")
+    summary.append("\n## Pairwise overlap (bad kernels processed by both tools)\n")
     summary.append(markdown_table(overlaps))
     summary.append(
-        "\n_Hinweis: skipped = Kernel kompiliert nicht; errors = Tool-Fehler. "
-        "Beide sind aus allen Metriken ausgeschlossen._\n"
-    )
-    summary.append(
-        "\n_Fußnote Dynamik-Semantik: asan_ubsan und memcheck (Juliet) sowie "
-        "tsan/tsan_noarcher (DRB) melden einen Bug nur, wenn der Testlauf ihn "
-        "auslöst. Ihre Recall-Werte sind daher NICHT direkt mit den statischen "
-        "Tools vergleichbar (andere Detektions-Semantik: beobachtete Ausführung "
-        "vs. alle möglichen Pfade)._\n"
-    )
-    summary.append(
-        "\n_Virtuelle Tools: clang_sa (clang-analyzer-*) und clang_tidy_ast "
-        "sind der methodenbasierte Split EINER clang-tidy-Invocation (Symbolic "
-        "Execution vs. AST-Matcher) — kein separater Lauf._\n"
+        "\n_See the Definitions section above for metric semantics, the "
+        "kernel-level overlap caveat, and the dynamic-tool / virtual-tool "
+        "footnotes. Measurement methodology: docs/measurement-definitions.md._\n"
     )
 
     (RESULTS_DIR / "summary.md").write_text("\n".join(summary), encoding="utf-8")

@@ -229,6 +229,92 @@ MBI_RELEVANT["clang_tidy_ast"] = ("mpi-",)
 NON_FINDINGS = ("must-unsupported",)
 
 
+# ---------------------------------------------------------------------------
+# MBI STRICT matching: check_id prefix -> labeled error categories it
+# IDENTIFIES (not merely co-occurs with). Grounded in (a) the empirical
+# category x check_id matrix over the full run and (b) the tools' documented
+# check semantics. Justification per entry:
+#   - must-deadlock counts for categories whose defect MANIFESTS as deadlock
+#     (mismatched/misordered calls, bad src/dest, unstarted requests): MBI's
+#     own expected-outcome model treats a deadlock report as the correct
+#     symptom of these root causes.
+#   - must-leak-* identify the corresponding leak categories; leak-request
+#     also identifies missingwait (an unwaited request IS a leaked request).
+#     must-leak-comm on communicatormatching kernels is an incidental
+#     secondary defect -> NOT mapped there.
+#   - must-integer-* are MUST's argument-validation reports -> the
+#     invalid-argument family.
+#   - parcoach-collective-ordering identifies call-matching/ordering
+#     defects; its firings on messagerace kernels are symptomatic hits of a
+#     method that cannot identify races -> NOT mapped (strict FN).
+#   - The Clang SA MPI-Checker emits ONE opaque check_id for all its
+#     reports; its documented checks are request-lifecycle (missing/
+#     unmatched wait, double request) -> mapped to that family only.
+#   - mpi-* AST checks: literal same-call type/buffer errors (honest zeros
+#     in the data, mapping kept for completeness).
+# ---------------------------------------------------------------------------
+
+_DEADLOCK_MANIFESTING = frozenset({
+    "callmatching", "ihcallmatching", "callordering", "communicatormatching",
+    "tagmatching", "invalidsrcdest", "bufferinghazard", "missingstart",
+    "doubleepoch", "epochlifecycle",
+})
+
+_INVALID_ARG_FAMILY = frozenset({
+    "invalidroot", "invalidtag", "invalidsrcdest", "invalidotherarg",
+})
+
+MBI_STRICT: Dict[str, frozenset] = {
+    "must-deadlock": _DEADLOCK_MANIFESTING,
+    "must-message-lost": frozenset({"callmatching", "ihcallmatching"}),
+    "must-collective-call-mismatch": frozenset({"callmatching", "ihcallmatching", "doubleepoch"}),
+    "must-collective-op-mismatch": frozenset({"operatormatching"}),
+    "must-collective-root-mismatch": frozenset({"rootmatching"}),
+    "must-typematch-mismatch": frozenset({"datatypematching"}),
+    "must-leak-comm": frozenset({"communicatorleak"}),
+    "must-leak-group": frozenset({"groupleak"}),
+    "must-leak-op": frozenset({"operatorleak"}),
+    "must-leak-datatype": frozenset({"typeleak"}),
+    "must-leak-request": frozenset({"missingwait", "requestleak"}),
+    "must-request-inactive": frozenset({"missingstart"}),
+    "must-datatype-null": frozenset({"invaliddatatype"}),
+    "must-comm-null": frozenset({"invalidcommunicator"}),
+    "must-not-cart-comm": frozenset({"invalidcommunicator"}),
+    "must-operation-null": frozenset({"invalidoperator"}),
+    "must-integer-": _INVALID_ARG_FAMILY,        # prefix
+    "must-overlapped-": frozenset({"messagerace"}),  # prefix
+    "must-selfoverlapped": frozenset({"invalidbuffer"}),
+    "must-win-epoch": frozenset({"missingepoch", "doubleepoch", "epochlifecycle"}),
+    "parcoach-collective-ordering": frozenset({"callmatching", "ihcallmatching", "callordering"}),
+    "clang-analyzer-optin.mpi": frozenset({"missingwait", "requestleak"}),
+    "mpi-type-mismatch": frozenset({"datatypematching", "invaliddatatype"}),
+    "mpi-buffer-deref": frozenset({"invalidbuffer"}),
+}
+
+
+def matches_strict(
+    suite: str, classes: List[str], tool: str, findings: Iterable[dict]
+) -> bool:
+    """Category-aware TP: at least one finding must IDENTIFY one of the
+    kernel's labeled defect categories.
+
+    Juliet is already type-aware (CWE-class matching) and DRB has a single
+    defect category (data race), so strict == lax there; only MBI labels
+    carry categories that the lax file-level filter ignores.
+    """
+    if suite != "mbi":
+        return matches(suite, classes, tool, findings)
+
+    labeled = set(classes)
+
+    for check_id in _check_ids(findings):
+        for prefix, categories in MBI_STRICT.items():
+            if check_id.startswith(prefix) and labeled & categories:
+                return True
+
+    return False
+
+
 def _check_ids(findings: Iterable[dict]) -> List[str]:
     return [
         f.get("check_id", "")

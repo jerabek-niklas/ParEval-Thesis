@@ -1,0 +1,5 @@
+== parcoach container (parcoach-demo:2.4.1) ==
+Ubuntu LLVM version 15.0.7
+  Optimized build.
+Ubuntu clang version 15.0.7
+gcc (Ubuntu 12.3.0-1ubuntu1~23.04) 12.3.0

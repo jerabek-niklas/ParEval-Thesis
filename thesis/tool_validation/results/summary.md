@@ -1,29 +1,93 @@
 # Tool-Validation Summary
 
-## Metriken (pro Suite und Tool)
+## Definitions
 
-| suite | tool | tp | fn | fp | tn | recall | fp_rate | precision | f1 | skipped | errors |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| drb | drd | 19 | 77 | 13 | 80 | 0.198 | 0.14 | 0.594 | 0.297 | 2 | 13 |
-| drb | helgrind | 91 | 7 | 83 | 10 | 0.929 | 0.892 | 0.523 | 0.669 | 2 | 11 |
-| drb | llov | 43 | 53 | 6 | 87 | 0.448 | 0.065 | 0.878 | 0.593 | 9 | 6 |
-| drb | parcoach | 0 | 101 | 0 | 96 | 0.0 | 0.0 | 0.0 | 0.0 | 2 | 5 |
-| drb | tsan | 80 | 18 | 19 | 73 | 0.816 | 0.207 | 0.808 | 0.812 | 2 | 12 |
-| drb | tsan_noarcher | 88 | 9 | 56 | 35 | 0.907 | 0.615 | 0.611 | 0.73 | 2 | 14 |
-| juliet | asan_ubsan | 244 | 392 | 0 | 591 | 0.384 | 0.0 | 1.0 | 0.555 | 0 | 73 |
-| juliet | clang_sa | 249 | 401 | 54 | 596 | 0.383 | 0.083 | 0.822 | 0.523 | 0 | 0 |
-| juliet | clang_tidy_ast | 0 | 650 | 0 | 650 | 0.0 | 0.0 | 0.0 | 0.0 | 0 | 0 |
-| juliet | compiler | 152 | 498 | 11 | 639 | 0.234 | 0.017 | 0.933 | 0.374 | 0 | 0 |
-| juliet | cppcheck | 139 | 511 | 0 | 650 | 0.214 | 0.0 | 1.0 | 0.352 | 0 | 0 |
-| juliet | infer | 62 | 588 | 15 | 635 | 0.095 | 0.023 | 0.805 | 0.171 | 0 | 0 |
-| juliet | memcheck | 230 | 406 | 0 | 591 | 0.362 | 0.0 | 1.0 | 0.531 | 0 | 73 |
-| mbi | clang_sa | 317 | 789 | 240 | 525 | 0.287 | 0.314 | 0.569 | 0.381 | 0 | 0 |
-| mbi | clang_tidy_ast | 0 | 1106 | 0 | 765 | 0.0 | 0.0 | 0.0 | 0.0 | 0 | 0 |
-| mbi | must | 926 | 180 | 16 | 749 | 0.837 | 0.021 | 0.983 | 0.904 | 0 | 0 |
-| mbi | parcoach | 664 | 442 | 648 | 117 | 0.6 | 0.847 | 0.506 | 0.549 | 0 | 0 |
+**Row unit.** One row of the underlying data is one (kernel, tool) run.
+A *kernel* is one labeled testcase variant (Juliet: bad/good compile of one
+testcase file; DRB: one `-yes`/`-no` micro-benchmark; MBI: one generated
+program).
+
+**Confusion counts.** `tp`/`fn` are counted over bad-labeled kernels,
+`fp`/`tn` over good-labeled kernels. What makes a finding count ("the tool
+detected it") is suite-specific:
+
+- *Juliet*: a finding counts only if its check_id is mapped to the
+  testcase's CWE class (type-aware matching, `cwe_map.py`) — unrelated
+  findings on a bad kernel do NOT count.
+- *DRB*: a race-family finding (`tsan-data-race`, `llov-data-race`,
+  `helgrind-race`, `drd-conflicting-access`, `parcoach-*`) on the kernel
+  counts; DRB has a single defect category, so this is equivalent to
+  category-aware matching.
+- *MBI*: any defect-identifying finding of the tool's family counts
+  (capability markers like `must-unsupported` never count). This lax view
+  is category-BLIND: a tool reporting e.g. a request leak on a kernel
+  labeled `callmatching` still counts as tp. See `tp_strict` below.
+
+**Metrics.**
+- `recall = tp / (tp + fn)` — share of known-bad kernels the tool flags.
+- `fp_rate = fp / (fp + tn)` — alarm rate on known-clean kernels.
+- `precision = tp / (tp + fp)` — trustworthiness of a single report.
+- `f1` — harmonic mean of precision and recall.
+- `tp_strict`, `recall_strict` — ADDITIVE category-aware view: the finding
+  must identify the kernel's labeled defect category (mapping justified
+  per check_id in `cwe_map.py`). For Juliet and DRB strict == lax by
+  construction; the columns differ only on MBI. Both views are reportable:
+  lax = "tool raises a defect report on a defective kernel", strict =
+  "tool identifies the labeled defect class".
+
+**skipped / errors.** `skipped` = kernel does not compile in this
+environment; `errors` = the tool itself failed (timeout, crash, missing
+report). Both are excluded from every metric — a tool failure is not a
+negative result.
+
+**Overlap table.** Computed over bad-labeled kernels that BOTH tools
+processed without error (`common_kernels`), using the lax detection view:
+`both` / `only_a` / `only_b` / `neither`, and
+`jaccard = both / (both + only_a + only_b)`.
+IMPORTANT: overlap is KERNEL-level — "both tools flagged something
+class-relevant on the same kernel", NOT "both tools reported the same
+defect at the same location". On Juliet (one CWE per kernel) kernel-level
+closely approximates bug-level; on DRB a line-level sample shows the tools
+report the same code region (same or ±2 lines), so the approximation holds
+there too; on MBI tools may report different manifestations of the same
+labeled defect.
+
+**Footnotes.**
+- Dynamic tools (asan_ubsan, memcheck, tsan*, must) only detect a bug if
+  the test execution triggers it; their recall is not directly comparable
+  to static tools.
+- `clang_sa` and `clang_tidy_ast` are VIRTUAL tools: one clang-tidy run,
+  findings partitioned by check_id prefix (`clang-analyzer-*` = symbolic
+  execution vs. AST matchers) — redundancy is defined over detection
+  methods, and clang-tidy bundles two.
+- `tsan_noarcher`, `helgrind`, `drd` are inclusion/exclusion-justification
+  measurements, not pipeline tools.
 
 
-## Paarweiser Overlap (bad-Kernels, beide Tools gelaufen)
+## Metrics (per suite and tool)
+
+| suite | tool | tp | fn | fp | tn | recall | fp_rate | precision | f1 | tp_strict | recall_strict | skipped | errors |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| drb | drd | 19 | 77 | 13 | 80 | 0.198 | 0.14 | 0.594 | 0.297 | 19 | 0.198 | 2 | 13 |
+| drb | helgrind | 91 | 7 | 83 | 10 | 0.929 | 0.892 | 0.523 | 0.669 | 91 | 0.929 | 2 | 11 |
+| drb | llov | 43 | 53 | 6 | 87 | 0.448 | 0.065 | 0.878 | 0.593 | 43 | 0.448 | 9 | 6 |
+| drb | parcoach | 0 | 101 | 0 | 96 | 0.0 | 0.0 | 0.0 | 0.0 | 0 | 0.0 | 2 | 5 |
+| drb | tsan | 80 | 18 | 19 | 73 | 0.816 | 0.207 | 0.808 | 0.812 | 80 | 0.816 | 2 | 12 |
+| drb | tsan_noarcher | 88 | 9 | 56 | 35 | 0.907 | 0.615 | 0.611 | 0.73 | 88 | 0.907 | 2 | 14 |
+| juliet | asan_ubsan | 244 | 392 | 0 | 591 | 0.384 | 0.0 | 1.0 | 0.555 | 244 | 0.384 | 0 | 73 |
+| juliet | clang_sa | 249 | 401 | 54 | 596 | 0.383 | 0.083 | 0.822 | 0.523 | 249 | 0.383 | 0 | 0 |
+| juliet | clang_tidy_ast | 0 | 650 | 0 | 650 | 0.0 | 0.0 | 0.0 | 0.0 | 0 | 0.0 | 0 | 0 |
+| juliet | compiler | 152 | 498 | 11 | 639 | 0.234 | 0.017 | 0.933 | 0.374 | 152 | 0.234 | 0 | 0 |
+| juliet | cppcheck | 139 | 511 | 0 | 650 | 0.214 | 0.0 | 1.0 | 0.352 | 139 | 0.214 | 0 | 0 |
+| juliet | infer | 62 | 588 | 15 | 635 | 0.095 | 0.023 | 0.805 | 0.171 | 62 | 0.095 | 0 | 0 |
+| juliet | memcheck | 230 | 406 | 0 | 591 | 0.362 | 0.0 | 1.0 | 0.531 | 230 | 0.362 | 0 | 73 |
+| mbi | clang_sa | 317 | 789 | 240 | 525 | 0.287 | 0.314 | 0.569 | 0.381 | 12 | 0.011 | 0 | 0 |
+| mbi | clang_tidy_ast | 0 | 1106 | 0 | 765 | 0.0 | 0.0 | 0.0 | 0.0 | 0 | 0.0 | 0 | 0 |
+| mbi | must | 926 | 180 | 16 | 749 | 0.837 | 0.021 | 0.983 | 0.904 | 923 | 0.835 | 0 | 0 |
+| mbi | parcoach | 664 | 442 | 648 | 117 | 0.6 | 0.847 | 0.506 | 0.549 | 636 | 0.575 | 0 | 0 |
+
+
+## Pairwise overlap (bad kernels processed by both tools)
 
 | suite | tool_a | tool_b | common_kernels | both | only_a | only_b | neither | jaccard |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -71,10 +135,4 @@
 | mbi | must | parcoach | 1106 | 606 | 320 | 58 | 122 | 0.616 |
 
 
-_Hinweis: skipped = Kernel kompiliert nicht; errors = Tool-Fehler. Beide sind aus allen Metriken ausgeschlossen._
-
-
-_Fußnote Dynamik-Semantik: asan_ubsan und memcheck (Juliet) sowie tsan/tsan_noarcher (DRB) melden einen Bug nur, wenn der Testlauf ihn auslöst. Ihre Recall-Werte sind daher NICHT direkt mit den statischen Tools vergleichbar (andere Detektions-Semantik: beobachtete Ausführung vs. alle möglichen Pfade)._
-
-
-_Virtuelle Tools: clang_sa (clang-analyzer-*) und clang_tidy_ast sind der methodenbasierte Split EINER clang-tidy-Invocation (Symbolic Execution vs. AST-Matcher) — kein separater Lauf._
+_See the Definitions section above for metric semantics, the kernel-level overlap caveat, and the dynamic-tool / virtual-tool footnotes. Measurement methodology: docs/measurement-definitions.md._
