@@ -80,6 +80,32 @@ def test_launch_config() -> None:
     argv, env = mpi.command("/tmp/a.out", {"num_procs": 4})
     check("mpi uses mpirun -np", argv[:3] == ["mpirun", "-np", "4"])
 
+    # niter maps onto the drivers' argv contract: serial/mpi read argv[1]
+    # (after the exec path) as the iteration count; the omp driver's argv[1]
+    # is the thread count, so niter must NOT be appended there.
+    argv, _ = serial.command("/tmp/a.out", {}, niter=1)
+    check("serial appends niter", argv == ["/tmp/a.out", "1"])
+    argv, _ = mpi.command("/tmp/a.out", {"num_procs": 2}, niter=1)
+    check("mpi appends niter after exec", argv[-2:] == ["/tmp/a.out", "1"])
+    argv, _ = omp.command("/tmp/a.out", {"num_threads": 4}, niter=1)
+    check("omp ignores niter", argv == ["/tmp/a.out", "4"])
+
+
+def test_correctness_verdicts() -> None:
+    print("correctness: validation parsing and verdicts")
+    from thesis.evaluation.run_correctness import parse_validation, run_verdict
+
+    check("PASS parsed", parse_validation("Init\nValidation: PASS\nTime: 1.0\n") is True)
+    check("FAIL parsed", parse_validation("Validation: FAIL\n") is False)
+    check("missing marker -> None", parse_validation("Segmentation fault\n") is None)
+
+    check("pass verdict", run_verdict(True, 0, False) == "pass")
+    # drivers exit 0 after printing FAIL -> marker beats exit code
+    check("fail verdict despite exit 0", run_verdict(False, 0, False) == "validation_failed")
+    check("timeout beats marker", run_verdict(True, 0, True) == "timeout")
+    check("crash after PASS is runtime_error", run_verdict(True, 139, False) == "runtime_error")
+    check("missing marker is runtime_error", run_verdict(None, 0, False) == "runtime_error")
+
 
 def test_gcc_parser() -> None:
     print("gcc/clang diagnostic parser")
@@ -109,6 +135,184 @@ def test_cppcheck_parser() -> None:
     check("two findings", len(findings) == 2)
     check("error blocking", findings[0].blocking and findings[0].line == 12)
     check("style not blocking", not findings[1].blocking)
+
+
+def test_sanitizer_parsing() -> None:
+    print("dynamic: sanitizer report parsing, attribution and dedup")
+    from thesis.evaluation.dynamic_tools import dedupe, parse_sanitizer_output
+
+    model = "generated-code.hpp"
+
+    asan = (
+        "==22==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502c at pc 0x5d54\n"
+        "READ of size 4 at 0x502c thread T0\n"
+        "    #0 0x5d54 in luFactorize /x/generated-code.hpp:4\n"
+        "    #1 0x5d55 in compute /x/cpu.cc:42\n"
+        "SUMMARY: AddressSanitizer: heap-buffer-overflow /x/generated-code.hpp:4 in luFactorize\n"
+    )
+    findings = parse_sanitizer_output(asan, model, "asan_ubsan")
+    check("asan block parsed", len(findings) == 1)
+    check("asan check id", findings[0].check_id == "asan-heap-buffer-overflow")
+    check("asan model line", findings[0].line == 4 and findings[0].blocking)
+
+    non_model = (
+        "==22==ERROR: AddressSanitizer: heap-use-after-free on address 0x50 at pc 0x1\n"
+        "    #0 0x1 in correctLuFactorize /x/baseline.hpp:9\n"
+        "    #1 0x2 in validate /x/cpu.cc:60\n"
+        "SUMMARY: AddressSanitizer: heap-use-after-free /x/baseline.hpp:9\n"
+    )
+    check("non-model asan dropped", parse_sanitizer_output(non_model, model, "t") == [])
+
+    tsan = (
+        "WARNING: ThreadSanitizer: data race (pid=77)\n"
+        "  Write of size 8 at 0x7b by thread T2:\n"
+        "    #0 luFactorize(...) /x/generated-code.hpp:3 (out+0x12)\n"
+        "  Previous write of size 8 at 0x7b by thread T1:\n"
+        "    #0 luFactorize(...) /x/generated-code.hpp:3 (out+0x12)\n"
+        "SUMMARY: ThreadSanitizer: data race /x/generated-code.hpp:3\n"
+    )
+    findings = parse_sanitizer_output(tsan, model, "tsan")
+    check("tsan race parsed", len(findings) == 1)
+    check("tsan check id", findings[0].check_id == "tsan-data-race")
+    check("tsan model line", findings[0].line == 3)
+
+    ubsan = (
+        "/x/generated-code.hpp:7:15: runtime error: signed integer overflow: 2147483647 + 1\n"
+        "/x/cpu.cc:12:3: runtime error: load of null pointer of type 'int'\n"
+    )
+    findings = parse_sanitizer_output(ubsan, model, "asan_ubsan")
+    check("ubsan model line kept, driver line dropped", len(findings) == 1)
+    check("ubsan location", findings[0].line == 7 and findings[0].column == 15)
+
+    lsan = (
+        "==9==ERROR: LeakSanitizer: detected memory leaks\n"
+        "\n"
+        "Direct leak of 400 byte(s) in 1 object(s) allocated from:\n"
+        "    #0 0x1 in operator new[](unsigned long)\n"
+        "    #1 0x2 in luFactorize /x/generated-code.hpp:2\n"
+        "SUMMARY: AddressSanitizer: 400 byte(s) leaked in 1 allocation(s).\n"
+    )
+    findings = parse_sanitizer_output(lsan, model, "asan_ubsan")
+    check("lsan leak parsed", len(findings) == 1)
+    check("lsan check id", findings[0].check_id == "lsan-detected-memory-leaks")
+
+    duplicated = parse_sanitizer_output(tsan, model, "tsan") + parse_sanitizer_output(
+        tsan, model, "tsan"
+    )
+    check("dedupe by (check_id, line)", len(dedupe(duplicated)) == 1)
+
+    # libomp-internal FP pattern: racing accesses only in the runtime, but
+    # the thread-creation/allocation stacks pass through the model's parallel
+    # region. Attribution must use access stacks only -> dropped.
+    libomp_fp = (
+        "WARNING: ThreadSanitizer: data race (pid=746)\n"
+        "  Atomic read of size 1 at 0x72 by main thread:\n"
+        "    #0 pthread_mutex_lock <null> (sanitized.out+0x63)\n"
+        "    #1 <null> <null> (libomp.so.5+0xbdf44)\n"
+        "  Previous write of size 1 at 0x72 by thread T1:\n"
+        "    #0 pthread_mutex_init <null> (sanitized.out+0x62)\n"
+        "    #1 <null> <null> (libomp.so.5+0xba6c1)\n"
+        "  Location is heap block of size 1568 at 0x72 allocated by main thread:\n"
+        "    #0 malloc <null> (sanitized.out+0x5f)\n"
+        "    #1 luFactorize /x/generated-code.hpp:15\n"
+        "  Thread T1 (tid=751, running) created by main thread at:\n"
+        "    #0 pthread_create <null> (sanitized.out+0x60)\n"
+        "    #1 luFactorize /x/generated-code.hpp:11\n"
+        "SUMMARY: ThreadSanitizer: data race\n"
+    )
+    check(
+        "libomp-internal race with model alloc stack dropped",
+        parse_sanitizer_output(libomp_fp, model, "tsan") == [],
+    )
+
+
+def test_valgrind_parsing() -> None:
+    print("dynamic: valgrind memcheck XML parsing and attribution")
+    from thesis.evaluation.dynamic_tools import parse_valgrind_xml, slug_kind
+
+    check("kind slug camel", slug_kind("InvalidRead") == "invalid-read")
+    check("kind slug leak", slug_kind("Leak_DefinitelyLost") == "leak-definitely-lost")
+
+    xml = (
+        "<valgrindoutput><protocolversion>4</protocolversion>"
+        "<error><unique>0x0</unique><tid>1</tid><kind>InvalidRead</kind>"
+        "<what>Invalid read of size 4</what>"
+        "<stack>"
+        "<frame><ip>0x1</ip><fn>luFactorize</fn><file>generated-code.hpp</file><line>3</line></frame>"
+        "<frame><ip>0x2</ip><fn>compute</fn><file>cpu.cc</file><line>42</line></frame>"
+        "</stack></error>"
+        "<error><unique>0x1</unique><tid>1</tid><kind>InvalidWrite</kind>"
+        "<what>Invalid write of size 8</what>"
+        "<stack>"
+        "<frame><ip>0x3</ip><fn>correctLu</fn><file>baseline.hpp</file><line>9</line></frame>"
+        "</stack></error>"
+        "</valgrindoutput>"
+    )
+
+    findings = parse_valgrind_xml(xml, "generated-code.hpp", "memcheck")
+    check("model error kept, baseline error dropped", len(findings) == 1)
+    check("memcheck check id", findings[0].check_id == "memcheck-invalid-read")
+    check("innermost model frame line", findings[0].line == 3)
+    check("memcheck blocking", findings[0].blocking)
+
+    check("malformed xml -> empty", parse_valgrind_xml("<oops", "m.hpp", "memcheck") == [])
+
+    # libgomp thread-pool artifact: possibly-lost with a model frame must be
+    # dropped (fired on 100% of OMP samples otherwise)
+    possibly = (
+        "<valgrindoutput><error><kind>Leak_PossiblyLost</kind>"
+        "<xwhat><text>320 bytes in 1 blocks are possibly lost</text></xwhat>"
+        "<stack><frame><file>generated-code.hpp</file><line>14</line></frame></stack>"
+        "</error></valgrindoutput>"
+    )
+    check(
+        "possibly-lost artifact dropped",
+        parse_valgrind_xml(possibly, "generated-code.hpp", "memcheck") == [],
+    )
+
+
+def test_must_parsing() -> None:
+    print("dynamic: MUST HTML parsing and attribution")
+    from thesis.evaluation.dynamic_tools import parse_must_html
+
+    # mirrors the real MUST_Output.html structure (captured from the
+    # planted-deadlock feasibility run): the token sits in the main row, the
+    # message + call references in a SEPARATE hidden detail row
+    html = (
+        "<table>"
+        "<tr onclick=\"showdetail(this,'detail0');\"><td>0-1</td>"
+        "<td><b>MUST_ERROR_DEADLOCK</b></td>"
+        "<td>The application issued a set of MPI calls that can cause a deadlock!</td></tr>"
+        "<tr id=\"detail0\"><td>The application issued a set of MPI calls that can "
+        "cause a deadlock! References 1-2 list the involved calls."
+        "&nbsp;References of a representative process: reference 1 rank 0: "
+        "MPI_Recv (1st occurrence) called from: "
+        "#0 luFactorize@/x/generated-code.hpp:14 "
+        "reference 2 rank 1: MPI_Finalize (1st occurrence) called from: "
+        "#0 main@/x/mpi-driver.cc:103&nbsp;</td></tr>"
+        # error whose references never reach the model file -> dropped
+        "<tr><td>1</td><td><b>MUST_ERROR_TYPEMATCH_MISMATCH</b></td>"
+        "<td>datatypes do not match!</td></tr>"
+        "<tr id=\"detail1\"><td>A send and a receive operation use datatypes that "
+        "do not match! reference 1 rank 0: MPI_Bcast called from: "
+        "#0 validate@/x/cpu.cc:66</td></tr>"
+        # warning severity
+        "<tr><td>2</td><td><b>MUST_WARNING_SELF_COMM</b></td>"
+        "<td>Rank sends to itself</td></tr>"
+        "<tr id=\"detail2\"><td>Rank sends to itself: "
+        "#0 luFactorize@/x/generated-code.hpp:20</td></tr>"
+        "</table>"
+    )
+
+    findings = parse_must_html(html, "generated-code.hpp", "must")
+    check("model rows kept, driver row dropped", len(findings) == 2)
+    check("deadlock check id", findings[0].check_id == "must-deadlock")
+    check("deadlock line from model ref", findings[0].line == 14)
+    check("deadlock blocking", findings[0].blocking)
+    check("reference tail stripped from message", "reference 1" not in findings[0].message)
+    check("warning severity mapped", findings[1].severity == "warning" and not findings[1].blocking)
+
+    check("clean html -> empty", parse_must_html("<table><tr><td>x</td></tr></table>", "m.hpp", "must") == [])
 
 
 def test_registry() -> None:
@@ -149,7 +353,9 @@ def test_clang_tidy_helpers() -> None:
     check("clang-analyzer blocking", is_blocking_check("clang-analyzer-cplusplus.NewDeleteLeaks"))
     check("concurrency blocking", is_blocking_check("concurrency-mt-unsafe"))
     check("mpi blocking", is_blocking_check("mpi-type-mismatch"))
-    check("openmp blocking", is_blocking_check("openmp-use-default-none"))
+    check("openmp group blocking", is_blocking_check("openmp-exception-escape"))
+    # hygiene recommendation that fires on correct code -> exception
+    check("use-default-none not blocking", not is_blocking_check("openmp-use-default-none"))
     check("performance not blocking", not is_blocking_check("performance-for-range-copy"))
 
 
@@ -352,12 +558,16 @@ def main() -> None:
         test_build_config,
         test_resolve_compiler,
         test_launch_config,
+        test_correctness_verdicts,
         test_gcc_parser,
         test_cppcheck_parser,
         test_cppcheck_filtering,
         test_clang_tidy_helpers,
         test_clang_tidy_yaml_parse,
         test_infer_parse_and_filter,
+        test_sanitizer_parsing,
+        test_valgrind_parsing,
+        test_must_parsing,
         test_stub_rewriter,
         test_parcoach_parse_and_filter,
         test_llov_parse_and_filter,

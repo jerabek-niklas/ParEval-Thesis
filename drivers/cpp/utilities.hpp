@@ -167,3 +167,7 @@ bool fequal(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
     }
     return true;
 }
+
+// enhanced-tests support (overridable TEST_SIZE + injectable fill patterns);
+// a no-op unless the ENHANCED_* compile defines are set. Needs fillRand above.
+#include "enhanced-fill.hpp"

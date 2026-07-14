@@ -67,7 +67,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 512;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(512);
 
     std::vector<double> A(TEST_SIZE * TEST_SIZE);
     std::vector<double> b(TEST_SIZE), correct(TEST_SIZE), test(TEST_SIZE);

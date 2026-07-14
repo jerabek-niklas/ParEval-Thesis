@@ -49,7 +49,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 1024;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
     std::vector<std::string> s(TEST_SIZE);
     std::array<size_t, 26> correct, test;

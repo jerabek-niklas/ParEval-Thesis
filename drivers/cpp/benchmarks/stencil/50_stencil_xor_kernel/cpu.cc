@@ -56,7 +56,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 512;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(512);
 
     std::vector<int> input(TEST_SIZE * TEST_SIZE), correct(TEST_SIZE * TEST_SIZE), test(TEST_SIZE * TEST_SIZE);
 
@@ -66,7 +66,7 @@ bool validate(Context *ctx) {
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
         // set up input
-        fillRand(input, 0, 2);
+        ENHANCED_FILL(input, 0, 2);
         std::fill(test.begin(), test.end(), 0);
         std::fill(correct.begin(), correct.end(), 0);
         BCAST(input, INT);

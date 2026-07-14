@@ -82,7 +82,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 1024;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
     const size_t nVals = TEST_SIZE * SPARSE_LA_SPARSITY;
 
     std::vector<Element> x(nVals), y(nVals);
@@ -97,10 +97,10 @@ bool validate(Context *ctx) {
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
         // set up input
         double alpha = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
-        fillRand(xIndices, 0UL, TEST_SIZE);
-        fillRand(yIndices, 0UL, TEST_SIZE);
-        fillRand(xValues, -1.0, 1.0);
-        fillRand(yValues, -1.0, 1.0);
+        ENHANCED_FILL(xIndices, 0UL, TEST_SIZE);
+        ENHANCED_FILL(yIndices, 0UL, TEST_SIZE);
+        ENHANCED_FILL(xValues, -1.0, 1.0);
+        ENHANCED_FILL(yValues, -1.0, 1.0);
 
         BCAST_PTR(&alpha, 1, DOUBLE);
         BCAST(xIndices, UNSIGNED_LONG);

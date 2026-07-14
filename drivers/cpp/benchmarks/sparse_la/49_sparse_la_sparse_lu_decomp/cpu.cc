@@ -96,7 +96,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 64;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(64);
     const size_t nVals = SPARSE_LA_SPARSITY * TEST_SIZE * TEST_SIZE;
 
     std::vector<size_t> rows(nVals), columns(nVals);
@@ -111,9 +111,9 @@ bool validate(Context *ctx) {
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
         // set up input
-        fillRand(rows, 0UL, TEST_SIZE-1);
-        fillRand(columns, 0UL, TEST_SIZE-1);
-        fillRand(values, -10.0, 10.0);
+        ENHANCED_FILL(rows, 0UL, TEST_SIZE-1);
+        ENHANCED_FILL(columns, 0UL, TEST_SIZE-1);
+        ENHANCED_FILL(values, -10.0, 10.0);
         BCAST(rows, UNSIGNED_LONG);
         BCAST(columns, UNSIGNED_LONG);
         BCAST(values, DOUBLE);

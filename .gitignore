@@ -21,3 +21,7 @@ a.out
 thesis/results/raw/
 thesis/results/intermediate/
 thesis/results/cache/
+
+# tool-validation: downloaded benchmark suites + raw measurement output
+thesis/tool_validation/suites/
+thesis/tool_validation/results/

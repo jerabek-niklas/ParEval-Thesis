@@ -160,10 +160,49 @@ stages:
   correctness_tests:
     enabled: true
     output_file_name: correctness.jsonl
+    # iterations of the drivers' timing loops (validation unaffected);
+    # per-run timeout catches hangs/deadlocks (omp/mpi)
+    niter: 1
+    run_timeout_seconds: 120
+
+  dynamic_analysis:
+    enabled: true
+    # sanitizer-instrumented executions over the correctness launch grid
+    # (asan_ubsan: all models; tsan: omp only, clang+libomp+archer;
+    # memcheck: serial+omp, valgrind DBI as the compile-independent second
+    # memory method). Helgrind/DRD deliberately excluded for now — see
+    # thesis/docs/static-analysis-filtering.md. Runs in pareval-thesis.
+    tools:
+      - asan_ubsan
+      - tsan
+      - memcheck
+      - must
+    output_file_name: dynamic_analysis.jsonl
 
   enhanced_tests:
     enabled: false
     output_file_name: enhanced_tests.jsonl
+    # Which model generates the edge-case input specs (EvalPlus-style).
+    # A deliberate, open methodology decision — document the choice and its
+    # independence question (spec model vs. evaluated models) in the thesis.
+    spec_model: openai_gpt55
+    # System prompt for spec generation (single source of truth, mirrors
+    # generation_defaults.system_prompt for code generation).
+    spec_system_prompt: |
+      You are an expert in software testing and C++ numerical code.
+      You design minimal, high-value edge-case test inputs.
+      You respond with STRICT JSON only: a single JSON array, no markdown
+      fences, no prose. Every element must follow the schema given by the
+      user exactly.
+    # total specs per benchmark after static base + LLM seeds + mutations
+    max_cases_per_benchmark: 20
+    # upper bound for spec sizes (validation rejects larger; keeps runtime
+    # bounded — edge cases live at small sizes anyway)
+    max_spec_size: 4096
+    # timeout per differential run (seconds)
+    run_timeout_seconds: 30
+    # where generate_test_specs.py writes and run_enhanced_tests.py reads
+    specs_file: thesis/results/cache/enhanced/specs.jsonl
 
   repair:
     enabled: false

@@ -139,23 +139,39 @@ class LaunchConfig:
     # parallelism degrees are exercised.
     params: list[dict[str, Any]] = field(default_factory=list)
 
-    def command(self, exec_path: str, params: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
-        """Return (argv, extra_env) for a single run."""
+    def command(
+        self,
+        exec_path: str,
+        params: dict[str, Any],
+        niter: int | None = None,
+    ) -> tuple[list[str], dict[str, str]]:
+        """Return (argv, extra_env) for a single run.
+
+        `niter` maps onto the drivers' argv contract where they support it:
+        the serial and mpi drivers read argv[1] as the iteration count of the
+        timing loops. The omp driver instead reads argv[1] as the thread
+        count (its NITER is fixed at 5), so `niter` is ignored there.
+        Correctness runs pass niter=1: validation happens before the timing
+        loops and is unaffected, this only keeps the runs short.
+        """
         if self.execution_model == "serial":
-            return [exec_path], {}
+            argv = [exec_path]
+            if niter is not None:
+                argv.append(str(niter))
+            return argv, {}
 
         if self.execution_model == "omp":
             num_threads = params["num_threads"]
-            # The omp driver also reads argv[1] as the thread count; set both
-            # the env var and the arg so behaviour matches regardless.
+            # The omp driver reads argv[1] as the thread count; set both the
+            # env var and the arg so behaviour matches regardless.
             return [exec_path, str(num_threads)], {"OMP_NUM_THREADS": str(num_threads)}
 
         if self.execution_model == "mpi":
             num_procs = params["num_procs"]
-            return (
-                ["mpirun", "-np", str(num_procs), exec_path],
-                {},
-            )
+            argv = ["mpirun", "-np", str(num_procs), exec_path]
+            if niter is not None:
+                argv.append(str(niter))
+            return argv, {}
 
         raise ValueError(f"Unsupported execution model: {self.execution_model}")
 

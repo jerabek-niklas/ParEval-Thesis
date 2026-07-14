@@ -85,7 +85,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 128;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(128);
     const size_t nVals = TEST_SIZE * TEST_SIZE * SPARSE_LA_SPARSITY;
 
     std::vector<COOElement> A(nVals);
@@ -100,11 +100,11 @@ bool validate(Context *ctx) {
         // set up input
         double alpha = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
         double beta = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
-        fillRand(rows, 0UL, TEST_SIZE);
-        fillRand(columns, 0UL, TEST_SIZE);
-        fillRand(values, -1.0, 1.0);
-        fillRand(x, -1.0, 1.0);
-        fillRand(correct, -1.0, 1.0);
+        ENHANCED_FILL(rows, 0UL, TEST_SIZE);
+        ENHANCED_FILL(columns, 0UL, TEST_SIZE);
+        ENHANCED_FILL(values, -1.0, 1.0);
+        ENHANCED_FILL(x, -1.0, 1.0);
+        ENHANCED_FILL(correct, -1.0, 1.0);
 
         BCAST_PTR(&alpha, 1, DOUBLE);
         BCAST_PTR(&beta, 1, DOUBLE);

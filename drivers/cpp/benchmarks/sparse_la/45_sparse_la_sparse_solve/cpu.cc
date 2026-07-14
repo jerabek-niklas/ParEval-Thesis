@@ -96,7 +96,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 128;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(128);
     const size_t nVals = TEST_SIZE * TEST_SIZE * SPARSE_LA_SPARSITY;
 
     std::vector<size_t> A_rows(nVals), A_columns(nVals);

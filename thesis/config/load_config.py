@@ -7,8 +7,7 @@ from typing import Any
 import os
 import yaml
 
-# Optional: dotenv only feeds API keys to the generation stage. Analysis-only
-# environments (e.g. the PARCOACH container) do not ship it and do not need it.
+# Optional: dotenv only feeds API keys to the generation stage. 
 try:
     from dotenv import load_dotenv
 except ModuleNotFoundError:  # pragma: no cover

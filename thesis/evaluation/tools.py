@@ -430,7 +430,21 @@ def offset_to_line_col(text: str, offset: int) -> tuple[int, int]:
     return (line, column)
 
 
+# Checks inside blocking groups that are hygiene recommendations rather than
+# defect indicators: they fire on demonstrably correct code (verified via the
+# clean-kernel check in verify_detection.py) and would gate the repair loop
+# for every sample. Recorded as findings, but never blocking.
+CLANG_TIDY_BLOCKING_EXCEPTIONS = {
+    # fires on every `#pragma omp parallel ...` without a default clause,
+    # including race-free kernels; a style recommendation, not a bug signal
+    "openmp-use-default-none",
+}
+
+
 def is_blocking_check(check_id: str) -> bool:
+    if check_id in CLANG_TIDY_BLOCKING_EXCEPTIONS:
+        return False
+
     return any(check_id.startswith(group) for group in CLANG_TIDY_BLOCKING_GROUPS)
 
 
@@ -681,10 +695,23 @@ class InferTool:
 
             result = run_command(argv, timeout=self.timeout)
 
+            report_path = out_dir / "report.json"
+
             findings = findings_in_model_file(
-                self._parse_report(out_dir / "report.json"),
+                self._parse_report(report_path),
                 sample.source_path.name,
             )
+
+            # Fail-safe: a failed capture/analysis (non-zero exit, timeout,
+            # or missing report) must never be mistaken for a clean sample.
+            # infer exits 0 on successful runs even when it finds issues.
+            error = None
+            if result.timed_out:
+                error = "infer timed out"
+            elif result.returncode != 0:
+                error = f"infer exited with {result.returncode}"
+            elif not report_path.exists():
+                error = "infer produced no report.json"
 
         return ToolResult(
             tool=self.name,
@@ -694,6 +721,7 @@ class InferTool:
             findings=findings,
             raw_stdout=result.stdout,
             raw_stderr=result.stderr,
+            error=error,
         )
 
     def _parse_report(self, report_path: Path) -> list[Finding]:

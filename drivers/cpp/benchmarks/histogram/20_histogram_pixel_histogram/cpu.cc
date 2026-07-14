@@ -50,7 +50,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 1024;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
     std::vector<int> image(TEST_SIZE);
     std::array<size_t, 256> correct, test;
@@ -61,7 +61,7 @@ bool validate(Context *ctx) {
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int i = 0; i < numTries; i += 1) {
         // set up input
-        fillRand(image, 0, 255);
+        ENHANCED_FILL(image, 0, 255);
         BCAST(image, INT);
 
         std::fill(correct.begin(), correct.end(), 0);

@@ -57,7 +57,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 1024;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
     int rank;
     GET_RANK(rank);
@@ -66,7 +66,7 @@ bool validate(Context *ctx) {
     for (int i = 0; i < numTries; i += 1) {
         // set up input
         std::vector<int> x(TEST_SIZE);
-        fillRand(x, 1, 100);
+        ENHANCED_FILL(x, 1, 100);
         if (i == 1) {
             for (size_t j = 0; j < 20; j += 1) {
                 x[j] = 2 * (rand() % 50) + 1;

@@ -102,7 +102,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 128;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(128);
     const size_t nVals_A = TEST_SIZE * TEST_SIZE * SPARSE_LA_SPARSITY;
     const size_t nVals_X = TEST_SIZE * TEST_SIZE * SPARSE_LA_SPARSITY;
 
@@ -118,13 +118,13 @@ bool validate(Context *ctx) {
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
         // set up input
-        fillRand(X_rows, 0UL, TEST_SIZE);
-        fillRand(X_columns, 0UL, TEST_SIZE);
-        fillRand(X_values, -1.0, 1.0);
+        ENHANCED_FILL(X_rows, 0UL, TEST_SIZE);
+        ENHANCED_FILL(X_columns, 0UL, TEST_SIZE);
+        ENHANCED_FILL(X_values, -1.0, 1.0);
 
-        fillRand(A_rows, 0UL, TEST_SIZE);
-        fillRand(A_columns, 0UL, TEST_SIZE);
-        fillRand(A_values, -1.0, 1.0);
+        ENHANCED_FILL(A_rows, 0UL, TEST_SIZE);
+        ENHANCED_FILL(A_columns, 0UL, TEST_SIZE);
+        ENHANCED_FILL(A_values, -1.0, 1.0);
 
         BCAST(X_rows, UNSIGNED_LONG);
         BCAST(X_columns, UNSIGNED_LONG);

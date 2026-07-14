@@ -58,7 +58,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 }
 
 bool validate(Context *ctx) {
-    const size_t TEST_SIZE = 1024;
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
     int rank;
     GET_RANK(rank);
@@ -68,8 +68,8 @@ bool validate(Context *ctx) {
         // set up input
         std::vector<int> x(TEST_SIZE);
         std::vector<int> y(TEST_SIZE);
-        fillRand(x, -100, 100);
-        fillRand(y, -100, 100);
+        ENHANCED_FILL(x, -100, 100);
+        ENHANCED_FILL(y, -100, 100);
         int val = rand() % 200 - 100;
         if (i == 1) {
             x[rand() % x.size()] = val;

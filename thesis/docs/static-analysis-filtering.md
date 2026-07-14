@@ -267,7 +267,7 @@ correctly, including `std::vector` code.
 | File attribution | `findings_in_model_file()` keeps only `generated-code.hpp` findings. |
 | Crash safety | Non-zero clang exit or timeout sets the record's `error` field (the compile *is* the analysis). |
 
-*Known caveat (measure, don't hide):* on kernels with multiplied flattened
+*Known caveat:* on kernels with multiplied flattened
 indexing (`A[i*N+j]`, parameterized `N`) LLOV's polyhedral model may report
 false-positive races or fall back to "not analyzed". This is exactly the
 per-tool precision that the DataRaceBench overlap measurement quantifies; the
@@ -279,6 +279,42 @@ independent of the AST-based `openmp-*` clang-tidy checks — two static methods
 for the OpenMP error class, plus the dynamic tools (TSan/Archer) later.
 
 ---
+
+## Dynamic tools (sanitizer-instrumented executions)
+
+The dynamic stage (`thesis/evaluation/dynamic_tools.py`,
+`run_dynamic_analysis.py`, output `dynamic_analysis.jsonl`) follows the same
+two-layer philosophy: the **whole benchmark program** is instrumented and
+executed over the correctness launch grid, and only reports that reach the
+model file are kept.
+
+| Tool | Scope | Instrumentation | Attribution filter |
+| --- | --- | --- | --- |
+| `asan_ubsan` | serial, omp, mpi | `-fsanitize=address,undefined` (primary compiler), `-O1 -g -fno-omit-frame-pointer` | ASan/LSan report blocks: kept only if a stack frame reaches `generated-code.hpp:<line>`; UBSan lines: kept only if the location itself is in the model file. |
+| `tsan` | omp only | `-fsanitize=thread`, always clang++ against LLVM libomp with the archer OMPT tool (`OMP_TOOL_LIBRARIES`) — gcc/libgomp+TSan reports false races inside the OpenMP runtime | TSan report blocks: attribution uses **only the racing-access stacks** (frames above the first `Location is` / `Mutex M` / `Thread T… created` metadata section). Rationale: libomp-runtime-internal races (e.g. atomic read vs. `pthread_mutex_init` inside `libomp.so`) carry allocation/thread-creation stacks that pass through the model's `#pragma omp parallel` — attributing on those would flag every OMP sample. |
+| `memcheck` | serial, omp (mpi excluded: per-rank valgrind wrapping adds complexity while ASan already covers MPI memory errors) | none (valgrind dynamic binary instrumentation on a plain `-O1 -g` build) — the compile-independent second method for the memory-error class | Valgrind XML errors: kept only if a stack frame reaches the model file. `Leak_PossiblyLost` is dropped entirely: the libgomp thread pool is alive at exit and its allocation stack runs through the first parallel region (model frame), so it fired on 100 % of OMP samples ("320 bytes possibly lost"). Genuine leaks remain covered by `Leak_DefinitelyLost` and LSan. |
+
+**Helgrind and DRD are excluded for now** (measured on Ubuntu 24.04 stock
+runtimes): Helgrind reports races on a race-free OpenMP kernel — 7 reports
+(g++/libgomp) resp. 27 (clang++/libomp) — with frames pointing into the model
+file, so the attribution filter cannot remove them; DRD reports nothing even
+for a planted race. Valgrind's manual requires an OpenMP runtime built with
+`--disable-linux-futex` for these tools, which distro toolchains are not.
+OpenMP race redundancy is instead TSan/Archer (dynamic) + LLOV (static).
+
+Further rules:
+- Findings are deduplicated per sample across launch parameters by
+  `(check_id, line)` — the same race at 2, 4 and 8 threads is one finding.
+- All kept dynamic findings are blocking (they are observed runtime bugs).
+- A failed instrumented build or a failed TSan preflight is a tool **error**,
+  never a clean sample. The TSan preflight exists because TSan binaries crash
+  at startup when the kernel's ASLR entropy is too high
+  (`vm.mmap_rnd_bits > 28`; Docker Desktop's WSL2 VM defaults to 32 — fix once
+  per VM boot with
+  `docker run --privileged --rm ubuntu:24.04 sysctl -w vm.mmap_rnd_bits=28`).
+- Symbolization requires `llvm-symbolizer` in the image; without it sanitizer
+  frames are unsymbolized (`<null>`) and nothing could ever be attributed to
+  the model file.
 
 ## Blocking classification (adjacent — not a filter)
 
@@ -292,7 +328,7 @@ Non-blocking findings are still recorded; they are quality signals, not gates.
 | `infer` | Infer `severity == ERROR` | `WARNING`, `INFO`/`ADVICE` |
 | `parcoach` | every parsed collective-ordering warning | — |
 | `llov` | `llov-data-race` | `llov-region-not-analyzed` (info) |
-| `clang-tidy` | check id starts with `bugprone-`, `concurrency-`, `clang-analyzer-`, `mpi-`, `openmp-`; or `clang-diagnostic-error` | `performance-*`, `misc-*`, `cppcoreguidelines-narrowing-conversions` |
+| `clang-tidy` | check id starts with `bugprone-`, `concurrency-`, `clang-analyzer-`, `mpi-`, `openmp-`; or `clang-diagnostic-error` | `performance-*`, `misc-*`, `cppcoreguidelines-narrowing-conversions`; **exception:** `openmp-use-default-none` (in a blocking group, but a hygiene recommendation that fires on every correct `#pragma omp parallel` — verified via the clean-kernel check — so recorded non-blocking) |
 
 Note that `bugprone-narrowing-conversions` (e.g. `size_t`→`int` for MPI counts)
 is **kept and blocking**: unlike the two excluded checks it fires on the model's
