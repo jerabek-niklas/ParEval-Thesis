@@ -24,4 +24,7 @@ thesis/results/cache/
 
 # tool-validation: downloaded benchmark suites + raw measurement output
 thesis/tool_validation/suites/
-thesis/tool_validation/results/
+thesis/tool_validation/results/drb
+thesis/tool_validation/results/juliet
+thesis/tool_validation/results/mbi
+thesis/tool_validation/results/smoke_2026-07-10
