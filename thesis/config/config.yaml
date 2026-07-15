@@ -141,20 +141,44 @@ stages:
 
   static_analysis:
     enabled: true
-    # compiler/clang_tidy/cppcheck/infer run in the main pareval-thesis
-    # container; parcoach runs in its own container (LLVM 15) — invoke
-    # run_static_analysis.py inside parcoach-demo:2.4.1 with --tools parcoach;
-    # llov runs in the pareval-llov container (docker/Dockerfile.llov) with
-    # --tools llov. Results merge per tool into static_analysis.jsonl.
-    # Tools whose binaries are absent in the current environment are skipped
-    # with a warning, so this list can name all of them.
+    # Per-tool settings (schema validated at config load, see
+    # thesis/evaluation/tool_config.py):
+    #   enabled            — include/exclude is a CONFIG decision
+    #   execution_models   — may only NARROW the tool's hard capabilities
+    #                        (a tool never runs where it technically cannot)
+    #   low_precision_warning / low_precision_families
+    #                      — findings get low_confidence: true (tool-wide or
+    #                        per check_id-prefix family); rendered as
+    #                        verify-first hints in repair feedback
+    # Container split stays via --tools (filters the enabled set):
+    # compiler/clang_tidy/cppcheck/infer in pareval-thesis; parcoach in
+    # parcoach-demo:2.4.1; llov in pareval-llov. Results merge per tool.
     tools:
-      - compiler
-      - clang_tidy
-      - cppcheck
-      - infer
-      - parcoach
-      - llov
+      compiler:
+        enabled: true
+        execution_models: [serial, omp, mpi]
+      clang_tidy:
+        enabled: true
+        execution_models: [serial, omp, mpi]
+        # MPI-Checker family: validation measured precision 0.57 lax /
+        # category-blind (strict recall 0.011) on MBI
+        low_precision_families:
+          - "clang-analyzer-optin.mpi"
+      cppcheck:
+        enabled: true
+        execution_models: [serial, omp, mpi]
+      infer:
+        enabled: true
+        execution_models: [serial, omp, mpi]
+      parcoach:
+        enabled: true
+        execution_models: [mpi]
+        # validation: precision 0.506 on MBI (FP rate 0.847 on correct
+        # rank-conditional collectives)
+        low_precision_warning: true
+      llov:
+        enabled: true
+        execution_models: [omp]
     output_file_name: static_analysis.jsonl
 
   correctness_tests:
@@ -167,16 +191,33 @@ stages:
 
   dynamic_analysis:
     enabled: true
-    # sanitizer-instrumented executions over the correctness launch grid
-    # (asan_ubsan: all models; tsan: omp only, clang+libomp+archer;
-    # memcheck: serial+omp, valgrind DBI as the compile-independent second
-    # memory method). Helgrind/DRD deliberately excluded for now — see
-    # thesis/docs/static-analysis-filtering.md. Runs in pareval-thesis.
+    # Sanitizer/DBI executions over the correctness launch grid (same
+    # per-tool schema as static_analysis). Runs in pareval-thesis.
     tools:
-      - asan_ubsan
-      - tsan
-      - memcheck
-      - must
+      asan_ubsan:
+        enabled: true
+        execution_models: [serial, omp, mpi]
+      tsan:
+        enabled: true
+        execution_models: [omp]
+      memcheck:
+        enabled: true
+        execution_models: [serial, omp]
+      must:
+        enabled: true
+        execution_models: [mpi]
+      # Implemented but disabled by default — enabling is a config decision.
+      # DRB validation: helgrind recall 0.93 at FP-RATE 0.89 (flags nearly
+      # every race-free OpenMP kernel; stock futex-based runtimes), drd
+      # recall 0.20. See thesis/docs/static-analysis-filtering.md.
+      helgrind:
+        enabled: false
+        execution_models: [omp]
+        low_precision_warning: true
+      drd:
+        enabled: false
+        execution_models: [omp]
+        low_precision_warning: true
     output_file_name: dynamic_analysis.jsonl
 
   enhanced_tests:
@@ -211,3 +252,17 @@ stages:
       - static_feedback
       - test_feedback
       - combined_feedback
+    # How low_confidence findings (see tool low_precision_warning) affect
+    # the loop's stop criterion — evaluated by the loop orchestrator:
+    #   ignore          never affect stopping (pure feedback hints)
+    #   grace_once      DEFAULT: count as blocking only while NEW; if the
+    #                   same finding (check_id + line) persists unchanged
+    #                   into the next iteration it stops counting — the
+    #                   model had one iteration to verify; a persisting
+    #                   report is treated as checked/false alarm. New
+    #                   low_confidence findings get their own grace
+    #                   iteration.
+    #   always_blocking like normal blocking findings (permanent warners
+    #                   such as parcoach then drive every loop to
+    #                   max_iterations — experiment option, not a default)
+    low_confidence_stop_mode: grace_once

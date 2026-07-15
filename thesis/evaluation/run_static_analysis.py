@@ -33,9 +33,17 @@ if str(REPO_ROOT) not in sys.path:
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
+from thesis.evaluation.tool_config import (  # noqa: E402
+    ToolSettings,
+    mark_low_confidence,
+    resolve_tool_settings,
+)
 from thesis.evaluation.tools import register_default_tools  # noqa: E402
 
-STATIC_ANALYSIS_SCHEMA_VERSION = "static_analysis.v1"
+# v2: per-tool config schema — findings carry low_confidence, per-tool
+# entries carry num_low_confidence, records carry low_confidence_count,
+# out-of-scope tools are recorded as not-applicable entries.
+STATIC_ANALYSIS_SCHEMA_VERSION = "static_analysis.v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,12 +61,38 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_tool_names(config: dict[str, Any], override: list[str] | None) -> list[str]:
-    if override:
-        return override
+def resolve_enabled_tools(
+    config: dict[str, Any], override: list[str] | None, stage_name: str
+) -> "dict[str, ToolSettings]":
+    """Enabled tools from the per-tool config schema.
 
-    stage = (config.get("stages") or {}).get("static_analysis") or {}
-    return stage.get("tools", ["compiler", "cppcheck"])
+    The --tools CLI override FILTERS the enabled set (container split), it
+    cannot enable a config-disabled tool — that is a config decision.
+    """
+    settings = resolve_tool_settings(config, stage_name)
+    enabled = {name: s for name, s in settings.items() if s.enabled}
+
+    if override:
+        for name in override:
+            if name in settings and name not in enabled:
+                print(
+                    f"Tool '{name}' requested via --tools but disabled in the "
+                    f"config; enable it under stages.{stage_name}.tools first."
+                )
+        enabled = {name: s for name, s in enabled.items() if name in override}
+
+    return enabled
+
+
+def not_applicable_entry(tool_name: str, execution_model: str) -> dict[str, Any]:
+    """Record entry for a tool whose configured scope excludes this sample."""
+    return framework.ToolResult(
+        tool=tool_name,
+        ran=False,
+        exit_code=None,
+        duration_seconds=0.0,
+        error=f"not applicable: '{execution_model}' outside configured execution_models",
+    ).to_dict()
 
 
 def load_existing_records(output_path: Path) -> dict[str, dict[str, Any]]:
@@ -90,19 +124,26 @@ def record_has_blocking(record: dict[str, Any]) -> bool:
     )
 
 
+def record_low_confidence_count(record: dict[str, Any]) -> int:
+    return sum(
+        tool_data.get("num_low_confidence", 0)
+        for tool_data in record.get("tools", {}).values()
+    )
+
+
 def run_model(
     context: framework.EvaluationContext,
     intermediate_dir: Path,
     run_id: str,
     model_id: str,
-    tool_names: list[str],
+    tool_settings: "dict[str, ToolSettings]",
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / "static_analysis.jsonl"
 
     records = load_existing_records(output_path)
 
     available_tools = []
-    for name in tool_names:
+    for name in tool_settings:
         tool = framework.get_tool(name)
         if tool.is_available():
             available_tools.append(tool)
@@ -133,16 +174,34 @@ def run_model(
             records[sample.sample_id] = record
 
         record["created_at_utc"] = common.utc_now_iso()
+        record["schema_version"] = STATIC_ANALYSIS_SCHEMA_VERSION
 
         for tool in available_tools:
+            settings = tool_settings[tool.name]
+
+            # configured scope (config ∩ hard capability) gates the run;
+            # the record still gets an explicit not-applicable entry so
+            # downstream consumers see the decision
+            if not settings.applies_to(sample.execution_model):
+                record["tools"][tool.name] = not_applicable_entry(
+                    tool.name, sample.execution_model
+                )
+                continue
+
             result = tool.run(sample, context)
-            record["tools"][tool.name] = result.to_dict()
+
+            num_low_confidence = mark_low_confidence(result.findings, settings)
+
+            entry = result.to_dict()
+            entry["num_low_confidence"] = num_low_confidence
+            record["tools"][tool.name] = entry
 
             per_tool_findings[tool.name] += len(result.findings)
             per_tool_blocking[tool.name] += len(result.blocking_findings)
 
         # Recompute over ALL tools in the record (merged across invocations).
         record["has_blocking_findings"] = record_has_blocking(record)
+        record["low_confidence_count"] = record_low_confidence_count(record)
         if record["has_blocking_findings"]:
             samples_with_blocking += 1
 
@@ -186,14 +245,14 @@ def main() -> None:
 
     register_default_tools(primary_compiler=args.primary_compiler)
 
-    tool_names = resolve_tool_names(config, args.tools)
-    # Only keep tool names the registry actually knows; warn on the rest
-    # (e.g. 'infer' is configured but not yet implemented).
-    known = []
-    for name in tool_names:
+    enabled_settings = resolve_enabled_tools(config, args.tools, "static_analysis")
+
+    # Only keep tools the registry actually knows; warn on the rest.
+    known: dict[str, ToolSettings] = {}
+    for name, settings in enabled_settings.items():
         try:
             framework.get_tool(name)
-            known.append(name)
+            known[name] = settings
         except KeyError:
             print(f"Tool '{name}' configured but not implemented yet, skipping.")
 
@@ -214,7 +273,10 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
-    print(f"Static analysis | run {run_id} | tools: {', '.join(known)}")
+    scopes = ", ".join(
+        f"{name}[{'/'.join(s.execution_models)}]" for name, s in known.items()
+    )
+    print(f"Static analysis | run {run_id} | tools: {scopes}")
     print("=" * 40)
 
     for model_config in models:
@@ -223,7 +285,7 @@ def main() -> None:
             intermediate_dir=intermediate_dir,
             run_id=run_id,
             model_id=model_config["id"],
-            tool_names=known,
+            tool_settings=known,
         )
 
 

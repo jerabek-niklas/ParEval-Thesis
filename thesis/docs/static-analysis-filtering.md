@@ -294,13 +294,33 @@ model file are kept.
 | `tsan` | omp only | `-fsanitize=thread`, always clang++ against LLVM libomp with the archer OMPT tool (`OMP_TOOL_LIBRARIES`) — gcc/libgomp+TSan reports false races inside the OpenMP runtime | TSan report blocks: attribution uses **only the racing-access stacks** (frames above the first `Location is` / `Mutex M` / `Thread T… created` metadata section). Rationale: libomp-runtime-internal races (e.g. atomic read vs. `pthread_mutex_init` inside `libomp.so`) carry allocation/thread-creation stacks that pass through the model's `#pragma omp parallel` — attributing on those would flag every OMP sample. |
 | `memcheck` | serial, omp (mpi excluded: per-rank valgrind wrapping adds complexity while ASan already covers MPI memory errors) | none (valgrind dynamic binary instrumentation on a plain `-O1 -g` build) — the compile-independent second method for the memory-error class | Valgrind XML errors: kept only if a stack frame reaches the model file. `Leak_PossiblyLost` is dropped entirely: the libgomp thread pool is alive at exit and its allocation stack runs through the first parallel region (model frame), so it fired on 100 % of OMP samples ("320 bytes possibly lost"). Genuine leaks remain covered by `Leak_DefinitelyLost` and LSan. |
 
-**Helgrind and DRD are excluded for now** (measured on Ubuntu 24.04 stock
-runtimes): Helgrind reports races on a race-free OpenMP kernel — 7 reports
-(g++/libgomp) resp. 27 (clang++/libomp) — with frames pointing into the model
-file, so the attribution filter cannot remove them; DRD reports nothing even
-for a planted race. Valgrind's manual requires an OpenMP runtime built with
-`--disable-linux-futex` for these tools, which distro toolchains are not.
-OpenMP race redundancy is instead TSan/Archer (dynamic) + LLOV (static).
+**Helgrind and DRD are implemented but disabled by default** — enabling them
+is a config decision (`stages.dynamic_analysis.tools`), not a code change.
+The default is justified by the suite-scale validation numbers (full
+DataRaceBench run, tool_validation/results): Helgrind reaches recall 0.93
+but at an FP RATE of 0.89 — it flags nearly every race-free OpenMP kernel,
+with frames pointing into the model file so the attribution filter cannot
+remove them (stock futex-based OpenMP runtimes are not understood;
+Valgrind's manual requires a runtime built with `--disable-linux-futex`).
+DRD measures recall 0.20. When enabled, both carry
+`low_precision_warning: true`, so all their findings are marked
+`low_confidence`. OpenMP race redundancy in the default set is TSan/Archer
+(dynamic) + LLOV (static).
+
+**Per-tool config and low_confidence findings.** Every tool of the static
+and dynamic stage is configured under `stages.<stage>.tools` with `enabled`,
+`execution_models` (may only NARROW the tool's hard capabilities; the config
+can never make a tool run where it technically cannot) and
+`low_precision_warning` (tool-wide) or `low_precision_families` (check_id
+prefixes — used for clang-tidy, whose `clang-analyzer-optin.mpi` family
+measured ~0.5 lax precision and 0.011 strict recall on MBI while the rest of
+the invocation is unaffected). Marked findings carry `low_confidence: true`
+in the JSONLs (schema static_analysis.v2 / dynamic_analysis.v2, per-tool
+`num_low_confidence`, per-record `low_confidence_count`). The repair loop
+renders them as verify-first hints; their stop semantics are configured via
+`stages.repair.low_confidence_stop_mode` (ignore | grace_once |
+always_blocking, default grace_once — semantics documented in config.yaml
+and tool_config.py).
 
 Further rules:
 - Findings are deduplicated per sample across launch parameters by

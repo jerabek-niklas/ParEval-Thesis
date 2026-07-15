@@ -26,6 +26,19 @@ def load_config(config_path: str | Path, validate_keys: bool = False) -> dict[st
     with path.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
+    # Hard schema validation for the per-tool stage config (unknown tool
+    # names / execution models fail loudly at load time, not mid-run) and
+    # for the repair stop-mode enum. Imported lazily to keep this module
+    # dependency-light for scripts that only read prompts/models.
+    from thesis.evaluation.tool_config import (
+        validate_repair_config,
+        validate_stage_tools,
+    )
+
+    validate_stage_tools(config, "static_analysis")
+    validate_stage_tools(config, "dynamic_analysis")
+    validate_repair_config(config)
+
     # Off by default: validating every model's key would make it impossible
     # to run a single model or validate result files without all keys set.
     # The provider scripts check their own key via common.get_api_key.

@@ -29,8 +29,16 @@ from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
 from thesis.evaluation.dynamic_tools import register_dynamic_tools  # noqa: E402
+from thesis.evaluation.tool_config import (  # noqa: E402
+    ToolSettings,
+    mark_low_confidence,
+    resolve_tool_settings,
+)
 
-DYNAMIC_ANALYSIS_SCHEMA_VERSION = "dynamic_analysis.v1"
+# v2: per-tool config schema — findings carry low_confidence, per-tool
+# entries carry num_low_confidence, records carry low_confidence_count,
+# out-of-scope tools are recorded as not-applicable entries.
+DYNAMIC_ANALYSIS_SCHEMA_VERSION = "dynamic_analysis.v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,12 +56,24 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_tool_names(config: dict[str, Any], override: list[str] | None) -> list[str]:
-    if override:
-        return override
+def resolve_enabled_tools(
+    config: dict[str, Any], override: list[str] | None
+) -> "dict[str, ToolSettings]":
+    """Enabled tools from the per-tool config schema; --tools FILTERS the
+    enabled set (container split), it cannot enable a config-disabled tool."""
+    settings = resolve_tool_settings(config, "dynamic_analysis")
+    enabled = {name: s for name, s in settings.items() if s.enabled}
 
-    stage = (config.get("stages") or {}).get("dynamic_analysis") or {}
-    return stage.get("tools", ["asan_ubsan", "tsan"])
+    if override:
+        for name in override:
+            if name in settings and name not in enabled:
+                print(
+                    f"Tool '{name}' requested via --tools but disabled in the "
+                    f"config; enable it under stages.dynamic_analysis.tools first."
+                )
+        enabled = {name: s for name, s in enabled.items() if name in override}
+
+    return enabled
 
 
 def run_model(
@@ -61,7 +81,7 @@ def run_model(
     intermediate_dir: Path,
     run_id: str,
     model_id: str,
-    tool_names: list[str],
+    tool_settings: "dict[str, ToolSettings]",
     output_file_name: str,
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / output_file_name
@@ -70,7 +90,7 @@ def run_model(
         output_path.unlink()
 
     available_tools = []
-    for name in tool_names:
+    for name in tool_settings:
         tool = framework.get_tool(name)
         if tool.is_available():
             available_tools.append(tool)
@@ -99,10 +119,34 @@ def run_model(
         }
 
         sample_has_blocking = False
+        sample_low_confidence = 0
 
         for tool in available_tools:
+            settings = tool_settings[tool.name]
+
+            # configured scope (config INTERSECT hard capability) gates the
+            # run; the record gets an explicit not-applicable entry
+            if not settings.applies_to(sample.execution_model):
+                record["tools"][tool.name] = framework.ToolResult(
+                    tool=tool.name,
+                    ran=False,
+                    exit_code=None,
+                    duration_seconds=0.0,
+                    error=(
+                        f"not applicable: '{sample.execution_model}' outside "
+                        "configured execution_models"
+                    ),
+                ).to_dict()
+                continue
+
             result = tool.run(sample, context)
-            record["tools"][tool.name] = result.to_dict()
+
+            num_low_confidence = mark_low_confidence(result.findings, settings)
+            sample_low_confidence += num_low_confidence
+
+            entry = result.to_dict()
+            entry["num_low_confidence"] = num_low_confidence
+            record["tools"][tool.name] = entry
 
             per_tool_findings[tool.name] += len(result.findings)
             per_tool_blocking[tool.name] += len(result.blocking_findings)
@@ -114,6 +158,7 @@ def run_model(
                 sample_has_blocking = True
 
         record["has_blocking_findings"] = sample_has_blocking
+        record["low_confidence_count"] = sample_low_confidence
         if sample_has_blocking:
             samples_with_blocking += 1
 
@@ -161,12 +206,12 @@ def main() -> None:
 
     register_dynamic_tools()
 
-    tool_names = resolve_tool_names(config, args.tools)
-    known = []
-    for name in tool_names:
+    enabled_settings = resolve_enabled_tools(config, args.tools)
+    known: dict[str, ToolSettings] = {}
+    for name, settings in enabled_settings.items():
         try:
             framework.get_tool(name)
-            known.append(name)
+            known[name] = settings
         except KeyError:
             print(f"Tool '{name}' configured but not implemented yet, skipping.")
 
@@ -187,7 +232,7 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
-    print(f"Dynamic analysis | run {run_id} | tools: {', '.join(known)}")
+    print(f"Dynamic analysis | run {run_id} | tools: " + ", ".join(f"{n}[{chr(47).join(s.execution_models)}]" for n, s in known.items()))
     print("=" * 40)
 
     for model_config in models:
@@ -196,7 +241,7 @@ def main() -> None:
             intermediate_dir=intermediate_dir,
             run_id=run_id,
             model_id=model_config["id"],
-            tool_names=known,
+            tool_settings=known,
             output_file_name=output_file_name,
         )
 

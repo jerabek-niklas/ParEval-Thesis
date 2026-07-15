@@ -271,6 +271,96 @@ def test_valgrind_parsing() -> None:
     )
 
 
+def test_tool_config() -> None:
+    print("tool_config: schema validation, scoping, low_confidence marking")
+    from thesis.evaluation import dynamic_tools, tools
+    from thesis.evaluation.framework import Finding
+    from thesis.evaluation.tool_config import (
+        HARD_CAPABILITIES,
+        ToolSettings,
+        mark_low_confidence,
+        resolve_tool_settings,
+        validate_repair_config,
+        validate_stage_tools,
+    )
+
+    # hard-capability table stays in sync with the tool classes
+    class_caps = {
+        "compiler": tools.CompilerDiagnosticTool.execution_models,
+        "clang_tidy": tools.ClangTidyTool.execution_models,
+        "cppcheck": tools.CppcheckTool.execution_models,
+        "infer": tools.InferTool.execution_models,
+        "parcoach": tools.ParcoachTool.execution_models,
+        "llov": tools.LLOVTool.execution_models,
+        "asan_ubsan": dynamic_tools.AsanUbsanTool.execution_models,
+        "tsan": dynamic_tools.TsanTool.execution_models,
+        "memcheck": dynamic_tools.MemcheckTool.execution_models,
+        "must": dynamic_tools.MustTool.execution_models,
+        "helgrind": dynamic_tools.HelgrindTool.execution_models,
+        "drd": dynamic_tools.DrdTool.execution_models,
+    }
+    for name, caps in class_caps.items():
+        check(f"capabilities in sync: {name}", tuple(caps) == HARD_CAPABILITIES[name])
+
+    # defaults preserve current behavior; helgrind/drd disabled
+    settings = resolve_tool_settings({}, "dynamic_analysis")
+    check("must enabled by default", settings["must"].enabled)
+    check("helgrind disabled by default", not settings["helgrind"].enabled)
+    check("drd disabled by default", not settings["drd"].enabled)
+    check("helgrind low-precision default", settings["helgrind"].low_precision_warning)
+
+    # config can narrow, never extend (warning + intersection)
+    cfg = {"stages": {"dynamic_analysis": {"tools": {
+        "asan_ubsan": {"execution_models": ["serial"]},
+        "tsan": {"execution_models": ["serial", "omp"]},  # serial impossible
+    }}}}
+    resolved = resolve_tool_settings(cfg, "dynamic_analysis")
+    check("narrowing respected", resolved["asan_ubsan"].execution_models == ("serial",))
+    check("extension clipped to capability", resolved["tsan"].execution_models == ("omp",))
+
+    # unknown tool / unknown model are hard errors
+    try:
+        validate_stage_tools(
+            {"stages": {"static_analysis": {"tools": {"nope": {}}}}}, "static_analysis"
+        )
+        check("unknown tool rejected", False)
+    except ValueError:
+        check("unknown tool rejected", True)
+
+    try:
+        validate_stage_tools(
+            {"stages": {"static_analysis": {"tools": {"infer": {"execution_models": ["gpu"]}}}}},
+            "static_analysis",
+        )
+        check("unknown execution model rejected", False)
+    except ValueError:
+        check("unknown execution model rejected", True)
+
+    try:
+        validate_repair_config({"stages": {"repair": {"low_confidence_stop_mode": "sometimes"}}})
+        check("bad stop mode rejected", False)
+    except ValueError:
+        check("bad stop mode rejected", True)
+
+    # low_confidence marking: tool-wide and family-based
+    findings = [
+        Finding(tool="x", check_id="clang-analyzer-optin.mpi.MPI-Checker",
+                severity="warning", message="m"),
+        Finding(tool="x", check_id="bugprone-narrowing-conversions",
+                severity="warning", message="m"),
+    ]
+    check("low_confidence default False", not findings[0].low_confidence)
+
+    family = ToolSettings("clang_tidy", True, ("mpi",), False, ("clang-analyzer-optin.mpi",))
+    marked = mark_low_confidence(findings, family)
+    check("family marking hits only the family", marked == 1
+          and findings[0].low_confidence and not findings[1].low_confidence)
+
+    toolwide = ToolSettings("parcoach", True, ("mpi",), True, ())
+    marked = mark_low_confidence(findings, toolwide)
+    check("tool-wide marking hits all", marked == 2 and findings[1].low_confidence)
+
+
 def test_must_parsing() -> None:
     print("dynamic: MUST HTML parsing and attribution")
     from thesis.evaluation.dynamic_tools import parse_must_html
@@ -568,6 +658,7 @@ def main() -> None:
         test_sanitizer_parsing,
         test_valgrind_parsing,
         test_must_parsing,
+        test_tool_config,
         test_stub_rewriter,
         test_parcoach_parse_and_filter,
         test_llov_parse_and_filter,

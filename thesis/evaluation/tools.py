@@ -131,6 +131,9 @@ class CompilerDiagnosticTool:
 
     name = "compiler"
 
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("serial", "omp", "mpi")
+
     def __init__(self, primary_compiler: str = "g++", build_timeout: float = 120.0):
         self.primary_compiler = primary_compiler
         self.build_timeout = build_timeout
@@ -250,6 +253,9 @@ class CppcheckTool:
     """
 
     name = "cppcheck"
+
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("serial", "omp", "mpi")
 
     def __init__(self, timeout: float = 120.0):
         self.timeout = timeout
@@ -459,6 +465,9 @@ class ClangTidyTool:
 
     name = "clang_tidy"
 
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("serial", "omp", "mpi")
+
     def __init__(self, primary_compiler: str = "g++", timeout: float = 180.0):
         # primary_compiler only affects the -std/flags passed after `--`;
         # clang-tidy always uses its own clang front-end for parsing.
@@ -629,6 +638,9 @@ class InferTool:
     """
 
     name = "infer"
+
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("serial", "omp", "mpi")
 
     def __init__(self, primary_compiler: str = "g++", timeout: float = 300.0):
         # Infer uses its own bundled clang for capture regardless of the
@@ -889,6 +901,9 @@ class ParcoachTool:
 
     name = "parcoach"
 
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("mpi",)
+
     def __init__(self, timeout: float = 180.0):
         self.timeout = timeout
 
@@ -1098,6 +1113,9 @@ class LLOVTool:
     """
 
     name = "llov"
+
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("omp",)
 
     def __init__(self, llov_home: str = "/home/llvm/Work/LLOV", timeout: float = 180.0):
         import os

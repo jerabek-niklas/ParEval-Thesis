@@ -58,6 +58,11 @@ class Finding:
     line: int | None = None
     column: int | None = None
     blocking: bool = False
+    # Set post-run from config (tool_config.mark_low_confidence) for tools/
+    # finding families with measured low precision (~0.5 on the validation
+    # suites). The repair loop renders these as verify-first hints; their
+    # stop semantics are configured via stages.repair.low_confidence_stop_mode.
+    low_confidence: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

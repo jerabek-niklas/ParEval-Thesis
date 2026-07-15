@@ -473,14 +473,15 @@ class TsanTool(_SanitizerToolBase):
 # Valgrind Memcheck (dynamic binary instrumentation)
 # ---------------------------------------------------------------------------
 
-# Helgrind and DRD are deliberately NOT integrated: measured on stock
-# Ubuntu 24.04 runtimes, Helgrind reports races on a race-free OpenMP kernel
-# (7 reports with g++/libgomp, 27 with clang++/libomp) with stack frames
-# pointing INTO the model file — the attribution filter cannot remove them —
-# and DRD reports nothing even for a planted race. Valgrind's manual requires
-# an OpenMP runtime built with --disable-linux-futex for these tools, which
-# distro toolchains are not. OpenMP race redundancy is covered by
-# TSan/Archer (dynamic) + LLOV (static) instead.
+# Helgrind and DRD are implemented as regular pipeline tools (subclasses of
+# MemcheckTool below) but DISABLED BY DEFAULT via config: the DataRaceBench
+# validation measured Helgrind at recall 0.93 with FP-RATE 0.89 (it flags
+# nearly every race-free OpenMP kernel — stock futex-based runtimes are not
+# understood; Valgrind's manual requires an OpenMP runtime built with
+# --disable-linux-futex) and DRD at recall 0.20. Enabling them is a config
+# decision (stages.dynamic_analysis.tools); their findings then carry
+# low_confidence via the default low_precision_warning: true. OpenMP race
+# redundancy in the default set is TSan/Archer (dynamic) + LLOV (static).
 
 
 def slug_kind(kind: str) -> str:
@@ -560,6 +561,10 @@ class MemcheckTool:
 
     # Valgrind slows execution 20-50x; one grid point per model suffices.
     LAUNCH_PARAMS = {"serial": [{}], "omp": [{"num_threads": 2}]}
+
+    # subclasses select the valgrind tool; the XML parser is shared and
+    # memcheck-prefixed, run() rewrites the prefix for non-memcheck tools
+    VALGRIND_TOOL = "memcheck"
 
     def __init__(self, build_timeout: float = 180.0, run_timeout: float = 300.0):
         self.build_timeout = build_timeout
@@ -644,7 +649,7 @@ class MemcheckTool:
 
                 run_argv = [
                     "valgrind",
-                    "--tool=memcheck",
+                    "--tool=" + self.VALGRIND_TOOL,
                     "--xml=yes",
                     f"--xml-file={xml_path}",
                     *binary_argv,
@@ -660,9 +665,17 @@ class MemcheckTool:
                 if xml_path.exists():
                     xml_text = xml_path.read_text(encoding="utf-8", errors="replace")
 
-                findings += parse_valgrind_xml(
+                parsed = parse_valgrind_xml(
                     xml_text, sample.source_path.name, self.name
                 )
+
+                # single parser source: check_ids come back "memcheck-<kind>";
+                # helgrind/drd rewrite the prefix to their own name
+                if self.VALGRIND_TOOL != "memcheck":
+                    for finding in parsed:
+                        finding.check_id = self.name + finding.check_id[len("memcheck"):]
+
+                findings += parsed
 
                 raw_segments.append(
                     f"--- run {params or '{}'} exit={result.returncode}"
@@ -894,8 +907,32 @@ class MustTool:
         )
 
 
+class HelgrindTool(MemcheckTool):
+    """Helgrind race detection — disabled by default (see module comment:
+    DRB-measured FP rate 0.89 on race-free OpenMP kernels). Findings carry
+    low_confidence via config when enabled."""
+
+    name = "helgrind"
+    VALGRIND_TOOL = "helgrind"
+    # hard capability: race detection concerns OpenMP samples only
+    execution_models = ("omp",)
+    LAUNCH_PARAMS = {"omp": [{"num_threads": 2}]}
+
+
+class DrdTool(MemcheckTool):
+    """DRD race detection — disabled by default (DRB-measured recall 0.20)."""
+
+    name = "drd"
+    VALGRIND_TOOL = "drd"
+    execution_models = ("omp",)
+    LAUNCH_PARAMS = {"omp": [{"num_threads": 2}]}
+
+
 def register_dynamic_tools() -> None:
     register_tool(AsanUbsanTool())
     register_tool(TsanTool())
     register_tool(MemcheckTool())
     register_tool(MustTool())
+    # registered but config-disabled by default (tool_config._DEFAULTS)
+    register_tool(HelgrindTool())
+    register_tool(DrdTool())
