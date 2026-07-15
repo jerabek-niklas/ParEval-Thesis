@@ -262,6 +262,19 @@ def mark_low_confidence(findings: Iterable[Any], tool_settings: ToolSettings) ->
 LOW_CONFIDENCE_STOP_MODES = ("ignore", "grace_once", "always_blocking")
 
 
+# Valid feedback sources / history modes for the repair formatter
+# (thesis/repair/feedback.py; kept here so load_config validates them
+# without importing the repair package).
+REPAIR_FEEDBACK_SOURCES = (
+    "compiler_errors",
+    "static_findings",
+    "correctness_verdicts",
+    "dynamic_findings",
+)
+
+REPAIR_HISTORY_MODES = ("compressed", "full")
+
+
 def validate_repair_config(config: "Dict[str, Any]") -> None:
     repair = (config.get("stages") or {}).get("repair") or {}
     mode = repair.get("low_confidence_stop_mode")
@@ -271,3 +284,25 @@ def validate_repair_config(config: "Dict[str, Any]") -> None:
             "stages.repair.low_confidence_stop_mode must be one of %s "
             "(got '%s')" % (", ".join(LOW_CONFIDENCE_STOP_MODES), mode)
         )
+
+    hist = repair.get("history_mode")
+
+    if hist is not None and hist not in REPAIR_HISTORY_MODES:
+        raise ValueError(
+            "stages.repair.history_mode must be one of %s (got '%s')"
+            % (", ".join(REPAIR_HISTORY_MODES), hist)
+        )
+
+    strategies = repair.get("strategies")
+
+    # mapping schema: {name: {sources: [...]}}; the legacy list form names
+    # strategies without sources (design defaults apply) and stays valid
+    if isinstance(strategies, dict):
+        for name, entry in strategies.items():
+            for source in (entry or {}).get("sources") or []:
+                if source not in REPAIR_FEEDBACK_SOURCES:
+                    raise ValueError(
+                        "stages.repair.strategies.%s: unknown feedback "
+                        "source '%s' (known: %s)"
+                        % (name, source, ", ".join(REPAIR_FEEDBACK_SOURCES))
+                    )

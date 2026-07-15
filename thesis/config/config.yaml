@@ -248,10 +248,58 @@ stages:
   repair:
     enabled: false
     max_iterations: 3
+    # History rendering in repair requests (repair-loop-design.md §4):
+    #   compressed  per past iteration: cleaned code + findings with
+    #               truncated messages + one-sentence test verdict
+    #   full        per past iteration: cleaned code + full-detail findings
+    # Neither mode ever includes old mismatch numbers (fillRand has no
+    # persisted seed — old expected/got values belong to other inputs).
+    history_mode: compressed
+    feedback:
+      # Prefix rendered before low_confidence findings (see the tools'
+      # low_precision_warning / low_precision_families settings).
+      low_confidence_prefix: >
+        Low-confidence hint (tool precision ~0.5 on validation suites) —
+        verify at the given location before changing code:
+      # Whether non-blocking findings (warnings, style, performance) are
+      # rendered into feedback. Rendering-only: non-blocking findings never
+      # count toward the stop criterion regardless of this flag.
+      include_non_blocking: false
+      # Message truncation for history findings (compressed mode only).
+      history_message_max_chars: 80
+      # Max differing indices in the mismatch report (when the patched
+      # drivers provide the fields; rendering degrades to plain verdicts
+      # without them).
+      mismatch_report_max_indices: 3
+      # Prompt building blocks (every template overridable).
+      templates:
+        task_header: "## Original task"
+        history_iteration_header: "## Iteration {n} (previous attempt)"
+        current_header: "## Current version (fix this)"
+        feedback_header: "## Analysis feedback on the current version"
+        non_blocking_header: >
+          Non-blocking quality hints (optional improvements, not errors):
+        instruction: >
+          Output the complete corrected function. Line numbers in the
+          feedback refer to the current version shown above.
+        # Compile errors located in the driver TU are translated for the
+        # model (a raw cpu.cc line reference would be meaningless):
+        driver_error: >
+          error at the call site in the test driver (your function
+          name/signature likely does not match the expected interface):
+          {message}
+    # Feedback sources per loop variant (repair-loop-design.md §2).
+    # compiler_errors is base feedback in EVERY variant (compiler rule:
+    # building is a precondition; compiler warnings count as static
+    # analysis and ride in via static_findings).
     strategies:
-      - static_feedback
-      - test_feedback
-      - combined_feedback
+      static_feedback:
+        sources: [compiler_errors, static_findings]
+      test_feedback:
+        sources: [compiler_errors, correctness_verdicts, dynamic_findings]
+      combined_feedback:
+        sources: [compiler_errors, static_findings,
+                  correctness_verdicts, dynamic_findings]
     # How low_confidence findings (see tool low_precision_warning) affect
     # the loop's stop criterion — evaluated by the loop orchestrator:
     #   ignore          never affect stopping (pure feedback hints)
