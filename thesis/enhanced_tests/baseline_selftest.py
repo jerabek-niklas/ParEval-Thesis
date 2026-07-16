@@ -238,7 +238,10 @@ def build_probe_wrapper(prompt_text: str, benchmark_dir: Path) -> "str | None":
 
 
 def stability_probe(
-    benchmark_dir: Path, prompt_text: str, defines: "list[str]"
+    benchmark_dir: Path,
+    prompt_text: str,
+    defines: "list[str]",
+    extra_headers: "dict | None" = None,
 ) -> str:
     """pass | validate_fail | crash | hang | build_failed — normally compiled
     oracle vs. fast-math-perturbed second oracle instance (single TU)."""
@@ -247,7 +250,7 @@ def stability_probe(
     if wrapper is None:
         return "build_failed"
 
-    return compile_and_run(benchmark_dir, wrapper, defines)
+    return compile_and_run(benchmark_dir, wrapper, defines, extra_headers=extra_headers)
 
 
 def compile_and_run(
@@ -255,10 +258,15 @@ def compile_and_run(
     wrapper: str,
     defines: "list[str]",
     fast_math: bool = False,
+    extra_headers: "dict | None" = None,
 ) -> str:
     """Compile the serial TU with `wrapper` as generated-code.hpp and the
     given -D defines (e.g. ["ENHANCED_TEST_SIZE=7", "ENHANCED_FILL_PATTERN=3"]),
     then run it. Returns: pass | validate_fail | crash | hang | build_failed.
+
+    extra_headers ({filename: text}) are written next to the wrapper into
+    the -I'd src dir — used by the explicit_values pattern, whose data
+    travels via a generated enhanced-explicit-values.hpp.
 
     Shared between the size self-test (this script) and the per-spec
     baseline gate in run_enhanced_tests.py.
@@ -267,6 +275,9 @@ def compile_and_run(
         src_dir = Path(tmp) / "src"
         src_dir.mkdir()
         (src_dir / "generated-code.hpp").write_text(wrapper, encoding="utf-8")
+
+        for header_name, text in (extra_headers or {}).items():
+            (src_dir / header_name).write_text(text, encoding="utf-8")
 
         binary = Path(tmp) / "selftest.out"
 

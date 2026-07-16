@@ -16,6 +16,23 @@ rather than hand-edited.
 
 Idempotent: files already containing ENHANCED_TEST_SIZE_DEFAULT are skipped.
 
+MANUALLY PARAMETERIZED EXCEPTIONS (methodology note): 8 benchmarks had no
+canonical `const size_t TEST_SIZE = <N>;` — their validate() inlined the
+size into the vector constructors. They were brought onto the exact same
+macro pattern BY HAND (hoist `const size_t TEST_SIZE =
+ENHANCED_TEST_SIZE_DEFAULT(1024);` above the numTries loop, constructors
+switched to TEST_SIZE, fillRand -> ENHANCED_FILL), after which this
+script's detection recognizes them like the other 52:
+    search/35_search_search_for_last_struct_by_key   (two vectors)
+    search/36_search_check_if_array_contains_value
+    sort/44_sort_sort_non-zero_elements   (custom fillRandWithZeroes kept:
+        size parameterized, fill patterns not applicable to that call)
+    transform/55_transform_relu
+    transform/56_transform_negate_odds
+    transform/57_transform_inverse_offset
+    transform/58_transform_squaring
+    transform/59_transform_map_function
+
 Usage:
     python thesis/enhanced_tests/patch_drivers.py --check   # report only
     python thesis/enhanced_tests/patch_drivers.py           # apply

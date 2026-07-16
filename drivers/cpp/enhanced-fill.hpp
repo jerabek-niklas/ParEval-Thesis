@@ -7,18 +7,33 @@
 //   - ENHANCED_TEST_SIZE_DEFAULT(n) evaluates to n (the benchmark's
 //     original TEST_SIZE), mirroring the DRIVER_PROBLEM_SIZE pattern.
 //   - ENHANCED_FILL(x, lo, hi) expands to fillRand(x, lo, hi).
-//   - the pattern template below stays uninstantiated (no codegen).
+//   - the pattern templates below stay uninstantiated (no codegen).
 //
-// Defines used by thesis/evaluation/../enhanced_tests runners:
+// Defines used by the enhanced-tests runners:
 //   -DENHANCED_TEST_SIZE=<n>      override the validate() TEST_SIZE
 //   -DENHANCED_FILL_PATTERN=<id>  select a fill pattern (ids below)
 //   -DENHANCED_FILL_LO=<v> / -DENHANCED_FILL_HI=<v>
 //                                 override the call site's value range
 //                                 (both must be given)
+//   -DENHANCED_FILL_PARAM_K=<k>   position parameter of the k-patterns
+//                                 (duplicate_at / sorted_except_one /
+//                                 spike_at); validated in Python to
+//                                 k in [0, size-1] and size >= 2
+//
+// Pattern id 10 (explicit_values) reads its data from a GENERATED header
+// `enhanced-explicit-values.hpp` that the runner writes next to the build
+// (an -I'd temp dir), defining:
+//     static const double ENHANCED_EXPLICIT_VALUES[] = {...};
+//     static const size_t ENHANCED_EXPLICIT_COUNT = ...;
+// Containers larger than the value list (e.g. row-major matrices of
+// size*size elements for a spec size of N) are filled CYCLICALLY:
+// x[i] = values[i % count] — for a size x size matrix with count == size
+// this repeats the given row pattern per matrix row.
 
 #include <complex>
 #include <cstddef>
 #include <limits>
+#include <utility>
 
 #if defined(ENHANCED_TEST_SIZE)
 #define ENHANCED_TEST_SIZE_DEFAULT(dflt) (ENHANCED_TEST_SIZE)
@@ -26,15 +41,29 @@
 #define ENHANCED_TEST_SIZE_DEFAULT(dflt) (dflt)
 #endif
 
-// Fill pattern ids. Keep in sync with the spec pattern names in
-// thesis/enhanced_tests/ (specs use the names, the runner maps to ids):
-//   0 random          uniform in [lo, hi]  (identical to fillRand)
+#if !defined(ENHANCED_FILL_PARAM_K)
+#define ENHANCED_FILL_PARAM_K 0
+#endif
+
+#if defined(ENHANCED_FILL_PATTERN) && (ENHANCED_FILL_PATTERN == 10)
+#include "enhanced-explicit-values.hpp"
+#endif
+
+// Fill pattern ids. Keep in sync with PATTERNS in
+// thesis/enhanced_tests/specs.py (specs use the names, the runner maps
+// to ids):
+//   0 random            uniform in [lo, hi]  (identical to fillRand)
 //   1 all_zeros
-//   2 all_same        midpoint of [lo, hi]
-//   3 ascending       linear ramp lo -> hi
-//   4 descending      linear ramp hi -> lo
-//   5 alternating     lo, hi, lo, hi, ...
-//   6 extreme_values  numeric_limits lowest/max alternating
+//   2 all_same          midpoint of [lo, hi]
+//   3 ascending         linear ramp lo -> hi
+//   4 descending        linear ramp hi -> lo
+//   5 alternating       lo, hi, lo, hi, ...
+//   6 extreme_values    numeric_limits lowest/max alternating
+//   7 duplicate_at(k)   random fill, then x[k] = x[(k+1) % n]
+//   8 sorted_except_one(k) ascending ramp, then swap(x[k], x[(k+1) % n])
+//   9 spike_at(k)       random fill, then x[k] = numeric_limits::max()/2
+//                       (complex: spike on the real part)
+//  10 explicit_values   values from the generated header (cyclic)
 
 template <typename DType>
 DType enhancedRampValue(DType lo, DType hi, size_t index, size_t n, bool descending) {
@@ -83,37 +112,79 @@ DType enhancedMidValue(DType lo, DType hi) {
     }
 }
 
+template <typename DType>
+DType enhancedSpikeValue() {
+    // half of max: an extreme but arithmetic-surviving magnitude
+    if constexpr (std::is_floating_point_v<DType>) {
+        return std::numeric_limits<DType>::max() / 2;
+    } else if constexpr (std::is_integral_v<DType>) {
+        return std::numeric_limits<DType>::max() / 2;
+    } else if constexpr (std::is_same_v<DType, std::complex<double>>) {
+        return DType(std::numeric_limits<double>::max() / 2, 0.0);  // real-part spike
+    }
+}
+
+template <typename DType>
+DType enhancedFromDouble(double value) {
+    if constexpr (std::is_same_v<DType, std::complex<double>>) {
+        return DType(value, 0.0);
+    } else {
+        return static_cast<DType>(value);
+    }
+}
+
 template <typename T, typename DType>
-void enhancedFillPattern(T &x, DType lo, DType hi, int pattern) {
+void enhancedFillPattern(T &x, DType lo, DType hi, int pattern, size_t param_k) {
     const size_t n = x.size();
 
-    for (size_t i = 0; i < n; i += 1) {
-        switch (pattern) {
-            case 1:  // all_zeros
-                x[i] = DType(0);
-                break;
-            case 2:  // all_same
-                x[i] = enhancedMidValue<DType>(lo, hi);
-                break;
-            case 3:  // ascending
-                x[i] = enhancedRampValue<DType>(lo, hi, i, n, false);
-                break;
-            case 4:  // descending
-                x[i] = enhancedRampValue<DType>(lo, hi, i, n, true);
-                break;
-            case 5:  // alternating
-                x[i] = (i % 2 == 0) ? lo : hi;
-                break;
-            case 6:  // extreme_values
-                x[i] = enhancedExtremeValue<DType>(i);
-                break;
-            default:  // 0 / unknown: random, identical to fillRand
-                break;
-        }
+    if (n == 0) {
+        return;
     }
 
-    if (pattern == 0) {
-        fillRand(x, lo, hi);
+    const size_t k = param_k % n;  // Python validates; modulo as a backstop
+
+    switch (pattern) {
+        case 1:  // all_zeros
+            for (size_t i = 0; i < n; i += 1) x[i] = DType(0);
+            break;
+        case 2:  // all_same
+            for (size_t i = 0; i < n; i += 1) x[i] = enhancedMidValue<DType>(lo, hi);
+            break;
+        case 3:  // ascending
+            for (size_t i = 0; i < n; i += 1) x[i] = enhancedRampValue<DType>(lo, hi, i, n, false);
+            break;
+        case 4:  // descending
+            for (size_t i = 0; i < n; i += 1) x[i] = enhancedRampValue<DType>(lo, hi, i, n, true);
+            break;
+        case 5:  // alternating
+            for (size_t i = 0; i < n; i += 1) x[i] = (i % 2 == 0) ? lo : hi;
+            break;
+        case 6:  // extreme_values
+            for (size_t i = 0; i < n; i += 1) x[i] = enhancedExtremeValue<DType>(i);
+            break;
+        case 7:  // duplicate_at(k): random, then duplicate neighbor value
+            fillRand(x, lo, hi);
+            x[k] = x[(k + 1) % n];
+            break;
+        case 8:  // sorted_except_one(k): ascending, then one swap
+            for (size_t i = 0; i < n; i += 1) x[i] = enhancedRampValue<DType>(lo, hi, i, n, false);
+            std::swap(x[k], x[(k + 1) % n]);
+            break;
+        case 9:  // spike_at(k): random in original range, one huge outlier
+            fillRand(x, lo, hi);
+            x[k] = enhancedSpikeValue<DType>();
+            break;
+#if defined(ENHANCED_FILL_PATTERN) && (ENHANCED_FILL_PATTERN == 10)
+        case 10:  // explicit_values: cyclic fill from the generated header
+            for (size_t i = 0; i < n; i += 1) {
+                x[i] = enhancedFromDouble<DType>(
+                    ENHANCED_EXPLICIT_VALUES[i % ENHANCED_EXPLICIT_COUNT]);
+            }
+            break;
+#endif
+        default:  // 0 / unknown: random, identical to fillRand
+            fillRand(x, lo, hi);
+            break;
     }
 }
 
@@ -121,10 +192,12 @@ void enhancedFillPattern(T &x, DType lo, DType hi, int pattern) {
 #if defined(ENHANCED_FILL_LO) && defined(ENHANCED_FILL_HI)
 #define ENHANCED_FILL(x, lo, hi) \
     enhancedFillPattern((x), (decltype(lo))(ENHANCED_FILL_LO), \
-                        (decltype(lo))(ENHANCED_FILL_HI), (ENHANCED_FILL_PATTERN))
+                        (decltype(lo))(ENHANCED_FILL_HI), (ENHANCED_FILL_PATTERN), \
+                        (size_t)(ENHANCED_FILL_PARAM_K))
 #else
 #define ENHANCED_FILL(x, lo, hi) \
-    enhancedFillPattern((x), (lo), (hi), (ENHANCED_FILL_PATTERN))
+    enhancedFillPattern((x), (lo), (hi), (ENHANCED_FILL_PATTERN), \
+                        (size_t)(ENHANCED_FILL_PARAM_K))
 #endif
 #else
 #define ENHANCED_FILL(x, lo, hi) fillRand((x), (lo), (hi))

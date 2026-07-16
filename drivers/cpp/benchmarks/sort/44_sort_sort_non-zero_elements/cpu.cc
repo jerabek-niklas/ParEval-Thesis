@@ -57,9 +57,14 @@ bool validate(Context *ctx) {
     int rank;
     GET_RANK(rank);
 
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
+
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int i = 0; i < numTries; i += 1) {
-        std::vector<int> input(1024);
+        std::vector<int> input(TEST_SIZE);
+        // fillRandWithZeroes is benchmark-specific: the size is
+        // parameterized, fill patterns do not apply to this call (same
+        // rule as the string fills; see patch_drivers.py)
         fillRandWithZeroes(input);
         BCAST(input, INT);
 

@@ -42,6 +42,7 @@ if str(REPO_ROOT) not in sys.path:
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
+from thesis.evaluation.build_config import get_build_config  # noqa: E402
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     build_wrapper,
     compile_and_run,
@@ -49,10 +50,11 @@ from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     stability_probe,
 )
 from thesis.enhanced_tests.specs import (  # noqa: E402
-    DEFAULT_MAX_CASES_PER_BENCHMARK,
     build_benchmark_specs,
+    explicit_values_header,
     spec_defines,
     spec_key,
+    stage_settings,
 )
 
 ENHANCED_SCHEMA_VERSION = "enhanced_tests.v1"
@@ -72,6 +74,12 @@ def parse_args() -> argparse.Namespace:
         "--specs",
         default=str(REPO_ROOT / "thesis" / "results" / "cache" / "enhanced" / "specs.jsonl"),
         help="LLM spec JSONL (optional; static base set + mutations always run).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Rerun everything (default: resume — existing (sample_id, "
+        "spec) rows are skipped).",
     )
     return parser.parse_args()
 
@@ -93,17 +101,39 @@ def load_llm_specs(path: Path) -> "dict[str, list[dict]]":
     return by_benchmark
 
 
-def compile_sample(sample: framework.AssembledSample, defines: "list[str]", out_path: str) -> "tuple[bool, float]":
-    argv = [
-        "g++", "-std=c++17", "-O1",
-        "-DUSE_SERIAL", "-DDRIVER_PROBLEM_SIZE=(1<<4)",
-        *[f"-D{d}" for d in defines],
-        "-I", str(DRIVERS_CPP), "-I", str(DRIVERS_CPP / "models"),
-        "-I", str(sample.source_path.parent),
-        str(DRIVERS_CPP / "models" / "serial-driver.cc"),
-        str(sample.benchmark_dir / "cpu.cc"),
-        "-o", out_path,
+def compile_sample(
+    sample: framework.AssembledSample,
+    defines: "list[str]",
+    out_path: str,
+    extra_include_dir: "str | None" = None,
+) -> "tuple[bool, float]":
+    """Compile the serial TU via get_build_config (single source of build
+    truth, prepares the omp/mpi extension). Behavior kept identical to the
+    historical hand-built g++ line: base_command emits -O3, the trailing
+    -O1 override wins (gcc: last -O flag applies)."""
+    config = get_build_config("serial", primary_compiler="g++")
+
+    include_dirs = [
+        str(DRIVERS_CPP),
+        str(DRIVERS_CPP / "models"),
+        str(sample.source_path.parent),
     ]
+    if extra_include_dir:
+        include_dirs.append(extra_include_dir)
+
+    argv = config.base_command(
+        sources=[
+            str(DRIVERS_CPP / config.model_driver_file),
+            str(sample.benchmark_dir / "cpu.cc"),
+        ],
+        output_path=out_path,
+        include_dirs=include_dirs,
+        extra_flags=[
+            "-O1",  # keep the stage's historical opt level (see docstring)
+            "-DDRIVER_PROBLEM_SIZE=(1<<4)",
+            *["-D%s" % d for d in defines],
+        ],
+    )
 
     started = time.time()
 
@@ -116,6 +146,9 @@ def compile_sample(sample: framework.AssembledSample, defines: "list[str]", out_
 
 
 def run_binary(binary: str, cwd: str, timeout: float) -> "tuple[str, int | None, float]":
+    """Verdicts aligned with run_correctness.run_verdict: the validation
+    MARKER decides fail vs pass; exit 0 without any marker is a
+    runtime_error (not a fail)."""
     started = time.time()
 
     try:
@@ -127,13 +160,16 @@ def run_binary(binary: str, cwd: str, timeout: float) -> "tuple[str, int | None,
 
     duration = time.time() - started
 
+    if "Validation: FAIL" in result.stdout:
+        return "fail", result.returncode, duration
+
     if result.returncode != 0:
         return "crash", result.returncode, duration
 
     if "Validation: PASS" in result.stdout:
         return "pass", result.returncode, duration
 
-    return "fail", result.returncode, duration
+    return "runtime_error", result.returncode, duration
 
 
 def main() -> None:
@@ -144,7 +180,8 @@ def main() -> None:
     run_id = profile["run_id"]
 
     stage = (config.get("stages") or {}).get("enhanced_tests") or {}
-    max_cases = int(stage.get("max_cases_per_benchmark", DEFAULT_MAX_CASES_PER_BENCHMARK))
+    settings = stage_settings(config)
+    target_cases = int(settings["target_cases_per_benchmark"])
     run_timeout = float(stage.get("run_timeout_seconds", DEFAULT_RUN_TIMEOUT))
     output_name = stage.get("output_file_name", "enhanced_tests.jsonl")
 
@@ -163,7 +200,7 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
-    print(f"Enhanced tests | run {run_id} | max {max_cases} specs/benchmark | serial only")
+    print(f"Enhanced tests | run {run_id} | target {target_cases} specs/benchmark | serial only")
     print(f"LLM specs: {sum(len(v) for v in llm_specs.values())} from {args.specs}")
     print("=" * 50)
 
@@ -176,8 +213,26 @@ def main() -> None:
         model_id = model_config["id"]
         output_path = intermediate_dir / run_id / model_id / output_name
 
-        if output_path.exists():
+        if args.force and output_path.exists():
             output_path.unlink()
+
+        # resume: (sample_id, spec_key) pairs already recorded are skipped
+        done: "set" = set()
+        if output_path.exists():
+            import json as _json
+
+            with output_path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
+                    try:
+                        row = _json.loads(line)
+                        done.add((row["sample_id"], spec_key(row["spec"])))
+                    except (ValueError, KeyError):
+                        continue
+
+            if done:
+                print(f"[{model_id}] resume: {len(done)} (sample, spec) rows exist, skipping those")
 
         counts: Counter = Counter()
         samples_seen = 0
@@ -206,11 +261,27 @@ def main() -> None:
                 )
 
             wrapper = wrapper_cache[benchmark]
-            specs = build_benchmark_specs(benchmark, llm_specs.get(benchmark, []), max_cases)
+            specs = build_benchmark_specs(benchmark, llm_specs.get(benchmark, []), config)
+
+            if len(specs) < target_cases:
+                print(
+                    f"  [{benchmark}] under_target: {len(specs)}/{target_cases} "
+                    "specs (mutation space exhausted)"
+                )
 
             for spec in specs:
                 key = spec_key(spec)
+
+                if (sample.sample_id, key) in done:
+                    continue
+
                 defines = spec_defines(spec)
+                # explicit_values data travels via a generated header (too
+                # long for a define); gate and sample build both receive it
+                extra_headers = None
+                header_text = explicit_values_header(spec)
+                if header_text is not None:
+                    extra_headers = {"enhanced-explicit-values.hpp": header_text}
 
                 # baseline gate (cached), two probes per spec:
                 #   1. crash/hang: a crashing oracle never counts against a
@@ -229,13 +300,17 @@ def main() -> None:
                     if wrapper is None or prompt_text is None:
                         gate_cache[key] = "wrapper_failed"
                     else:
-                        plain = compile_and_run(sample.benchmark_dir, wrapper, defines)
+                        plain = compile_and_run(
+                            sample.benchmark_dir, wrapper, defines,
+                            extra_headers=extra_headers,
+                        )
 
                         if plain != "pass":
                             gate_cache[key] = plain
                         else:
                             perturbed = stability_probe(
-                                sample.benchmark_dir, prompt_text, defines
+                                sample.benchmark_dir, prompt_text, defines,
+                                extra_headers=extra_headers,
                             )
                             gate_cache[key] = (
                                 "pass" if perturbed == "pass" else "numerically_unstable"
@@ -266,7 +341,15 @@ def main() -> None:
 
                 with tempfile.TemporaryDirectory() as tmp:
                     binary = str(Path(tmp) / "enhanced.out")
-                    built, build_seconds = compile_sample(sample, defines, binary)
+
+                    if extra_headers:
+                        for header_name, text in extra_headers.items():
+                            (Path(tmp) / header_name).write_text(text, encoding="utf-8")
+
+                    built, build_seconds = compile_sample(
+                        sample, defines, binary,
+                        extra_include_dir=tmp if extra_headers else None,
+                    )
 
                     if not built:
                         record["status"] = "build_failed"
@@ -291,6 +374,26 @@ def main() -> None:
             if counts.get(status):
                 print(f"    {status}: {counts[status]}")
         print(f"[{model_id}] output: {output_path}")
+
+        # summary incl. the EFFECTIVE enhanced_tests config so that runs
+        # with different configurations stay distinguishable
+        summary = {
+            "schema_version": ENHANCED_SCHEMA_VERSION + ".summary",
+            "run_id": run_id,
+            "model_id": model_id,
+            "created_at_utc": common.utc_now_iso(),
+            "counts": dict(counts),
+            "samples_seen": samples_seen,
+            "resumed_rows": len(done),
+            "effective_config": {
+                **settings,
+                "run_timeout_seconds": run_timeout,
+                "specs_file": str(args.specs),
+            },
+        }
+        common.write_json(
+            output_path.parent / "enhanced_tests_summary.json", summary
+        )
 
 
 if __name__ == "__main__":

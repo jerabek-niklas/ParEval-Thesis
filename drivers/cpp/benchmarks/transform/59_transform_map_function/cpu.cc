@@ -51,10 +51,12 @@ bool validate(Context *ctx) {
     int rank;
     GET_RANK(rank);
 
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
+
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int i = 0; i < numTries; i += 1) {
-        std::vector<int> input(1024);
-        fillRand(input, 1, 1025);
+        std::vector<int> input(TEST_SIZE);
+        ENHANCED_FILL(input, 1, 1025);
         BCAST(input, INT);
 
         // compute correct result

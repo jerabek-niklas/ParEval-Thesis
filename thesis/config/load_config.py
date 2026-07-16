@@ -34,10 +34,12 @@ def load_config(config_path: str | Path, validate_keys: bool = False) -> dict[st
         validate_repair_config,
         validate_stage_tools,
     )
+    from thesis.enhanced_tests.specs import validate_enhanced_settings
 
     validate_stage_tools(config, "static_analysis")
     validate_stage_tools(config, "dynamic_analysis")
     validate_repair_config(config)
+    validate_enhanced_settings(config)
 
     # Off by default: validating every model's key would make it impossible
     # to run a single model or validate result files without all keys set.

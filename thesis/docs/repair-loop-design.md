@@ -1,8 +1,11 @@
 # Repair-Loop Design
 
-Status: design agreed, not yet implemented. This document is the single
-source of truth for the repair-loop stage; the methodology chapter and the
-implementation both derive from it.
+Status: design final. Implemented so far: per-tool config incl.
+low_confidence marking (tool_config.py), feedback/history formatter
+(thesis/repair/feedback.py). Open: loop orchestrator, driver mismatch
+patch, backfill runner, consolidated overview. This document is the
+single source of truth for the repair-loop stage; the methodology
+chapter and the implementation both derive from it.
 
 ## 1. Purpose
 
@@ -83,6 +86,38 @@ The model's repair answer goes through the normal assembly cleaning again.
   bounded mismatch report from the patched drivers (first k differing
   indices with expected/got and the input values at those indices)
 
+**Feedback eligibility and low-confidence findings (validation-derived):**
+Tool trustworthiness was measured on labeled suites (Juliet/DRB/MBI, see
+thesis/tool_validation/). Findings from tools/finding-families whose
+measured precision is below ~0.75 in their execution-model context are
+NOT dropped but marked `low_confidence: true` (config:
+`low_precision_warning` per tool; for clang_tidy per check_id family —
+`clang-analyzer-optin.mpi.*` is low-confidence, generic clang-analyzer
+findings are not). Currently low-confidence: parcoach (precision 0.51 on
+MBI) and MPI-Checker findings (0.57 lax, 0.011 strict). In the feedback
+prompt these render with the prefix "Low-confidence hint (tool precision
+~0.5 on validation suites) — verify at the given location before
+changing code:". Rationale: an uninformative gap is worse than an
+honestly labeled weak hint, and verifying reports is part of the repair
+capability under study.
+
+**Stop semantics of low-confidence findings** (config
+`low_confidence_stop_mode`): `ignore` | `grace_once` (default) |
+`always_blocking`. Under grace_once a low-confidence finding counts as
+blocking only while it is NEW (identity: check_id + line, the existing
+dedupe key). If the same finding persists unchanged into the next
+iteration, it stops counting: the model had one iteration to verify;
+persistence with unchanged code means "checked, judged a false alarm".
+A shifted line implies changed code — re-granting grace is then correct
+behavior (the report is legitimately re-checkable after any change),
+not a loophole. `always_blocking` exists for experiments only: permanent
+warners like parcoach would drive every MPI loop to max_iterations.
+
+Consequence for the ablation: variant A's MPI feedback consists almost
+entirely of low-confidence hints (no trustworthy static MPI tool exists —
+itself a key validation finding). Interpret A-vs-B on MPI samples as
+"weak hints vs. dynamic feedback", not "static vs. dynamic analysis".
+
 **Compressed history (per past iteration):**
 - the cleaned code of that iteration (ParEval kernels are 30-100 lines;
   this enables the model to diff its own attempts and break repair
@@ -101,6 +136,30 @@ validate() structures (scalar comparisons etc.) fall back to PASS/FAIL
 and are logged, as with the size patch. Feedback is symptom-level, not a
 reproducible test case (random inputs, no seed) — state this in the
 methodology chapter.
+
+**Config-driven formatting (stages.repair):** everything
+behavior-shaping is configured, not hardcoded (thesis/repair/feedback.py):
+
+- `history_mode: compressed | full` — compressed (default, the format
+  above); full renders past-iteration findings at current-feedback detail.
+  Old mismatch numbers stay excluded in BOTH modes (random inputs, no
+  seed — old expected/got values belong to other inputs).
+- `feedback.include_non_blocking` (default false) — whether non-blocking
+  findings (warnings, style, performance) are rendered, as a separate
+  clearly-headed section after the blocking findings. Rendering only:
+  non-blocking findings NEVER affect the stop criterion. Default false —
+  the loop should fix errors, not discuss style; true is an experiment
+  option ("does style feedback help or distract?").
+- `feedback.low_confidence_prefix` — the verify-first hint text.
+- `feedback.templates.*` — all prompt building blocks (headers,
+  instruction) individually overridable.
+- `feedback.history_message_max_chars`, `mismatch_report_max_indices` —
+  the compression caps.
+- `strategies.<name>.sources` — feedback sources per variant
+  (compiler_errors | static_findings | correctness_verdicts |
+  dynamic_findings); compiler_errors is the base in all three (compiler
+  rule above). Within each source, only findings of config-enabled tools
+  are rendered (tool_config is the single tool list).
 
 ## 5. Iteration mechanics and ID schema
 

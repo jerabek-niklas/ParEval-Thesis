@@ -235,11 +235,29 @@ stages:
       You respond with STRICT JSON only: a single JSON array, no markdown
       fences, no prose. Every element must follow the schema given by the
       user exactly.
-    # total specs per benchmark after static base + LLM seeds + mutations
-    max_cases_per_benchmark: 20
+    # static base set: every parameterizable benchmark gets these sizes
+    # with default random fill (list = count AND sizes)
+    static_base_sizes: [0, 1, 2, 7]
+    # valid-LLM-spec bounds per benchmark: below min triggers regeneration
+    # (max 2 refill rounds, then under_target), max is the per-call ask
+    llm_specs_min: 5
+    llm_specs_max: 8
+    # total specs per benchmark after static base + LLM seeds + mutation
+    # fill-up (multiple deterministic rounds until reached or exhausted)
+    target_cases_per_benchmark: 20
     # upper bound for spec sizes (validation rejects larger; keeps runtime
     # bounded — edge cases live at small sizes anyway)
     max_spec_size: 4096
+    # patterns OFFERED to the spec model — a subset of the implemented
+    # library in drivers/cpp/enhanced-fill.hpp (config selects, it can
+    # never invent; unknown names fail at config load)
+    offered_patterns: [random, all_zeros, all_same, ascending, descending,
+                       alternating, extreme_values, duplicate_at,
+                       sorted_except_one, spike_at, explicit_values]
+    # explicit_values: only for sizes up to this bound (surgical cases)
+    explicit_values_max_size: 64
+    # baseline.hpp is capped to this many chars in the generation prompt
+    baseline_prompt_max_chars: 12000
     # timeout per differential run (seconds)
     run_timeout_seconds: 30
     # where generate_test_specs.py writes and run_enhanced_tests.py reads

@@ -62,11 +62,13 @@ bool validate(Context *ctx) {
     int rank;
     GET_RANK(rank);
 
+    const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
+
     const size_t numTries = 5;
     for (int i = 0; i < numTries; i += 1) {
-        std::vector<int> pages(1024);
-        std::vector<Book> input(1024);
-        fillRand(pages, 1, 1000);
+        std::vector<int> pages(TEST_SIZE);
+        std::vector<Book> input(TEST_SIZE);
+        ENHANCED_FILL(pages, 1, 1000);
         pages[rand() % pages.size()] = 72;  // make sure there is at least one book with < 100 pages
         BCAST(pages, INT);
         for (int j = 0; j < input.size(); j += 1) {
