@@ -43,6 +43,7 @@ from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
 from thesis.evaluation.build_config import get_build_config  # noqa: E402
+from thesis.evaluation.run_correctness import parse_mismatch_output  # noqa: E402
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     build_wrapper,
     compile_and_run,
@@ -145,10 +146,12 @@ def compile_sample(
     return result.returncode == 0, time.time() - started
 
 
-def run_binary(binary: str, cwd: str, timeout: float) -> "tuple[str, int | None, float]":
+def run_binary(binary: str, cwd: str, timeout: float) -> "tuple[str, int | None, float, str]":
     """Verdicts aligned with run_correctness.run_verdict: the validation
     MARKER decides fail vs pass; exit 0 without any marker is a
-    runtime_error (not a fail)."""
+    runtime_error (not a fail). Returns stdout as well so the caller can
+    parse the bounded mismatch report (diagnostic only — enhanced results
+    stay held out of repair feedback)."""
     started = time.time()
 
     try:
@@ -156,20 +159,21 @@ def run_binary(binary: str, cwd: str, timeout: float) -> "tuple[str, int | None,
             [binary, "1"], capture_output=True, text=True, timeout=timeout, cwd=cwd
         )
     except subprocess.TimeoutExpired:
-        return "timeout", None, time.time() - started
+        return "timeout", None, time.time() - started, ""
 
     duration = time.time() - started
+    stdout = result.stdout or ""
 
-    if "Validation: FAIL" in result.stdout:
-        return "fail", result.returncode, duration
+    if "Validation: FAIL" in stdout:
+        return "fail", result.returncode, duration, stdout
 
     if result.returncode != 0:
-        return "crash", result.returncode, duration
+        return "crash", result.returncode, duration, stdout
 
-    if "Validation: PASS" in result.stdout:
-        return "pass", result.returncode, duration
+    if "Validation: PASS" in stdout:
+        return "pass", result.returncode, duration, stdout
 
-    return "runtime_error", result.returncode, duration
+    return "runtime_error", result.returncode, duration, stdout
 
 
 def main() -> None:
@@ -275,7 +279,16 @@ def main() -> None:
                 if (sample.sample_id, key) in done:
                     continue
 
-                defines = spec_defines(spec)
+                # MISMATCH_REPORT_MAX from the single config source
+                # (stages.repair.feedback.mismatch_report_max_indices)
+                mismatch_k = (
+                    ((config.get("stages") or {}).get("repair") or {})
+                    .get("feedback", {})
+                    .get("mismatch_report_max_indices", 3)
+                )
+                defines = spec_defines(spec) + [
+                    "MISMATCH_REPORT_MAX=%d" % int(mismatch_k)
+                ]
                 # explicit_values data travels via a generated header (too
                 # long for a define); gate and sample build both receive it
                 extra_headers = None
@@ -358,11 +371,23 @@ def main() -> None:
                         common.append_jsonl(output_path, record)
                         continue
 
-                    status, exit_code, run_seconds = run_binary(binary, tmp, run_timeout)
+                    status, exit_code, run_seconds, run_stdout = run_binary(
+                        binary, tmp, run_timeout
+                    )
 
                 record["status"] = status
                 record["exit_code"] = exit_code
                 record["duration_seconds"] = round(build_seconds + run_seconds, 3)
+
+                # diagnostic only: enhanced results stay held out of repair
+                # feedback (repair-loop-design.md §3)
+                mismatches, mismatch_total = parse_mismatch_output(run_stdout)
+                if mismatches:
+                    record["mismatches"] = mismatches
+                    record["mismatch_total"] = (
+                        mismatch_total if mismatch_total is not None else len(mismatches)
+                    )
+
                 counts[status] += 1
                 common.append_jsonl(output_path, record)
 

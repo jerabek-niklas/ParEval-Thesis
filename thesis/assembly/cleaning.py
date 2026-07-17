@@ -67,6 +67,9 @@ class CleaningMetadata:
     dropped_leading_lines: int = 0
     dropped_trailing_lines: int = 0
     signature_found_in_output: bool = False
+    # the signature matched only in its NO_INLINE-patched form (typical for
+    # repair answers, which echo the assembled file's signature)
+    signature_matched_patched: bool = False
     dropped_duplicated_prompt_lines: int = 0
     kept_pre_signature_lines: int = 0
     relocated_includes: list[str] = field(default_factory=list)
@@ -161,6 +164,24 @@ def get_function_name(signature_line: str) -> str | None:
     return match.group(1) if match else None
 
 
+def patched_signature_variant(signature_line: str) -> str | None:
+    """The prompt signature with NO_INLINE inserted after the return type —
+    the same patch rule as assemble_sources.patch_signature_line.
+
+    Repair-loop answers see the ASSEMBLED file (the exact bytes the tools
+    analyzed, repair-loop-design.md §4) and are asked for the complete
+    corrected function, so they echo the patched signature. The dedupe must
+    recognize that variant, otherwise the answer is misread as a body
+    continuation and assembles into a nested function definition.
+    """
+    parts = signature_line.split(" ")
+
+    if len(parts) < 2:
+        return None
+
+    return " ".join([parts[0], "NO_INLINE"] + parts[1:])
+
+
 def find_whitespace_insensitive(haystack: str, needle: str) -> tuple[int, int]:
     """Find needle in haystack ignoring all whitespace differences.
 
@@ -213,6 +234,14 @@ def split_at_signature(
     """
     signature = get_signature_line(prompt_text)
     start, end = find_whitespace_insensitive(code, signature)
+
+    if start == -1:
+        # repair answers echo the NO_INLINE-patched assembled signature
+        patched = patched_signature_variant(signature)
+        if patched:
+            start, end = find_whitespace_insensitive(code, patched)
+            if start != -1:
+                metadata.signature_matched_patched = True
 
     if start == -1:
         # Heuristic warning: output may still contain a (modified) full

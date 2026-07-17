@@ -53,6 +53,12 @@ def parse_args() -> argparse.Namespace:
         help="Override the tool list from config.",
     )
     parser.add_argument("--primary-compiler", default="g++", choices=["g++", "clang++"])
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Override the profile run_id (repair-loop iteration artifacts "
+        "use the convention <run>__<variant>__iter<N>).",
+    )
     return parser.parse_args()
 
 
@@ -196,7 +202,7 @@ def main() -> None:
 
     config = load_config(Path(args.config).resolve())
     profile = common.get_profile(config, args.profile)
-    run_id = profile["run_id"]
+    run_id = args.run_id or profile["run_id"]
 
     stage = (config.get("stages") or {}).get("dynamic_analysis") or {}
     output_file_name = stage.get("output_file_name", "dynamic_analysis.jsonl")

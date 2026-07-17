@@ -274,6 +274,16 @@ REPAIR_FEEDBACK_SOURCES = (
 
 REPAIR_HISTORY_MODES = ("compressed", "full")
 
+# Orchestrator enums (thesis/repair/orchestrator.py); validated here so a
+# config typo fails at load time in every entry point, not mid-loop.
+REPAIR_API_MODES = ("direct", "batch")
+REPAIR_EXTERNAL_TOOLS_MODES = ("manual", "docker")
+REPAIR_DEFAULT_STRATEGIES = (
+    "static_feedback",
+    "test_feedback",
+    "combined_feedback",
+)
+
 
 def validate_repair_config(config: "Dict[str, Any]") -> None:
     repair = (config.get("stages") or {}).get("repair") or {}
@@ -306,3 +316,49 @@ def validate_repair_config(config: "Dict[str, Any]") -> None:
                         "source '%s' (known: %s)"
                         % (name, source, ", ".join(REPAIR_FEEDBACK_SOURCES))
                     )
+
+    # orchestrator keys -----------------------------------------------------
+
+    known_strategies = set(REPAIR_DEFAULT_STRATEGIES)
+    if isinstance(strategies, dict):
+        known_strategies |= set(strategies)
+    elif isinstance(strategies, list):
+        known_strategies |= set(strategies)
+
+    for variant in repair.get("variants") or []:
+        if variant not in known_strategies:
+            raise ValueError(
+                "stages.repair.variants: unknown variant '%s' (known: %s)"
+                % (variant, ", ".join(sorted(known_strategies)))
+            )
+
+    api_mode = repair.get("api_mode")
+    if api_mode is not None and api_mode not in REPAIR_API_MODES:
+        raise ValueError(
+            "stages.repair.api_mode must be one of %s (got '%s')"
+            % (", ".join(REPAIR_API_MODES), api_mode)
+        )
+
+    for provider, mode in (repair.get("api_mode_overrides") or {}).items():
+        if mode not in REPAIR_API_MODES:
+            raise ValueError(
+                "stages.repair.api_mode_overrides.%s must be one of %s "
+                "(got '%s')" % (provider, ", ".join(REPAIR_API_MODES), mode)
+            )
+
+    external_mode = repair.get("external_tools_mode")
+    if external_mode is not None and external_mode not in REPAIR_EXTERNAL_TOOLS_MODES:
+        raise ValueError(
+            "stages.repair.external_tools_mode must be one of %s (got '%s')"
+            % (", ".join(REPAIR_EXTERNAL_TOOLS_MODES), external_mode)
+        )
+
+    known_tools = set(STAGE_TOOLS["static_analysis"]) | set(
+        STAGE_TOOLS["dynamic_analysis"]
+    )
+    for tool in repair.get("external_tools") or []:
+        if tool not in known_tools:
+            raise ValueError(
+                "stages.repair.external_tools: unknown tool '%s' (known: %s)"
+                % (tool, ", ".join(sorted(known_tools)))
+            )

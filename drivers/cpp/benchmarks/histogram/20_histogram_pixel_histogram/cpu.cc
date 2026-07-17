@@ -75,7 +75,7 @@ bool validate(Context *ctx) {
         SYNC();
         
         bool isCorrect = true;
-        if (IS_ROOT(rank) && !std::equal(correct.begin(), correct.end(), test.begin())) {
+        if (IS_ROOT(rank) && !reportAndCompareEq(correct, test)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

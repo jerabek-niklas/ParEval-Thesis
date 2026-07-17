@@ -93,7 +93,7 @@ bool validate(Context *ctx) {
         SYNC();
         
         bool isCorrect = true;
-        if (IS_ROOT(rank) && (!fequal(correct, test, 1e-4) || std::any_of(test.begin(), test.end(), [](double x) { return std::isnan(x); }))) {
+        if (IS_ROOT(rank) && (!reportAndCompare(correct, test, 1e-4) || std::any_of(test.begin(), test.end(), [](double x) { return std::isnan(x); }))) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

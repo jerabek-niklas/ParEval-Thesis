@@ -159,12 +159,14 @@ CORRECTNESS_FAIL = {
         {
             "params": {"num_threads": 4},
             "verdict": "validation_failed",
-            "mismatch": [
+            # field contract of run_correctness.parse_mismatch_output:
+            # shown entries + the MANDATORY total over all differing indices
+            "mismatches": [
                 {"index": 0, "expected": 1.5, "got": 2.0, "input": 4.0},
                 {"index": 3, "expected": -1.5, "got": 0.0},
                 {"index": 7, "expected": 2.5, "got": 0.5},
-                {"index": 9, "expected": 9.9, "got": 0.0},
             ],
+            "mismatch_total": 47,
         },
         {"params": {"num_threads": 8}, "verdict": "validation_failed"},
     ],
@@ -320,6 +322,45 @@ def test_mismatch_rendering_current():
     check("k=3 indices rendered", with_fields.count("index ") == 3)
     check("expected/got present", "expected 1.5, got 2.0" in with_fields)
     check("input value rendered when present", "(input 4.0)" in with_fields)
+    check(
+        "total > shown renders the remainder",
+        "... and 44 more differing indices (47 total)" in with_fields,
+    )
+
+    same_total = {
+        "execution_model": "omp",
+        "verdict": "validation_failed",
+        "runs": [
+            {
+                "params": {"num_threads": 4},
+                "verdict": "validation_failed",
+                "mismatches": [
+                    {"index": 0, "expected": 1.0, "got": 2.0},
+                    {"index": 1, "expected": 3.0, "got": 4.0},
+                ],
+                "mismatch_total": 2,
+            }
+        ],
+    }
+    exact = render_current_feedback(config, ["correctness_verdicts"], correctness_record=same_total)
+    check("total == shown renders no remainder line", "more differing" not in exact)
+
+    scalar = {
+        "execution_model": "serial",
+        "verdict": "validation_failed",
+        "runs": [
+            {
+                "params": {},
+                "verdict": "validation_failed",
+                "mismatches": [{"expected": 7, "got": 4}],
+                "mismatch_total": 1,
+            }
+        ],
+    }
+    scalar_rendered = render_current_feedback(
+        config, ["correctness_verdicts"], correctness_record=scalar
+    )
+    check("scalar entry without index", "    expected 7, got 4" in scalar_rendered)
 
     bare = {
         "execution_model": "omp",

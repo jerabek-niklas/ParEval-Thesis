@@ -71,7 +71,7 @@ bool validate(Context *ctx) {
         ranks(x, test);
         SYNC();
         
-        if (IS_ROOT(rank) && !std::equal(correct.begin(), correct.end(), test.begin())) {
+        if (IS_ROOT(rank) && !reportAndCompareEq(correct, test)) {
             return false;
         }
     }

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <climits>
 #include <cfloat>
+#include <cstdio>
 #include <string>
 #include <complex>
 #include <queue>
@@ -166,6 +167,161 @@ bool fequal(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
         }
     }
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// Mismatch reporting for the repair loop (repair-loop-design.md §4).
+//
+// reportAndCompare* behave exactly like the comparisons they replace
+// (fequal / std::equal / scalar !=), but on a mismatch they print bounded,
+// machine-parseable details to stdout:
+//
+//     MISMATCH index=5 expected=3.14159 got=0 input=0.847
+//     MISMATCH_SUMMARY shown=3 total=47
+//
+// The MISMATCH_SUMMARY line is MANDATORY on every failing comparison, even
+// when total <= shown: the model must be able to tell 3-of-3 outliers from
+// 3-of-47 (a surface problem) — never silently truncate. No output on the
+// PASS path (timing unaffected). Only rank 0 prints. Inputs are random
+// without a persisted seed, so the report is symptom feedback, not a
+// reproducible test case (see the design doc).
+//
+// MISMATCH_REPORT_MAX (default 3) is set by the runners from the single
+// config source stages.repair.feedback.mismatch_report_max_indices.
+// ---------------------------------------------------------------------------
+
+#if !defined(MISMATCH_REPORT_MAX)
+#define MISMATCH_REPORT_MAX 3
+#endif
+
+template <typename V>
+void mismatchPrintValue(V const& v) {
+    if constexpr (std::is_same_v<V, std::complex<double>>) {
+        printf("(%g,%g)", v.real(), v.imag());
+    } else if constexpr (std::is_floating_point_v<V>) {
+        printf("%g", static_cast<double>(v));
+    } else if constexpr (std::is_same_v<V, bool>) {
+        printf("%d", static_cast<int>(v));
+    } else if constexpr (std::is_integral_v<V>) {
+        printf("%lld", static_cast<long long>(v));
+    } else {
+        printf("?");  // non-printable element type; field still present
+    }
+}
+
+inline bool mismatchIsRoot() {
+    int mmRank;
+    GET_RANK(mmRank);
+    return IS_ROOT(mmRank);
+}
+
+template <typename Vec, typename InVec, typename Pred>
+bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred differs) {
+    assert(a.size() == b.size());
+
+    const bool isRoot = mismatchIsRoot();
+    size_t total = 0;
+    size_t shown = 0;
+
+    for (size_t i = 0; i < a.size(); i += 1) {
+        using V = typename Vec::value_type;
+        const V va = static_cast<V>(a[i]);
+        const V vb = static_cast<V>(b[i]);
+
+        if (!differs(va, vb)) {
+            continue;
+        }
+
+        total += 1;
+
+        if (isRoot && shown < (size_t)(MISMATCH_REPORT_MAX)) {
+            shown += 1;
+            printf("MISMATCH index=%zu expected=", i);
+            mismatchPrintValue(va);
+            printf(" got=");
+            mismatchPrintValue(vb);
+            if (input != nullptr && i < input->size()) {
+                using I = typename InVec::value_type;
+                printf(" input=");
+                mismatchPrintValue(static_cast<I>((*input)[i]));
+            }
+            printf("\n");
+        }
+    }
+
+    if (total > 0 && isRoot) {
+        printf("MISMATCH_SUMMARY shown=%zu total=%zu\n", shown, total);
+    }
+
+    return total == 0;
+}
+
+// fequal replacement (same tolerance semantics), optional input vector
+template <typename Vec, typename FType>
+bool reportAndCompare(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
+    return reportAndCompareWith(
+        a, b, static_cast<Vec const*>(nullptr),
+        [epsilon](typename Vec::value_type const& x, typename Vec::value_type const& y) {
+            return std::abs(x - y) > epsilon;
+        });
+}
+
+template <typename Vec, typename FType, typename InVec>
+bool reportAndCompare(Vec const& a, Vec const& b, FType epsilon, InVec const& input) {
+    return reportAndCompareWith(
+        a, b, &input,
+        [epsilon](typename Vec::value_type const& x, typename Vec::value_type const& y) {
+            return std::abs(x - y) > epsilon;
+        });
+}
+
+// std::equal replacement (exact equality), optional input vector
+template <typename Vec>
+bool reportAndCompareEq(Vec const& a, Vec const& b) {
+    return reportAndCompareWith(
+        a, b, static_cast<Vec const*>(nullptr),
+        [](typename Vec::value_type const& x, typename Vec::value_type const& y) {
+            return !(x == y);
+        });
+}
+
+template <typename Vec, typename InVec>
+bool reportAndCompareEq(Vec const& a, Vec const& b, InVec const& input) {
+    return reportAndCompareWith(
+        a, b, &input,
+        [](typename Vec::value_type const& x, typename Vec::value_type const& y) {
+            return !(x == y);
+        });
+}
+
+// scalar variants (single-value comparisons in verdicts); the summary is
+// mandatory here too (shown=1 total=1)
+template <typename V>
+bool reportAndCompareScalarImpl(V const& expected, V const& got, bool equal) {
+    if (equal) {
+        return true;
+    }
+
+    if (mismatchIsRoot()) {
+        printf("MISMATCH expected=");
+        mismatchPrintValue(expected);
+        printf(" got=");
+        mismatchPrintValue(got);
+        printf("\nMISMATCH_SUMMARY shown=1 total=1\n");
+    }
+
+    return false;
+}
+
+template <typename V>
+bool reportAndCompareScalar(V const& expected, V const& got) {
+    return reportAndCompareScalarImpl(expected, got, expected == got);
+}
+
+template <typename V, typename FType>
+bool reportAndCompareScalar(V const& expected, V const& got, FType epsilon) {
+    return reportAndCompareScalarImpl(
+        expected, got, !(std::abs(expected - got) > epsilon));
 }
 
 // enhanced-tests support (overridable TEST_SIZE + injectable fill patterns);

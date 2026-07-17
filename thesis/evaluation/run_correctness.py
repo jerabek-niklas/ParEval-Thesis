@@ -34,6 +34,7 @@ Usage (inside the pareval-thesis container):
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import tempfile
 from collections import Counter
@@ -87,6 +88,12 @@ def parse_args() -> argparse.Namespace:
         help="Per-run timeout in seconds (default from config or "
         f"{DEFAULT_RUN_TIMEOUT}).",
     )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Override the profile run_id (repair-loop iteration artifacts "
+        "use the convention <run>__<variant>__iter<N>).",
+    )
     return parser.parse_args()
 
 
@@ -102,6 +109,54 @@ def parse_validation(stdout: str) -> bool | None:
             return "PASS" in line
 
     return None
+
+
+MISMATCH_LINE = re.compile(
+    r"^MISMATCH(?:\s+index=(?P<index>\d+))?"
+    r"\s+expected=(?P<expected>\S+)\s+got=(?P<got>\S+)"
+    r"(?:\s+input=(?P<input>\S+))?\s*$"
+)
+
+MISMATCH_SUMMARY_LINE = re.compile(
+    r"^MISMATCH_SUMMARY\s+shown=(?P<shown>\d+)\s+total=(?P<total>\d+)\s*$"
+)
+
+
+def parse_mismatch_output(stdout: str) -> "tuple[list[dict[str, Any]], int | None]":
+    """Parse the drivers' bounded mismatch report (reportAndCompare in
+    utilities.hpp) into structured entries.
+
+    Returns (mismatches, mismatch_total). `mismatch_total` sums the totals
+    of all MISMATCH_SUMMARY lines (compound verdicts can emit one summary
+    per failing comparison); None when no summary appeared. The report is
+    symptom feedback over unseeded random inputs — not reproducible
+    (repair-loop-design.md §4). The verdict marker stays authoritative;
+    this parse never influences verdict logic.
+    """
+    mismatches: "list[dict[str, Any]]" = []
+    total: "int | None" = None
+
+    for line in stdout.splitlines():
+        line = line.strip()
+
+        match = MISMATCH_LINE.match(line)
+        if match:
+            entry: "dict[str, Any]" = {
+                "expected": match.group("expected"),
+                "got": match.group("got"),
+            }
+            if match.group("index") is not None:
+                entry["index"] = int(match.group("index"))
+            if match.group("input") is not None:
+                entry["input"] = match.group("input")
+            mismatches.append(entry)
+            continue
+
+        summary = MISMATCH_SUMMARY_LINE.match(line)
+        if summary:
+            total = (total or 0) + int(summary.group("total"))
+
+    return mismatches, total
 
 
 def run_verdict(validation: bool | None, exit_code: int, timed_out: bool) -> str:
@@ -139,11 +194,23 @@ def compile_sample(
     if missing:
         return {"ok": False, "exit_code": None, "error": f"missing inputs: {', '.join(missing)}"}
 
+    # MISMATCH_REPORT_MAX: single config source is
+    # stages.repair.feedback.mismatch_report_max_indices — the same value
+    # feedback.py uses for rendering (repair-loop-design.md §4)
+    mismatch_k = (
+        ((context.config.get("stages") or {}).get("repair") or {})
+        .get("feedback", {})
+        .get("mismatch_report_max_indices", 3)
+    )
+
     argv = config.base_command(
         sources=[str(model_driver), str(benchmark_driver)],
         output_path=str(exec_path),
         include_dirs=context.include_dirs(sample),
-        extra_flags=[f"-D{DRIVER_PROBLEM_SIZE_DEFINE}"],
+        extra_flags=[
+            f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
+            f"-DMISMATCH_REPORT_MAX={int(mismatch_k)}",
+        ],
     )
 
     result = run_command(argv, timeout=build_timeout)
@@ -206,21 +273,30 @@ def run_sample(
             if verdict != "pass" and sample_verdict == "pass":
                 sample_verdict = verdict
 
-            runs.append(
-                {
-                    "params": params,
-                    "argv": argv,
-                    "exit_code": result.returncode,
-                    "timed_out": result.timed_out,
-                    "duration_seconds": round(result.duration_seconds, 3),
-                    "validation": (
-                        None if validation is None else ("PASS" if validation else "FAIL")
-                    ),
-                    "verdict": verdict,
-                    "stdout": result.stdout[:OUTPUT_CAP],
-                    "stderr": result.stderr[:OUTPUT_CAP],
-                }
-            )
+            run_entry: dict[str, Any] = {
+                "params": params,
+                "argv": argv,
+                "exit_code": result.returncode,
+                "timed_out": result.timed_out,
+                "duration_seconds": round(result.duration_seconds, 3),
+                "validation": (
+                    None if validation is None else ("PASS" if validation else "FAIL")
+                ),
+                "verdict": verdict,
+                "stdout": result.stdout[:OUTPUT_CAP],
+                "stderr": result.stderr[:OUTPUT_CAP],
+            }
+
+            # bounded mismatch report (parsed from UNCAPPED stdout; verdict
+            # logic untouched — the marker above stays authoritative)
+            mismatches, mismatch_total = parse_mismatch_output(result.stdout)
+            if mismatches:
+                run_entry["mismatches"] = mismatches
+                run_entry["mismatch_total"] = (
+                    mismatch_total if mismatch_total is not None else len(mismatches)
+                )
+
+            runs.append(run_entry)
 
         record["runs"] = runs
         record["run_verdicts"] = dict(verdicts)
@@ -279,7 +355,7 @@ def main() -> None:
 
     config = load_config(Path(args.config).resolve())
     profile = common.get_profile(config, args.profile)
-    run_id = profile["run_id"]
+    run_id = args.run_id or profile["run_id"]
 
     stage = (config.get("stages") or {}).get("correctness_tests") or {}
     output_file_name = stage.get("output_file_name", "correctness.jsonl")

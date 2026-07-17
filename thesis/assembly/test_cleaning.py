@@ -83,6 +83,25 @@ def test_fenced_full_function() -> None:
     check("braces balanced", result.metadata.braces_balanced)
 
 
+def test_repair_answer_echoes_patched_signature() -> None:
+    print("repair answer echoing the NO_INLINE-patched assembled signature")
+    # Repair requests show the ASSEMBLED file (repair-loop-design.md §4),
+    # whose signature carries NO_INLINE; the model echoes it verbatim.
+    raw = (
+        "/* Return the distance between the closest two points in the "
+        "vector points. */\n"
+        "double NO_INLINE closestPair(std::vector<Point> const& points) {\n"
+        + BODY
+    )
+    content, result = assemble(raw)
+    check("patched signature recognized", result.metadata.signature_found_in_output)
+    check("patched variant flagged", result.metadata.signature_matched_patched)
+    check("only one definition", content.count("closestPair(") == 1)
+    check("only one NO_INLINE", content.count("NO_INLINE") == 1)
+    check("braces balanced", result.metadata.braces_balanced)
+    check("not marked suspect", not result.metadata.signature_suspect)
+
+
 def test_full_prompt_echo_with_includes() -> None:
     print("response echoing prompt, with includes and a new helper")
     raw = (
@@ -275,6 +294,7 @@ def test_regression_smoke_deepseek_auto_close() -> None:
 
 def main() -> None:
     tests = [
+        test_repair_answer_echoes_patched_signature,
         test_regression_smoke_gpt55,
         test_regression_smoke_gemini,
         test_regression_smoke_deepseek_auto_close,

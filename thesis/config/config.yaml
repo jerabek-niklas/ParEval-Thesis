@@ -16,6 +16,13 @@ profiles:
     prompt_limit: 30
     num_samples_per_prompt: 1
 
+  # Dedicated base run for the repair-loop integration smoke: a planted
+  # broken sample is injected as iteration 0 (no generation stage runs).
+  repair_smoke:
+    run_id: repair_smoke_001
+    prompt_limit: 1
+    num_samples_per_prompt: 1
+
   full:
     run_id: full_001
     prompt_limit: null
@@ -266,6 +273,35 @@ stages:
   repair:
     enabled: false
     max_iterations: 3
+    # Loop orchestrator (thesis/repair/orchestrator.py + run_repair.py).
+    # Which of the three ablation variants run (repair-loop-design.md §2).
+    variants: [static_feedback, test_feedback, combined_feedback]
+    # direct = synchronous provider calls (smoke/small runs); batch = one
+    # batch job per (model, variant, iteration) on the provider batch APIs
+    # (~50% cost, up-to-24h latency; the orchestrator never blocks — it
+    # exits after submit and merges on the next run / --poll).
+    api_mode: direct
+    # Per-provider override, e.g. {openai_compatible: direct}. Providers
+    # without a verified batch API (openai_compatible: Qwen/DeepSeek via
+    # DashScope) fall back to direct with a log line unless explicitly
+    # forced to batch here (then the OpenAI-style batch client runs
+    # against their base_url).
+    api_mode_overrides: {}
+    # parcoach/llov live in their own containers (parcoach-demo:2.4.1,
+    # pareval-llov). manual: the orchestrator writes the runner commands to
+    # repair/<variant>/pending_external.txt, pauses the wave
+    # (analyzed_waiting_external) and continues once the records exist.
+    # docker: it executes the templates below itself.
+    external_tools_mode: manual
+    external_tools: [parcoach, llov]
+    # docker-mode command templates; placeholders: {repo} {config} {profile}
+    # {run_id} {model_id} {tools}. Required only for external_tools_mode:
+    # docker, e.g.:
+    #   parcoach: 'docker run --rm -v "{repo}:/workspace" -w /workspace
+    #     parcoach-demo:2.4.1 python3 thesis/evaluation/run_static_analysis.py
+    #     --config {config} --profile {profile} --run-id {run_id}
+    #     --model-id {model_id} --tools {tools}'
+    external_tool_commands: {}
     # History rendering in repair requests (repair-loop-design.md §4):
     #   compressed  per past iteration: cleaned code + findings with
     #               truncated messages + one-sentence test verdict

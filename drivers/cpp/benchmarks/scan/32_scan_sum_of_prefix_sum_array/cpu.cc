@@ -66,7 +66,7 @@ bool validate(Context *ctx) {
         SYNC();
 
         bool isCorrect = true;
-        if (IS_ROOT(rank) && std::fabs(correctResult - testResult) > 1e-5) {
+        if (IS_ROOT(rank) && !reportAndCompareScalar(correctResult, testResult, 1e-5)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

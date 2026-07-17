@@ -78,7 +78,7 @@ bool validate(Context *ctx) {
         SYNC();
         
         bool isCorrect = true;
-        if (IS_ROOT(rank) && correctIdx != testIdx) {
+        if (IS_ROOT(rank) && !reportAndCompareScalar(correctIdx, testIdx)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

@@ -302,11 +302,15 @@ def render_correctness(
     with_mismatch: bool,
 ) -> List[str]:
     """Per-grid-point verdicts; FAIL points get the bounded mismatch report
-    when the (driver-patch-provided) fields exist, otherwise plain verdicts.
+    when the driver-patch-provided fields exist, otherwise plain verdicts.
 
-    Expected optional field contract (rendering degrades without it):
-        run["mismatch"] = [{"index": int, "expected": x, "got": y,
-                            "input": v?}, ...]
+    Field contract (run_correctness.py, parse_mismatch_output):
+        run["mismatches"] = [{"index": int?, "expected": x, "got": y,
+                              "input": v?}, ...]
+        run["mismatch_total"] = <int>   # ALL differing indices, not just shown
+    ("mismatch" is accepted as a legacy alias.) When total > shown, the
+    difference is rendered explicitly — the model must be able to tell
+    3-of-3 outliers from 3-of-47.
     """
     if not record:
         return []
@@ -321,16 +325,30 @@ def render_correctness(
             continue
 
         max_indices = int(settings["mismatch_report_max_indices"])
+        entries = (run.get("mismatches") or run.get("mismatch") or [])[:max_indices]
 
-        for entry in (run.get("mismatch") or [])[:max_indices]:
-            detail = "    index %s: expected %s, got %s" % (
-                entry.get("index"),
-                entry.get("expected"),
-                entry.get("got"),
-            )
+        for entry in entries:
+            if entry.get("index") is not None:
+                detail = "    index %s: expected %s, got %s" % (
+                    entry.get("index"),
+                    entry.get("expected"),
+                    entry.get("got"),
+                )
+            else:  # scalar comparison: no index
+                detail = "    expected %s, got %s" % (
+                    entry.get("expected"),
+                    entry.get("got"),
+                )
             if "input" in entry:
                 detail += " (input %s)" % entry["input"]
             lines.append(detail)
+
+        total = run.get("mismatch_total")
+        if entries and total is not None and total > len(entries):
+            lines.append(
+                "    ... and %d more differing indices (%d total)"
+                % (total - len(entries), total)
+            )
 
     return lines
 
