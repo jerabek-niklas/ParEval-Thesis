@@ -1,11 +1,14 @@
 # Repair-Loop Design
 
-Status: design final. Implemented so far: per-tool config incl.
+Status: design final; fully implemented. Per-tool config incl.
 low_confidence marking (tool_config.py), feedback/history formatter
-(thesis/repair/feedback.py). Open: loop orchestrator, driver mismatch
-patch, backfill runner, consolidated overview. This document is the
-single source of truth for the repair-loop stage; the methodology
-chapter and the implementation both derive from it.
+(thesis/repair/feedback.py), driver mismatch patch (utilities.hpp +
+patch_mismatch.py), loop orchestrator (thesis/repair/orchestrator.py,
+run_repair.py, batch_api.py), phase-2 backfill (thesis/repair/
+run_backfill.py), consolidated overview (thesis/analysis_overview/
+build_overview.py). This document is the single source of truth for the
+repair-loop stage; the methodology chapter and the implementation both
+derive from it.
 
 ## 1. Purpose
 

@@ -45,6 +45,23 @@ from thesis.evaluation.tools import register_default_tools  # noqa: E402
 # out-of-scope tools are recorded as not-applicable entries.
 STATIC_ANALYSIS_SCHEMA_VERSION = "static_analysis.v2"
 
+# Container toolchain manifest (written at image build time). Phase-2
+# backfill compares its container against the phase-1 record
+# (repair-loop-design.md §6), so the first phase-1 invocation drops a copy
+# next to the run's artifacts.
+TOOLCHAIN_VERSIONS_FILE = Path("/opt/toolchain-versions.txt")
+
+
+def record_toolchain_versions(intermediate_dir: Path, run_id: str) -> None:
+    target = intermediate_dir / run_id / "toolchain-versions.txt"
+
+    if TOOLCHAIN_VERSIONS_FILE.exists() and not target.exists():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            TOOLCHAIN_VERSIONS_FILE.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        print(f"Toolchain versions recorded: {target}")
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run static analysis on assembled samples.")
@@ -284,6 +301,8 @@ def main() -> None:
     )
     print(f"Static analysis | run {run_id} | tools: {scopes}")
     print("=" * 40)
+
+    record_toolchain_versions(intermediate_dir, run_id)
 
     for model_config in models:
         run_model(

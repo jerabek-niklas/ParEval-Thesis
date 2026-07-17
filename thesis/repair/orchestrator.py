@@ -191,6 +191,37 @@ def execution_model_of(sample_id: str) -> str:
     return parts[-2] if len(parts) >= 2 else "serial"
 
 
+def build_external_command(
+    settings: Dict[str, Any],
+    config_path: str,
+    profile_name: str,
+    run_id: str,
+    model_id: str,
+    tool: str,
+) -> str:
+    """Runner invocation for an external-container tool. Config templates
+    (stages.repair.external_tool_commands) win; the default is the plain
+    runner command to execute inside the tool's container (repo mounted).
+    Shared by the loop orchestrator and the phase-2 backfill."""
+    template = settings["external_tool_commands"].get(tool)
+
+    if template:
+        return template.format(
+            repo=str(REPO_ROOT),
+            config=config_path,
+            profile=profile_name,
+            run_id=run_id,
+            model_id=model_id,
+            tools=tool,
+        )
+
+    return (
+        "python3 thesis/evaluation/run_static_analysis.py "
+        "--config %s --profile %s --run-id %s --model-id %s --tools %s"
+        % (config_path, profile_name, run_id, model_id, tool)
+    )
+
+
 def load_provider_adapter(provider: str) -> Any:
     """Import a generate-*.py provider adapter (hyphenated file names need
     an explicit spec import). Loaded lazily — only the submit/poll steps
@@ -774,6 +805,12 @@ class RepairLoop:
             settings = self.internal_static_settings()
             self._check_tools_available(list(settings))
 
+            # phase-1 toolchain record for the phase-2 backfill comparison
+            # (repair-loop-design.md §6)
+            run_static_analysis.record_toolchain_versions(
+                intermediate_root, self.paths.base_run_id
+            )
+
             self.log(
                 "analyze iteration %d: static (%s)"
                 % (iteration, ", ".join(settings))
@@ -875,30 +912,13 @@ class RepairLoop:
         return pending
 
     def external_command(self, tool: str, iteration: int) -> str:
-        template = self.settings["external_tool_commands"].get(tool)
-
-        if template:
-            return template.format(
-                repo=str(REPO_ROOT),
-                config=self.config_path,
-                profile=self.profile_name,
-                run_id=self.paths.iter_run_id(iteration),
-                model_id=self.model_id,
-                tools=tool,
-            )
-
-        # manual default: the runner invocation to execute inside the
-        # tool's container (repo mounted at the container workdir)
-        return (
-            "python3 thesis/evaluation/run_static_analysis.py "
-            "--config %s --profile %s --run-id %s --model-id %s --tools %s"
-            % (
-                self.config_path,
-                self.profile_name,
-                self.paths.iter_run_id(iteration),
-                self.model_id,
-                tool,
-            )
+        return build_external_command(
+            settings=self.settings,
+            config_path=self.config_path,
+            profile_name=self.profile_name,
+            run_id=self.paths.iter_run_id(iteration),
+            model_id=self.model_id,
+            tool=tool,
         )
 
     def write_pending_external(

@@ -82,6 +82,12 @@ def parse_args() -> argparse.Namespace:
         help="Rerun everything (default: resume — existing (sample_id, "
         "spec) rows are skipped).",
     )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Override the profile run_id (repair-loop iteration artifacts "
+        "use the convention <run>__<variant>__iter<N>; phase-2 backfill).",
+    )
     return parser.parse_args()
 
 
@@ -181,7 +187,7 @@ def main() -> None:
 
     config = load_config(Path(args.config).resolve())
     profile = common.get_profile(config, args.profile)
-    run_id = profile["run_id"]
+    run_id = args.run_id or profile["run_id"]
 
     stage = (config.get("stages") or {}).get("enhanced_tests") or {}
     settings = stage_settings(config)
