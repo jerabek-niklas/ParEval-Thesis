@@ -67,6 +67,59 @@ entries); DashScope additionally lists dated snapshots
   documents a batch API — if the deployment ever moves there, re-run the
   mini-batch test before forcing batch.
 
+## Reasoning policy
+
+**Policy:** middle — or, where a middle level would be a de-facto
+throttle, the lowest practically effective — reasoning level of each
+model's own scale; token budgets set non-constraining; every exception
+technically justified and documented (config.yaml comments + this
+table). Verified 2026-07-21 by per-model structure probes
+(thinking-output location, final parameter combinations) and a full
+`model_check` pass over all 11 models with the final settings.
+
+| Config id | Parameter | Level set | Controllable | Thinking output | Deviation / justification |
+| --- | --- | --- | --- | --- | --- |
+| `openai_gpt55` | `reasoning_effort` | `medium` | yes (effort scale) | separate (Responses API reasoning items; never in `output_text`) | — |
+| `openai_gpt56_sol` | `reasoning_effort` | `medium` | yes | separate | — |
+| `gemini_31_pro` | `thinking_level` | `medium` | yes (low/medium/high) | separate (thought parts; adapter reads answer text only) | — |
+| `gemini_35_flash` | `thinking_level` | `medium` (= 3.5 default) | yes (MINIMAL/LOW/MEDIUM/HIGH) | separate | 3.5 scale adds MINIMAL → "medium" is the middle of each series' own scale, not an exactly equivalent point across 3.1/3.5 |
+| `claude_opus_48` | `thinking: adaptive` + `effort` | `medium` | yes (effort low/medium/high/xhigh/max) | thinking blocks, separate; adapter extracts text blocks only | thinking must be ACTIVATED on Opus (omitted = no thinking); adapter extended 2026-07-21 to send `thinking` + `output_config.effort` (direct AND batch path identical) |
+| `claude_fable_5` | `effort` | `medium` | partially (depth via effort; thinking itself cannot be disabled) | thinking blocks (omitted by default), separate | always-on thinking needs no activation field; SAME effort level as the Opus pair partner |
+| `qwen37_max` | `enable_thinking` + `thinking_budget` | ON, budget 8192 | partially (on/off + token budget; NO level scale) | separate `reasoning_content` | budget chosen non-constraining (well above observed spend, below the 16384 output cap) — it must not become the limiting factor |
+| `qwen3_coder_api` | — | none | no (non-thinking model; `enable_thinking` silently ignored) | none | DOCUMENTED EXCEPTION: the model has no thinking to configure |
+| `qwen36_35b_a3b` | `enable_thinking` + `thinking_budget` | ON, budget 8192 | partially (on/off + budget) | separate `reasoning_content` | same as qwen37_max |
+| `deepseek_v4_pro` | `enable_thinking` + `reasoning_effort` | ON, `high` | partially (on/off + effort; effective levels high/max) | separate `reasoning_content` | `high` = LOWEST practically effective level of the DeepSeek scale — `medium` would be a de-facto throttle, so "middle" is not the faithful policy mapping here |
+| `deepseek_v4_flash` | `enable_thinking` + `reasoning_effort` | ON, `high` | partially | separate `reasoning_content` | same as v4_pro (size pair runs one setting) |
+
+Probe evidence (2026-07-21; structure probes per DashScope model with
+the FINAL parameter combinations — qwen with thinking_budget 8192,
+deepseek with reasoning_effort high): no DashScope model ever emitted
+inline `<think>` blocks in `message.content` — thinking always arrives
+as a separate `reasoning_content` field, so the assembly cleaning is
+unaffected and the openai_compatible adapter needs no change
+(`_extract_text` reads `message.content` exclusively;
+`reasoning_content` is discarded, reasoning token counts are logged via
+`usage` in the generation records).
+
+### Remaining asymmetry (known comparability limit for the methodology chapter)
+
+The policy normalizes *settings within each vendor's own scale*, not
+reasoning *budgets* across vendors — the scales are structurally
+different: OpenAI and Claude use effort levels, Gemini uses
+thinking_level (with a 3.5-only MINIMAL step), Qwen has only on/off
+plus a token budget, and DeepSeek has on/off plus an effort knob whose
+lower levels are practically inert (hence `high` as the lowest
+effective level). `qwen3-coder-plus` cannot think at all — it is the
+one model measured without reasoning. Reasoning-token spend therefore
+differs by design across vendors; cross-vendor comparisons measure
+each model at its policy-mapped setting, while the within-vendor pairs
+(gpt-5.5 vs gpt-5.6-sol, Opus 4.8 vs Fable 5, DeepSeek pro vs flash)
+run pairwise-identical settings and stay internally consistent.
+Additionally: pipeline artifacts produced BEFORE 2026-07-21 (e.g.
+smoke_001) ran the DeepSeek models with thinking disabled and Claude
+Opus 4.8 without thinking — results from those runs are not comparable
+to post-policy runs on this axis.
+
 ## spec_model candidates (information only, config unchanged)
 
 | Candidate | Available? | Price in/out per 1M | Note |

@@ -127,11 +127,26 @@ def _anthropic_client(model_config: Dict[str, Any]):
     return Anthropic(api_key=api_key)
 
 
+def _anthropic_thinking_payload(model_config: Dict[str, Any]) -> Dict[str, Any]:
+    """thinking/effort request fields — imported from the direct-mode
+    adapter (generate-anthropic.py) so batch requests are configured
+    IDENTICALLY to direct requests (single mapping, no drift)."""
+    import importlib.util
+
+    path = REPO_ROOT / "thesis" / "generation" / "generate-anthropic.py"
+    spec = importlib.util.spec_from_file_location("thesis_gen_anthropic", str(path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+
+    return module.thinking_payload(model_config)
+
+
 def _anthropic_submit(model_config, generation_defaults, system_prompt, requests):
     client = _anthropic_client(model_config)
     max_tokens = int(
         common.get_param(model_config, generation_defaults, "max_output_tokens", 4096)
     )
+    extra = _anthropic_thinking_payload(model_config)
 
     batch = client.messages.batches.create(
         requests=[
@@ -142,6 +157,7 @@ def _anthropic_submit(model_config, generation_defaults, system_prompt, requests
                     "max_tokens": max_tokens,
                     "system": system_prompt,
                     "messages": [{"role": "user", "content": text}],
+                    **extra,
                 },
             }
             for index, (_sample_id, text) in enumerate(requests)

@@ -65,12 +65,17 @@ generation_defaults:
     Do not include Markdown, explanations, or extra text.
     Preserve the required execution model: Serial, OpenMP, or MPI.
 
+# Reasoning policy (see thesis/docs/model-set.md, "Reasoning policy"):
+# middle/standard reasoning level where configurable, provider default
+# where not; every deviation carries its technical justification here.
 models:
   - id: openai_gpt55
     enabled: true
     provider: openai
     model_name: gpt-5.5
     api_key_env: OPENAI_API_KEY
+    # policy: middle level of the effort scale (matches openai_gpt56_sol —
+    # the generation pair must run the same level to be interpretable)
     reasoning_effort: medium
 
   - id: gemini_31_pro
@@ -78,24 +83,34 @@ models:
     provider: gemini
     model_name: gemini-3.1-pro-preview
     api_key_env: GEMINI_API_KEY
+    # policy: middle level of the 3-series scale (low/medium/high)
     thinking_level: medium
 
   - id: claude_opus_48
+    # Thinking must be ACTIVATED on Opus 4.8 (omitting the parameter runs
+    # without thinking — the generation pair would otherwise compare
+    # thinking vs. no-thinking against always-on Fable 5).
+    # effort medium = policy middle level, SAME as claude_fable_5 (pair
+    # symmetry).
     enabled: true
     provider: anthropic
     model_name: claude-opus-4-8
     api_key_env: ANTHROPIC_API_KEY
+    thinking: adaptive
+    effort: medium
 
   - id: claude_fable_5
     # Verified available via GET /v1/models on 2026-07-21 (batch: supported).
     # Generations pair with claude_opus_48 (same provider, adjacent tiers).
-    # Fable 5: thinking always on, temperature/top_p never sent (the
-    # anthropic adapter already sends neither), refusals surface as
-    # stop_reason "refusal" -> ModelRefusal.
+    # Thinking is ALWAYS ON on Fable 5 (no activation field needed, cannot
+    # be disabled); depth steered via effort medium — SAME level as
+    # claude_opus_48 (pair symmetry). temperature/top_p never sent;
+    # refusals surface as stop_reason "refusal" -> ModelRefusal.
     enabled: true
     provider: anthropic
     model_name: claude-fable-5
     api_key_env: ANTHROPIC_API_KEY
+    effort: medium
 
   - id: qwen_best
     enabled: false
@@ -105,42 +120,48 @@ models:
     api_key_env: QWEN_API_KEY
 
   - id: qwen3_coder_api
+    # DOCUMENTED POLICY EXCEPTION: non-thinking model — no thinking
+    # parameter exists to set (probe 2026-07-21: no reasoning_content,
+    # enable_thinking silently ignored).
     enabled: true
     provider: openai_compatible
     model_name: qwen3-coder-plus
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
 
-  - id: qwen3_coder_30b_api
-    enabled: false
-    provider: openai_compatible
-    model_name: "<provider_model_name_for_qwen3_coder_30b>"
-    base_url: "<provider_base_url>"
-    api_key_env: QWEN_API_KEY
-
   - id: deepseek_v4_pro
+    # Thinking explicitly ON. reasoning_effort high = the LOWEST
+    # practically effective level of the DeepSeek scale (medium would be a
+    # de-facto throttle; effective levels are high/max). Probe 2026-07-21:
+    # thinking arrives as a SEPARATE reasoning_content field,
+    # message.content stays clean (the adapter reads only message.content).
     enabled: true
     provider: openai_compatible
     model_name: deepseek-v4-pro
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
     extra_body:
-      enable_thinking: false
+      enable_thinking: true
+      reasoning_effort: high
 
   # --- model-set extension (2026-07-21); API ids verified against the
   # --- provider models endpoints, see thesis/docs/model-set.md ---------
 
   - id: openai_gpt56_sol
-    # Generations pair with openai_gpt55; reasoning_effort low mirrors the
-    # gpt55 setup (budget decision, keeps the pair comparable).
+    # Generations pair with openai_gpt55 — SAME reasoning_effort (medium,
+    # policy middle level); the pair is only interpretable on one level.
     enabled: true
     provider: openai
     model_name: gpt-5.6-sol
     api_key_env: OPENAI_API_KEY
-    reasoning_effort: low
+    reasoning_effort: medium
 
   - id: gemini_35_flash
     # Class pair with gemini_31_pro (pro vs flash tier).
+    # thinking_level medium = middle of the 3.5 scale AND the 3.5-flash
+    # provider default. NOTE: the 3.5 scale adds MINIMAL below low, so
+    # "medium" is the middle of each series' own scale, not a perfectly
+    # equivalent point across 3.1/3.5 (documented in model-set.md).
     enabled: true
     provider: gemini
     model_name: gemini-3.5-flash
@@ -149,29 +170,46 @@ models:
 
   - id: qwen37_max
     # Alibaba closed flagship (alongside qwen3_coder_api = code specialist).
+    # Thinking explicitly ON; the Qwen API has no level scale — only a
+    # token budget. thinking_budget 8192 is NON-CONSTRAINING (well below
+    # observed spend ceilings and under the 16384 max_output_tokens; it
+    # must not become the limiting factor). Probe 2026-07-21: separate
+    # reasoning_content field, content clean.
     enabled: true
     provider: openai_compatible
     model_name: qwen3.7-max
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    extra_body:
+      enable_thinking: true
+      thinking_budget: 8192
 
   - id: qwen36_35b_a3b
     # Best open-weight generalist in the Qwen line (MoE 35B-A3B).
+    # Same thinking setting as qwen37_max: explicitly ON, non-constraining
+    # thinking_budget (no level scale exists). Probe 2026-07-21: separate
+    # reasoning_content field, content clean.
     enabled: true
     provider: openai_compatible
     model_name: qwen3.6-35b-a3b
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    extra_body:
+      enable_thinking: true
+      thinking_budget: 8192
 
   - id: deepseek_v4_flash
-    # Size pair with deepseek_v4_pro.
+    # Size pair with deepseek_v4_pro — SAME thinking setting (explicitly
+    # ON, reasoning_effort high = lowest practically effective DeepSeek
+    # level; separate reasoning_content, probe 2026-07-21).
     enabled: true
     provider: openai_compatible
     model_name: deepseek-v4-flash
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
     extra_body:
-      enable_thinking: false
+      enable_thinking: true
+      reasoning_effort: high
 
 outputs:
   root: thesis/results
