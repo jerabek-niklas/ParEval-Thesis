@@ -23,6 +23,12 @@ profiles:
     prompt_limit: 1
     num_samples_per_prompt: 1
 
+  # Availability smoke for new models: ONE generation call per model.
+  model_check:
+    run_id: model_check_001
+    prompt_limit: 1
+    num_samples_per_prompt: 1
+
   full:
     run_id: full_001
     prompt_limit: null
@@ -81,9 +87,12 @@ models:
     api_key_env: ANTHROPIC_API_KEY
 
   - id: claude_fable_5
-    # Temporarily disabled: Fable 5 is not currently available via the API.
-    # Re-enable (and consider disabling claude_opus_48) once it is back.
-    enabled: false
+    # Verified available via GET /v1/models on 2026-07-21 (batch: supported).
+    # Generations pair with claude_opus_48 (same provider, adjacent tiers).
+    # Fable 5: thinking always on, temperature/top_p never sent (the
+    # anthropic adapter already sends neither), refusals surface as
+    # stop_reason "refusal" -> ModelRefusal.
+    enabled: true
     provider: anthropic
     model_name: claude-fable-5
     api_key_env: ANTHROPIC_API_KEY
@@ -113,6 +122,52 @@ models:
     enabled: true
     provider: openai_compatible
     model_name: deepseek-v4-pro
+    base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
+    api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    extra_body:
+      enable_thinking: false
+
+  # --- model-set extension (2026-07-21); API ids verified against the
+  # --- provider models endpoints, see thesis/docs/model-set.md ---------
+
+  - id: openai_gpt56_sol
+    # Generations pair with openai_gpt55; reasoning_effort low mirrors the
+    # gpt55 setup (budget decision, keeps the pair comparable).
+    enabled: true
+    provider: openai
+    model_name: gpt-5.6-sol
+    api_key_env: OPENAI_API_KEY
+    reasoning_effort: low
+
+  - id: gemini_35_flash
+    # Class pair with gemini_31_pro (pro vs flash tier).
+    enabled: true
+    provider: gemini
+    model_name: gemini-3.5-flash
+    api_key_env: GEMINI_API_KEY
+    thinking_level: medium
+
+  - id: qwen37_max
+    # Alibaba closed flagship (alongside qwen3_coder_api = code specialist).
+    enabled: true
+    provider: openai_compatible
+    model_name: qwen3.7-max
+    base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
+    api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+
+  - id: qwen36_35b_a3b
+    # Best open-weight generalist in the Qwen line (MoE 35B-A3B).
+    enabled: true
+    provider: openai_compatible
+    model_name: qwen3.6-35b-a3b
+    base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
+    api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+
+  - id: deepseek_v4_flash
+    # Size pair with deepseek_v4_pro.
+    enabled: true
+    provider: openai_compatible
+    model_name: deepseek-v4-flash
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
     extra_body:
@@ -233,7 +288,7 @@ stages:
     # Which model generates the edge-case input specs (EvalPlus-style).
     # A deliberate, open methodology decision — document the choice and its
     # independence question (spec model vs. evaluated models) in the thesis.
-    spec_model: openai_gpt55
+    spec_model: openai_gpt56_sol
     # System prompt for spec generation (single source of truth, mirrors
     # generation_defaults.system_prompt for code generation).
     spec_system_prompt: |
@@ -282,10 +337,14 @@ stages:
     # exits after submit and merges on the next run / --poll).
     api_mode: direct
     # Per-provider override, e.g. {openai_compatible: direct}. Providers
-    # without a verified batch API (openai_compatible: Qwen/DeepSeek via
-    # DashScope) fall back to direct with a log line unless explicitly
-    # forced to batch here (then the OpenAI-style batch client runs
-    # against their base_url).
+    # without a verified batch API fall back to direct with a log line
+    # unless explicitly forced to batch here (then the OpenAI-style batch
+    # client runs against their base_url).
+    # MEASURED 2026-07-21: our Alibaba Model Studio EU deployment
+    # (eu-central-1 maas endpoint) returns 404 on both /v1/files and
+    # /v1/batches — no batch API there. Qwen/DeepSeek therefore run
+    # DIRECT; do not force openai_compatible to batch on this endpoint.
+    # See thesis/docs/model-set.md.
     api_mode_overrides: {}
     # parcoach/llov live in their own containers (parcoach-demo:2.4.1,
     # pareval-llov). manual: the orchestrator writes the runner commands to
