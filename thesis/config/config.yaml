@@ -71,7 +71,7 @@ models:
     provider: openai
     model_name: gpt-5.5
     api_key_env: OPENAI_API_KEY
-    reasoning_effort: low
+    reasoning_effort: medium
 
   - id: gemini_31_pro
     enabled: true
