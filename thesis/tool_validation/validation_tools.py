@@ -33,7 +33,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -142,6 +142,12 @@ class CompilerValidation:
     name = "compiler"
     suites = ("juliet",)
 
+    # Extra flags appended by VARIANT subclasses only. Empty here, so the
+    # argv of the pipeline-configured `compiler` measurement is byte-identical
+    # to before this hook existed (empty splat) — the variant comparison is
+    # worthless if the baseline moves.
+    extra_flags: "Tuple[str, ...]" = ()
+
     def __init__(self, timeout: float = 120.0):
         self.timeout = timeout
 
@@ -155,6 +161,7 @@ class CompilerValidation:
                 std_flag(kernel),
                 "-O3",  # array-bounds/uninitialized warnings need optimization
                 *DIAGNOSTIC_FLAGS,
+                *self.extra_flags,
                 *base_flags(kernel),
                 "-c",
                 str(kernel.path),
@@ -272,6 +279,10 @@ class InferValidation:
     name = "infer"
     suites = ("juliet",)
 
+    # Extra `infer run` flags for VARIANT subclasses only — empty here, so the
+    # pipeline-configured `infer` baseline is unchanged (see CompilerValidation).
+    extra_infer_flags: "Tuple[str, ...]" = ()
+
     def __init__(self, timeout: float = 300.0):
         self.timeout = timeout
         self._pipeline = InferTool()
@@ -287,6 +298,7 @@ class InferValidation:
                 "infer",
                 "run",
                 "--headers",
+                *self.extra_infer_flags,
                 "-o",
                 str(out_dir),
                 "--keep-going",
@@ -817,6 +829,56 @@ class _ValgrindRaceValidation:
         )
 
 
+class CompilerAnalyzerValidation(CompilerValidation):
+    """COMPARISON MEASUREMENT ONLY (not a pipeline tool): the pipeline
+    compiler invocation PLUS -fanalyzer, GCC's path-sensitive static
+    analyzer.
+
+    Quantifies what -fanalyzer adds over plain warning-based diagnostics on
+    the same kernels — recall gain, precision, and the runtime surcharge.
+    The open question it answers empirically is C++ viability: GCC documents
+    the analyzer as targeting C, so the scorer reports the metrics split by
+    kernel language (see score_validation.language_split).
+
+    Everything else is identical to CompilerValidation (same flags, same
+    gcc diagnostic parser — the -Wanalyzer-* warnings arrive in the normal
+    diagnostic format — same fail-safe semantics: a timeout is an `error`,
+    never a silent miss).
+    """
+
+    name = "compiler_fanalyzer"
+
+    extra_flags = ("-fanalyzer",)
+
+    def __init__(self, timeout: float = 300.0):
+        # path-sensitive analysis is far more expensive than -Wall: generous
+        # per-kernel budget (the base tool runs at 120s)
+        super().__init__(timeout=timeout)
+
+
+class InferBoValidation(InferValidation):
+    """COMPARISON MEASUREMENT ONLY (not a pipeline tool): the pipeline Infer
+    invocation PLUS --bufferoverrun (InferBO, the abstract-interpretation
+    buffer-overrun/integer-overflow analysis, off by default).
+
+    Default Infer (Pulse + biabduction) structurally cannot report buffer
+    overruns or integer overflows, which is exactly where its Juliet recall
+    is zero. This measurement quantifies whether enabling InferBO closes
+    that gap at acceptable precision — including the confidence-level
+    breakdown (BUFFER_OVERRUN_L1..L5), since InferBO encodes its certainty
+    in the bug_type suffix.
+
+    Same report parser, same fail-safe semantics as InferValidation.
+    """
+
+    name = "infer_bo"
+
+    extra_infer_flags = ("--bufferoverrun",)
+
+    def __init__(self, timeout: float = 300.0):
+        super().__init__(timeout=timeout)
+
+
 class HelgrindValidation(_ValgrindRaceValidation):
     name = "helgrind"
     tool_flag = "helgrind"
@@ -956,5 +1018,9 @@ VALIDATION_TOOLS = {
         HelgrindValidation(),
         DrdValidation(),
         TsanNoArcherValidation(),
+        # variant measurements (base tool + one extra analysis) — quantify
+        # what the extra component contributes; same category as tsan_noarcher
+        CompilerAnalyzerValidation(),
+        InferBoValidation(),
     )
 }

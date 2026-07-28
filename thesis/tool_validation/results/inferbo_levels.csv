@@ -1,0 +1,3 @@
+level,bad_kernels_flagged,good_kernels_flagged,precision_of_level
+L1,36,0,1.0
+L3,0,58,0.0

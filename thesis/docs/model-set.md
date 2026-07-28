@@ -17,7 +17,7 @@ international endpoint (our deployment: `eu-central-1.maas.aliyuncs.com`)
 | `claude_opus_48` | `claude-opus-4-8` | yes (full pipeline runs) | yes (Message Batches, implemented in batch_api.py, not live-tested) | $5.00 / $25.00 | 2026-07-21 |
 | `claude_fable_5` | `claude-fable-5` | yes (smoke 2026-07-21; models endpoint reports `batch: supported`) | yes (Message Batches, implemented, not live-tested) | $10.00 / $50.00 | 2026-07-21 |
 | `openai_gpt55` | `gpt-5.5` | yes (full pipeline runs) | yes (file-based Batch API `/v1/responses`, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
-| `openai_gpt56_sol` | `gpt-5.6-sol` | yes (smoke 2026-07-21 — no 403, so the gpt-5.6-terra fallback id was NOT needed) | yes (Batch API, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
+| `openai_gpt56_sol` | `gpt-5.6-sol` | yes (smoke 2026-07-21) | yes (Batch API, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
 | `gemini_31_pro` | `gemini-3.1-pro-preview` | yes (full pipeline runs) | yes (inline batch, implemented, not live-tested) | $2.00 / $12.00 (≤200K prompt; $4/$18 above) | 2026-07-21 |
 | `gemini_35_flash` | `gemini-3.5-flash` | yes (smoke 2026-07-21) | yes (inline batch, implemented, not live-tested) | $1.50 / $9.00 | 2026-07-21 |
 | `qwen37_max` | `qwen3.7-max` | yes (smoke 2026-07-21) | no — endpoint lacks /v1/batches (404, tested 2026-07-21) → direct | $1.25 / $3.75 | 2026-07-21 |

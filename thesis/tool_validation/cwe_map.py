@@ -201,6 +201,87 @@ MBI_RELEVANT: Dict[str, Tuple[str, ...]] = {
 }
 
 # ---------------------------------------------------------------------------
+# VARIANT tools (justification measurements, not pipeline tools):
+#   compiler_fanalyzer = compiler + -fanalyzer   (GCC path-sensitive analyzer)
+#   infer_bo           = infer + --bufferoverrun (InferBO abstract interpretation)
+#
+# Each variant INHERITS its base tool's mapping (it runs the base analysis
+# too — every base finding is still produced) and adds the check_ids of the
+# extra component below. Verified against gcc 13.3.0 / Infer 1.1.0 as
+# installed in the pareval-thesis image (`gcc --help=warnings`, canary run):
+# every prefix listed here exists in that toolchain. Warnings that do not
+# exist, or whose defect class differs, are deliberately NOT mapped — the
+# resulting zeros are honest.
+# ---------------------------------------------------------------------------
+
+# InferBO additions. Justification per entry — these are exactly the 7 classes
+# where default Infer (Pulse/biabduction) has no checker at all and therefore
+# a structural zero:
+#   - BUFFER_OVERRUN* (levels L1..L5/U5/S2 are bug_type SUFFIXES, so the
+#     prefix covers every confidence level) is InferBO's out-of-bounds
+#     report -> the five buffer classes CWE121/122/124/126/127.
+#   - INTEGER_OVERFLOW* is InferBO's arithmetic-overflow report -> CWE190
+#     (overflow) and CWE191 (underflow); Infer does not distinguish the
+#     direction, so both map to the same prefix.
+_INFER_BO_BUFFER = ("BUFFER_OVERRUN",)
+_INFER_BO_INTEGER = ("INTEGER_OVERFLOW",)
+
+# GCC -fanalyzer additions. Justification per entry (GCC annotates its
+# analyzer diagnostics with the CWE id itself — e.g. the canary emits
+# "'free' of '&b' which points to memory on the stack [CWE-590]
+# [-Wanalyzer-free-of-non-heap]" — so the mapping follows GCC's own labels):
+#   - -Wanalyzer-out-of-bounds: the analyzer's single out-of-bounds report
+#     (read and write) -> all five buffer classes.
+#   - -Wanalyzer-malloc-leak (CWE-401) -> CWE401. -Wanalyzer-file-leak is
+#     GCC's FILE*-leak counterpart (CWE-775); mapped alongside it because
+#     Juliet CWE401 contains fopen-based leak variants, and it is an honest
+#     zero on the malloc variants.
+#   - -Wanalyzer-double-free (CWE-415) -> CWE415.
+#   - -Wanalyzer-use-after-free (CWE-416) -> CWE416.
+#   - -Wanalyzer-use-of-uninitialized-value (CWE-457) -> CWE457.
+#   - -Wanalyzer-null-dereference (CWE-476) -> CWE476.
+#   - -Wanalyzer-free-of-non-heap (CWE-590) -> CWE590 (verified empirically).
+#   - CWE190/191: GCC's analyzer has NO integer-overflow checker (the
+#     -Wanalyzer-shift-count-* warnings are a different defect) -> honest
+#     zero, nothing mapped.
+_FANALYZER_ADDITIONS: Dict[str, Tuple[str, ...]] = {
+    "CWE121": ("-Wanalyzer-out-of-bounds",),
+    "CWE122": ("-Wanalyzer-out-of-bounds",),
+    "CWE124": ("-Wanalyzer-out-of-bounds",),
+    "CWE126": ("-Wanalyzer-out-of-bounds",),
+    "CWE127": ("-Wanalyzer-out-of-bounds",),
+    "CWE401": ("-Wanalyzer-malloc-leak", "-Wanalyzer-file-leak"),
+    "CWE415": ("-Wanalyzer-double-free",),
+    "CWE416": ("-Wanalyzer-use-after-free",),
+    "CWE457": ("-Wanalyzer-use-of-uninitialized-value",),
+    "CWE476": ("-Wanalyzer-null-dereference",),
+    "CWE590": ("-Wanalyzer-free-of-non-heap",),
+}
+
+_INFER_BO_ADDITIONS: Dict[str, Tuple[str, ...]] = {
+    "CWE121": _INFER_BO_BUFFER,
+    "CWE122": _INFER_BO_BUFFER,
+    "CWE124": _INFER_BO_BUFFER,
+    "CWE126": _INFER_BO_BUFFER,
+    "CWE127": _INFER_BO_BUFFER,
+    "CWE190": _INFER_BO_INTEGER,
+    "CWE191": _INFER_BO_INTEGER,
+}
+
+for _cwe, _tools in JULIET_MATCHERS.items():
+    # inherit base mapping, then add the extra component's check_ids
+    _tools["compiler_fanalyzer"] = tuple(
+        dict.fromkeys(_tools.get("compiler", ()) + _FANALYZER_ADDITIONS.get(_cwe, ()))
+    )
+    _tools["infer_bo"] = tuple(
+        dict.fromkeys(_tools.get("infer", ()) + _INFER_BO_ADDITIONS.get(_cwe, ()))
+    )
+    # virtual sub-variant (scorer-side, no second run): InferBO restricted to
+    # its two most reliable confidence levels — see score_validation.py
+    _tools["infer_bo_l1l2"] = _tools["infer_bo"]
+
+
+# ---------------------------------------------------------------------------
 # Virtual-tool split of clang_tidy (scorer-side, see score_validation.py):
 # redundancy in the thesis is defined over the detection METHOD, and
 # clang-tidy bundles two of them — AST matchers ("clang_tidy_ast") and the

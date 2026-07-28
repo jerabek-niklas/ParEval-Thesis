@@ -1,0 +1,5 @@
+suite,base,variant,recall_base,recall_variant,d_recall,precision_base,precision_variant,d_precision,fp_rate_base,fp_rate_variant,d_fp_rate,runtime_mean_base_s,runtime_mean_variant_s,runtime_factor,common_bad_kernels,only_variant,only_base
+juliet,compiler,compiler_fanalyzer,0.234,0.477,0.243,0.933,0.937,0.004,0.017,0.032,0.015,0.75,0.38,0.5,650,158,0
+juliet,infer,infer_bo,0.095,0.151,0.056,0.805,0.573,-0.232,0.023,0.112,0.089,1.17,0.52,0.4,650,36,0
+juliet,infer,infer_bo_l1l2,0.095,0.151,0.056,0.805,0.867,0.062,0.023,0.023,0.0,1.17,0.52,0.4,650,36,0
+drb,tsan,tsan_noarcher,0.816,0.907,0.091,0.808,0.611,-0.197,0.207,0.615,0.408,1.24,1.13,0.9,97,10,2

@@ -8,7 +8,7 @@ the pairwise overlap between tools.
 
 | Suite | Tools | Labels |
 | --- | --- | --- |
-| Juliet C/C++ 1.3 (NIST SARD), memory/pointer/overflow CWE subset | compiler, clang_tidy (scored as the virtual tools clang_sa + clang_tidy_ast), cppcheck, infer — plus the executed-runtime tools asan_ubsan and memcheck | bad/good per testcase (OMITGOOD/OMITBAD), CWE class from the path |
+| Juliet C/C++ 1.3 (NIST SARD), memory/pointer/overflow CWE subset | compiler, clang_tidy (scored as the virtual tools clang_sa + clang_tidy_ast), cppcheck, infer — plus the executed-runtime tools asan_ubsan and memcheck — plus the variant justification measurements compiler_fanalyzer and infer_bo (NOT pipeline tools; they quantify what `-fanalyzer` resp. `--bufferoverrun` would add) | bad/good per testcase (OMITGOOD/OMITBAD), CWE class from the path |
 | DataRaceBench (LLNL) | llov, parcoach, tsan — plus justification measurements: helgrind, drd (NOT pipeline tools; the measurement documents their exclusion) and tsan_noarcher (quantifies Archer's contribution) | `-yes.c` (race) / `-no.c` (race-free) in the file name |
 | MBI (MPI Bugs Initiative) | clang_tidy (MPI-Checker, scored as clang_sa/clang_tidy_ast), parcoach, must | `BEGIN_MBI_TESTS` header (`| OK` / `| ERROR: <class>`) |
 
@@ -30,6 +30,9 @@ python3 thesis/tool_validation/setup_suites.py
 #    Main container (pareval-thesis):
 python3 thesis/tool_validation/run_validation.py --suite juliet \
     --tools compiler clang_tidy cppcheck infer asan_ubsan memcheck
+#    variant justification measurements (base tool + one extra analysis):
+python3 thesis/tool_validation/run_validation.py --suite juliet \
+    --tools compiler_fanalyzer infer_bo
 python3 thesis/tool_validation/run_validation.py --suite drb \
     --tools tsan tsan_noarcher helgrind drd
 python3 thesis/tool_validation/run_validation.py --suite mbi --tools clang_tidy must
@@ -73,6 +76,23 @@ are excluded by design.
 - **Justification measurements** (not pipeline tools): helgrind/drd document
   their exclusion suite-wide; tsan_noarcher (TSan without the Archer OMPT
   plugin) quantifies Archer's FP suppression inside the OpenMP runtime.
+  **Variant measurements** follow the same pattern — the pipeline tool plus
+  ONE extra analysis component, so the inclusion decision rests on numbers:
+  `compiler_fanalyzer` (compiler + `-fanalyzer`) and `infer_bo` (infer +
+  `--bufferoverrun`), plus the virtual `infer_bo_l1l2` (same run, InferBO
+  findings kept only at confidence levels L1/L2). The base tools' flags,
+  mappings and results are untouched — otherwise the comparison would be
+  worthless. See the "Variant deltas" section of `results/summary.md`;
+  `only_variant` (bad kernels ONLY the variant finds) is the decisive
+  number.
+- **Sampling caveat for Juliet recall** (applies to ALL tools): the default
+  `--juliet-per-class 50` takes the first N testcase files per CWE class,
+  and Juliet sorts by flow family. For CWE121 that subset is 100 %
+  `CWE129_connect_socket` — the array index comes from a socket, so no
+  static analysis can decide it. Class-level recall on Juliet therefore
+  measures "this tool on these flow families", not the CWE class in
+  general. A family-diverse canary (one kernel per CWE121 family, 118
+  families) detects far more: infer_bo 31/118, compiler_fanalyzer 17/118.
 - **Known honest results** (verified, not harness artifacts): PARCOACH
   finds nothing on DRB data races (it is a collective verifier; its binary
   exposes no OpenMP mode) and produces genuine FPs on MBI's rank-conditional
