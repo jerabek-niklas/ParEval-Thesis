@@ -54,6 +54,9 @@ def fixture_config(tmp):
                 "tools": {
                     "compiler": {"enabled": True},
                     "clang_tidy": {"enabled": True},
+                    # off here so the fixture's static records stay a minimal
+                    # two-tool set; gcc_analyzer is enabled in the real config
+                    "gcc_analyzer": {"enabled": False},
                     "cppcheck": {"enabled": False},
                     "infer": {"enabled": False},
                     "parcoach": {"enabled": False},
@@ -120,9 +123,20 @@ def build_world(tmp):
     # ---- base run (iteration 0, shared) ------------------------------
     jsonl(config, BASE, "assembly.jsonl", [
         {"sample_id": S_SERIAL, "assembled": True,
-         "drivers": {"benchmark_dir": REAL_BENCHMARK}},
+         "drivers": {"benchmark_dir": REAL_BENCHMARK},
+         # the interesting case: braces had to be closed by the pipeline
+         "cleaning": {"used_fence": True, "auto_closed": True,
+                      "braces_balanced": False, "signature_suspect": False,
+                      "dropped_leading_lines": 2, "dropped_trailing_lines": 0,
+                      "dropped_duplicated_prompt_lines": 0,
+                      "relocated_includes": ["#include <vector>"]}},
         {"sample_id": S_OMP, "assembled": True,
-         "drivers": {"benchmark_dir": "drivers/cpp/benchmarks/stencil/50_stencil_jacobi"}},
+         "drivers": {"benchmark_dir": "drivers/cpp/benchmarks/stencil/50_stencil_jacobi"},
+         "cleaning": {"used_fence": False, "auto_closed": False,
+                      "braces_balanced": True, "signature_suspect": False,
+                      "dropped_leading_lines": 0, "dropped_trailing_lines": 0,
+                      "dropped_duplicated_prompt_lines": 0,
+                      "relocated_includes": []}},
     ])
     jsonl(config, BASE, "static_analysis.jsonl", [
         {"sample_id": S_SERIAL, "tools": {
@@ -162,8 +176,14 @@ def build_world(tmp):
                                         "error_type": "ModelRefusal"}},
     ], raw=True)
     jsonl(config, iter1, "assembly.jsonl", [
+        # after one round of feedback the answer arrives clean and unfenced
         {"sample_id": S_SERIAL, "assembled": True,
-         "drivers": {"benchmark_dir": REAL_BENCHMARK}},
+         "drivers": {"benchmark_dir": REAL_BENCHMARK},
+         "cleaning": {"used_fence": False, "auto_closed": False,
+                      "braces_balanced": True, "signature_suspect": False,
+                      "dropped_leading_lines": 0, "dropped_trailing_lines": 0,
+                      "dropped_duplicated_prompt_lines": 0,
+                      "relocated_includes": []}},
         {"sample_id": S_OMP, "assembled": False,
          "skip_reason": "generation not successful (error_type=ModelRefusal)"},
     ])
@@ -323,6 +343,14 @@ def test_markdown():
 
         check("clean-but-incorrect uses the final artifact",
               "ParEval-incorrect among them: 0.0% (0/1)" in markdown)
+
+        # cleaning: 2 distinct samples at iteration 0 (shared across
+        # variants -> counted once), 1 of them auto_closed and fenced
+        check("cleaning section present", "## Cleaning interventions" in markdown)
+        check("cleaning share per model",
+              "| %s | 3 | 33.3%% (1/3) | 33.3%% (1/3) |" % MODEL in markdown)
+        check("cleaning split by iteration",
+              "By iteration (does the answer format change under repair?)" in markdown)
 
         check("completeness counts incomplete rows",
               "Rows total: 6, incomplete: 3" in markdown)

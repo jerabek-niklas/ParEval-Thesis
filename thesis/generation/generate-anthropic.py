@@ -9,12 +9,13 @@ Example:
 Notes:
     - temperature/top_p/top_k are not supported on Opus 4.7+/Fable 5 and
       are never sent.
-    - Thinking differs per model: on Claude Fable 5 adaptive thinking is
-      ALWAYS ON and cannot be disabled; on Opus 4.8/4.7 a request WITHOUT
-      a thinking parameter runs with thinking OFF — it must be activated
-      explicitly via `thinking: adaptive` in the model config. Reasoning
-      depth is steered via `effort` (output_config.effort: low | medium |
-      high | xhigh | max) on both. Thinking tokens count toward
+    - Thinking differs per model: on Claude Fable 5 and Opus 5 it is ON
+      by default (probe 2026-07-31: Opus 5 thinks with an empty payload);
+      on Opus 4.8/4.7 a request WITHOUT a thinking parameter runs with
+      thinking OFF — there it must be activated explicitly via
+      `thinking: adaptive` in the model config. Reasoning depth is
+      steered via `effort` (output_config.effort: low | medium | high |
+      xhigh | max) on all of them. Thinking tokens count toward
       max_tokens, so the budget must be generous.
     - Refusals arrive as HTTP 200 with stop_reason == "refusal"; they are
       recorded as error_type "ModelRefusal", not as success or API error.
@@ -46,8 +47,8 @@ def thinking_payload(model_config: dict[str, Any]) -> dict[str, Any]:
     batch requests must be configured identically):
       thinking: adaptive   activates adaptive thinking. REQUIRED for
                            Opus 4.8/4.7 (omitting it runs without
-                           thinking); redundant-but-valid on Fable 5
-                           (always on).
+                           thinking); redundant-but-valid on Fable 5 and
+                           Opus 5, where thinking is on by default.
       effort: <level>      output_config.effort (low|medium|high|xhigh|max)
 
     Unknown values fail loudly — a typo must not silently change the
@@ -81,8 +82,17 @@ class AnthropicAdapter:
     provider = "anthropic"
     default_api_key_env = "ANTHROPIC_API_KEY"
 
-    def create_client(self, model_config: dict[str, Any], api_key: str) -> Anthropic:
-        return Anthropic(api_key=api_key)
+    def create_client(
+        self,
+        model_config: dict[str, Any],
+        api_key: str,
+        timeout_seconds: float | None = None,
+    ) -> Anthropic:
+        # The SDK default is 600 s; generation_defaults.timeout_seconds wins.
+        return Anthropic(
+            api_key=api_key,
+            timeout=timeout_seconds or common.DEFAULT_TIMEOUT_SECONDS,
+        )
 
     def generation_parameters(
         self,

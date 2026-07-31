@@ -962,7 +962,9 @@ class InferTool:
                 # InferBO on top of the default checkers: same capture, same
                 # analysis run. Validation: recall 0.095 -> 0.151 with
                 # precision 0.805 -> 0.867 after the level filter below.
-                "--bufferoverrun",
+                # bufferoverrun_max_level: 0 switches it off entirely instead
+                # of paying for findings that would all be discarded.
+                *(["--bufferoverrun"] if self.bufferoverrun_max_level > 0 else []),
                 "-o",
                 str(out_dir),
                 "--keep-going",

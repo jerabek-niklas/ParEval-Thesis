@@ -173,6 +173,7 @@ def repair_settings(config: Dict[str, Any]) -> Dict[str, Any]:
             repair.get("external_tools", DEFAULT_EXTERNAL_TOOLS) or ()
         ),
         "external_tool_commands": repair.get("external_tool_commands") or {},
+        "host_repo_path": repair.get("host_repo_path"),
         "low_confidence_stop_mode": repair.get(
             "low_confidence_stop_mode", "grace_once"
         ),
@@ -184,11 +185,62 @@ def stage_output_file(config: Dict[str, Any], stage_name: str) -> str:
     return stage.get("output_file_name", _STAGE_FILE_DEFAULTS[stage_name])
 
 
+# Characters per token for the --dry-run estimate. A crude rule of thumb for
+# English prose + C++ (real tokenizers land roughly between 3.5 and 4.5 for
+# this mix), and it is NOT used for anything but the estimate. What the
+# comparison actually rests on is the RATIO between the two history modes:
+# both sides are divided by the same constant, so the ratio is exact
+# regardless of how wrong the divisor is. Absolute token/cost numbers are
+# therefore order-of-magnitude only.
+CHARS_PER_TOKEN_ESTIMATE = 4
+
+
+def estimated_tokens(chars: int) -> int:
+    return chars // CHARS_PER_TOKEN_ESTIMATE
+
+
+def config_with_history_mode(config: Dict[str, Any], mode: str) -> Dict[str, Any]:
+    """Shallow copy of the config with stages.repair.history_mode replaced.
+
+    Only the two levels that are touched get copied; everything else is
+    shared, so this stays cheap enough to call per wave.
+    """
+    stages = dict(config.get("stages") or {})
+    repair = dict(stages.get("repair") or {})
+    repair["history_mode"] = mode
+    stages["repair"] = repair
+
+    overlaid = dict(config)
+    overlaid["stages"] = stages
+
+    return overlaid
+
+
 def execution_model_of(sample_id: str) -> str:
     # sample_id layout (framework.iter_assembled_samples):
     #   <model_id>__<problem_type>__<name>__<execution_model>__sample_<i>
     parts = sample_id.split("__")
     return parts[-2] if len(parts) >= 2 else "serial"
+
+
+def host_repo_path(settings: Dict[str, Any]) -> str:
+    """Repo path as the HOST's docker daemon sees it.
+
+    The orchestrator itself runs inside the toolchain container, where the
+    repo is /workspace. Sibling containers are started by the host daemon
+    (docker-outside-of-docker via the mounted socket), so their -v mounts
+    need the HOST path — /workspace would silently mount an empty
+    directory. Config: stages.repair.host_repo_path, or the environment
+    variable PAREVAL_HOST_REPO. Falls back to REPO_ROOT, which is correct
+    whenever the orchestrator runs on the host itself.
+    """
+    import os
+
+    return (
+        settings.get("host_repo_path")
+        or os.environ.get("PAREVAL_HOST_REPO")
+        or str(REPO_ROOT)
+    )
 
 
 def build_external_command(
@@ -208,6 +260,7 @@ def build_external_command(
     if template:
         return template.format(
             repo=str(REPO_ROOT),
+            host_repo=host_repo_path(settings),
             config=config_path,
             profile=profile_name,
             run_id=run_id,
@@ -947,7 +1000,17 @@ class RepairLoop:
 
     def run_external_docker(
         self, pending: List[Tuple[str, int]], iteration: int
-    ) -> None:
+    ) -> List[str]:
+        """Start the external-container tools; returns the tools that failed.
+
+        A MISSING TEMPLATE raises — that is a configuration bug and must be
+        fixed, not retried. A FAILING CONTAINER RUN does not raise: it is
+        returned so the caller can leave the wave in the waiting state. A
+        sample whose parcoach/llov records never arrived must never be
+        decided as "no findings".
+        """
+        failed: List[str] = []
+
         for tool, count in pending:
             template = self.settings["external_tool_commands"].get(tool)
 
@@ -963,10 +1026,13 @@ class RepairLoop:
             result = subprocess.run(command, shell=True)
 
             if result.returncode != 0:
-                raise RuntimeError(
-                    "External tool command for '%s' exited %d"
+                self.log(
+                    "external %s FAILED (exit %d) — wave stays waiting"
                     % (tool, result.returncode)
                 )
+                failed.append(tool)
+
+        return failed
 
     # -- phases -----------------------------------------------------------
 
@@ -987,13 +1053,24 @@ class RepairLoop:
 
         if pending:
             if self.settings["external_tools_mode"] == "docker":
-                self.run_external_docker(pending, iteration)
+                failed = self.run_external_docker(pending, iteration)
                 pending = self.pending_external(iteration)
+
                 if pending:
-                    raise RuntimeError(
-                        "External tool records still missing after docker "
-                        "run: %s" % pending
+                    # Either a container exited non-zero or it ran but wrote
+                    # no records. Both mean the same thing: the findings are
+                    # NOT in, so the wave must not advance — otherwise those
+                    # samples would be decided as clean.
+                    self.log(
+                        "external tools incomplete after the docker run "
+                        "(failed: %s; still missing: %s) — wave stays in "
+                        "analyzed_waiting_external, fix and re-run"
+                        % (", ".join(failed) or "none",
+                           ", ".join("%s(%d)" % (t, c) for t, c in pending))
                     )
+                    self.write_pending_external(pending, iteration)
+                    self.save_wave_state(iteration, "analyzed_waiting_external")
+                    return OUTCOME_BLOCKED_EXTERNAL
             else:
                 self.write_pending_external(pending, iteration)
                 self.save_wave_state(iteration, "analyzed_waiting_external")
@@ -1090,7 +1167,10 @@ class RepairLoop:
         return OUTCOME_DECIDED
 
     def build_request_records(
-        self, target_iteration: int, sample_ids: List[str]
+        self,
+        target_iteration: int,
+        sample_ids: List[str],
+        history_mode: "Optional[str]" = None,
     ) -> "List[Dict[str, Any]]":
         """Build the repair requests for a target iteration (pure — the
         write happens in _build_requests, --dry-run only counts).
@@ -1098,9 +1178,18 @@ class RepairLoop:
         History = iterations 0..current-1, current = target-1; the past
         iteration header shows 1-based attempt numbers (iteration 0 is
         "Iteration 1 (previous attempt)"), matching the design §4 example.
+
+        `history_mode` overrides stages.repair.history_mode for this call
+        only — used by --dry-run to render the SAME wave in both modes
+        through the same builder (no second rendering logic).
         """
         current = target_iteration - 1
         prompts = self.load_base_prompts()
+        request_config = (
+            self.config
+            if history_mode is None
+            else config_with_history_mode(self.config, history_mode)
+        )
 
         records_by_iteration: Dict[int, Dict[str, Dict[str, Any]]] = {}
         for i in range(0, current + 1):
@@ -1149,7 +1238,7 @@ class RepairLoop:
                     ),
                 },
                 strategy=self.variant,
-                config=self.config,
+                config=request_config,
             )
 
             requests.append(
@@ -1358,9 +1447,14 @@ class RepairLoop:
             provider = self.model_config["provider"]
             adapter = self._adapter_factory(provider)
             api_key = common.get_api_key(self.model_config, adapter.default_api_key_env)
-            client = adapter.create_client(self.model_config, api_key)
 
             generation_defaults = self.config.get("generation_defaults", {})
+            client = adapter.create_client(
+                self.model_config,
+                api_key,
+                common.get_timeout_seconds(self.model_config, generation_defaults),
+            )
+
             system_prompt = common.get_required_system_prompt(generation_defaults)
             retry_attempts = int(
                 common.get_param(
@@ -1436,7 +1530,7 @@ class RepairLoop:
     # -- batch mode (Teil 3) ----------------------------------------------
 
     def _submit_batch(self, target_iteration: int) -> str:
-        from thesis.repair import batch_api
+        from thesis.generation import batch_api
 
         info_path = self.paths.batch_info_path(target_iteration)
 
@@ -1482,7 +1576,7 @@ class RepairLoop:
         return OUTCOME_BLOCKED_BATCH
 
     def _poll_batch(self, target_iteration: int) -> str:
-        from thesis.repair import batch_api
+        from thesis.generation import batch_api
 
         info_path = self.paths.batch_info_path(target_iteration)
 
@@ -1702,9 +1796,17 @@ class RepairLoop:
             "batch_id": batch.get("batch_id"),
         }
 
-    def dry_run(self) -> None:
-        """Build (in memory) what the next wave would send: request count,
-        total characters, and a rough token estimate. Writes nothing."""
+    def dry_run(self) -> "Optional[Dict[str, Any]]":
+        """Render the next wave in BOTH history modes and compare.
+
+        Writes nothing and sends nothing. Both sides go through
+        build_request_records() with only stages.repair.history_mode
+        overridden, so there is no second rendering path that could drift
+        from what the loop actually sends.
+
+        Returns a summary dict (or None when there is nothing to send) so
+        the CLI can aggregate over all (model, variant) loops.
+        """
         wave = self.load_wave_state()
         phase = wave["phase"]
         iteration = int(wave["iteration"])
@@ -1715,7 +1817,7 @@ class RepairLoop:
                 "once (analysis is local compute, no API cost) to get request "
                 "estimates"
             )
-            return
+            return None
 
         if phase == "analyzed":
             actives = [
@@ -1732,23 +1834,61 @@ class RepairLoop:
             self.log(
                 "dry-run: phase '%s' — no request building pending" % phase
             )
-            return
+            return None
 
         if not actives:
             self.log("dry-run: no active samples — nothing would be sent")
-            return
+            return None
 
-        requests = self.build_request_records(target, actives)
-        total_chars = sum(r["request_chars"] for r in requests)
-
-        self.log(
-            "dry-run: iteration %d would send %d request(s), %d chars total "
-            "(~%d tokens at 4 chars/token), api_mode=%s"
-            % (
-                target,
-                len(requests),
-                total_chars,
-                total_chars // 4,
-                self.api_mode(),
+        chars = {
+            mode: sum(
+                r["request_chars"]
+                for r in self.build_request_records(target, actives, history_mode=mode)
             )
+            for mode in ("full", "compressed")
+        }
+
+        configured = feedback.history_mode(self.config)
+
+        print()
+        print(
+            "Iteration %d, %s, %s, %d requests  [configured: history_mode=%s, "
+            "api_mode=%s]"
+            % (target, self.model_id, self.variant, len(actives), configured,
+               self.api_mode())
         )
+
+        for mode in ("full", "compressed"):
+            print(
+                "  history_mode=%-11s %13s chars  ~%9s tokens"
+                % (
+                    mode + ":",
+                    "{:,}".format(chars[mode]),
+                    "{:,}".format(estimated_tokens(chars[mode])),
+                )
+            )
+
+        delta = chars["full"] - chars["compressed"]
+        percent = (
+            (delta / chars["compressed"] * 100.0) if chars["compressed"] else 0.0
+        )
+        print(
+            "  %-24s %+13s chars  (%+.0f %%)"
+            % ("difference:", "{:,}".format(delta), percent)
+        )
+
+        if target <= 1:
+            print(
+                "  NOTE: iteration 1 has no history yet — both modes are "
+                "identical by construction; the difference starts at "
+                "iteration 2."
+            )
+
+        return {
+            "model_id": self.model_id,
+            "variant": self.variant,
+            "iteration": target,
+            "requests": len(actives),
+            "chars": chars,
+            "api_mode": self.api_mode(),
+        }

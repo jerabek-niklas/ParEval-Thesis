@@ -53,9 +53,38 @@ generation_defaults:
   temperature: 0.0
   # Irrelevant at temperature 0 and unsupported on several models; not sent.
   top_p: null
+  # Per-request client timeout, handed to every provider SDK (Gemini gets it
+  # converted to milliseconds). Without it the SDK defaults apply — OpenAI and
+  # Anthropic default to 600 s, so one hung request would stall a run for ten
+  # minutes and, with retries, for half an hour. A timeout raises a retryable
+  # transport error, so it costs one retry, not the sample. The batch
+  # control-plane calls use their own larger value (batch_api.py) because a
+  # submit uploads a whole wave.
+  # Note on the worst case: the OpenAI/Anthropic SDKs retry internally
+  # (max_retries 2 by default, honoring Retry-After on 429 — deliberately
+  # kept, rate limits matter over ~2000 calls), so one sample can cost up to
+  # timeout_seconds x 3 (SDK) x (1 + retry_attempts) in the pathological case.
+  # Measured with timeout_seconds 1 / retry_attempts 1: 12 s to a clean
+  # APITimeoutError record instead of a hang.
   timeout_seconds: 120
   retry_attempts: 2
   sleep_seconds_between_requests: 0.0
+  # Initial generation: direct = one synchronous call per sample;
+  # batch = ONE provider batch job per model (~50% cheaper, up to 24 h
+  # latency). The full run is 180 samples x 11 models = 1980 calls, which is
+  # where batch pays off. The process never waits: it submits, writes
+  # generation_batch.json next to generations.jsonl and exits; a later
+  # `--poll` writes the records — through the SAME record path as direct
+  # mode (common.apply_success/apply_failure), so the JSONLs are identical
+  # in shape either way.
+  # Kept at `direct` by default so smoke/model_check runs stay synchronous;
+  # set to `batch` for the full run.
+  api_mode: direct
+  # Per-provider override, e.g. {gemini: direct}. Providers without a
+  # verified batch API (openai_compatible = DashScope: Qwen, DeepSeek, GLM —
+  # 404 on /v1/batches, measured 2026-07-21) fall back to direct with a log
+  # line, exactly like the repair loop.
+  api_mode_overrides: {}
   # Single source of truth for the system prompt. The provider scripts have
   # no hardcoded fallback; this field is required.
   system_prompt: |
@@ -74,6 +103,10 @@ models:
     provider: openai
     model_name: gpt-5.5
     api_key_env: OPENAI_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 5.0
+    price_per_mtok_out: 30.0
     # policy: middle level of the effort scale (matches openai_gpt56_sol —
     # the generation pair must run the same level to be interpretable)
     reasoning_effort: medium
@@ -83,33 +116,63 @@ models:
     provider: gemini
     model_name: gemini-3.1-pro-preview
     api_key_env: GEMINI_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 2.0
+    price_per_mtok_out: 12.0
     # policy: middle level of the 3-series scale (low/medium/high)
     thinking_level: medium
 
-  - id: claude_opus_48
-    # Thinking must be ACTIVATED on Opus 4.8 (omitting the parameter runs
-    # without thinking — the generation pair would otherwise compare
-    # thinking vs. no-thinking against always-on Fable 5).
-    # effort medium = policy middle level, SAME as claude_fable_5 (pair
-    # symmetry).
+  - id: claude_opus_5
+    # Verified 2026-07-31 via GET /v1/models (id `claude-opus-5`).
+    # NO `thinking` field: unlike Opus 4.8, Opus 5 thinks WITHOUT explicit
+    # activation — probe 2026-07-31 on an MPI LU prompt with an empty
+    # payload returned 806 thinking tokens (4.8 returns 0 in that case).
+    # It therefore behaves like claude_fable_5, and the pair is now
+    # symmetric in BOTH fields, not just in effort.
+    # effort medium = policy middle level, SAME as claude_fable_5.
     enabled: true
+    provider: anthropic
+    model_name: claude-opus-5
+    api_key_env: ANTHROPIC_API_KEY
+    # list price USD per 1M tokens (platform.claude.com pricing, retrieved
+    # 2026-07-31: unchanged vs. Opus 4.8; batch 2.50/12.50)
+    price_per_mtok_in: 5.0
+    price_per_mtok_out: 25.0
+    effort: medium
+
+  - id: claude_opus_48
+    # DISABLED 2026-07-31 — superseded by claude_opus_5. The entry stays
+    # (and its id is NOT recycled) so the existing smoke_001 /
+    # model_check_001 / repair_smoke_001 records remain attributable to the
+    # model that actually produced them. Same convention as gemini_35_flash.
+    # Thinking had to be ACTIVATED on 4.8: omitting the parameter ran
+    # without thinking, which is why this entry carries `thinking: adaptive`
+    # and the Opus 5 entry does not.
+    enabled: false
     provider: anthropic
     model_name: claude-opus-4-8
     api_key_env: ANTHROPIC_API_KEY
+    price_per_mtok_in: 5.0
+    price_per_mtok_out: 25.0
     thinking: adaptive
     effort: medium
 
   - id: claude_fable_5
     # Verified available via GET /v1/models on 2026-07-21 (batch: supported).
-    # Generations pair with claude_opus_48 (same provider, adjacent tiers).
+    # Generations pair with claude_opus_5 (same provider, adjacent tiers).
     # Thinking is ALWAYS ON on Fable 5 (no activation field needed, cannot
     # be disabled); depth steered via effort medium — SAME level as
-    # claude_opus_48 (pair symmetry). temperature/top_p never sent;
+    # claude_opus_5 (pair symmetry). temperature/top_p never sent;
     # refusals surface as stop_reason "refusal" -> ModelRefusal.
     enabled: true
     provider: anthropic
     model_name: claude-fable-5
     api_key_env: ANTHROPIC_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 10.0
+    price_per_mtok_out: 50.0
     effort: medium
 
   - id: qwen_best
@@ -128,6 +191,10 @@ models:
     model_name: qwen3-coder-plus
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 0.65
+    price_per_mtok_out: 3.25
 
   - id: deepseek_v4_pro
     # Thinking explicitly ON. reasoning_effort high = the LOWEST
@@ -140,6 +207,10 @@ models:
     model_name: deepseek-v4-pro
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 0.435
+    price_per_mtok_out: 0.87
     extra_body:
       enable_thinking: true
       reasoning_effort: high
@@ -154,6 +225,10 @@ models:
     provider: openai
     model_name: gpt-5.6-sol
     api_key_env: OPENAI_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 5.0
+    price_per_mtok_out: 30.0
     reasoning_effort: medium
 
   - id: gemini_35_flash
@@ -165,6 +240,10 @@ models:
     provider: gemini
     model_name: gemini-3.5-flash
     api_key_env: GEMINI_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 1.5
+    price_per_mtok_out: 9.0
     thinking_level: medium
 
   - id: gemini_36_flash
@@ -178,6 +257,10 @@ models:
     provider: gemini
     model_name: gemini-3.6-flash
     api_key_env: GEMINI_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 1.5
+    price_per_mtok_out: 7.5
     thinking_level: medium
 
   - id: qwen37_max
@@ -192,6 +275,10 @@ models:
     model_name: qwen3.7-max
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 1.25
+    price_per_mtok_out: 3.75
     extra_body:
       enable_thinking: true
       thinking_budget: 8192
@@ -206,6 +293,10 @@ models:
     model_name: qwen3.6-35b-a3b
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 0.14
+    price_per_mtok_out: 0.9
     extra_body:
       enable_thinking: true
       thinking_budget: 8192
@@ -219,6 +310,10 @@ models:
     model_name: deepseek-v4-flash
     base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
     api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+    # list price USD per 1M tokens (thesis/docs/model-set.md,
+    # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
+    price_per_mtok_in: 0.14
+    price_per_mtok_out: 0.28
     extra_body:
       enable_thinking: true
       reasoning_effort: high
@@ -303,11 +398,17 @@ stages:
       # -Wanalyzer-* findings are blocking: they are warnings syntactically
       # but describe real defects, and only blocking findings reach the
       # repair feedback.
+      # Suite check on ParEval-shaped code (60 benchmarks x 3 models, each
+      # benchmark's own reference implementation as the model file, so every
+      # blocking finding is a false alarm): gcc_analyzer flags 3.1% of runs,
+      # clang_tidy — already gating — flags 20.4%. If the full run shows this
+      # is still too loud, add low_precision_families here (no code change):
+      #   low_precision_families: ["-Wanalyzer-use-of-uninitialized-value"]
       gcc_analyzer:
         enabled: true
         execution_models: [serial, omp, mpi]
         # more generous than the compiler tool's 120 s — symbolic execution
-        # is the expensive pass (measured ~3 s per TU, MPI worst case)
+        # is the expensive pass (measured ~2 s per TU, 6 s worst case)
         timeout_seconds: 300
       clang_tidy:
         enabled: true
@@ -468,23 +569,55 @@ stages:
     # repair/<variant>/pending_external.txt, pauses the wave
     # (analyzed_waiting_external) and continues once the records exist.
     # docker: it executes the templates below itself.
-    external_tools_mode: manual
+    # DEFAULT since 2026-07-31: docker. Manual container handling per wave
+    # is not workable for 11 models x 3 variants x N iterations; with the
+    # templates below the loop runs unattended. Switch back to `manual` if
+    # the docker socket is not available to the orchestrator.
+    external_tools_mode: docker
     external_tools: [parcoach, llov]
-    # docker-mode command templates; placeholders: {repo} {config} {profile}
-    # {run_id} {model_id} {tools}. Required only for external_tools_mode:
-    # docker, e.g.:
-    #   parcoach: 'docker run --rm -v "{repo}:/workspace" -w /workspace
-    #     parcoach-demo:2.4.1 python3 thesis/evaluation/run_static_analysis.py
-    #     --config {config} --profile {profile} --run-id {run_id}
-    #     --model-id {model_id} --tools {tools}'
-    external_tool_commands: {}
+    # Repo path as the HOST daemon sees it. The orchestrator runs INSIDE the
+    # toolchain container (repo at /workspace) and starts the tool containers
+    # as SIBLINGS through the mounted socket, so their -v mounts need the
+    # host path — {repo} would mount an empty dir. Can also be supplied via
+    # the PAREVAL_HOST_REPO environment variable (preferred: keeps the
+    # machine-specific path out of the committed config); with neither set,
+    # the orchestrator's own repo path is used, which is correct when it
+    # runs on the host.
+    host_repo_path: null
+    # docker-mode command templates; placeholders: {repo} {host_repo}
+    # {config} {profile} {run_id} {model_id} {tools}.
+    # Prerequisites: the toolchain image ships the docker CLI (docker/
+    # Dockerfile) and the orchestrator container must be started with
+    #   -v /var/run/docker.sock:/var/run/docker.sock
+    # PARCOACH needs -u 0 (its image runs as a non-root user that cannot
+    # write into the mounted results tree); LLOV's image has python3.8 only.
+    external_tool_commands:
+      parcoach: >-
+        docker run --rm -u 0 -v "{host_repo}:/workspace" -w /workspace
+        registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1
+        python3 thesis/evaluation/run_static_analysis.py
+        --config {config} --profile {profile} --run-id {run_id}
+        --model-id {model_id} --tools {tools}
+      llov: >-
+        docker run --rm -u 0 -v "{host_repo}:/workspace" -w /workspace
+        pareval-llov
+        python3.8 thesis/evaluation/run_static_analysis.py
+        --config {config} --profile {profile} --run-id {run_id}
+        --model-id {model_id} --tools {tools}
     # History rendering in repair requests (repair-loop-design.md §4):
     #   compressed  per past iteration: cleaned code + findings with
     #               truncated messages + one-sentence test verdict
     #   full        per past iteration: cleaned code + full-detail findings
     # Neither mode ever includes old mismatch numbers (fillRand has no
     # persisted seed — old expected/got values belong to other inputs).
-    history_mode: compressed
+    # DECISION 2026-07-31: 'full' for the main run (the design originally
+    # defaulted to 'compressed'). The repair loop itself is the object of
+    # study, so the model must see the full finding detail of every past
+    # iteration — otherwise "the model kept reintroducing finding X" cannot
+    # be told apart from "the model was never told precisely enough".
+    # The price is measurable BEFORE spending it: run_repair.py --dry-run
+    # renders every wave in both modes and prints chars/tokens/cost for each.
+    history_mode: full
     feedback:
       # Prefix rendered before low_confidence findings (see the tools'
       # low_precision_warning / low_precision_families settings).

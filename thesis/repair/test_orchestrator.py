@@ -31,7 +31,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from thesis.generation import common  # noqa: E402
-from thesis.repair import orchestrator  # noqa: E402
+from thesis.repair import feedback, orchestrator  # noqa: E402
 from thesis.repair.orchestrator import (  # noqa: E402
     STATUS_ACTIVE,
     STATUS_BUDGET,
@@ -335,7 +335,8 @@ FIXED_ANSWER = (
 )
 
 
-def make_world(tmp, execution_model="serial", enable_parcoach=False):
+def make_world(tmp, execution_model="serial", enable_parcoach=False,
+               repair_overrides=None):
     raw = Path(tmp) / "raw"
     intermediate = Path(tmp) / "intermediate"
     sample_id = "fake_model__reduce__27_reduce_average__%s__sample_0" % execution_model
@@ -396,6 +397,8 @@ def make_world(tmp, execution_model="serial", enable_parcoach=False):
             },
         },
     }
+
+    config["stages"]["repair"].update(repair_overrides or {})
 
     profile = {"run_id": "base_run"}
     model_config = config["models"][0]
@@ -460,7 +463,8 @@ class FakeAdapter:
         self.behaviors = list(behaviors)
         self.calls = []
 
-    def create_client(self, model_config, api_key):
+    def create_client(self, model_config, api_key, timeout_seconds=None):
+        self.client_timeout = timeout_seconds
         return object()
 
     def generation_parameters(self, model_config, generation_defaults):
@@ -623,6 +627,59 @@ def test_full_wave_with_resume():
         check("decide is idempotent (no duplicate state records)", before == after)
 
         check("exactly one API call made", len(adapter.calls) == 1)
+
+
+def test_dry_run_history_modes():
+    print("dry-run renders the wave in both history modes")
+
+    class NeverCleanLoop(StubLoop):
+        # stays dirty so the loop keeps producing waves
+        clean_from_iteration = 99
+
+    with tempfile.TemporaryDirectory() as tmp:
+        config, profile, model_config, sample_id = make_world(
+            tmp, repair_overrides={"max_iterations": 5, "history_mode": "full"}
+        )
+        adapter = FakeAdapter(["ok"] * 10)
+
+        def loop():
+            return make_loop(config, profile, model_config, adapter,
+                             loop_cls=NeverCleanLoop)
+
+        # iteration 1 has no history yet -> both modes must be identical
+        while loop().load_wave_state()["phase"] != "decided":
+            loop().step()
+
+        first = loop().dry_run()
+        check("dry-run summary returned", first is not None)
+        check("target iteration 1", first["iteration"] == 1)
+        check("iteration 1: modes identical (no history yet)",
+              first["chars"]["full"] == first["chars"]["compressed"])
+
+        # advance one full wave, then compare again at iteration 2
+        target = loop()
+        while target.load_wave_state()["iteration"] < 1 or \
+                target.load_wave_state()["phase"] != "decided":
+            target.step()
+            target = loop()
+
+        second = loop().dry_run()
+        check("target iteration 2", second["iteration"] == 2)
+        check("iteration 2: full is larger than compressed",
+              second["chars"]["full"] > second["chars"]["compressed"])
+        check("nothing written by dry-run",
+              loop().load_wave_state()["phase"] == "decided")
+
+        # the override must not leak into the loop's own configuration
+        check("configured mode untouched",
+              feedback.history_mode(config) == "full")
+
+        # both sides go through the SAME builder
+        overlaid = orchestrator.config_with_history_mode(config, "compressed")
+        check("overlay switches the mode",
+              feedback.history_mode(overlaid) == "compressed")
+        check("overlay does not mutate the original",
+              feedback.history_mode(config) == "full")
 
 
 # ---------------------------------------------------------------------------
@@ -838,7 +895,7 @@ def test_batch_fallback():
 def test_batch_state_machine():
     print("batch mode: submit -> poll(running) -> poll(completed) -> done")
 
-    from thesis.repair import batch_api
+    from thesis.generation import batch_api
 
     with tempfile.TemporaryDirectory() as tmp:
         config, profile, model_config, sample_id = make_world(tmp)
@@ -980,6 +1037,43 @@ def test_external_docker_mode():
         except ValueError:
             check("missing docker template raises", True)
 
+        # A FAILING container run must NOT advance the wave: the findings
+        # never arrived, so deciding the sample now would score it as clean.
+        config["stages"]["repair"]["external_tool_commands"] = {
+            "parcoach": '%s -c "import sys; sys.exit(3)"' % sys.executable
+        }
+        loop = make_loop(config, profile, model_config, adapter)
+        outcome = loop._to_analyzed(0)
+
+        check("failing container -> blocked_external",
+              outcome == "blocked_external")
+        check("wave stays in analyzed_waiting_external",
+              loop.load_wave_state()["phase"] == "analyzed_waiting_external")
+        check("pending file written so the wave is resumable",
+              loop.paths.pending_external_path.exists()
+              and "parcoach" in loop.paths.pending_external_path.read_text(
+                  encoding="utf-8"))
+        check("sample NOT decided as clean",
+              loop.sample_states().get(sample_id) is None)
+
+        # a container that exits 0 but writes nothing is the same situation
+        config["stages"]["repair"]["external_tool_commands"] = {
+            "parcoach": '%s -c "pass"' % sys.executable
+        }
+        loop = make_loop(config, profile, model_config, adapter)
+        check("silent no-op container also blocks",
+              loop._to_analyzed(0) == "blocked_external")
+
+        # host_repo placeholder resolution (docker-outside-of-docker)
+        settings = dict(loop.settings)
+        settings["external_tool_commands"] = {"parcoach": "run {host_repo} {repo}"}
+        settings["host_repo_path"] = "C:/host/repo"
+        command = orchestrator.build_external_command(
+            settings, "cfg.yaml", "unit", "run_x", "m", "parcoach"
+        )
+        check("host_repo placeholder filled from config",
+              command.startswith("run C:/host/repo "))
+
 
 # ---------------------------------------------------------------------------
 
@@ -989,6 +1083,7 @@ def main():
         test_stop_logic,
         test_grace_once,
         test_full_wave_with_resume,
+        test_dry_run_history_modes,
         test_transport_retry,
         test_refusal_unusable,
         test_external_waiting,

@@ -29,6 +29,19 @@ inputs; summing would double-count the same defect).
 `repair_prompt_tokens`/`repair_completion_tokens` come from the repair
 response record's provider usage (normalized across providers).
 
+`cleaning_*` columns mirror the assembly record's cleaning block. They
+belong in the results, not just in the logs: `cleaning_auto_closed` marks
+samples whose braces the PIPELINE closed before evaluation, i.e. an
+intervention on the measured object — a sample that only compiles because
+of that repair must not silently count as a model success. The remaining
+flags (`used_fence`, `dropped_leading_lines`, `relocated_includes`,
+`signature_suspect`) describe how the answer was formatted and are an
+instruction-following signal per model, since the system prompt asks for
+bare code without Markdown. The "Cleaning interventions" section of
+overview.md reports these shares per model and per iteration; read them
+NEXT TO the correctness numbers, and state the auto_closed share wherever
+pass rates are reported.
+
 Outputs (refuses to overwrite without --force):
     <outputs.root>/analysis/<base_run>/overview.csv
     <outputs.root>/analysis/<base_run>/overview.md
@@ -78,10 +91,38 @@ ENHANCED_COUNTED = (
 )
 ENHANCED_GATED = ("baseline_incompatible", "numerically_unstable")
 
+# Cleaning flags from assembly.jsonl (thesis/assembly/cleaning.py). These are
+# INTERVENTIONS ON THE MEASURED OBJECT: the pipeline repairs model output
+# before evaluating it, so the share of samples that needed which repair has
+# to be reportable next to the correctness numbers. `auto_closed` is the
+# strongest one (we closed braces the model left open); the others describe
+# how the answer was formatted, which doubles as an instruction-following
+# signal per model.
+CLEANING_FLAGS = [
+    "auto_closed",             # unbalanced braces closed by the pipeline
+    "used_fence",              # answer came wrapped in a markdown fence
+    "signature_suspect",       # signature line looked off after cleaning
+    "braces_balanced",         # braces already balanced as delivered
+]
+
+# Counters from the same record; reported as "samples with count > 0".
+CLEANING_COUNTS = [
+    "dropped_leading_lines",
+    "dropped_trailing_lines",
+    "dropped_duplicated_prompt_lines",
+    "relocated_includes",      # list in the record -> stored as its length
+]
+
+CLEANING_COLUMNS = (
+    ["cleaning_%s" % flag for flag in CLEANING_FLAGS]
+    + ["cleaning_%s" % name for name in CLEANING_COUNTS]
+)
+
 COLUMNS = [
     "sample_id", "model", "execution_model", "problem_type", "benchmark",
     "variant", "iteration", "is_shared_initial",
     "data_complete", "na_reason",
+] + CLEANING_COLUMNS + [
     "build_ok", "correctness_verdict", "correctness_pass_gridpoints",
     "mismatch_total",
     "blocking_count", "low_confidence_count", "non_blocking_count",
@@ -191,6 +232,32 @@ def usage_tokens(usage: Any) -> "Tuple[Optional[int], Optional[int]]":
     return prompt, completion
 
 
+def apply_cleaning_columns(
+    row: Dict[str, Any], assembly_entry: Optional[Dict[str, Any]]
+) -> None:
+    """Copy the assembly record's cleaning block into the row.
+
+    Read-only join, like every other stage in this file. Missing entries stay
+    None (rendered as NA) instead of defaulting to False — "we did not clean"
+    and "we do not know" must not collapse into one value.
+    """
+    cleaning = (assembly_entry or {}).get("cleaning") or {}
+
+    if not cleaning:
+        return
+
+    for flag in CLEANING_FLAGS:
+        if cleaning.get(flag) is not None:
+            row["cleaning_%s" % flag] = bool(cleaning[flag])
+
+    for name in CLEANING_COUNTS:
+        value = cleaning.get(name)
+        if value is None:
+            continue
+        # relocated_includes is a list of the include lines that were moved
+        row["cleaning_%s" % name] = len(value) if isinstance(value, list) else int(value)
+
+
 def build_row(
     config: Dict[str, Any],
     model_id: str,
@@ -223,6 +290,10 @@ def build_row(
         return row
 
     assembly_entry = run_data.assembly.get(sample_id)
+
+    # Filled even for unusable samples: how the answer had to be cleaned is
+    # known regardless of whether it survived assembly.
+    apply_cleaning_columns(row, assembly_entry)
 
     if assembly_entry is None or not assembly_entry.get("assembled"):
         row["data_complete"] = False
@@ -631,6 +702,94 @@ def clean_but_incorrect(rows: "List[Dict[str, Any]]") -> List[str]:
     return lines
 
 
+def cleaning_section(rows: "List[Dict[str, Any]]") -> List[str]:
+    """Share of samples per model and cleaning flag, split by iteration.
+
+    Reported because auto-closing braces (and dropping stray lines) is an
+    INTERVENTION ON THE MEASURED OBJECT: the pipeline repairs model output
+    before evaluating it. The share belongs next to the correctness numbers.
+    The iteration split additionally shows whether the answer FORMAT changes
+    over the repair iterations (models that first answer in prose may switch
+    to bare code once they get feedback, or the other way round).
+
+    Counted per (sample_id, iteration) so the shared initial generation is
+    not multiplied by the number of variants.
+    """
+    seen: Dict[Tuple[str, str, int], Dict[str, Any]] = {}
+
+    for row in rows:
+        # iteration 0 is the shared initial generation: identical across
+        # variants, so one entry per (model, sample, iteration)
+        key = (row["model"], row["sample_id"], int(row["iteration"]))
+        if key not in seen:
+            seen[key] = row
+
+    with_data = [
+        row for row in seen.values() if row.get("cleaning_used_fence") is not None
+    ]
+
+    if not with_data:
+        return ["No assembly records with cleaning information."]
+
+    lines = [
+        "Answer-format repairs applied by the pipeline before evaluation "
+        "(%d assembled sample(s) with cleaning data). auto_closed is an "
+        "intervention on the measured object; the rest describe the answer "
+        "format and double as an instruction-following signal."
+        % len(with_data),
+        "",
+        "| model | samples | auto_closed | used_fence | signature_suspect | "
+        "dropped_leading | relocated_includes |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+
+    def share(subset: "List[Dict[str, Any]]", column: str) -> str:
+        hits = sum(1 for r in subset if r.get(column))
+        return _rate(hits, len(subset))
+
+    for model in sorted({row["model"] for row in with_data}):
+        subset = [r for r in with_data if r["model"] == model]
+        lines.append(
+            "| %s | %d | %s | %s | %s | %s | %s |"
+            % (
+                model,
+                len(subset),
+                share(subset, "cleaning_auto_closed"),
+                share(subset, "cleaning_used_fence"),
+                share(subset, "cleaning_signature_suspect"),
+                share(subset, "cleaning_dropped_leading_lines"),
+                share(subset, "cleaning_relocated_includes"),
+            )
+        )
+
+    iterations = sorted({int(r["iteration"]) for r in with_data})
+
+    if len(iterations) > 1:
+        lines.append("")
+        lines.append("By iteration (does the answer format change under repair?):")
+        lines.append("")
+        lines.append(
+            "| iteration | samples | auto_closed | used_fence | "
+            "signature_suspect |"
+        )
+        lines.append("| --- | --- | --- | --- | --- |")
+
+        for iteration in iterations:
+            subset = [r for r in with_data if int(r["iteration"]) == iteration]
+            lines.append(
+                "| %d | %d | %s | %s | %s |"
+                % (
+                    iteration,
+                    len(subset),
+                    share(subset, "cleaning_auto_closed"),
+                    share(subset, "cleaning_used_fence"),
+                    share(subset, "cleaning_signature_suspect"),
+                )
+            )
+
+    return lines
+
+
 def completeness_section(rows: "List[Dict[str, Any]]") -> List[str]:
     incomplete = [r for r in rows if not r["data_complete"]]
 
@@ -714,6 +873,11 @@ def render_markdown(
     parts.append('## "Statically clean but incorrect" (static_feedback, design §9)')
     parts.append("")
     parts.extend(clean_but_incorrect(rows))
+
+    parts.append("")
+    parts.append("## Cleaning interventions")
+    parts.append("")
+    parts.extend(cleaning_section(rows))
 
     parts.append("")
     parts.append("## Data completeness")

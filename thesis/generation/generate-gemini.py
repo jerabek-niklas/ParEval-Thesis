@@ -28,8 +28,21 @@ class GeminiAdapter:
     provider = "gemini"
     default_api_key_env = "GEMINI_API_KEY"
 
-    def create_client(self, model_config: dict[str, Any], api_key: str) -> genai.Client:
-        return genai.Client(api_key=api_key)
+    def create_client(
+        self,
+        model_config: dict[str, Any],
+        api_key: str,
+        timeout_seconds: float | None = None,
+    ) -> genai.Client:
+        # google-genai takes the request timeout in MILLISECONDS via
+        # HttpOptions (the other three SDKs take seconds) — converting here
+        # keeps generation_defaults.timeout_seconds in one unit everywhere.
+        timeout = timeout_seconds or common.DEFAULT_TIMEOUT_SECONDS
+
+        return genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=int(timeout * 1000)),
+        )
 
     def generation_parameters(
         self,

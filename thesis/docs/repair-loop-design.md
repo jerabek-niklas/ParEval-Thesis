@@ -4,7 +4,10 @@ Status: design final; fully implemented. Per-tool config incl.
 low_confidence marking (tool_config.py), feedback/history formatter
 (thesis/repair/feedback.py), driver mismatch patch (utilities.hpp +
 patch_mismatch.py), loop orchestrator (thesis/repair/orchestrator.py,
-run_repair.py, batch_api.py), phase-2 backfill (thesis/repair/
+run_repair.py; batch submission via thesis/generation/batch_api.py, which
+moved out of this package on 2026-07-31 when the initial generation gained
+a batch mode too — it mirrors the generation adapters and is now shared by
+both stages), phase-2 backfill (thesis/repair/
 run_backfill.py), consolidated overview (thesis/analysis_overview/
 build_overview.py). This document is the single source of truth for the
 repair-loop stage; the methodology chapter and the implementation both
@@ -143,10 +146,22 @@ methodology chapter.
 **Config-driven formatting (stages.repair):** everything
 behavior-shaping is configured, not hardcoded (thesis/repair/feedback.py):
 
-- `history_mode: compressed | full` — compressed (default, the format
-  above); full renders past-iteration findings at current-feedback detail.
+- `history_mode: compressed | full` — compressed is the format above;
+  full renders past-iteration findings at current-feedback detail.
   Old mismatch numbers stay excluded in BOTH modes (random inputs, no
   seed — old expected/got values belong to other inputs).
+
+  **Decision 2026-07-31 — the default is now `full`.** This document
+  originally specified `compressed` as the default. Reversed for the main
+  run: the repair loop is the object of study, so the model has to see
+  the full finding detail of every past iteration. With compressed
+  history a result like "the model kept reintroducing finding X across
+  iterations" is not interpretable — it could equally mean the model was
+  never told precisely enough. `full` removes that confound at a cost
+  that is measured before it is spent: `run_repair.py --dry-run` renders
+  each pending wave in BOTH modes and reports characters, estimated
+  tokens and estimated cost side by side, so the decision can be revised
+  per run with numbers rather than intuition.
 - `feedback.include_non_blocking` (default false) — whether non-blocking
   findings (warnings, style, performance) are rendered, as a separate
   clearly-headed section after the blocking findings. Rendering only:
@@ -212,6 +227,35 @@ loop-time findings (different tool versions, different checks). The
 backfill runner compares /opt/toolchain-versions.txt of both phases and
 warns on any mismatch.
 
+**External-container tools (PARCOACH, LLOV).** These live in their own
+images, so the loop cannot run them in-process.
+`stages.repair.external_tools_mode` decides how they are handled:
+
+- `manual` — the orchestrator writes the runner commands to
+  `repair/<variant>/pending_external.txt`, parks the wave in
+  `analyzed_waiting_external`, and continues once the records exist.
+- `docker` (**default since 2026-07-31**) — the orchestrator starts the
+  containers itself from `stages.repair.external_tool_commands`. Manual
+  container handling per wave does not scale to 11 models x 3 variants x
+  N iterations.
+
+The docker mode is **docker-outside-of-docker**: the orchestrator runs
+inside the toolchain container, which ships the docker CLI (docker/
+Dockerfile) and must be started with
+`-v /var/run/docker.sock:/var/run/docker.sock`. The sibling containers are
+created by the HOST daemon, so their `-v` mounts need the HOST repo path —
+templates use `{host_repo}`, filled from `stages.repair.host_repo_path` or
+the `PAREVAL_HOST_REPO` environment variable (with `{repo}` still
+available for the in-container path).
+
+**Failure semantics (important for correctness of the results):** if a
+container exits non-zero, or exits 0 without writing records, the wave
+does NOT advance. It goes back to `analyzed_waiting_external`, writes
+pending_external.txt and reports `blocked_external`. Advancing would
+decide those samples with the external findings missing, i.e. silently
+score a possibly-racy sample as clean. Only a MISSING TEMPLATE raises
+immediately — that is a configuration bug, not a transient failure.
+
 ## 7. Batch orchestration (waves)
 
 The loop is sequential per sample but runs in waves across samples:
@@ -220,8 +264,19 @@ analysis stages run, then iteration n+1. Each wave is one batch request
 (~50% cost reduction on OpenAI/Anthropic/Gemini batch APIs; up-to-24h
 latency overlaps with the analysis runs). The orchestrator therefore
 needs an asynchronous state per wave: submitted -> polling -> results
-merged (JSONL + resume, same pattern as generation/common.py). Initial
-generation is trivially batchable.
+merged (JSONL + resume, same pattern as generation/common.py).
+
+**Initial generation uses the same mechanism (implemented 2026-07-31).**
+`generation_defaults.api_mode: direct | batch` (plus per-provider
+overrides) switches the generation stage to one batch job per model:
+submit -> write `generation_batch.json` next to generations.jsonl ->
+exit; `--poll` writes the records. It goes through the same
+`thesis/generation/batch_api.py` as the loop, and — critically — through
+the same record path (`common.apply_success` / `apply_failure`), so
+cleaning, the truncated flag, refusal handling, sample_id assignment and
+resume semantics cannot drift between the two modes. Providers without a
+batch API (DashScope) fall back to direct with a log line. Relevance:
+the full run is 180 samples x 11 models = 1980 generation calls.
 
 ## 8. Cost estimate (rough)
 
@@ -260,3 +315,16 @@ produces two artifacts:
 Joins must tolerate missing records (e.g. `repair_unusable` samples
 have no later iterations) and mark them explicitly rather than
 dropping rows silently.
+
+**Cleaning interventions are part of the results.** The assembly stage
+records per sample what it had to repair in the model output
+(`auto_closed`, `used_fence`, `dropped_leading_lines`,
+`relocated_includes`, `signature_suspect`). These land as `cleaning_*`
+columns in the CSV and in their own summary section, because
+`auto_closed` is an *intervention on the measured object*: the pipeline
+closes braces the model left open, so a sample may only compile because
+of our repair. That share must be stated wherever pass rates are
+reported. The remaining flags describe the answer format and are an
+instruction-following signal per model (the system prompt asks for bare
+code without Markdown); split by iteration they also show whether models
+change their answer format once they receive feedback.

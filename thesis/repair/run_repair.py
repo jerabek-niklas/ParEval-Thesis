@@ -150,6 +150,95 @@ def print_status(loops) -> None:
         )
 
 
+def dry_run_aggregate(loops, summaries) -> None:
+    """Wave totals in both history modes plus a rough cost estimate.
+
+    Input cost uses the estimated request tokens; output cost is an UPPER
+    BOUND from generation_defaults.max_output_tokens (the real completion
+    length is unknown before the call). Prices are the list prices in
+    config.yaml (source: thesis/docs/model-set.md).
+    """
+    if not summaries:
+        print()
+        print("dry-run: no wave would send requests.")
+        return
+
+    by_model = {loop.model_id: loop.model_config for loop in loops}
+    generation_defaults = loops[0].config.get("generation_defaults", {})
+
+    totals = {"full": 0, "compressed": 0}
+    cost = {"full": 0.0, "compressed": 0.0}
+    requests = 0
+    priced = 0
+    unpriced = set()
+
+    for summary in summaries:
+        model_config = by_model.get(summary["model_id"], {})
+        price_in = model_config.get("price_per_mtok_in")
+        price_out = model_config.get("price_per_mtok_out")
+        max_output = int(
+            common.get_param(
+                model_config, generation_defaults, "max_output_tokens", 4096
+            )
+        )
+
+        requests += summary["requests"]
+
+        for mode in ("full", "compressed"):
+            totals[mode] += summary["chars"][mode]
+
+            if price_in is None or price_out is None:
+                continue
+
+            input_tokens = orchestrator.estimated_tokens(summary["chars"][mode])
+            cost[mode] += (
+                input_tokens * price_in
+                + summary["requests"] * max_output * price_out
+            ) / 1_000_000.0
+
+        if price_in is None or price_out is None:
+            unpriced.add(summary["model_id"])
+        else:
+            priced += 1
+
+    print()
+    print("=" * 78)
+    print(
+        "Wave total over %d loop(s), %d request(s)" % (len(summaries), requests)
+    )
+    for mode in ("full", "compressed"):
+        print(
+            "  history_mode=%-11s %13s chars  ~%9s tokens  ~$%8.2f"
+            % (
+                mode + ":",
+                "{:,}".format(totals[mode]),
+                "{:,}".format(orchestrator.estimated_tokens(totals[mode])),
+                cost[mode],
+            )
+        )
+
+    delta = totals["full"] - totals["compressed"]
+    percent = (delta / totals["compressed"] * 100.0) if totals["compressed"] else 0.0
+    print(
+        "  %-24s %+13s chars  (%+.0f %%)  %+.2f USD"
+        % ("difference:", "{:,}".format(delta), percent, cost["full"] - cost["compressed"])
+    )
+    print()
+    print(
+        "  Token estimate = chars / %d — crude in absolute terms, but the "
+        "full/compressed RATIO is exact (same divisor on both sides). Cost "
+        "adds an UPPER-BOUND output part (max_output_tokens per request at "
+        "list prices); real output is shorter."
+        % orchestrator.CHARS_PER_TOKEN_ESTIMATE
+    )
+
+    if unpriced:
+        print(
+            "  No price in config for: %s — excluded from the cost sum."
+            % ", ".join(sorted(unpriced))
+        )
+
+
 def main() -> None:
     args = parse_args()
     loops = build_loops(args)
@@ -159,8 +248,8 @@ def main() -> None:
         return
 
     if args.dry_run:
-        for loop in loops:
-            loop.dry_run()
+        summaries = [s for s in (loop.dry_run() for loop in loops) if s]
+        dry_run_aggregate(loops, summaries)
         return
 
     if args.poll:

@@ -147,6 +147,25 @@ RUN set -e; \
     rm -rf t.cc o.cc m.cc ih.hpp ic.cc t_serial t_omp t_mpi t_tsan t_asan infer-out; \
     echo "toolchain self-test passed"
 
+# Docker CLI (client only, static binary — no daemon) so the repair
+# orchestrator can start the PARCOACH/LLOV sibling containers itself
+# (stages.repair.external_tools_mode: docker). Without it the loop would
+# have to stop at every wave and wait for the containers to be run by hand,
+# which is not workable for 11 models x 3 variants x N iterations.
+#
+# Requires at RUN time (docker-outside-of-docker, NOT docker-in-docker):
+#   -v /var/run/docker.sock:/var/run/docker.sock
+# The sibling containers are started by the HOST daemon, so their -v mounts
+# take HOST paths — the orchestrator therefore templates {host_repo}, see
+# stages.repair.external_tool_commands in config.yaml.
+ARG DOCKER_CLI_VERSION=27.3.1
+RUN curl -fsSL "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_CLI_VERSION}.tgz" \
+        -o /tmp/docker.tgz \
+    && tar -xzf /tmp/docker.tgz -C /tmp docker/docker \
+    && mv /tmp/docker/docker /usr/local/bin/docker \
+    && rm -rf /tmp/docker /tmp/docker.tgz \
+    && docker --version
+
 WORKDIR /workspace
 
 CMD ["/bin/bash"]

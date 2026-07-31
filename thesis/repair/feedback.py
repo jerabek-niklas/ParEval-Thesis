@@ -139,7 +139,18 @@ def feedback_settings(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def history_mode(config: Dict[str, Any]) -> str:
-    return _repair_config(config).get("history_mode", "compressed")
+    """compressed | full — DEFAULT 'full' since 2026-07-31.
+
+    The design originally defaulted to 'compressed'. For the main run the
+    decision was reversed: the loop is the object of study, so the model
+    must see the full finding detail of every past iteration, otherwise a
+    "the model kept reintroducing X" analysis cannot distinguish "was not
+    told precisely enough" from "did not fix it". The cost is measurable
+    up front — `run_repair.py --dry-run` renders each wave in BOTH modes
+    and prints the character/token ratio. Documented in
+    thesis/docs/repair-loop-design.md §4.
+    """
+    return _repair_config(config).get("history_mode", "full")
 
 
 def strategy_sources(config: Dict[str, Any], strategy: str) -> List[str]:

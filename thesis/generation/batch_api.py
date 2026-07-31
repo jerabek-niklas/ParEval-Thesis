@@ -1,9 +1,19 @@
-"""Provider batch APIs for the repair loop (repair-loop-design.md §7).
+"""Provider batch APIs, shared by the generation and repair stages.
 
-One batch job per (model, variant, iteration); the orchestrator submits,
-exits, and merges results on a later --poll / regular run. Payloads and
-text extraction MIRROR the direct-mode provider adapters
-(thesis/generation/generate-*.py) so batch and direct responses are
+Used by
+  - thesis/generation/common.py   (initial generation, one job per model)
+  - thesis/repair/orchestrator.py (one job per model, variant, iteration)
+
+MOVED here from thesis/repair/ on 2026-07-31, when the initial generation
+gained a batch mode. Rationale: this module has no repair-specific logic —
+its payloads MIRROR the generation adapters (it even loads
+generate-anthropic.py and generate-openai-compatible.py to reuse their
+request construction), and a module used by two stages should not live
+inside one of them. The repair package keeps the state machine; the
+provider protocol lives next to the adapters it mirrors.
+
+Payloads and text extraction mirror the direct-mode provider adapters
+(thesis/generation/generate-*.py) so batch and direct responses produce
 comparable records.
 
 custom_id note: OpenAI and Anthropic cap custom ids at 64 characters,
@@ -54,6 +64,16 @@ class BatchStatus:
     state: str  # "running" | "completed" | "failed"
     detail: str = ""
     responses: Dict[str, BatchItemResponse] = field(default_factory=dict)
+
+
+# HTTP timeout for the batch control-plane calls (submit / poll / result
+# download). Deliberately independent of generation_defaults.timeout_seconds:
+# that value bounds ONE model call, while a submit uploads a whole wave (up to
+# 180 requests, a few MB as a JSONL file) and a completed poll downloads the
+# entire result file. 120 s would make large waves fail on upload speed alone.
+# The batch itself is asynchronous, so this never waits for model work — it
+# only bounds one HTTP round trip.
+BATCH_HTTP_TIMEOUT_SECONDS = 600.0
 
 
 def custom_id_for(index: int) -> str:
@@ -124,7 +144,7 @@ def _anthropic_client(model_config: Dict[str, Any]):
     from anthropic import Anthropic
 
     api_key = common.get_api_key(model_config, "ANTHROPIC_API_KEY")
-    return Anthropic(api_key=api_key)
+    return Anthropic(api_key=api_key, timeout=BATCH_HTTP_TIMEOUT_SECONDS)
 
 
 def _anthropic_thinking_payload(model_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -253,10 +273,14 @@ def _openai_client(model_config: Dict[str, Any], compatible: bool):
         spec.loader.exec_module(module)  # type: ignore[union-attr]
 
         api_key = common.get_api_key(model_config, "OPENAI_COMPATIBLE_API_KEY")
-        return OpenAI(api_key=api_key, base_url=module.resolve_base_url(model_config))
+        return OpenAI(
+            api_key=api_key,
+            base_url=module.resolve_base_url(model_config),
+            timeout=BATCH_HTTP_TIMEOUT_SECONDS,
+        )
 
     api_key = common.get_api_key(model_config, "OPENAI_API_KEY")
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, timeout=BATCH_HTTP_TIMEOUT_SECONDS)
 
 
 def _openai_submit(model_config, generation_defaults, system_prompt, requests,
@@ -429,9 +453,16 @@ def _openai_poll(model_config, batch_info) -> BatchStatus:
 
 def _gemini_client(model_config: Dict[str, Any]):
     from google import genai
+    from google.genai import types
 
     api_key = common.get_api_key(model_config, "GEMINI_API_KEY")
-    return genai.Client(api_key=api_key)
+    # google-genai takes milliseconds (see generate-gemini.py)
+    return genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(
+            timeout=int(BATCH_HTTP_TIMEOUT_SECONDS * 1000)
+        ),
+    )
 
 
 def _gemini_submit(model_config, generation_defaults, system_prompt, requests):

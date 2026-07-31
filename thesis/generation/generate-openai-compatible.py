@@ -58,8 +58,18 @@ class OpenAICompatibleAdapter:
     provider = "openai_compatible"
     default_api_key_env = "OPENAI_COMPATIBLE_API_KEY"
 
-    def create_client(self, model_config: dict[str, Any], api_key: str) -> OpenAI:
-        return OpenAI(api_key=api_key, base_url=resolve_base_url(model_config))
+    def create_client(
+        self,
+        model_config: dict[str, Any],
+        api_key: str,
+        timeout_seconds: float | None = None,
+    ) -> OpenAI:
+        # The SDK default is 600 s; generation_defaults.timeout_seconds wins.
+        return OpenAI(
+            api_key=api_key,
+            base_url=resolve_base_url(model_config),
+            timeout=timeout_seconds or common.DEFAULT_TIMEOUT_SECONDS,
+        )
 
     def generation_parameters(
         self,

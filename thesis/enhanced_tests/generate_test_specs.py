@@ -428,8 +428,12 @@ def main() -> None:
 
     adapter = load_adapter(provider)
     api_key = common.get_api_key(model_config, adapter.default_api_key_env)
-    client = adapter.create_client(model_config, api_key)
     generation_defaults = config.get("generation_defaults", {})
+    client = adapter.create_client(
+        model_config,
+        api_key,
+        common.get_timeout_seconds(model_config, generation_defaults),
+    )
 
     def call_llm(user_prompt: str) -> "Optional[str]":
         try:

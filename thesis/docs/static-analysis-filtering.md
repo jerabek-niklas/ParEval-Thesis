@@ -185,6 +185,40 @@ self-annotates them with a CWE id, e.g. `[CWE-476]`). Non-blocking would mean
 they never reach the repair feedback, which would make the whole addition
 pointless. Precision 0.937 overall / 1.0 on C++ justifies gating on them.
 
+**False positives on ParEval-shaped code (measured, and the Juliet numbers do
+not transfer 1:1).** Juliet's "good" kernels are written to be safe on every
+input; ParEval kernels are written against a contract (`N > 0`, correctly sized
+vectors) that the analyzer cannot see, so it explores `N = 0` / empty-container
+paths the harness never produces. Measured over all **60 benchmarks × 3
+execution models**, with each benchmark's *own reference implementation* as the
+model file (correct by construction, so every blocking finding is a false
+alarm), 162 runs where the synthetic TU compiles:
+
+| Tool | runs with ≥1 blocking finding | blocking findings | benchmarks affected | mean runtime |
+| --- | --- | --- | --- | --- |
+| `compiler` | 0 (0 %) | 0 | 0 | 3.12 s |
+| `cppcheck` | 0 (0 %) | 0 | 0 | 0.50 s |
+| **`gcc_analyzer`** | **5 (3.1 %)** | **26** | **3** | **1.85 s** |
+| `clang_tidy` | 33 (20.4 %) | 42 | 11 | 5.99 s |
+
+So `-fanalyzer` *is* louder on real C++ than its Juliet C++ FP rate of 0.0
+suggested, but it lands at the Juliet **C** FP rate (0.032) and is **6.5×
+quieter than clang-tidy**, which the pipeline already gates on — and it is the
+second-cheapest static tool. That is the basis for keeping its findings
+blocking.
+
+Dominant FP classes: `-Wanalyzer-use-of-uninitialized-value` (27 of 41 raw) —
+caller-provided vector contents the analyzer cannot assume initialized — and
+`-Wanalyzer-null-dereference` / `-possible-null-dereference` (7 + 7), triggered
+by the pattern *"local temporary sized `N*N`, then nested loops over `i<N`,
+`j<N`"*: the analyzer cannot infer `N*N == 0 ⟹ N == 0`, so it walks the
+"allocation returned NULL and the loop still runs" path. Adding an explicit
+`if (N == 0) return;` does not suppress it. Should this become a problem in the
+full run, the pipeline's existing mechanism applies without a code change —
+`low_precision_families: ["-Wanalyzer-use-of-uninitialized-value"]` under
+`stages.static_analysis.tools.gcc_analyzer`, which marks that family
+`low_confidence` and lets `low_confidence_stop_mode: grace_once` handle it.
+
 The tool always runs through **GCC** (`g++`, `mpicxx` for MPI) regardless of
 `--primary-compiler`: `-fanalyzer` is a GCC-only feature, and being the
 GCC-native method is the point. A non-GCC wrapper makes the compile fail, which
@@ -305,13 +339,23 @@ The measured level table on the full Juliet run
 (0.805 → 0.573, FP rate 0.112) — the filter is what makes the addition
 defensible.
 
+**Cost on real samples** (9 assembled ParEval samples, same session, back to
+back): mean 33.3 s without and 32.7 s with `--bufferoverrun` — **no measurable
+overhead**; the run-to-run variance of Infer on these TUs (20–48 s for the same
+configuration) is far larger than the difference. Consistent with the 1.09×
+measured on Juliet. Raw report entries per TU rise from 36 to 42; all six extra
+entries sit in system headers and are removed by the attribution filter.
+
 **Honest caveat, stated because it matters for the methodology chapter:** on the
 **C++** kernels of the validation suite the contribution is *exactly zero* —
 `infer`, `infer_bo` and `infer_bo_l1l2` produce identical results there
 (recall 0.061, precision 1.0 for all three); every additional finding came from
-C testcases. It is included because it costs almost nothing and does not hurt
-precision. A contribution on LLM-generated C++ is plausible (raw C-style
-buffer handling does occur in generated kernels) but **not demonstrated**.
+C testcases. The same held on the assembled ParEval samples above: **0** extra
+findings in the model file. It is included because it costs almost nothing and
+does not hurt precision. A contribution on LLM-generated C++ is plausible (raw
+C-style buffer handling does occur in generated kernels) but **not
+demonstrated**. `bufferoverrun_max_level: 0` switches it off entirely (the flag
+is then not passed at all) if that trade stops being worth it.
 
 ### `parcoach` (PARCOACH 2.4.1 — MPI collective verification, own container)
 

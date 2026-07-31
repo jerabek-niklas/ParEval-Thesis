@@ -82,6 +82,12 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--poll",
+        action="store_true",
+        help="Forward --poll (batch mode: collect finished jobs, submit nothing).",
+    )
+
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print commands without executing them.",
@@ -146,6 +152,7 @@ def build_command(
     profile: str,
     model_id: str,
     restart: bool,
+    poll: bool = False,
 ) -> list[str]:
     command = [
         sys.executable,
@@ -160,6 +167,9 @@ def build_command(
 
     if restart:
         command.append("--restart")
+
+    if poll:
+        command.append("--poll")
 
     return command
 
@@ -248,6 +258,7 @@ def main() -> None:
                 profile=args.profile,
                 model_id=model_id,
                 restart=args.restart,
+                poll=args.poll,
             )
 
             return_code = run_command(command, dry_run=args.dry_run)

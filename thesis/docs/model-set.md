@@ -1,5 +1,9 @@
 # Model Set (11 models)
 
+Last change: **2026-07-31** — `claude_opus_5` replaces `claude_opus_48`
+in the Anthropic slot (count unchanged at 11 enabled models; the 4.8
+entry stays disabled, see the table).
+
 Verification date: **2026-07-21**. Every API id was verified against the
 provider's live models endpoint (`GET /models`); availability was
 additionally proven by one real generation call per new model through the
@@ -14,7 +18,8 @@ international endpoint (our deployment: `eu-central-1.maas.aliyuncs.com`)
 
 | Config id | Verified API id | Reachable | Batch | Price in/out per 1M | Retrieved |
 | --- | --- | --- | --- | --- | --- |
-| `claude_opus_48` | `claude-opus-4-8` | yes (full pipeline runs) | yes (Message Batches, implemented in batch_api.py, not live-tested) | $5.00 / $25.00 | 2026-07-21 |
+| `claude_opus_5` | `claude-opus-5` | yes (models endpoint + smoke 2026-07-31) | yes (Message Batches, implemented in batch_api.py, not live-tested) | $5.00 / $25.00 (batch $2.50 / $12.50) | 2026-07-31 |
+| ~~`claude_opus_48`~~ | `claude-opus-4-8` | **disabled 2026-07-31** — superseded by Opus 5 (entry kept, id not recycled, so earlier records stay attributable) | — | $5.00 / $25.00 | 2026-07-21 |
 | `claude_fable_5` | `claude-fable-5` | yes (smoke 2026-07-21; models endpoint reports `batch: supported`) | yes (Message Batches, implemented, not live-tested) | $10.00 / $50.00 | 2026-07-21 |
 | `openai_gpt55` | `gpt-5.5` | yes (full pipeline runs) | yes (file-based Batch API `/v1/responses`, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
 | `openai_gpt56_sol` | `gpt-5.6-sol` | yes (smoke 2026-07-21) | yes (Batch API, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
@@ -33,9 +38,12 @@ entries); DashScope additionally lists dated snapshots
 
 ## Selection rationale
 
-- **Anthropic — generation pair:** `claude-opus-4-8` vs. `claude-fable-5`
+- **Anthropic — generation pair:** `claude-opus-5` vs. `claude-fable-5`
   measures progress across two model generations of the same vendor under
-  identical prompts.
+  identical prompts. **Opus swap 2026-07-31:** Opus 5 replaced Opus 4.8;
+  the 4.8 entry is kept disabled rather than recycled, so the smoke_001 /
+  model_check_001 / repair_smoke_001 records stay attributable to the
+  model that produced them (same convention as the Flash swap).
 - **OpenAI — generation pair:** `gpt-5.5` vs. `gpt-5.6-sol` (the 5.6
   flagship tier) is the same cross-generation comparison on the OpenAI
   side.
@@ -91,7 +99,8 @@ table). Verified 2026-07-21 by per-model structure probes
 | `gemini_36_flash` | `thinking_level` | `medium` | yes (MINIMAL/LOW/MEDIUM/HIGH; probe 2026-07-28 accepted) | separate | 3.5/3.6 scale adds MINIMAL → "medium" is the middle of each series' own scale, not an exactly equivalent point across 3.1/3.6 |
 | ~~`gemini_35_flash`~~ | `thinking_level` | `medium` | — | separate | disabled 2026-07-28 (superseded by 3.6 Flash) |
 | `glm_5_2` (spec generator, not evaluated) | `enable_thinking` | provider default (ON) | partially (on/off) | separate `reasoning_content`; `message.content` is clean strict JSON (probe 2026-07-28) | not part of the evaluation set — listed for completeness |
-| `claude_opus_48` | `thinking: adaptive` + `effort` | `medium` | yes (effort low/medium/high/xhigh/max) | thinking blocks, separate; adapter extracts text blocks only | thinking must be ACTIVATED on Opus (omitted = no thinking); adapter extended 2026-07-21 to send `thinking` + `output_config.effort` (direct AND batch path identical) |
+| `claude_opus_5` | `effort` | `medium` | partially (depth via effort low/medium/high/xhigh/max; thinking itself is on) | thinking blocks, separate; adapter extracts text blocks only | NO activation field needed — unlike Opus 4.8, Opus 5 thinks without one (probe below). Same configuration as its pair partner claude_fable_5 |
+| ~~`claude_opus_48`~~ | `thinking: adaptive` + `effort` | `medium` | yes | thinking blocks, separate | disabled 2026-07-31 (superseded by Opus 5). Thinking had to be ACTIVATED here — omitting the parameter ran without thinking; that is why the adapter grew the `thinking` field in the first place |
 | `claude_fable_5` | `effort` | `medium` | partially (depth via effort; thinking itself cannot be disabled) | thinking blocks (omitted by default), separate | always-on thinking needs no activation field; SAME effort level as the Opus pair partner |
 | `qwen37_max` | `enable_thinking` + `thinking_budget` | ON, budget 8192 | partially (on/off + token budget; NO level scale) | separate `reasoning_content` | budget chosen non-constraining (well above observed spend, below the 16384 output cap) — it must not become the limiting factor |
 | `qwen3_coder_api` | — | none | no (non-thinking model; `enable_thinking` silently ignored) | none | DOCUMENTED EXCEPTION: the model has no thinking to configure |
@@ -108,6 +117,65 @@ unaffected and the openai_compatible adapter needs no change
 (`_extract_text` reads `message.content` exclusively;
 `reasoning_content` is discarded, reasoning token counts are logged via
 `usage` in the generation records).
+
+### Effect evidence: the parameters are not just sent, they act (2026-07-31)
+
+"The parameter is transmitted" is not "the parameter takes effect" —
+DashScope has historically ignored thinking options in non-streaming mode.
+One **non-streaming** call per model through the real pipeline adapter,
+inspecting `usage` and `message.reasoning_content`:
+
+| Config id | `reasoning_tokens` (usage) | `reasoning_content` chars | inline `<think>` | verdict |
+| --- | --- | --- | --- | --- |
+| `qwen37_max` | 603 | 2 055 | no | thinking ACTIVE |
+| `qwen36_35b_a3b` | 1 721 | 6 614 | no | thinking ACTIVE |
+| `deepseek_v4_pro` | 302 | 1 264 | no | thinking ACTIVE |
+| `deepseek_v4_flash` | 112 | 455 | no | thinking ACTIVE |
+| `qwen3_coder_api` | — (`completion_tokens_details` is `null`) | — | no | no thinking, as documented (non-thinking model) |
+
+So **no model needed a streaming call**, and the streaming option (which
+would change the response path and therefore record construction) is not
+required — it stays unused, not even as a fallback.
+
+**Anthropic, checked in the same pass because the `model_check_001`
+records showed `output_tokens_details.thinking_tokens: 0`:** that is
+adaptive thinking working as specified, not an ignored parameter. On a
+trivial prompt (sum of a vector) both models spend 0 thinking tokens; on
+a real MPI LU-factorization prompt `claude_opus_48` spends 1 013 and
+`claude_fable_5` 180 thinking tokens with the identical settings. A zero
+in a record is therefore a property of the task, not of the
+configuration — worth stating in the methodology chapter, because
+per-sample thinking-token counts will legitimately be 0 for easy
+benchmarks.
+
+**Opus 5 needs no activation field (probe 2026-07-31).** The same MPI LU
+prompt against `claude-opus-5` with three parameter combinations:
+
+| Sent | thinking tokens |
+| --- | --- |
+| `{}` (no thinking field, no effort) | 806 |
+| `{"output_config": {"effort": "medium"}}` | 310 |
+| `{"thinking": {"type": "adaptive"}, "output_config": {"effort": "medium"}}` | 559 |
+
+The decisive observation is the first row: with an EMPTY payload Opus 5
+still thinks, where Opus 4.8 returns 0. Thinking is therefore on by
+default, as on Fable 5, and `claude_opus_5` is configured with `effort`
+only — which also makes the Anthropic pair symmetric in both fields.
+Sending `thinking: adaptive` remains valid (row 3) but would document a
+requirement that does not exist. The token COUNTS across the three rows
+are single samples and vary by hundreds; they are not a controlled
+comparison and no effort-vs-depth conclusion is drawn from them.
+
+Where the reasoning-token count lives per provider (all persisted in
+`api_response.usage` of the generation record, so the methodology chapter
+and the cost accounting can read it straight from the JSONL):
+
+| Provider | Field |
+| --- | --- |
+| OpenAI (Responses) | `output_tokens_details.reasoning_tokens` |
+| Anthropic | `output_tokens_details.thinking_tokens` |
+| Gemini | `thoughts_token_count` |
+| DashScope (Qwen/DeepSeek) | `completion_tokens_details.reasoning_tokens` |
 
 ### Gemini sampling parameters are deprecated (affects the "greedy decoding" claim)
 
@@ -163,12 +231,15 @@ effective level). `qwen3-coder-plus` cannot think at all — it is the
 one model measured without reasoning. Reasoning-token spend therefore
 differs by design across vendors; cross-vendor comparisons measure
 each model at its policy-mapped setting, while the within-vendor pairs
-(gpt-5.5 vs gpt-5.6-sol, Opus 4.8 vs Fable 5, DeepSeek pro vs flash)
+(gpt-5.5 vs gpt-5.6-sol, Opus 5 vs Fable 5, DeepSeek pro vs flash)
 run pairwise-identical settings and stay internally consistent.
 Additionally: pipeline artifacts produced BEFORE 2026-07-21 (e.g.
 smoke_001) ran the DeepSeek models with thinking disabled and Claude
 Opus 4.8 without thinking — results from those runs are not comparable
-to post-policy runs on this axis.
+to post-policy runs on this axis. From 2026-07-31 the Anthropic slot is
+`claude_opus_5`, so all Opus 4.8 artifacts belong to the pre-swap set as
+well; they keep their own model id and are never merged with Opus 5
+results.
 
 ## spec_model candidates (information only, config unchanged)
 
