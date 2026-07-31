@@ -157,14 +157,26 @@ models:
     reasoning_effort: medium
 
   - id: gemini_35_flash
-    # Class pair with gemini_31_pro (pro vs flash tier).
-    # thinking_level medium = middle of the 3.5 scale AND the 3.5-flash
-    # provider default. NOTE: the 3.5 scale adds MINIMAL below low, so
-    # "medium" is the middle of each series' own scale, not a perfectly
-    # equivalent point across 3.1/3.5 (documented in model-set.md).
-    enabled: true
+    # SUPERSEDED 2026-07-28 by gemini_36_flash (3.6 Flash is GA, more
+    # token-efficient and cheaper at better code/agent capability). The
+    # entry is kept (NOT recycled, NOT renamed) so records from earlier
+    # runs stay attributable to the model that produced them.
+    enabled: false
     provider: gemini
     model_name: gemini-3.5-flash
+    api_key_env: GEMINI_API_KEY
+    thinking_level: medium
+
+  - id: gemini_36_flash
+    # Class pair with gemini_31_pro (pro vs flash tier); replaces
+    # gemini_35_flash. API id verified against the models endpoint
+    # 2026-07-28. thinking_level medium = middle of the same
+    # MINIMAL/LOW/MEDIUM/HIGH scale as 3.5 (probe 2026-07-28: accepted);
+    # the scale still differs from the 3.1 series (which has no MINIMAL),
+    # see model-set.md.
+    enabled: true
+    provider: gemini
+    model_name: gemini-3.6-flash
     api_key_env: GEMINI_API_KEY
     thinking_level: medium
 
@@ -211,6 +223,27 @@ models:
       enable_thinking: true
       reasoning_effort: high
 
+  # --- test-case generator, NOT part of the evaluation set ---------------
+  # Deliberately enabled: false — this model must NEVER take part in a
+  # generation run; the adapter only needs to know it so that
+  # stages.enhanced_tests.spec_model can resolve it. See model-set.md
+  # ("Test-case generator").
+  - id: glm_5_2
+    # GLM (Zhipu) family — outside the evaluated model set, reachable via
+    # the existing Model Studio key (it hosts third-party models next to
+    # Qwen), so no new provider/account. glm-5.2 is the strongest GLM on
+    # OUR endpoint (verified 2026-07-28: glm-5.1 and glm-5.2 listed;
+    # glm-5 / glm-4.7 are not).
+    # Thinking: provider default (ON). Probe 2026-07-28: reasoning lands in
+    # a SEPARATE reasoning_content field, message.content carries clean
+    # strict JSON (no <think> blocks, no markdown fences) — exactly what
+    # generate_test_specs.py requires, so no enable_thinking override.
+    enabled: false
+    provider: openai_compatible
+    model_name: glm-5.2
+    base_url_env: ALIBABA_MODEL_STUDIO_BASE_URL
+    api_key_env: ALIBABA_MODEL_STUDIO_API_KEY
+
 outputs:
   root: thesis/results
   raw_dir: thesis/results/raw
@@ -251,12 +284,31 @@ stages:
     #                        per check_id-prefix family); rendered as
     #                        verify-first hints in repair feedback
     # Container split stays via --tools (filters the enabled set):
-    # compiler/clang_tidy/cppcheck/infer in pareval-thesis; parcoach in
-    # parcoach-demo:2.4.1; llov in pareval-llov. Results merge per tool.
+    # compiler/gcc_analyzer/clang_tidy/cppcheck/infer in pareval-thesis;
+    # parcoach in parcoach-demo:2.4.1; llov in pareval-llov. Results merge
+    # per tool.
     tools:
       compiler:
         enabled: true
         execution_models: [serial, omp, mpi]
+      # GCC's own path-sensitive symbolic execution (-fanalyzer), a separate
+      # compile-only pass — the compiler tool is also the build gate, and
+      # -Wall diagnostics vs. symbolic execution are two detection methods
+      # (same split as clang_sa vs. clang_tidy_ast).
+      # Validation (Juliet, results/variant_deltas.csv): recall 0.234 ->
+      # 0.477, precision 0.933 -> 0.937, FP rate 0.032, 158 kernels that the
+      # plain compiler pass misses and 0 the other way round, runtime 1.03x.
+      # On the C++ part of the suite it is the strongest static tool
+      # (recall 0.717 at precision 1.0), which is what this pipeline analyzes.
+      # -Wanalyzer-* findings are blocking: they are warnings syntactically
+      # but describe real defects, and only blocking findings reach the
+      # repair feedback.
+      gcc_analyzer:
+        enabled: true
+        execution_models: [serial, omp, mpi]
+        # more generous than the compiler tool's 120 s — symbolic execution
+        # is the expensive pass (measured ~3 s per TU, MPI worst case)
+        timeout_seconds: 300
       clang_tidy:
         enabled: true
         execution_models: [serial, omp, mpi]
@@ -270,6 +322,21 @@ stages:
       infer:
         enabled: true
         execution_models: [serial, omp, mpi]
+        # InferBO (--bufferoverrun) runs inside the same infer invocation.
+        # Findings are kept only up to this confidence level; the measured
+        # level table (results/inferbo_levels.csv) is unambiguous:
+        #   L1  36 true positives /  0 false positives  (precision 1.0)
+        #   L3   0 true positives / 58 false positives  (precision 0.0)
+        # L3-L5 are therefore DISCARDED, not kept as non-blocking — even
+        # non-blocking findings reach the repair feedback. With the filter:
+        # recall 0.095 -> 0.151 AND precision 0.805 -> 0.867 at an unchanged
+        # FP rate, for 1.09x runtime.
+        # Honest caveat: on the C++ kernels of the validation suite the
+        # contribution is exactly zero (infer, infer_bo and infer_bo_l1l2 are
+        # identical there); all extra findings were on C testcases. Included
+        # because it costs almost nothing and does not hurt precision — a
+        # contribution on LLM-generated C++ is plausible but not proven.
+        bufferoverrun_max_level: 2
       parcoach:
         enabled: true
         execution_models: [mpi]
@@ -324,9 +391,15 @@ stages:
     enabled: false
     output_file_name: enhanced_tests.jsonl
     # Which model generates the edge-case input specs (EvalPlus-style).
-    # A deliberate, open methodology decision — document the choice and its
-    # independence question (spec model vs. evaluated models) in the thesis.
-    spec_model: openai_gpt56_sol
+    # Deliberate methodology decision (2026-07-28): the generator comes from
+    # a model family that is NOT in the evaluation set — GLM (Zhipu), see
+    # the glm_5_2 entry — so no evaluated model writes its own test cases.
+    # The oracle stays the serial baseline in every case, independent of
+    # the generator. Previous generators: openai_gpt55, then
+    # openai_gpt56_sol (both IN the evaluation set); their specs are
+    # archived under results/cache/enhanced/archive/ for a generator
+    # comparison.
+    spec_model: glm_5_2
     # System prompt for spec generation (single source of truth, mirrors
     # generation_defaults.system_prompt for code generation).
     spec_system_prompt: |
@@ -354,7 +427,13 @@ stages:
     offered_patterns: [random, all_zeros, all_same, ascending, descending,
                        alternating, extreme_values, duplicate_at,
                        sorted_except_one, spike_at, explicit_values]
-    # explicit_values: only for sizes up to this bound (surgical cases)
+    # explicit_values: cap on the NUMBER OF VALUES a spec may carry
+    # (surgical cases). Since 2026-07-28 this binds on the element count
+    # derived from the benchmark's input shape, not on `size`: for 1-D
+    # benchmarks the two are identical (unchanged meaning), for n x n matrix
+    # benchmarks it now correctly limits n*n. 64 keeps hand-written cases
+    # readable and allows matrices up to 8x8 — beyond that a spec is no
+    # longer a surgical case but a data dump.
     explicit_values_max_size: 64
     # baseline.hpp is capped to this many chars in the generation prompt
     baseline_prompt_max_chars: 12000

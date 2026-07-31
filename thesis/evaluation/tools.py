@@ -5,6 +5,9 @@ Implemented here:
     -Wpedantic and parses gcc/clang diagnostics into Findings. This is
     both the cheapest static-analysis layer and the authoritative compile
     check; a non-zero compiler exit is blocking.
+  - GccAnalyzerTool: a second, compile-only pass with GCC's -fanalyzer
+    (path-sensitive symbolic execution), kept separate from the compiler
+    tool on purpose — see the class docstring.
   - CppcheckTool: runs cppcheck and parses its structured XML output.
 
 Both write the exact command they ran into the ToolResult, so the runs are
@@ -18,10 +21,12 @@ import re
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 from thesis.evaluation.build_config import get_build_config
+from thesis.evaluation.tool_config import tool_option
 from thesis.evaluation.framework import (
     AssembledSample,
     EvaluationContext,
@@ -224,6 +229,211 @@ class CompilerDiagnosticTool:
             findings=findings,
             raw_stdout=result.stdout,
             raw_stderr=result.stderr,
+        )
+
+
+# ---------------------------------------------------------------------------
+# GCC -fanalyzer (path-sensitive symbolic execution)
+# ---------------------------------------------------------------------------
+
+# The analyzer reports exclusively under -Wanalyzer-* flags. Everything else
+# this pass emits is an ordinary compiler diagnostic that the `compiler` tool
+# already owns, so only this prefix is kept (see the class docstring).
+ANALYZER_FLAG_PREFIX = "-Wanalyzer"
+
+# -Wanalyzer-* warnings that report the ANALYZER's own limits instead of a
+# defect in the code: the symbolic execution ran out of budget and gave up on
+# that path. They are recorded (an honest "could not analyze here", same idea
+# as LLOV's region-not-analyzed verdict) but never blocking — there is no
+# defect to repair.
+ANALYZER_NON_DEFECT_WARNINGS = (
+    "-Wanalyzer-too-complex",
+    "-Wanalyzer-symbol-too-complex",
+)
+
+# `#include <system_header>` at the start of a file (the driver's preamble).
+SYSTEM_INCLUDE_RE = re.compile(r"^\s*#include\s*<[^>]+>\s*$")
+
+
+def driver_system_includes(benchmark_driver: Path) -> list[str]:
+    """The `#include <...>` preamble of a benchmark's cpu.cc.
+
+    A reduced translation unit must reproduce it: cpu.cc includes
+    <algorithm>, <cmath>, <numeric>, <random>, <vector> BEFORE
+    generated-code.hpp, so model code may legitimately call std::sort or
+    std::transform without including the header itself. Without the
+    preamble such a sample would fail to compile in the reduced TU and be
+    recorded as a tool error although it builds fine in the pipeline
+    (measured: 7 of 60 benchmarks affected).
+
+    Only `<...>` includes are taken — the quoted ones (utilities.hpp,
+    baseline.hpp, generated-code.hpp) are handled explicitly.
+    """
+    try:
+        text = benchmark_driver.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    return [
+        line.strip()
+        for line in text.splitlines()
+        if SYSTEM_INCLUDE_RE.match(line)
+    ]
+
+
+class GccAnalyzerTool:
+    """Compile-only pass with GCC's `-fanalyzer` and parse its diagnostics.
+
+    Why this is a separate tool and not extra flags on `compiler`:
+
+    1. The `compiler` tool is simultaneously the build gate — its exit code
+       decides whether a sample compiles at all, and the correctness stage
+       depends on that verdict. Adding a much more expensive analysis to that
+       invocation would couple the build decision to an analysis that can time
+       out on its own.
+    2. `-Wall -Wextra -Wpedantic` diagnostics and `-fanalyzer` are two
+       different DETECTION METHODS: syntactic/local checks in the front end vs.
+       interprocedural, path-sensitive symbolic execution of the CFG. Counting
+       them as one tool would hide which method found what — exactly the split
+       already made between `clang_sa` and `clang_tidy_ast` in the tool
+       validation.
+
+    Method independence: this is GCC's own symbolic execution engine, sharing
+    no code with Clang's Static Analyzer, cppcheck's dataflow, or Infer's
+    bi-abduction, so it is a genuinely fifth generic method in the redundancy
+    tier.
+
+    REDUCED TRANSLATION UNIT (measured, not a preference): unlike the other
+    static tools this one does NOT analyze the benchmark's cpu.cc. The
+    analyzer explores paths under a fixed exploration budget, and on the full
+    driver TU that budget is spent inside `validate()` and the std::vector
+    machinery BEFORE the model function is reached — GCC then stops silently
+    ("analysis bailed out early (1061 'after-snode' enodes; 3184 enodes)",
+    visible only with -Wanalyzer-too-complex). Measured on a planted null
+    dereference in dense_la/00: not reported for serial and omp, reported for
+    mpi — i.e. the full TU makes detection depend on unrelated driver
+    complexity. It also would not reproduce the configuration the tool
+    validation measured, where each Juliet kernel is its own small TU.
+    Analyzing `<vector>` + utilities.hpp + generated-code.hpp instead spends
+    the whole budget on the model code: the planted bug is found under all
+    three execution models, and the pass gets faster (~1.3 s vs ~2.7 s).
+    Same pattern (and same reason class) as ParcoachTool and LLOVTool.
+
+    Always invoked through GCC (`g++`, or `mpicxx` for MPI, which wraps the
+    system GCC here) regardless of `--primary-compiler`: `-fanalyzer` is a
+    GCC-only feature and being a GCC-native method is the point of this tool.
+    A toolchain where the wrapper is not GCC makes the compile fail, which is
+    recorded as a tool error — never as a clean sample.
+
+    Only diagnostics carrying a `-Wanalyzer-*` flag are turned into findings;
+    plain warnings from this pass are dropped because the `compiler` tool
+    reports them already (they would otherwise be counted twice).
+    """
+
+    name = "gcc_analyzer"
+
+    # hard capability (config can only narrow this; see tool_config.py)
+    execution_models = ("serial", "omp", "mpi")
+
+    def __init__(self, timeout: float = 300.0):
+        # Deliberately more generous than CompilerDiagnosticTool's 120 s: the
+        # analyzer explores paths symbolically and is the expensive pass.
+        # Configurable via stages.static_analysis.tools.gcc_analyzer.timeout_seconds.
+        self.timeout = timeout
+
+    def is_available(self) -> bool:
+        return binary_available("g++") and binary_available("mpicxx")
+
+    def run(self, sample: AssembledSample, context: EvaluationContext) -> ToolResult:
+        # primary_compiler is intentionally ignored (see class docstring):
+        # g++ for serial/omp, mpicxx for mpi.
+        config = get_build_config(sample.execution_model, primary_compiler="g++")
+
+        if not sample.source_path.exists():
+            return ToolResult(
+                tool=self.name,
+                ran=False,
+                exit_code=None,
+                duration_seconds=0.0,
+                error=f"missing model source: {sample.source_path}",
+            )
+
+        # Mirror cpu.cc's system-include preamble so model code may rely on it
+        # exactly as it does in the real build (see driver_system_includes).
+        includes = driver_system_includes(sample.benchmark_dir / "cpu.cc")
+
+        if "#include <vector>" not in includes:
+            includes.append("#include <vector>")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            reduced_tu = Path(tmp) / "reduced.cc"
+            reduced_tu.write_text(
+                "\n".join(includes)
+                + '\n#include "utilities.hpp"\n'
+                + '#include "generated-code.hpp"\n',
+                encoding="utf-8",
+            )
+
+            # Compile-only with the execution model's own flags and defines
+            # from the BuildConfig (so OpenMP pragmas and MPI symbols are seen
+            # exactly as in the real build); no binary is produced or needed.
+            argv = config.base_command(
+                sources=[str(reduced_tu)],
+                output_path=str(Path(tmp) / "analyzer.o"),
+                include_dirs=context.include_dirs(sample),
+                extra_flags=[
+                    "-fanalyzer",
+                    # make the analyzer's own give-up points visible instead of
+                    # letting an unanalyzed sample look clean (recorded as
+                    # non-blocking info findings, see below)
+                    "-Wanalyzer-too-complex",
+                    "-c",
+                    f"-D{DRIVER_PROBLEM_SIZE_DEFINE}",
+                ],
+            )
+
+            result = run_command(argv, timeout=self.timeout)
+
+        findings = [
+            f
+            for f in parse_gcc_clang_diagnostics(result.stderr, self.name)
+            if f.check_id.startswith(ANALYZER_FLAG_PREFIX)
+        ]
+
+        for finding in findings:
+            if finding.check_id in ANALYZER_NON_DEFECT_WARNINGS:
+                finding.severity = "info"
+                finding.blocking = False
+                continue
+
+            # -Wanalyzer-* findings are syntactically warnings but describe
+            # genuine defects (null deref, double free, use-after-free,
+            # out-of-bounds). Validation on Juliet: precision 0.937 overall
+            # and 1.0 on the C++ kernels — high enough to gate on, and they
+            # only reach the repair feedback if they do.
+            finding.blocking = True
+
+        findings = findings_in_model_file(findings, sample.source_path.name)
+
+        # Fail-safe: a TU that does not compile (or an analyzer that times
+        # out) produced no analysis, and must never look like a clean sample.
+        # GCC exits 0 when it only emits warnings, so the exit code is a
+        # reliable signal here.
+        error = None
+        if result.timed_out:
+            error = "gcc_analyzer timed out"
+        elif result.returncode != 0:
+            error = f"gcc -fanalyzer exited with {result.returncode}"
+
+        return ToolResult(
+            tool=self.name,
+            ran=True,
+            exit_code=result.returncode,
+            duration_seconds=result.duration_seconds,
+            findings=findings,
+            raw_stdout=result.stdout,
+            raw_stderr=result.stderr,
+            error=error,
         )
 
 
@@ -624,6 +834,38 @@ INFER_SEVERITY = {
     "LIKE": "info",
 }
 
+# InferBO (`--bufferoverrun`) encodes its confidence in the bug type's suffix:
+# BUFFER_OVERRUN_L1 .. _L5 and INTEGER_OVERFLOW_L1 .. _L5, where L1 is a
+# definite issue and the level rises with the amount of guessing involved.
+# The _U<n> / _S<n> variants stand for unknown resp. symbolic operand values.
+INFER_LEVELED_BUG_PREFIXES = ("BUFFER_OVERRUN_", "INTEGER_OVERFLOW_")
+
+# Level assigned to the non-L suffixes (U = unknown, S = symbolic operands).
+# The validation measured L-levels only, and these two denote values the
+# analysis could not pin down at all, so they are ranked with the least
+# reliable level instead of trusting the digit in their name.
+INFER_UNRANKED_LEVEL = 5
+
+
+def bufferoverrun_level(bug_type: str) -> int | None:
+    """Confidence level of an InferBO bug type, or None if it carries none.
+
+    None means "not a leveled InferBO type" — every other Infer bug type
+    (NULL_DEREFERENCE, MEMORY_LEAK, ...) passes the level filter untouched.
+    """
+    for prefix in INFER_LEVELED_BUG_PREFIXES:
+        if not bug_type.startswith(prefix):
+            continue
+
+        suffix = bug_type[len(prefix):]
+
+        if len(suffix) == 2 and suffix[0] == "L" and suffix[1].isdigit():
+            return int(suffix[1])
+
+        return INFER_UNRANKED_LEVEL
+
+    return None
+
 
 class InferTool:
     """Run Meta Infer over the full translation unit and parse report.json.
@@ -635,6 +877,20 @@ class InferTool:
     tier. It captures the same TU as the compile stage (`cpu.cc` including the
     assembled generated-code.hpp) with its own bundled clang, then findings are
     attributed back to the model file.
+
+    The invocation additionally enables InferBO (`--bufferoverrun`, buffer
+    overruns and integer overflows via abstract interpretation over intervals)
+    on top of the default checkers. It is the same engine and the same capture,
+    so it costs one run, not two — measured 1.09x on the validation suite.
+
+    Findings are filtered by InferBO's own confidence level (see
+    `bufferoverrun_level`): the tool-validation level table is unambiguous —
+    L1 produced 36 true positives and 0 false positives, L3 produced 0 true
+    positives and 58 false positives. Everything above `bufferoverrun_max_level`
+    is therefore DISCARDED rather than kept as non-blocking: those levels are
+    measured noise, and non-blocking findings still reach the repair feedback.
+    Level and threshold are recorded per finding / in the raw output, so the
+    discarded ones remain reconstructable.
     """
 
     name = "infer"
@@ -642,10 +898,18 @@ class InferTool:
     # hard capability (config can only narrow this; see tool_config.py)
     execution_models = ("serial", "omp", "mpi")
 
-    def __init__(self, primary_compiler: str = "g++", timeout: float = 300.0):
+    def __init__(
+        self,
+        primary_compiler: str = "g++",
+        timeout: float = 300.0,
+        bufferoverrun_max_level: int = 2,
+    ):
         # Infer uses its own bundled clang for capture regardless of the
         # primary compiler; the parameter is kept for a uniform constructor.
         self.timeout = timeout
+        # Configurable via
+        # stages.static_analysis.tools.infer.bufferoverrun_max_level.
+        self.bufferoverrun_max_level = bufferoverrun_max_level
 
     def is_available(self) -> bool:
         return binary_available("infer")
@@ -695,6 +959,10 @@ class InferTool:
                 "infer",
                 "run",
                 "--headers",
+                # InferBO on top of the default checkers: same capture, same
+                # analysis run. Validation: recall 0.095 -> 0.151 with
+                # precision 0.805 -> 0.867 after the level filter below.
+                "--bufferoverrun",
                 "-o",
                 str(out_dir),
                 "--keep-going",
@@ -709,9 +977,11 @@ class InferTool:
 
             report_path = out_dir / "report.json"
 
-            findings = findings_in_model_file(
-                self._parse_report(report_path),
-                sample.source_path.name,
+            findings, dropped = self._filter_bufferoverrun_levels(
+                findings_in_model_file(
+                    self._parse_report(report_path),
+                    sample.source_path.name,
+                )
             )
 
             # Fail-safe: a failed capture/analysis (non-zero exit, timeout,
@@ -731,9 +1001,56 @@ class InferTool:
             exit_code=result.returncode,
             duration_seconds=result.duration_seconds,
             findings=findings,
-            raw_stdout=result.stdout,
+            raw_stdout=result.stdout + self._dropped_note(dropped),
             raw_stderr=result.stderr,
             error=error,
+        )
+
+    def _filter_bufferoverrun_levels(
+        self, findings: list[Finding]
+    ) -> tuple[list[Finding], list[Finding]]:
+        """Split InferBO findings at `bufferoverrun_max_level`.
+
+        Returns (kept, dropped). Non-InferBO bug types are never touched.
+        Kept findings are annotated with their level in the message so the
+        confidence is visible in the record and in the repair feedback.
+        """
+        kept: list[Finding] = []
+        dropped: list[Finding] = []
+
+        for finding in findings:
+            level = bufferoverrun_level(finding.check_id)
+
+            if level is None:
+                kept.append(finding)
+                continue
+
+            if level > self.bufferoverrun_max_level:
+                dropped.append(finding)
+                continue
+
+            finding.message = (
+                f"{finding.message} [InferBO confidence level L{level}]".strip()
+            )
+            kept.append(finding)
+
+        return kept, dropped
+
+    def _dropped_note(self, dropped: list[Finding]) -> str:
+        """Append the level-filtered findings to the persisted raw output.
+
+        `infer run`'s console output does not enumerate suppressed issues, so
+        without this line the discarded low-confidence findings would not be
+        reconstructable from the record. Kept deterministic and short.
+        """
+        if not dropped:
+            return ""
+
+        return "\n[level filter] dropped above L%d: %s\n" % (
+            self.bufferoverrun_max_level,
+            "; ".join(
+                "%s at %s:%s" % (f.check_id, f.file, f.line) for f in dropped
+            ),
         )
 
     def _parse_report(self, report_path: Path) -> list[Finding]:
@@ -1202,10 +1519,33 @@ class LLOVTool:
         )
 
 
-def register_default_tools(primary_compiler: str = "g++") -> None:
+def register_default_tools(
+    primary_compiler: str = "g++", config: dict[str, Any] | None = None
+) -> None:
+    """Register the static tools; `config` supplies the per-tool options.
+
+    Without a config every tool keeps its constructor default, so callers
+    that only need the tools themselves (verify_detection.py) stay unchanged.
+    """
     register_tool(CompilerDiagnosticTool(primary_compiler=primary_compiler))
+    register_tool(
+        GccAnalyzerTool(
+            timeout=float(
+                tool_option(config, "static_analysis", "gcc_analyzer",
+                            "timeout_seconds", 300.0)
+            )
+        )
+    )
     register_tool(CppcheckTool())
     register_tool(ClangTidyTool(primary_compiler=primary_compiler))
-    register_tool(InferTool(primary_compiler=primary_compiler))
+    register_tool(
+        InferTool(
+            primary_compiler=primary_compiler,
+            bufferoverrun_max_level=int(
+                tool_option(config, "static_analysis", "infer",
+                            "bufferoverrun_max_level", 2)
+            ),
+        )
+    )
     register_tool(ParcoachTool())
     register_tool(LLOVTool())

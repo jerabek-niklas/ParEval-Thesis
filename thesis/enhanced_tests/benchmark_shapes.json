@@ -1,0 +1,553 @@
+{
+  "dense_la/00_dense_la_lu_decomp": {
+    "elements_per_site": [
+      "n2"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n*n"
+  },
+  "dense_la/01_dense_la_solve": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "dense_la/02_dense_la_gemm": {
+    "elements_per_site": [
+      "n2",
+      "n2"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n2 + n2"
+  },
+  "dense_la/03_dense_la_axpy": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "dense_la/04_dense_la_gemv": {
+    "elements_per_site": [
+      "n2",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n2 + n"
+  },
+  "fft/05_fft_inverse_fft": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "fft/06_fft_dft": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "fft/07_fft_fft_conjugate": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "fft/08_fft_split_fft": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "fft/09_fft_fft_out_of_place": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "geometry/10_geometry_convex_hull": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "geometry/11_geometry_convex_hull_perimeter": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "geometry/12_geometry_smallest_triangle": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "geometry/13_geometry_closest_pair_2d": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "geometry/14_geometry_closest_pair_1d": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "graph/15_graph_edge_count": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "graph/16_graph_largest_component": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "graph/17_graph_highest_degree": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "graph/18_graph_count_components": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "graph/19_graph_shortest_path": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "histogram/20_histogram_pixel_histogram": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "histogram/21_histogram_bin_0-100": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "histogram/22_histogram_count_quadrants": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "histogram/23_histogram_first_letter_counts": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site: uses fillRandString (deliberately not wrapped); explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "histogram/24_histogram_count_quartile": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "reduce/25_reduce_xor": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "reduce/26_reduce_product_of_inverses": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "reduce/27_reduce_average": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "reduce/28_reduce_smallest_odd_number": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "reduce/29_reduce_sum_of_min_of_pairs": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "scan/30_scan_prefix_sum": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "scan/31_scan_scan_with_min_function": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "scan/32_scan_sum_of_prefix_sum_array": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "scan/33_scan_reverse_prefix_sum": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "scan/34_scan_largest_contiguous_subarray_sum": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "search/35_search_search_for_last_struct_by_key": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "search/36_search_check_if_array_contains_value": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "search/37_search_find_the_closest_number_to_pi": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "search/38_search_find_the_first_even_number": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "search/39_search_xor_contains": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude": {
+    "elements_per_site": [
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 2,
+    "notes": "explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n"
+  },
+  "sort/41_sort_k-th_smallest_element": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "sort/42_sort_sorted_ranks": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "sort/43_sort_sort_an_array_of_structs_by_key": {
+    "elements_per_site": [
+      "n",
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 3,
+    "notes": "explicit_values disabled: 3 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "n + n + n"
+  },
+  "sort/44_sort_sort_non-zero_elements": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site: uses fillRandWithZeroes (deliberately not wrapped \u2014 fill patterns do not apply); explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "sparse_la/45_sparse_la_sparse_solve": {
+    "elements_per_site": [],
+    "explicit_values_supported": false,
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
+  },
+  "sparse_la/46_sparse_la_spmm": {
+    "elements_per_site": [
+      "unknown:nVals_X",
+      "unknown:nVals_X",
+      "unknown:nVals_X",
+      "unknown:nVals_A",
+      "unknown:nVals_A",
+      "unknown:nVals_A"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 6,
+    "notes": "non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_A; non-canonical extent: unknown:nVals_A; non-canonical extent: unknown:nVals_A; explicit_values disabled: 6 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals_X + unknown:nVals_X + unknown:nVals_X + unknown:nVals_A + unknown:nVals_A + unknown:nVals_A"
+  },
+  "sparse_la/47_sparse_la_spmv": {
+    "elements_per_site": [
+      "unknown:nVals",
+      "unknown:nVals",
+      "unknown:nVals",
+      "n",
+      "n"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 5,
+    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 5 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals + unknown:nVals + unknown:nVals + n + n"
+  },
+  "sparse_la/48_sparse_la_sparse_axpy": {
+    "elements_per_site": [
+      "unknown:nVals",
+      "unknown:nVals",
+      "unknown:nVals",
+      "unknown:nVals"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 4,
+    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 4 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals + unknown:nVals + unknown:nVals + unknown:nVals"
+  },
+  "sparse_la/49_sparse_la_sparse_lu_decomp": {
+    "elements_per_site": [
+      "unknown:nVals",
+      "unknown:nVals",
+      "unknown:nVals"
+    ],
+    "explicit_values_supported": false,
+    "fill_sites": 3,
+    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 3 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals + unknown:nVals + unknown:nVals"
+  },
+  "stencil/50_stencil_xor_kernel": {
+    "elements_per_site": [
+      "n2"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n*n"
+  },
+  "stencil/51_stencil_edge_kernel": {
+    "elements_per_site": [
+      "n2"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n*n"
+  },
+  "stencil/52_stencil_1d_jacobi_3-point_stencil": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "stencil/53_stencil_2d_jacobi_5-point_stencil": {
+    "elements_per_site": [
+      "n2"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n*n"
+  },
+  "stencil/54_stencil_game_of_life": {
+    "elements_per_site": [
+      "n2"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n*n"
+  },
+  "transform/55_transform_relu": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "transform/56_transform_negate_odds": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "transform/57_transform_inverse_offset": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "transform/58_transform_squaring": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  },
+  "transform/59_transform_map_function": {
+    "elements_per_site": [
+      "n"
+    ],
+    "explicit_values_supported": true,
+    "fill_sites": 1,
+    "notes": "",
+    "total_elements": "n"
+  }
+}

@@ -27,6 +27,15 @@ headers (e.g. OpenMPI). **Reporting** therefore applies a filter so that only
 findings located in the model's own file survive. That filter is the subject of
 this document.
 
+Three tools use a **reduced TU** instead (`<vector>` + `utilities.hpp` +
+`generated-code.hpp`, without the benchmark driver): `parcoach`, `llov` and
+`gcc_analyzer`. In all three cases the driver code does not just add noise, it
+actively prevents the analysis — PARCOACH crashes on the driver's C++
+machinery, LLOV's polyhedral pass needs the model region, and `-fanalyzer`
+exhausts its path-exploration budget inside `validate()` before ever reaching
+the model function. Each case is documented with its measurement in the
+tool-specific section below.
+
 Two orthogonal concepts must not be confused:
 
 - **Filtering** — whether a finding is recorded at all (this document).
@@ -88,6 +97,29 @@ the tool on the persisted source.
 
 ## Tool-specific filtering
 
+### Detection methods in the generic tier
+
+Redundancy in this pipeline is defined over **detection methods**, not over
+tool binaries (which is why one clang-tidy invocation counts as two methods).
+For generic C++ defects the enabled set covers five independent methods:
+
+| Method | Tool | Engine |
+| --- | --- | --- |
+| Syntactic / local front-end checks | `compiler` | GCC `-Wall -Wextra -Wpedantic` |
+| **Path-sensitive symbolic execution (GCC)** | **`gcc_analyzer`** | **GCC `-fanalyzer` — own engine, shares no code with Clang SA** |
+| Path-sensitive symbolic execution (Clang) | `clang_tidy` (`clang-analyzer-*`) | Clang Static Analyzer |
+| AST matching | `clang_tidy` (`bugprone-*`, `mpi-*`, `openmp-*`, …) | clang-tidy matchers |
+| Pattern/dataflow analysis | `cppcheck` | cppcheck's own front end |
+| Interprocedural separation logic + interval analysis | `infer` | bi-abduction, plus InferBO (`--bufferoverrun`) |
+
+The two parallelism-specific methods (`parcoach` dataflow for MPI collectives,
+`llov` polyhedral dependence analysis for OpenMP) sit on top of this tier.
+
+`gcc_analyzer` is a genuine addition to the tier, not a re-run of an existing
+method: it is GCC's own symbolic execution, independent of Clang SA, cppcheck
+and Infer, and the measurement backs that up — 158 Juliet kernels found that
+the plain compiler pass misses, and none the other way round.
+
 ### `compiler` (gcc / clang diagnostics)
 
 | Filter | Effect |
@@ -98,6 +130,65 @@ the tool on the persisted source.
 
 The compile is run with `-Wall -Wextra -Wpedantic` and
 `-DDRIVER_PROBLEM_SIZE=(1<<8)`.
+
+### `gcc_analyzer` (GCC `-fanalyzer` — path-sensitive symbolic execution)
+
+A **second, compile-only pass** with `-fanalyzer`, deliberately *not* extra
+flags on the `compiler` tool:
+
+1. `compiler` is also the **build gate** — its exit code decides whether the
+   sample compiles at all and the correctness stage depends on that verdict.
+   Coupling the build decision to a much more expensive analysis that can time
+   out on its own would be wrong.
+2. `-Wall -Wextra -Wpedantic` and `-fanalyzer` are two different **detection
+   methods**: syntactic/local front-end checks vs. interprocedural,
+   path-sensitive symbolic execution of the CFG. One tool for both would hide
+   which method found what — the same split the tool validation already makes
+   between `clang_sa` and `clang_tidy_ast`.
+
+**Why it was added** (tool-validation variant deltas, `results/variant_deltas.csv`,
+full Juliet run): recall 0.234 → **0.477** at precision 0.933 → **0.937**, FP
+rate 0.032, **158 bad kernels found that the plain compiler pass misses and 0
+the other way round**, runtime factor 1.03×. On the **C++** part of the suite —
+which is what this pipeline analyzes — it is the strongest static tool measured:
+recall **0.717** at precision **1.0** (`results/metrics_by_language.csv`).
+
+**Reduced translation unit (measured, not a preference).** Unlike the other
+generic tools this one does *not* analyze `cpu.cc`. It analyzes
+`<vector>` + `utilities.hpp` + `generated-code.hpp`, with the execution model's
+own flags (`-fopenmp` / `mpicxx`) — the same reduction pattern as `parcoach`
+and `llov`, for an analogous reason:
+
+> The analyzer explores paths under a fixed budget. On the full driver TU that
+> budget is consumed inside `validate()` and the `std::vector` machinery
+> **before** the model function is reached, and GCC then stops *silently*
+> (`analysis bailed out early (1061 'after-snode' enodes; 3184 enodes)`,
+> visible only with `-Wanalyzer-too-complex`). Measured on a planted null
+> dereference in `dense_la/00`: **not** reported for serial and omp, reported
+> for mpi — detection would depend on unrelated driver complexity. Over 20 real
+> assembled samples the full TU produced **430** bail-outs (raising the
+> exploration budget: 847), the reduced TU **12**. The reduced TU also matches
+> the configuration the validation numbers were measured in (each Juliet kernel
+> is its own small TU) and is faster (mean 3.1 s vs. 3.5 s per sample).
+
+| Filter | Effect |
+| --- | --- |
+| `-Wanalyzer-*` prefix | Only diagnostics carrying an analyzer flag become findings. Ordinary warnings from this pass are dropped — the `compiler` tool already reports them, and counting them twice would inflate per-model finding rates. |
+| File attribution | `findings_in_model_file()` keeps only `generated-code.hpp`. This is what removes the OpenMPI C++ binding noise: on an MPI sample the pass emits ~56 analyzer warnings, **55 of them inside `openmpi/ompi/mpi/cxx/*.h`** (`use-of-uninitialized-value`, `possible-null-argument`) and one in `baseline.hpp` — **zero** in the model file. |
+| `-Wanalyzer-too-complex` | Deliberately **enabled**: it makes the analyzer's own give-up points visible instead of letting an unanalyzed sample look clean (same idea as LLOV's `region-not-analyzed`). Such findings are recorded **non-blocking** with severity `info` — there is no defect to repair. |
+| Fail-safe | A TU that does not compile, or an analyzer timeout, sets the tool `error`; GCC exits 0 when it only emits warnings, so the exit code is a reliable signal here. |
+
+**Blocking:** every `-Wanalyzer-*` finding except the give-up warnings above is
+**blocking**. They are warnings syntactically but describe genuine defects
+(null dereference, double free, use-after-free, out-of-bounds; GCC even
+self-annotates them with a CWE id, e.g. `[CWE-476]`). Non-blocking would mean
+they never reach the repair feedback, which would make the whole addition
+pointless. Precision 0.937 overall / 1.0 on C++ justifies gating on them.
+
+The tool always runs through **GCC** (`g++`, `mpicxx` for MPI) regardless of
+`--primary-compiler`: `-fanalyzer` is a GCC-only feature, and being the
+GCC-native method is the point. A non-GCC wrapper makes the compile fail, which
+is recorded as a tool error — never as a clean sample.
 
 ### `cppcheck`
 
@@ -159,10 +250,10 @@ full-TU setup this should not occur; it guards against regressions.
 
 ### `infer` (Meta Infer)
 
-Runs `infer run --headers -- clang++ -c cpu.cc <flags>` over the full TU
-(capture with Infer's own bundled clang, then analyze) with the same defines and
-include dirs as the compile stage, plus the MPI include dirs for MPI samples.
-Parses `report.json`.
+Runs `infer run --headers --bufferoverrun -- clang++ -c cpu.cc <flags>` over the
+full TU (capture with Infer's own bundled clang, then analyze) with the same
+defines and include dirs as the compile stage, plus the MPI include dirs for MPI
+samples. Parses `report.json`.
 
 `--headers` is **required**: the model code lives in `generated-code.hpp`, an
 included header. Without it Infer analyzes only the captured `.cc` (cpu.cc) and
@@ -182,6 +273,45 @@ at some analysis-time cost per sample.
 Infer contributes an **independent detection method** (interprocedural
 separation-logic / bi-abduction), distinct from the AST/dataflow checks of
 clang-tidy and cppcheck.
+
+#### InferBO level filter (`--bufferoverrun`)
+
+`--bufferoverrun` enables Infer's interval-based buffer-overrun / integer-
+overflow analysis **inside the same invocation** — same capture, same run, no
+second pass (measured runtime factor 1.09×). InferBO encodes its own confidence
+in the bug type's suffix (`BUFFER_OVERRUN_L1` … `_L5`, `INTEGER_OVERFLOW_L1` …
+`_L5`, where L1 is a definite issue and the level rises with the amount of
+guessing; `_U<n>` / `_S<n>` mean unknown resp. symbolic operand values).
+
+The measured level table on the full Juliet run
+(`results/inferbo_levels.csv`) is unambiguous:
+
+| Level | bad kernels flagged | good kernels flagged | precision |
+| --- | --- | --- | --- |
+| L1 | 36 | 0 | **1.0** |
+| L3 | 0 | 58 | **0.0** |
+
+| Filter | Effect |
+| --- | --- |
+| `bufferoverrun_max_level` (config, default **2**) | Findings above the level are **discarded**, not recorded as non-blocking. L3–L5 are measured pure noise (0 true positives, 58 false positives), and non-blocking findings still reach the repair feedback — keeping them would poison it. |
+| `_U<n>` / `_S<n>` suffixes | Ranked with the least reliable level (5) regardless of the digit in the name: the validation only covers the L-levels, and these denote values the analysis could not pin down at all. |
+| Non-InferBO bug types | Untouched — `NULL_DEREFERENCE`, `MEMORY_LEAK`, … pass the filter unchanged. |
+| Level annotation | Kept InferBO findings get `[InferBO confidence level L<n>]` appended to the message, so the confidence is visible in the record and in the repair feedback. |
+| Reconstructability | Discarded findings are appended to the persisted `raw_stdout` as `[level filter] dropped above L2: …` — `infer run`'s console output does not enumerate suppressed issues, so without that line they would be unrecoverable from the record. |
+
+**Effect of the addition** (`results/variant_deltas.csv`): recall
+0.095 → **0.151** *and* precision 0.805 → **0.867** at an unchanged FP rate of
+0.023. Without the level filter the same recall gain costs precision
+(0.805 → 0.573, FP rate 0.112) — the filter is what makes the addition
+defensible.
+
+**Honest caveat, stated because it matters for the methodology chapter:** on the
+**C++** kernels of the validation suite the contribution is *exactly zero* —
+`infer`, `infer_bo` and `infer_bo_l1l2` produce identical results there
+(recall 0.061, precision 1.0 for all three); every additional finding came from
+C testcases. It is included because it costs almost nothing and does not hurt
+precision. A contribution on LLM-generated C++ is plausible (raw C-style
+buffer handling does occur in generated kernels) but **not demonstrated**.
 
 ### `parcoach` (PARCOACH 2.4.1 — MPI collective verification, own container)
 
@@ -344,6 +474,7 @@ Non-blocking findings are still recorded; they are quality signals, not gates.
 | Tool | Blocking when… | Non-blocking (recorded only) |
 | --- | --- | --- |
 | `compiler` | `severity == error` (or compile failed) | all warnings |
+| `gcc_analyzer` | every `-Wanalyzer-*` defect warning (they are warnings syntactically, real defects semantically — precision 0.937 / 1.0 on C++) | `-Wanalyzer-too-complex`, `-Wanalyzer-symbol-too-complex` (the analyzer's own give-up points, severity `info`) |
 | `cppcheck` | cppcheck `severity == error` | `warning`, `portability` |
 | `infer` | Infer `severity == ERROR` | `WARNING`, `INFO`/`ADVICE` |
 | `parcoach` | every parsed collective-ordering warning | — |

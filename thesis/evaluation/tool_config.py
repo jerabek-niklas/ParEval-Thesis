@@ -55,6 +55,7 @@ _ALL = ("serial", "omp", "mpi")
 HARD_CAPABILITIES: "Dict[str, Tuple[str, ...]]" = {
     # static
     "compiler": _ALL,
+    "gcc_analyzer": _ALL,
     "clang_tidy": _ALL,
     "cppcheck": _ALL,
     "infer": _ALL,
@@ -70,8 +71,21 @@ HARD_CAPABILITIES: "Dict[str, Tuple[str, ...]]" = {
 }
 
 STAGE_TOOLS = {
-    "static_analysis": ("compiler", "clang_tidy", "cppcheck", "infer", "parcoach", "llov"),
+    "static_analysis": (
+        "compiler", "gcc_analyzer", "clang_tidy", "cppcheck", "infer",
+        "parcoach", "llov",
+    ),
     "dynamic_analysis": ("asan_ubsan", "tsan", "memcheck", "must", "helgrind", "drd"),
+}
+
+# Numeric per-tool options: (stage, tool, key) -> (python type, min, max).
+# Validated at config load so a typo fails there instead of mid-run; the
+# tools read them via tool_option().
+TOOL_OPTION_RANGES = {
+    # the analyzer pass is the expensive one; see GccAnalyzerTool
+    ("static_analysis", "gcc_analyzer", "timeout_seconds"): (float, 1.0, 3600.0),
+    # InferBO confidence level still accepted as a finding
+    ("static_analysis", "infer", "bufferoverrun_max_level"): (int, 0, 5),
 }
 
 # Default settings = current behavior. low_precision defaults follow the
@@ -80,6 +94,9 @@ STAGE_TOOLS = {
 # The clang_tidy MPI-Checker family is precision-marked via families.
 _DEFAULTS: "Dict[str, Dict[str, Any]]" = {
     "compiler":   {"enabled": True},
+    # validation (Juliet): recall 0.234 -> 0.477 at precision 0.937, FP rate
+    # 0.032, 158 kernels found by no other compiler pass, 1.03x runtime
+    "gcc_analyzer": {"enabled": True},
     "clang_tidy": {"enabled": True, "low_precision_families": ("clang-analyzer-optin.mpi",)},
     "cppcheck":   {"enabled": True},
     "infer":      {"enabled": True},
@@ -112,6 +129,59 @@ class ToolSettings:
 def _stage_tools_config(config: "Dict[str, Any]", stage_name: str) -> Any:
     stage = (config.get("stages") or {}).get(stage_name) or {}
     return stage.get("tools")
+
+
+def tool_option(
+    config: "Dict[str, Any]", stage_name: str, tool_name: str, key: str, default: Any
+) -> Any:
+    """One numeric/scalar per-tool option, or `default`.
+
+    Separate from ToolSettings on purpose: settings describe what the RUNNER
+    does with a tool (scope, precision marking), options are constructor
+    arguments of the tool itself and are read once at registration time.
+    Tolerates a missing config entirely (config=None) and the legacy list
+    schema, so every entry point keeps working without one.
+    """
+    if not config:
+        return default
+
+    tools_config = _stage_tools_config(config, stage_name)
+
+    if not isinstance(tools_config, dict):
+        return default
+
+    entry = tools_config.get(tool_name) or {}
+
+    if not isinstance(entry, dict) or entry.get(key) is None:
+        return default
+
+    return entry[key]
+
+
+def _validate_tool_options(stage_name: str, tool_name: str, entry: Any) -> None:
+    for (stage, tool, key), (kind, low, high) in TOOL_OPTION_RANGES.items():
+        if stage != stage_name or tool != tool_name or entry.get(key) is None:
+            continue
+
+        value = entry[key]
+
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(
+                "stages.%s.tools.%s.%s must be a number (got %r)"
+                % (stage_name, tool_name, key, value)
+            )
+
+        if kind is int and int(value) != value:
+            raise ValueError(
+                "stages.%s.tools.%s.%s must be a whole number (got %r)"
+                % (stage_name, tool_name, key, value)
+            )
+
+        if not low <= value <= high:
+            raise ValueError(
+                "stages.%s.tools.%s.%s must be between %s and %s (got %r)"
+                % (stage_name, tool_name, key, low, high, value)
+            )
 
 
 def validate_stage_tools(config: "Dict[str, Any]", stage_name: str) -> None:
@@ -157,6 +227,8 @@ def validate_stage_tools(config: "Dict[str, Any]", stage_name: str) -> None:
                     "(known: %s)" % (stage_name, name, model,
                                      ", ".join(KNOWN_EXECUTION_MODELS))
                 )
+
+        _validate_tool_options(stage_name, name, entry)
 
 
 def resolve_tool_settings(

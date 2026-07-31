@@ -30,8 +30,70 @@ Python 3.8 compatible.
 
 from __future__ import annotations
 
+import json
 import random
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+# ---------------------------------------------------------------------------
+# Input shapes (derive_shapes.py -> benchmark_shapes.json)
+#
+# `size` is the benchmark's size PARAMETER, not necessarily its element
+# count: an n x n matrix benchmark needs n*n input values. explicit_values
+# is the one pattern that has to know the difference, since it ships the
+# values themselves.
+# ---------------------------------------------------------------------------
+
+SHAPES_PATH = Path(__file__).resolve().parent / "benchmark_shapes.json"
+
+_SHAPES_CACHE = None  # type: Optional[Dict[str, dict]]
+
+# used when the shapes file is absent (e.g. a checkout without the derived
+# artifact): behave like the historical 1-D assumption rather than crash
+_DEFAULT_SHAPE = {
+    "fill_sites": 1,
+    "elements_per_site": ["n"],
+    "total_elements": "n",
+    "explicit_values_supported": True,
+    "notes": "no benchmark_shapes.json — assuming 1-D (n elements)",
+}
+
+
+def load_shapes() -> "Dict[str, dict]":
+    global _SHAPES_CACHE
+
+    if _SHAPES_CACHE is None:
+        if SHAPES_PATH.exists():
+            with SHAPES_PATH.open("r", encoding="utf-8") as handle:
+                _SHAPES_CACHE = json.load(handle)
+        else:
+            _SHAPES_CACHE = {}
+
+    return _SHAPES_CACHE
+
+
+def benchmark_shape(benchmark: str) -> dict:
+    return load_shapes().get(benchmark, _DEFAULT_SHAPE)
+
+
+def expected_value_count(benchmark: str, size: int) -> int:
+    """How many explicit values this benchmark needs at `size`.
+
+    Only defined for the single-fill-site benchmarks (validate_spec rejects
+    explicit_values elsewhere); "n" -> size, "n2" -> size*size.
+    """
+    shape = benchmark_shape(benchmark)
+    total = 0
+
+    for form in shape.get("elements_per_site") or []:
+        if form == "n":
+            total += size
+        elif form == "n2":
+            total += size * size
+        elif form.startswith("const:"):
+            total += int(form.split(":", 1)[1])
+
+    return total
 
 # name -> id, keep in sync with drivers/cpp/enhanced-fill.hpp
 PATTERNS = {
@@ -186,17 +248,46 @@ def validate_spec(
 
     if pattern == "explicit_values":
         values = spec.get("values")
-        if size > explicit_values_max_size:
-            return False, "explicit_values: size %s exceeds explicit_values_max_size %s" % (
-                size,
-                explicit_values_max_size,
+
+        # The number of values a benchmark needs is its INPUT SHAPE, not its
+        # `size`: an n x n matrix benchmark needs n*n values (row-major).
+        # Shapes are derived from each validate() body and checked in
+        # benchmark_shapes.json (thesis/enhanced_tests/derive_shapes.py).
+        shape = benchmark_shape(benchmark)
+
+        if not shape.get("explicit_values_supported"):
+            return False, "explicit_values: not supported for %s (%s)" % (
+                benchmark,
+                shape.get("notes") or "no single canonical fill site",
             )
+
+        expected = expected_value_count(benchmark, size)
+
+        # Cap on the ELEMENT COUNT, not on `size` — otherwise a 64x64 matrix
+        # would sneak 4096 hand-written values past a size-64 limit. The
+        # config value keeps its meaning for 1-D benchmarks (size == count);
+        # for matrices it now binds where it actually matters.
+        if expected > explicit_values_max_size:
+            return False, (
+                "explicit_values: %s values needed for size %s (%s) exceeds "
+                "explicit_values_max_size %s"
+                % (expected, size, shape.get("total_elements"), explicit_values_max_size)
+            )
+
         if (
             not isinstance(values, (list, tuple))
-            or len(values) != size
+            or len(values) != expected
             or not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values)
         ):
-            return False, "explicit_values: values must be %s numbers (len == size)" % size
+            return False, (
+                "explicit_values: values must be %s numbers (%s for size %s), got %s"
+                % (
+                    expected,
+                    shape.get("total_elements"),
+                    size,
+                    len(values) if isinstance(values, (list, tuple)) else type(values).__name__,
+                )
+            )
 
     if spec.get("source") not in ("static", "llm", "mutation"):
         return False, "invalid source: %r" % (spec.get("source"),)

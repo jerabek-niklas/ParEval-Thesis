@@ -40,6 +40,7 @@ from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.enhanced_tests.specs import (  # noqa: E402
     K_PATTERNS,
+    benchmark_shape,
     spec_key,
     stage_settings,
     validate_spec,
@@ -127,6 +128,48 @@ def _pattern_block(settings: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _shape_block(benchmark: str, settings: Dict[str, Any]) -> str:
+    """Tell the generator the benchmark's input shape — above all how many
+    values explicit_values needs here. Without this the model has to guess
+    (it correctly assumed n*n for matrix benchmarks while the validator
+    demanded n, which rejected 63 otherwise-good specs)."""
+    shape = benchmark_shape(benchmark)
+    sites = shape.get("fill_sites", 0)
+    per_site = shape.get("elements_per_site") or []
+    cap = int(settings["explicit_values_max_size"])
+
+    if not shape.get("explicit_values_supported"):
+        if sites == 0:
+            reason = (
+                "its inputs are built by a custom generator, so the `pattern` "
+                "field has NO effect here — only `size` matters"
+            )
+        else:
+            reason = (
+                "it fills %d separate input containers, so a single value "
+                "list could not be assigned unambiguously" % sites
+            )
+        return (
+            "this benchmark does NOT support the \"explicit_values\" "
+            "pattern: %s. Do not propose it." % reason
+        )
+
+    if per_site == ["n2"]:
+        return (
+            "this benchmark takes an N x N MATRIX (size N means N*N "
+            "elements, row-major). If you use \"explicit_values\", provide "
+            "exactly N*N values in row-major order (size 3 -> 9 values). "
+            "At most %d values total, so N <= %d."
+            % (cap, int(cap ** 0.5))
+        )
+
+    return (
+        "this benchmark takes a 1-D container of N elements. If you use "
+        "\"explicit_values\", provide exactly N values (size 3 -> 3 "
+        "values). At most %d values total." % cap
+    )
+
+
 def build_user_prompt(
     benchmark: str,
     serial_prompt: str,
@@ -179,6 +222,8 @@ INPUT MODEL: the test harness creates the input container(s) with a given
 %(pattern_block)s
 An optional value_range [lo, hi] overrides the fill bounds.
 
+INPUT SHAPE OF THIS BENCHMARK: %(shape_block)s
+
 TASK: %(ask)s that are likely to expose bugs a plain random test misses.
 Explicitly target branches and special cases OF THE REFERENCE
 IMPLEMENTATION: divisions (zero divisors), loop bounds (off-by-one),
@@ -192,6 +237,7 @@ explanations outside the array:
         "serial_prompt": serial_prompt.rstrip(),
         "baseline": baseline.rstrip(),
         "pattern_block": _pattern_block(settings),
+        "shape_block": _shape_block(benchmark, settings),
         "ask": ask,
         "max_size": int(settings["max_spec_size"]),
         "schema": schema,

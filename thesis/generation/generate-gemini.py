@@ -36,14 +36,15 @@ class GeminiAdapter:
         model_config: dict[str, Any],
         generation_defaults: dict[str, Any],
     ) -> dict[str, Any]:
+        # temperature/top_p/top_k are DEPRECATED in the current Gemini API
+        # and are no longer sent (see generate() below); recorded as None so
+        # the records state what was actually transmitted.
         return {
             "max_output_tokens": common.get_param(
                 model_config, generation_defaults, "max_output_tokens", 4096
             ),
-            "temperature": common.get_param(
-                model_config, generation_defaults, "temperature"
-            ),
-            "top_p": common.get_param(model_config, generation_defaults, "top_p"),
+            "temperature": None,
+            "top_p": None,
             "thinking_level": model_config.get("thinking_level"),
         }
 
@@ -64,11 +65,14 @@ class GeminiAdapter:
             "max_output_tokens": int(params["max_output_tokens"]),
         }
 
-        if params["temperature"] is not None:
-            config_payload["temperature"] = float(params["temperature"])
-
-        if params["top_p"] is not None:
-            config_payload["top_p"] = float(params["top_p"])
+        # NOTE (2026-07-28): temperature / top_p / top_k are deprecated in
+        # the Gemini API and are deliberately NOT sent. A probe against
+        # gemini-3.6-flash showed they are still ACCEPTED without error, so
+        # this is not a breakage fix — but with thinking on they no longer
+        # buy the greedy, reproducible decoding the thesis claimed, and a
+        # deprecated parameter can disappear at any API version. The
+        # methodology's "greedy where supported" statement therefore no
+        # longer covers Gemini; see thesis/docs/model-set.md.
 
         if params["thinking_level"] is not None:
             config_payload["thinking_config"] = types.ThinkingConfig(

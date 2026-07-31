@@ -109,6 +109,9 @@ def stop_config(**repair_overrides):
                 "tools": {
                     "compiler": {"enabled": True},
                     "clang_tidy": {"enabled": True},
+                    # off here so the fixture's static records stay a minimal
+                    # two-tool set; gcc_analyzer is enabled in the real config
+                    "gcc_analyzer": {"enabled": False},
                     "cppcheck": {"enabled": False},
                     "infer": {"enabled": False},
                     "parcoach": {"enabled": True, "execution_models": ["mpi"],
@@ -363,6 +366,9 @@ def make_world(tmp, execution_model="serial", enable_parcoach=False):
                 "tools": {
                     "compiler": {"enabled": True},
                     "clang_tidy": {"enabled": True},
+                    # off here so the fixture's static records stay a minimal
+                    # two-tool set; gcc_analyzer is enabled in the real config
+                    "gcc_analyzer": {"enabled": False},
                     "cppcheck": {"enabled": False},
                     "infer": {"enabled": False},
                     "parcoach": {

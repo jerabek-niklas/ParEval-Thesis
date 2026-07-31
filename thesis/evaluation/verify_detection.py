@@ -102,6 +102,55 @@ CASES: list[Case] = [
         expect_match="unused",
         expect_blocking=False,
     ),
+    # gcc_analyzer over all three execution models: the planted defect must be
+    # found under -fopenmp and with the MPI headers in the TU as well, not just
+    # in the plain serial build.
+    Case(
+        tool="gcc_analyzer",
+        execution_model="serial",
+        label="gcc_analyzer: null dereference (path-sensitive)",
+        source=(
+            "void NO_INLINE luFactorize(std::vector<double> &A, size_t N) {\n"
+            "  int *planted = nullptr;\n"
+            "  *planted = 42;\n"
+            "  A[0] = 1.0;\n"
+            "  (void)N;\n"
+            "}\n"
+        ),
+        expect_match="null-dereference",
+        expect_blocking=True,
+    ),
+    Case(
+        tool="gcc_analyzer",
+        execution_model="omp",
+        label="gcc_analyzer: null dereference next to an OpenMP pragma",
+        source=(
+            "void NO_INLINE luFactorize(std::vector<double> &A, size_t N) {\n"
+            "  int *planted = nullptr;\n"
+            "  *planted = 42;\n"
+            "  #pragma omp parallel for\n"
+            "  for (size_t i = 0; i < N; ++i) A[i] = A[i] * 2.0;\n"
+            "}\n"
+        ),
+        expect_match="null-dereference",
+        expect_blocking=True,
+    ),
+    Case(
+        tool="gcc_analyzer",
+        execution_model="mpi",
+        label="gcc_analyzer: use-after-free in an MPI translation unit",
+        source=(
+            "#include <cstdlib>\n"
+            "void NO_INLINE luFactorize(std::vector<double> &A, size_t N) {\n"
+            "  int *planted = (int *)malloc(4 * sizeof(int));\n"
+            "  free(planted);\n"
+            "  A[0] = (double)planted[0];\n"
+            "  MPI_Bcast(A.data(), (int)N, MPI_DOUBLE, 0, MPI_COMM_WORLD);\n"
+            "}\n"
+        ),
+        expect_match="use-after-free",
+        expect_blocking=True,
+    ),
     Case(
         tool="clang_tidy",
         execution_model="serial",
@@ -144,6 +193,25 @@ CASES: list[Case] = [
             "}\n"
         ),
         expect_match="NULL_DEREFERENCE",
+        expect_blocking=True,
+    ),
+    Case(
+        # InferBO (--bufferoverrun) case: a constant out-of-bounds write must
+        # come back as BUFFER_OVERRUN_L1/L2 and survive the level filter. If
+        # this stops firing, either the flag is not in effect or the
+        # configured bufferoverrun_max_level is too strict.
+        tool="infer",
+        execution_model="serial",
+        label="infer (InferBO): constant buffer overrun, level filter passes it",
+        source=(
+            "void NO_INLINE luFactorize(std::vector<double> &A, size_t N) {\n"
+            "  int planted[4];\n"
+            "  for (int i = 0; i < 10; ++i) planted[i] = i;\n"
+            "  A[0] = (double)planted[0];\n"
+            "  (void)N;\n"
+            "}\n"
+        ),
+        expect_match="BUFFER_OVERRUN",
         expect_blocking=True,
     ),
     Case(
@@ -384,6 +452,8 @@ BROKEN_SOURCE = (
 # tool name -> acceptable outcome on the broken kernel
 BROKEN_EXPECTATION = {
     "compiler": "blocking",       # must produce a blocking compile error
+    # the analyzer pass fails to compile the TU -> non-zero exit -> tool error
+    "gcc_analyzer": "error",
     "clang_tidy": "blocking_or_error",
     "cppcheck": "exempt",
     "infer": "error",
@@ -522,6 +592,7 @@ def verify_broken(context: EvaluationContext) -> tuple[int, int, int]:
     # run each tool under an execution model it applies to
     exec_model_for = {
         "compiler": "serial", "clang_tidy": "serial", "cppcheck": "serial",
+        "gcc_analyzer": "serial",
         "infer": "serial", "asan_ubsan": "serial", "memcheck": "serial",
         "tsan": "omp", "llov": "omp", "helgrind": "omp", "drd": "omp",
         "parcoach": "mpi", "must": "mpi",

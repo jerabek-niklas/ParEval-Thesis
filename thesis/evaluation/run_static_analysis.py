@@ -266,7 +266,7 @@ def main() -> None:
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     drivers_cpp_dir = REPO_ROOT / "drivers" / "cpp"
 
-    register_default_tools(primary_compiler=args.primary_compiler)
+    register_default_tools(primary_compiler=args.primary_compiler, config=config)
 
     enabled_settings = resolve_enabled_tools(config, args.tools, "static_analysis")
 

@@ -287,6 +287,7 @@ def test_tool_config() -> None:
     # hard-capability table stays in sync with the tool classes
     class_caps = {
         "compiler": tools.CompilerDiagnosticTool.execution_models,
+        "gcc_analyzer": tools.GccAnalyzerTool.execution_models,
         "clang_tidy": tools.ClangTidyTool.execution_models,
         "cppcheck": tools.CppcheckTool.execution_models,
         "infer": tools.InferTool.execution_models,
@@ -409,6 +410,7 @@ def test_registry() -> None:
     print("tool registry")
     register_default_tools("g++")
     check("compiler registered", "compiler" in framework.registered_tools())
+    check("gcc_analyzer registered", "gcc_analyzer" in framework.registered_tools())
     check("cppcheck registered", "cppcheck" in framework.registered_tools())
     check("clang_tidy registered", "clang_tidy" in framework.registered_tools())
     check("infer registered", "infer" in framework.registered_tools())
@@ -557,6 +559,122 @@ def test_infer_parse_and_filter() -> None:
     check("no non-model file remains", all(f.file == "generated-code.hpp" for f in kept))
 
 
+def test_inferbo_level_filter() -> None:
+    print("infer: InferBO level filter (L1/L2 kept, L3+ discarded)")
+    from thesis.evaluation.framework import Finding
+    from thesis.evaluation.tools import InferTool, bufferoverrun_level
+
+    check("L1 level parsed", bufferoverrun_level("BUFFER_OVERRUN_L1") == 1)
+    check("L5 level parsed", bufferoverrun_level("INTEGER_OVERFLOW_L5") == 5)
+    # U/S denote unknown resp. symbolic operands: ranked least reliable
+    # regardless of the digit in the name (S2 must NOT pass a <=2 threshold)
+    check("U5 ranked least reliable", bufferoverrun_level("BUFFER_OVERRUN_U5") == 5)
+    check("S2 ranked least reliable", bufferoverrun_level("BUFFER_OVERRUN_S2") == 5)
+    check("non-InferBO type has no level", bufferoverrun_level("NULL_DEREFERENCE") is None)
+
+    def finding(check_id: str) -> Finding:
+        return Finding(tool="infer", check_id=check_id, severity="error",
+                       message="msg", file="generated-code.hpp", line=7, blocking=True)
+
+    tool = InferTool()
+    kept, dropped = tool._filter_bufferoverrun_levels(
+        [
+            finding("BUFFER_OVERRUN_L1"),
+            finding("BUFFER_OVERRUN_L2"),
+            finding("BUFFER_OVERRUN_L3"),
+            finding("INTEGER_OVERFLOW_L5"),
+            finding("BUFFER_OVERRUN_S2"),
+            finding("NULL_DEREFERENCE"),
+        ]
+    )
+
+    check("L1/L2 and non-InferBO kept", len(kept) == 3)
+    check("L3+/S kept out of the findings", len(dropped) == 3)
+    check("kept are L1, L2, NULL_DEREFERENCE",
+          [f.check_id for f in kept]
+          == ["BUFFER_OVERRUN_L1", "BUFFER_OVERRUN_L2", "NULL_DEREFERENCE"])
+    check("level annotated on kept InferBO finding",
+          "confidence level L1" in kept[0].message)
+    check("non-InferBO message untouched", kept[2].message == "msg")
+
+    # discarded findings stay reconstructable from the persisted raw output
+    note = tool._dropped_note(dropped)
+    check("dropped listed in raw output",
+          "BUFFER_OVERRUN_L3" in note and "INTEGER_OVERFLOW_L5" in note)
+    check("no note when nothing dropped", tool._dropped_note([]) == "")
+
+    # threshold is configurable: 0 keeps no InferBO finding at all
+    strict = InferTool(bufferoverrun_max_level=0)
+    kept_strict, _ = strict._filter_bufferoverrun_levels([finding("BUFFER_OVERRUN_L1")])
+    check("threshold 0 drops even L1", kept_strict == [])
+
+
+def test_gcc_analyzer_classification() -> None:
+    print("gcc_analyzer: -Wanalyzer-only filtering and blocking rules")
+    from thesis.evaluation.tools import (
+        ANALYZER_FLAG_PREFIX,
+        ANALYZER_NON_DEFECT_WARNINGS,
+        parse_gcc_clang_diagnostics,
+    )
+
+    stderr = (
+        "generated-code.hpp:4:6: warning: dereference of NULL '0' [CWE-476] "
+        "[-Wanalyzer-null-dereference]\n"
+        "generated-code.hpp:9:3: warning: unused variable 'x' [-Wunused-variable]\n"
+        "generated-code.hpp:12:1: warning: analysis bailed out [-Wanalyzer-too-complex]\n"
+    )
+
+    parsed = parse_gcc_clang_diagnostics(stderr, "gcc_analyzer")
+    check("three diagnostics parsed", len(parsed) == 3)
+
+    analyzer = [f for f in parsed if f.check_id.startswith(ANALYZER_FLAG_PREFIX)]
+    check("plain compiler warning dropped", len(analyzer) == 2)
+
+    for f in analyzer:
+        f.blocking = f.check_id not in ANALYZER_NON_DEFECT_WARNINGS
+
+    check("defect warning is blocking", analyzer[0].blocking)
+    check("CWE tag kept in the message", "CWE-476" in analyzer[0].message)
+    check("analyzer bail-out not blocking", not analyzer[1].blocking)
+
+
+def test_tool_options() -> None:
+    print("tool_config: per-tool options and their validation")
+    from thesis.evaluation.tool_config import tool_option, validate_stage_tools
+
+    cfg = {"stages": {"static_analysis": {"tools": {
+        "gcc_analyzer": {"enabled": True, "timeout_seconds": 240},
+        "infer": {"enabled": True, "bufferoverrun_max_level": 1},
+    }}}}
+
+    check("option read", tool_option(cfg, "static_analysis", "gcc_analyzer",
+                                    "timeout_seconds", 300.0) == 240)
+    check("missing option -> default",
+          tool_option(cfg, "static_analysis", "cppcheck", "timeout_seconds", 120.0) == 120.0)
+    check("no config -> default",
+          tool_option(None, "static_analysis", "infer", "bufferoverrun_max_level", 2) == 2)
+    check("legacy list schema -> default",
+          tool_option({"stages": {"static_analysis": {"tools": ["infer"]}}},
+                      "static_analysis", "infer", "bufferoverrun_max_level", 2) == 2)
+
+    validate_stage_tools(cfg, "static_analysis")
+    check("valid options accepted", True)
+
+    for bad, label in (
+        ({"bufferoverrun_max_level": 9}, "level out of range"),
+        ({"bufferoverrun_max_level": 1.5}, "non-integer level"),
+        ({"bufferoverrun_max_level": "two"}, "non-numeric level"),
+    ):
+        try:
+            validate_stage_tools(
+                {"stages": {"static_analysis": {"tools": {"infer": bad}}}},
+                "static_analysis",
+            )
+            check(label + " rejected", False)
+        except ValueError:
+            check(label + " rejected", True)
+
+
 def test_stub_rewriter() -> None:
     print("parcoach: LLVM IR stub rewriter")
     from thesis.evaluation.tools import stub_external_declares
@@ -655,6 +773,9 @@ def main() -> None:
         test_clang_tidy_helpers,
         test_clang_tidy_yaml_parse,
         test_infer_parse_and_filter,
+        test_inferbo_level_filter,
+        test_gcc_analyzer_classification,
+        test_tool_options,
         test_sanitizer_parsing,
         test_valgrind_parsing,
         test_must_parsing,

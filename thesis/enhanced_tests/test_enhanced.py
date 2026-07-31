@@ -37,7 +37,9 @@ def check(label, condition):
         FAILURES.append(label)
 
 
-BENCH = "dense_la/00_dense_la_lu_decomp"
+BENCH = "dense_la/00_dense_la_lu_decomp"   # n x n matrix (single fill site)
+ONE_D_BENCH = "reduce/27_reduce_average"   # 1-D, n elements
+MULTI_SITE_BENCH = "dense_la/03_dense_la_axpy"  # fills x AND y
 KNOWN = {BENCH}
 
 
@@ -104,16 +106,40 @@ def test_new_pattern_validation():
         (spec("duplicate_at", size=4, pattern_params={"k": 4}), "k out of range"),
         (spec("spike_at", size=1, pattern_params={"k": 0}), "size < 2"),
         (spec("sorted_except_one", size=4, pattern_params={}), "k missing"),
-        (spec("explicit_values", size=3, values=[1.0, 2.0]), "len(values) != size"),
-        (spec("explicit_values", size=100, values=[0.0] * 100), "explicit > max_size"),
+        (spec("explicit_values", size=3, values=[1.0, 2.0]), "wrong value count"),
+        # BENCH is an n x n matrix benchmark: size 9 needs 81 values, which
+        # is over the element-count cap (64)
+        (spec("explicit_values", size=9, values=[0.0] * 81), "explicit > max element count"),
     ):
         ok, _ = validate_spec(bad, KNOWN)
         check(label + " rejected", not ok)
 
-    ok, _ = validate_spec(
+    # explicit_values counts ELEMENTS, not `size`: the expected number comes
+    # from the benchmark's input shape (benchmark_shapes.json). BENCH is an
+    # n x n matrix benchmark, so size 3 needs 3*3 = 9 values.
+    ok, reason = validate_spec(
+        spec("explicit_values", size=3, values=[1.0] * 9), KNOWN
+    )
+    check("explicit_values matrix case (n*n values)", ok)
+
+    ok, reason = validate_spec(
         spec("explicit_values", size=3, values=[1.0, 2.0, 3.0]), KNOWN
     )
-    check("explicit_values valid case", ok)
+    check("matrix with only n values rejected", not ok and "9 numbers" in reason)
+
+    # 1-D benchmark: size == value count (historical behavior, unchanged)
+    one_d = dict(spec("explicit_values", size=3, values=[1.0, 2.0, 3.0]))
+    one_d["benchmark"] = ONE_D_BENCH
+    ok, _ = validate_spec(one_d, KNOWN | {ONE_D_BENCH})
+    check("explicit_values 1-D case (n values)", ok)
+
+    # multi-fill-site benchmark: refused explicitly instead of guessing
+    # which values go into which container
+    multi = dict(spec("explicit_values", size=3, values=[1.0, 2.0, 3.0]))
+    multi["benchmark"] = MULTI_SITE_BENCH
+    ok, reason = validate_spec(multi, KNOWN | {MULTI_SITE_BENCH})
+    check("explicit_values refused for multi-site benchmark",
+          not ok and "not supported" in reason)
 
     ok, reason = validate_spec(spec("spike_at", size=4, pattern_params={"k": 1}),
                                KNOWN, allowed_patterns=["random"])

@@ -19,7 +19,8 @@ international endpoint (our deployment: `eu-central-1.maas.aliyuncs.com`)
 | `openai_gpt55` | `gpt-5.5` | yes (full pipeline runs) | yes (file-based Batch API `/v1/responses`, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
 | `openai_gpt56_sol` | `gpt-5.6-sol` | yes (smoke 2026-07-21) | yes (Batch API, implemented, not live-tested) | $5.00 / $30.00 | 2026-07-21 |
 | `gemini_31_pro` | `gemini-3.1-pro-preview` | yes (full pipeline runs) | yes (inline batch, implemented, not live-tested) | $2.00 / $12.00 (≤200K prompt; $4/$18 above) | 2026-07-21 |
-| `gemini_35_flash` | `gemini-3.5-flash` | yes (smoke 2026-07-21) | yes (inline batch, implemented, not live-tested) | $1.50 / $9.00 | 2026-07-21 |
+| `gemini_36_flash` | `gemini-3.6-flash` | yes (smoke 2026-07-28) | yes (inline batch, implemented, not live-tested) | $1.50 / $7.50 (input unchanged vs 3.5, output down from $9.00) | 2026-07-28 |
+| ~~`gemini_35_flash`~~ | `gemini-3.5-flash` | **disabled 2026-07-28** — superseded by 3.6 Flash (entry kept, not recycled, so older records stay attributable) | — | $1.50 / $9.00 | 2026-07-21 |
 | `qwen37_max` | `qwen3.7-max` | yes (smoke 2026-07-21) | no — endpoint lacks /v1/batches (404, tested 2026-07-21) → direct | $1.25 / $3.75 | 2026-07-21 |
 | `qwen3_coder_api` | `qwen3-coder-plus` | yes (full pipeline runs) | no — endpoint lacks /v1/batches (404, tested 2026-07-21) → direct | $0.65 / $3.25 | 2026-07-21 |
 | `qwen36_35b_a3b` | `qwen3.6-35b-a3b` | yes (smoke 2026-07-21) | no — endpoint lacks /v1/batches (404, tested 2026-07-21) → direct | $0.14 / $0.90 | 2026-07-21 |
@@ -39,9 +40,14 @@ entries); DashScope additionally lists dated snapshots
   flagship tier) is the same cross-generation comparison on the OpenAI
   side.
 - **Google — class pair:** `gemini-3.1-pro-preview` vs.
-  `gemini-3.5-flash` contrasts the Pro class against the Flash class
-  (gemini-3.5-pro is not GA, see below, so the class pair spans
-  generations).
+  `gemini-3.6-flash` contrasts the Pro class against the Flash class
+  (no 3.x Pro beyond 3.1 is GA, see below, so the class pair spans
+  generations). **Flash swap 2026-07-28:** 3.6 Flash replaced 3.5 Flash
+  because it is GA, more token-efficient and cheaper at better
+  code/agent capability (Google release notes); the class-pair role is
+  unchanged. The 3.5 entry stays in the config as `enabled: false` —
+  IDs are never recycled, so records from earlier runs remain
+  attributable to the model that produced them.
 - **DeepSeek — size pair:** `deepseek-v4-pro` vs. `deepseek-v4-flash`
   isolates model size within one generation and vendor.
 - **Alibaba — three roles:** `qwen3.7-max` (closed flagship),
@@ -82,7 +88,9 @@ table). Verified 2026-07-21 by per-model structure probes
 | `openai_gpt55` | `reasoning_effort` | `medium` | yes (effort scale) | separate (Responses API reasoning items; never in `output_text`) | — |
 | `openai_gpt56_sol` | `reasoning_effort` | `medium` | yes | separate | — |
 | `gemini_31_pro` | `thinking_level` | `medium` | yes (low/medium/high) | separate (thought parts; adapter reads answer text only) | — |
-| `gemini_35_flash` | `thinking_level` | `medium` (= 3.5 default) | yes (MINIMAL/LOW/MEDIUM/HIGH) | separate | 3.5 scale adds MINIMAL → "medium" is the middle of each series' own scale, not an exactly equivalent point across 3.1/3.5 |
+| `gemini_36_flash` | `thinking_level` | `medium` | yes (MINIMAL/LOW/MEDIUM/HIGH; probe 2026-07-28 accepted) | separate | 3.5/3.6 scale adds MINIMAL → "medium" is the middle of each series' own scale, not an exactly equivalent point across 3.1/3.6 |
+| ~~`gemini_35_flash`~~ | `thinking_level` | `medium` | — | separate | disabled 2026-07-28 (superseded by 3.6 Flash) |
+| `glm_5_2` (spec generator, not evaluated) | `enable_thinking` | provider default (ON) | partially (on/off) | separate `reasoning_content`; `message.content` is clean strict JSON (probe 2026-07-28) | not part of the evaluation set — listed for completeness |
 | `claude_opus_48` | `thinking: adaptive` + `effort` | `medium` | yes (effort low/medium/high/xhigh/max) | thinking blocks, separate; adapter extracts text blocks only | thinking must be ACTIVATED on Opus (omitted = no thinking); adapter extended 2026-07-21 to send `thinking` + `output_config.effort` (direct AND batch path identical) |
 | `claude_fable_5` | `effort` | `medium` | partially (depth via effort; thinking itself cannot be disabled) | thinking blocks (omitted by default), separate | always-on thinking needs no activation field; SAME effort level as the Opus pair partner |
 | `qwen37_max` | `enable_thinking` + `thinking_budget` | ON, budget 8192 | partially (on/off + token budget; NO level scale) | separate `reasoning_content` | budget chosen non-constraining (well above observed spend, below the 16384 output cap) — it must not become the limiting factor |
@@ -100,6 +108,48 @@ unaffected and the openai_compatible adapter needs no change
 (`_extract_text` reads `message.content` exclusively;
 `reasoning_content` is discarded, reasoning token counts are logged via
 `usage` in the generation records).
+
+### Gemini sampling parameters are deprecated (affects the "greedy decoding" claim)
+
+`temperature`, `top_p` and `top_k` are deprecated in the current Gemini
+API. A probe against `gemini-3.6-flash` (2026-07-28) shows they are still
+**accepted without error or warning** — so this was not a breakage — but
+the adapter no longer sends them (`generate-gemini.py`), for two reasons:
+a deprecated parameter can disappear at any API version, and with
+thinking enabled `temperature: 0` no longer buys the greedy, reproducible
+decoding it was configured for. Consequence for the methodology chapter:
+the statement "greedy decoding, sent to the models that support it
+(Gemini, Qwen, DeepSeek)" **no longer covers Gemini** — Gemini models now
+run at provider-default sampling, like the OpenAI and Anthropic models
+(which never accepted the parameters). Records written from 2026-07-28
+onward log `temperature: null` / `top_p: null` for Gemini; earlier Gemini
+artifacts were produced with `temperature: 0` and differ on this axis.
+
+## Test-case generator (not part of the evaluation set)
+
+The enhanced-tests input specs are generated by
+`stages.enhanced_tests.spec_model`. Since 2026-07-28 that is **`glm_5_2`
+(GLM / Zhipu, `glm-5.2`)**, configured with `enabled: false` so it can
+never join a generation run.
+
+| Property | Value |
+| --- | --- |
+| Verified API id | `glm-5.2` (models endpoint of our deployment, 2026-07-28; `glm-5.1` also listed, `glm-5` / `glm-4.7` are not) |
+| Access | existing Model Studio key — the endpoint hosts third-party models next to Qwen, so no new provider adapter and no new account |
+| Output structure | thinking in a separate `reasoning_content` field; `message.content` is clean strict JSON — no `<think>` blocks, no markdown fences (probe 2026-07-28), which is what `generate_test_specs.py` requires |
+
+**Why a family outside the evaluation set:** an evaluated model writing
+the test cases it is later judged on invites a same-family advantage.
+GLM is in neither the evaluated set nor any evaluated model's family.
+The safeguard is structural rather than statistical, and it does not
+stand alone: the **oracle is always the serial baseline implementation**,
+never the generator — the generator only proposes input shapes, and every
+spec additionally passes the baseline gate (crash/hang plus numerical
+stability) before it can count against any model. Earlier generators
+(`openai_gpt55`, then `openai_gpt56_sol`) were part of the evaluation
+set; their spec sets are archived under
+`results/cache/enhanced/archive/` so a generator comparison remains
+possible.
 
 ### Remaining asymmetry (known comparability limit for the methodology chapter)
 
