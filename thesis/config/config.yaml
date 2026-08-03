@@ -489,7 +489,7 @@ stages:
     output_file_name: dynamic_analysis.jsonl
 
   enhanced_tests:
-    enabled: false
+    enabled: true
     output_file_name: enhanced_tests.jsonl
     # Which model generates the edge-case input specs (EvalPlus-style).
     # Deliberate methodology decision (2026-07-28): the generator comes from
@@ -544,7 +544,7 @@ stages:
     specs_file: thesis/results/cache/enhanced/specs.jsonl
 
   repair:
-    enabled: false
+    enabled: true
     max_iterations: 3
     # Loop orchestrator (thesis/repair/orchestrator.py + run_repair.py).
     # Which of the three ablation variants run (repair-loop-design.md §2).

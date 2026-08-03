@@ -4,8 +4,20 @@ All provider scripts (generate-anthropic.py, generate-gemini.py,
 generate-openai.py, generate-openai-compatible.py) implement a small
 ProviderAdapter and delegate everything else to run_generation() here.
 
-Record schema: generation.v2
-    Adds compared to v1:
+Record schema: generation.v3
+    Adds compared to v2 (all additive; v2 fields keep name and meaning):
+        status.timing_mode             "direct" | "batch"
+        status.batch_submitted_at_utc  batch records only
+        status.batch_completed_at_utc  batch records only
+        api_response.usage_normalized  provider-independent token view
+    Timing semantics: in direct mode status.duration_seconds is the real
+    request latency, as before. In batch mode duration_seconds is NULL —
+    the measurable wall time (submit -> result) is dominated by the
+    provider QUEUE (up to 24 h, load- and time-of-day-dependent), so it is
+    neither a latency measure nor a model property; the two timestamps
+    record it without pretending otherwise. Batch and direct durations must
+    never be mixed in one evaluation (docs/timing-and-effort.md).
+    v2 added compared to v1:
         output.finish_reason   provider-reported stop/finish reason
         status.truncated       True when generation hit the token limit
 
@@ -33,7 +45,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
-GENERATION_SCHEMA_VERSION = "generation.v2"
+GENERATION_SCHEMA_VERSION = "generation.v3"
 SUMMARY_SCHEMA_VERSION = "generation_summary.v1"
 
 
@@ -481,6 +493,7 @@ def build_empty_record(
         "api_response": {
             "response_id": None,
             "usage": None,
+            "usage_normalized": None,
             "raw_response_debug": None,
         },
         "status": {
@@ -489,8 +502,161 @@ def build_empty_record(
             "error_type": None,
             "error_message": None,
             "duration_seconds": None,
+            # "direct" | "batch", set by apply_direct_timing /
+            # apply_batch_timing before the record is written
+            "timing_mode": None,
         },
     }
+
+
+def apply_direct_timing(record: dict[str, Any], started_at: float) -> None:
+    """Direct mode: duration_seconds is the real request latency."""
+    record["status"]["timing_mode"] = "direct"
+    record["status"]["duration_seconds"] = round(time.time() - started_at, 3)
+
+
+def apply_batch_timing(
+    record: dict[str, Any],
+    submitted_at_utc: str | None,
+    completed_at_utc: str | None,
+) -> None:
+    """Batch mode: duration_seconds stays NULL, deliberately.
+
+    The measurable wall time (submit -> completed poll) is dominated by the
+    provider's batch QUEUE — up to 24 h, depending on load and time of day —
+    and says nothing about the model; the batch APIs do not expose the
+    actual per-request inference time. Writing the wall time into
+    duration_seconds would let it masquerade as latency in any evaluation
+    that aggregates the column, so the field stays None (not 0) and the
+    span is recorded as two timestamps that cannot be mistaken for a
+    latency measure.
+    """
+    record["status"]["timing_mode"] = "batch"
+    record["status"]["duration_seconds"] = None
+    record["status"]["batch_submitted_at_utc"] = submitted_at_utc
+    record["status"]["batch_completed_at_utc"] = completed_at_utc
+
+
+# Which usage field carries the reasoning tokens, per provider — measured
+# per-model in thesis/docs/model-set.md ("thinking effectiveness probe"):
+#   openai             usage.output_tokens_details.reasoning_tokens
+#   anthropic          usage.output_tokens_details.thinking_tokens
+#   gemini             usage_metadata.thoughts_token_count
+#   openai_compatible  usage.completion_tokens_details.reasoning_tokens
+#                      (DashScope; null on non-thinking models such as
+#                      qwen3-coder-plus)
+# Input/output counts per provider: input_tokens/output_tokens (openai,
+# anthropic), prompt_token_count/candidates_token_count (gemini),
+# prompt_tokens/completion_tokens (openai_compatible).
+_REASONING_DETAIL_FIELDS = (
+    ("output_tokens_details", "reasoning_tokens"),   # OpenAI Responses API
+    ("output_tokens_details", "thinking_tokens"),    # Anthropic
+    ("completion_tokens_details", "reasoning_tokens"),  # DashScope chat
+)
+
+_INPUT_TOKEN_KEYS = ("input_tokens", "prompt_tokens", "prompt_token_count")
+_OUTPUT_TOKEN_KEYS = ("output_tokens", "completion_tokens", "candidates_token_count")
+
+
+def normalize_usage(usage: Any) -> dict[str, Any] | None:
+    """Provider-independent token view: input/output/reasoning tokens.
+
+    Complements the raw usage (which is always kept verbatim) so the
+    evaluation does not need to know five provider formats. reasoning_tokens
+    is None when the provider reports no reasoning-token field at all —
+    distinct from an explicit 0, which providers with adaptive thinking
+    legitimately report on easy tasks. Key sets cover all five formats in
+    use; the field names are documented per adapter and in model-set.md.
+    """
+    if not isinstance(usage, dict):
+        return None
+
+    def first_int(keys: tuple) -> "int | None":
+        for key in keys:
+            value = usage.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                return value
+        return None
+
+    reasoning: int | None = None
+
+    # Gemini reports it flat; the others nest it in a details dict.
+    thoughts = usage.get("thoughts_token_count")
+    if isinstance(thoughts, int) and not isinstance(thoughts, bool):
+        reasoning = thoughts
+    else:
+        for container_key, detail_key in _REASONING_DETAIL_FIELDS:
+            details = usage.get(container_key)
+            if isinstance(details, dict):
+                value = details.get(detail_key)
+                if isinstance(value, int) and not isinstance(value, bool):
+                    reasoning = value
+                    break
+
+    return {
+        "input_tokens": first_int(_INPUT_TOKEN_KEYS),
+        "output_tokens": first_int(_OUTPUT_TOKEN_KEYS),
+        "reasoning_tokens": reasoning,
+    }
+
+
+def reasoning_expected(model_config: dict[str, Any] | None) -> bool:
+    """Does the reasoning policy configure this model to think?
+
+    Read from the model config (the single source of the policy):
+    anthropic `thinking`/`effort`, openai `reasoning_effort`, gemini
+    `thinking_level`, DashScope `extra_body.enable_thinking`.
+    """
+    if not model_config:
+        return False
+
+    if model_config.get("thinking") or model_config.get("effort"):
+        return True
+
+    if model_config.get("reasoning_effort") or model_config.get("thinking_level"):
+        return True
+
+    extra_body = model_config.get("extra_body") or {}
+    return bool(isinstance(extra_body, dict) and extra_body.get("enable_thinking"))
+
+
+def reasoning_evidence_warning(
+    record: dict[str, Any], model_config: dict[str, Any] | None
+) -> str | None:
+    """Warning text when a model configured to think shows no reasoning.
+
+    The RUNNING counterpart of the one-off thinking probes in model-set.md:
+    every successful record is checked, so a provider silently dropping the
+    thinking parameter mid-run cannot go unnoticed. Two distinct cases:
+    a MISSING reasoning-token field suggests the parameter is being ignored
+    (the actual red flag), while an explicit 0 can be legitimate adaptive
+    behavior on easy tasks (documented for Anthropic in model-set.md).
+    Returns the text instead of printing so callers control the log.
+    """
+    if not reasoning_expected(model_config):
+        return None
+
+    normalized = record.get("api_response", {}).get("usage_normalized") or {}
+    reasoning = normalized.get("reasoning_tokens")
+
+    sample_id = record.get("sample_id", "?")
+
+    if reasoning is None:
+        return (
+            "WARNING [%s]: model is configured to think but the usage "
+            "reports NO reasoning-token field — the thinking parameter may "
+            "be ignored by the provider" % sample_id
+        )
+
+    if reasoning == 0:
+        return (
+            "WARNING [%s]: model is configured to think but spent 0 "
+            "reasoning tokens (can be legitimate adaptive behavior on easy "
+            "tasks; investigate if it happens across the whole run)"
+            % sample_id
+        )
+
+    return None
 
 
 def apply_success(
@@ -501,21 +667,29 @@ def apply_success(
     truncated: bool,
     response_id: str | None,
     usage: Any,
+    model_config: dict[str, Any] | None = None,
 ) -> str:
     """Fill a record from a successful generation and count it.
 
     THE single success path — direct mode and batch mode both go through
     it, so cleaning, the truncated flag and the summary counters can never
-    drift apart between the two.
+    drift apart between the two. Also derives usage_normalized from the
+    raw usage and, when `model_config` is given, logs the ongoing
+    reasoning-evidence check (see reasoning_evidence_warning).
     """
     record["output"]["raw_text"] = raw_text
     record["output"]["cleaned_code"] = clean_generated_code(raw_text)
     record["output"]["finish_reason"] = finish_reason
     record["api_response"]["response_id"] = response_id
     record["api_response"]["usage"] = usage
+    record["api_response"]["usage_normalized"] = normalize_usage(usage)
 
     record["status"]["success"] = True
     record["status"]["truncated"] = truncated
+
+    warning = reasoning_evidence_warning(record, model_config)
+    if warning:
+        print(warning)
 
     summary["counts"]["success"] += 1
 
@@ -644,6 +818,11 @@ def run_batch_stage(
     written = 0
     missing = []
 
+    # One completion timestamp for the whole job: the API reports batch-level
+    # completion only, and the span is a queue-time bound either way (see
+    # apply_batch_timing), not a per-request measurement.
+    completed_at_utc = utc_now_iso()
+
     for sample_id, item in status.responses.items():
         entry = by_sample.get(sample_id)
 
@@ -652,7 +831,6 @@ def run_batch_stage(
             continue
 
         prompt, record = entry
-        started_at = time.time()
 
         if item.error_type:
             outcome = apply_failure(
@@ -666,9 +844,15 @@ def run_batch_stage(
                 truncated=item.truncated,
                 response_id=item.response_id,
                 usage=item.usage,
+                model_config=model_config,
             )
 
-        write_record(prompt, record, outcome, started_at)
+        apply_batch_timing(
+            record,
+            submitted_at_utc=existing.get("submitted_at_utc"),
+            completed_at_utc=completed_at_utc,
+        )
+        write_record(prompt, record, outcome)
         written += 1
 
     for sample_id in by_sample:
@@ -899,8 +1083,9 @@ def run_generation(adapter: ProviderAdapter) -> None:
             pending.append((prompt, user_prompt, record))
 
     def write_record(prompt: dict[str, Any], record: dict[str, Any],
-                     outcome: str, started_at: float) -> None:
-        record["status"]["duration_seconds"] = round(time.time() - started_at, 3)
+                     outcome: str) -> None:
+        # timing is applied by the caller (apply_direct_timing /
+        # apply_batch_timing) — the two modes measure different things
         append_jsonl(generations_path, record)
 
         done = (
@@ -961,6 +1146,7 @@ def run_generation(adapter: ProviderAdapter) -> None:
                     truncated=result.truncated,
                     response_id=result.response_id,
                     usage=result.usage,
+                    model_config=model_config,
                 )
 
             except ModelRefusal as refusal:
@@ -976,7 +1162,8 @@ def run_generation(adapter: ProviderAdapter) -> None:
                     safe_model_dump(getattr(error, "raw_response", None)),
                 )
 
-            write_record(prompt, record, outcome, started_at)
+            apply_direct_timing(record, started_at)
+            write_record(prompt, record, outcome)
 
             if sleep_seconds > 0:
                 time.sleep(sleep_seconds)

@@ -76,6 +76,14 @@ REQUIRED_STATUS_FIELDS = {
 
 REQUIRED_STATUS_FIELDS_V2 = REQUIRED_STATUS_FIELDS | {"truncated"}
 
+# v3 adds the timing split (see common.py docstring): timing_mode is
+# mandatory, and batch records must NOT carry duration_seconds — their
+# wall time is provider queue time, not latency, and lives in the two
+# batch_*_at_utc timestamps instead.
+REQUIRED_STATUS_FIELDS_V3 = REQUIRED_STATUS_FIELDS_V2 | {"timing_mode"}
+
+VALID_TIMING_MODES = {"direct", "batch"}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -194,9 +202,18 @@ def validate_record(record: dict[str, Any]) -> tuple[list[str], list[str]]:
     line = record.get("_line_number", "?")
     sample_id = record.get("sample_id", "<missing sample_id>")
 
-    is_v2 = record.get("schema_version") == "generation.v2"
+    schema_version = record.get("schema_version")
+    is_v3 = schema_version == "generation.v3"
+    is_v2 = schema_version == "generation.v2" or is_v3
+
     required_output_fields = REQUIRED_OUTPUT_FIELDS_V2 if is_v2 else REQUIRED_OUTPUT_FIELDS
-    required_status_fields = REQUIRED_STATUS_FIELDS_V2 if is_v2 else REQUIRED_STATUS_FIELDS
+
+    if is_v3:
+        required_status_fields = REQUIRED_STATUS_FIELDS_V3
+    elif is_v2:
+        required_status_fields = REQUIRED_STATUS_FIELDS_V2
+    else:
+        required_status_fields = REQUIRED_STATUS_FIELDS
 
     top_missing = missing_fields(record, REQUIRED_TOP_LEVEL_FIELDS)
 
@@ -313,6 +330,38 @@ def validate_record(record: dict[str, Any]) -> tuple[list[str], list[str]]:
             warnings.append(
                 f"line {line}, sample {sample_id}: status.duration_seconds is not numeric"
             )
+
+        # ---- v3 timing split (batch wall time is queue time, not latency) --
+        if is_v3:
+            timing_mode = status.get("timing_mode")
+
+            if timing_mode not in VALID_TIMING_MODES:
+                errors.append(
+                    f"line {line}, sample {sample_id}: status.timing_mode must "
+                    f"be one of {sorted(VALID_TIMING_MODES)} (got {timing_mode!r})"
+                )
+
+            if timing_mode == "batch":
+                if duration is not None:
+                    errors.append(
+                        f"line {line}, sample {sample_id}: batch record carries "
+                        f"status.duration_seconds ({duration!r}) — batch wall "
+                        "time is provider queue time, not latency, and must "
+                        "stay null (see docs/timing-and-effort.md)"
+                    )
+
+                for field in ("batch_submitted_at_utc", "batch_completed_at_utc"):
+                    if not is_nonempty_string(status.get(field)):
+                        errors.append(
+                            f"line {line}, sample {sample_id}: batch record is "
+                            f"missing status.{field}"
+                        )
+
+            if timing_mode == "direct" and not isinstance(duration, (int, float)):
+                errors.append(
+                    f"line {line}, sample {sample_id}: direct record has no "
+                    "numeric status.duration_seconds"
+                )
 
     if not is_nonempty_string(record.get("sample_id")):
         errors.append(f"line {line}: sample_id is empty or missing")

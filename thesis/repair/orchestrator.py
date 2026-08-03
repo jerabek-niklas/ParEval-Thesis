@@ -1364,7 +1364,7 @@ class RepairLoop:
         request: Dict[str, Any],
         generation_parameters: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """generation.v2-shaped record so assemble_sources consumes it
+        """generation.v3-shaped record so assemble_sources consumes it
         unchanged. prompt.prompt_text stays the ORIGINAL task prompt: the
         assembly cleaning is prompt-aware (signature dedupe, include
         relocation), and iteration files must assemble byte-consistently
@@ -1503,11 +1503,21 @@ class RepairLoop:
                     record["output"]["finish_reason"] = result.finish_reason
                     record["api_response"]["response_id"] = result.response_id
                     # prompt/completion token usage per request — the basis
-                    # of the cost section (design §8)
+                    # of the cost section (design §8); normalized view for
+                    # the effort metric + running reasoning-evidence check
                     record["api_response"]["usage"] = result.usage
+                    record["api_response"]["usage_normalized"] = (
+                        common.normalize_usage(result.usage)
+                    )
                     record["status"]["success"] = True
                     record["status"]["truncated"] = result.truncated
                     outcome = "ok"
+
+                    warning = common.reasoning_evidence_warning(
+                        record, self.model_config
+                    )
+                    if warning:
+                        self.log(warning)
                 except common.ModelRefusal as refusal:
                     record["status"]["error_type"] = "ModelRefusal"
                     record["status"]["error_message"] = str(refusal)
@@ -1518,7 +1528,7 @@ class RepairLoop:
                     record["status"]["error_message"] = str(error)
                     outcome = "error"
 
-                record["status"]["duration_seconds"] = round(time.time() - started, 3)
+                common.apply_direct_timing(record, started)
                 common.append_jsonl(generations_path, record)
                 self.log(
                     "  [%d/%d] %s: %s"
@@ -1621,6 +1631,8 @@ class RepairLoop:
         generation_parameters = {"api_mode": "batch", "batch_id": batch_info.get("batch_id")}
 
         merged = 0
+        completed_at_utc = common.utc_now_iso()
+
         for sample_id, response in status.responses.items():
             if sample_id in terminal or sample_id not in requests_by_id:
                 continue
@@ -1644,8 +1656,25 @@ class RepairLoop:
                 record["output"]["finish_reason"] = response.finish_reason
                 record["api_response"]["response_id"] = response.response_id
                 record["api_response"]["usage"] = response.usage
+                record["api_response"]["usage_normalized"] = (
+                    common.normalize_usage(response.usage)
+                )
                 record["status"]["success"] = True
                 record["status"]["truncated"] = response.truncated
+
+                warning = common.reasoning_evidence_warning(
+                    record, self.model_config
+                )
+                if warning:
+                    self.log(warning)
+
+            # batch wall time = provider queue time, never model latency:
+            # duration_seconds stays None (see common.apply_batch_timing)
+            common.apply_batch_timing(
+                record,
+                submitted_at_utc=batch_info.get("submitted_at_utc"),
+                completed_at_utc=completed_at_utc,
+            )
 
             record["repair"]["batch_id"] = batch_info.get("batch_id")
             common.append_jsonl(generations_path, record)

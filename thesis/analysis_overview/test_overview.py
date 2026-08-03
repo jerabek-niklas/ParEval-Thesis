@@ -90,11 +90,12 @@ def jsonl(config, run_id, file_name, records, raw=False):
         common.append_jsonl(path, record)
 
 
-def tool_entry(ran=True, findings=0, blocking=0, low_confidence=0, seconds=0.5):
+def tool_entry(ran=True, findings=0, blocking=0, low_confidence=0, seconds=0.5,
+               error=None):
     return {
         "ran": ran, "num_findings": findings, "num_blocking": blocking,
         "num_low_confidence": low_confidence, "duration_seconds": seconds,
-        "findings": [],
+        "findings": [], "error": error,
     }
 
 
@@ -162,14 +163,41 @@ def build_world(tmp):
         # S_OMP dynamic record deliberately MISSING -> backfill_missing
     ])
     jsonl(config, BASE, "enhanced_tests.jsonl",
-          [{"sample_id": S_SERIAL, "status": "pass"} for _ in range(3)]
-          + [{"sample_id": S_SERIAL, "status": "fail"},
-             {"sample_id": S_SERIAL, "status": "baseline_incompatible"}])
+          [{"sample_id": S_SERIAL, "status": "pass", "duration_seconds": 0.2}
+           for _ in range(3)]
+          + [{"sample_id": S_SERIAL, "status": "fail", "duration_seconds": 0.2},
+             {"sample_id": S_SERIAL, "status": "baseline_incompatible",
+              "duration_seconds": 0.2}])
+
+    # ---- base generations (raw): one direct, one batch record ---------
+    jsonl(config, BASE, "generations.jsonl", [
+        # v3 direct record WITH usage_normalized (preferred path)
+        {"sample_id": S_SERIAL,
+         "status": {"success": True, "timing_mode": "direct",
+                    "duration_seconds": 4.2},
+         "api_response": {
+             "usage": {"input_tokens": 200, "output_tokens": 80,
+                       "output_tokens_details": {"thinking_tokens": 128}},
+             "usage_normalized": {"input_tokens": 200, "output_tokens": 80,
+                                  "reasoning_tokens": 128}}},
+        # batch record: NO latency by design, raw usage only (tests the
+        # on-the-fly normalization fallback)
+        {"sample_id": S_OMP,
+         "status": {"success": True, "timing_mode": "batch",
+                    "duration_seconds": None,
+                    "batch_submitted_at_utc": "2026-08-01T00:00:00Z",
+                    "batch_completed_at_utc": "2026-08-01T04:00:00Z"},
+         "api_response": {
+             "usage": {"input_tokens": 300, "output_tokens": 60,
+                       "output_tokens_details": {"reasoning_tokens": 44}}}},
+    ], raw=True)
 
     # ---- static_feedback iteration 1 ---------------------------------
     iter1 = "%s__static_feedback__iter1" % BASE
     jsonl(config, iter1, "generations.jsonl", [
-        {"sample_id": S_SERIAL, "status": {"success": True},
+        {"sample_id": S_SERIAL,
+         "status": {"success": True, "timing_mode": "direct",
+                    "duration_seconds": 2.0},
          "api_response": {"usage": {"prompt_tokens": 100,
                                     "completion_tokens": 50}}},
         {"sample_id": S_OMP, "status": {"success": False,
@@ -198,7 +226,10 @@ def build_world(tmp):
          "runs": [{"verdict": "pass", "duration_seconds": 1.0}]},
     ])
     jsonl(config, iter1, "dynamic_analysis.jsonl", [
-        {"sample_id": S_SERIAL, "tools": {"asan_ubsan": tool_entry()}},
+        # a TIMED-OUT run: its 120 s are the configured limit, not a
+        # measured duration — the runtime summary must exclude it
+        {"sample_id": S_SERIAL, "tools": {"asan_ubsan": tool_entry(
+            seconds=120.0, error="asan_ubsan timed out")}},
     ])
     jsonl(config, iter1, "enhanced_tests.jsonl",
           [{"sample_id": S_SERIAL, "status": "pass"} for _ in range(4)])
@@ -251,6 +282,25 @@ def test_rows():
         check("no repair tokens at iteration 0",
               serial0["repair_prompt_tokens"] is None)
 
+        # ---- timing/effort columns (Teil 3) --------------------------
+        check("per-tool seconds",
+              serial0["compiler_seconds"] == 0.5
+              and serial0["clang_tidy_seconds"] == 1.0
+              and serial0["asan_ubsan_seconds"] == 3.0)
+        check("no timeout flags on clean runs",
+              serial0["asan_ubsan_timed_out"] is False)
+        check("stage sums split",
+              serial0["static_seconds"] == 1.5
+              and serial0["dynamic_seconds"] == 3.0
+              and serial0["correctness_seconds"] == 3.5
+              and serial0["enhanced_seconds"] == 1.0)
+        check("generation effort joined at iteration 0",
+              serial0["generation_input_tokens"] == 200
+              and serial0["generation_reasoning_tokens"] == 128)
+        check("direct record carries latency",
+              serial0["generation_timing_mode"] == "direct"
+              and serial0["generation_duration_seconds"] == 4.2)
+
         serial1 = row_of(rows, S_SERIAL, "static_feedback", 1)
         check("iter1 not shared", serial1["is_shared_initial"] is False)
         check("iter1 verdict pass", serial1["correctness_verdict"] == "pass")
@@ -260,8 +310,15 @@ def test_rows():
               and serial1["repair_completion_tokens"] == 50)
         check("iter1 status stopped_clean", serial1["status"] == "stopped_clean")
         check("iter1 complete", serial1["data_complete"] is True)
+        check("timed-out tool flagged, duration kept",
+              serial1["asan_ubsan_timed_out"] is True
+              and serial1["asan_ubsan_seconds"] == 120.0)
 
         omp0 = row_of(rows, S_OMP, "static_feedback", 0)
+        check("batch record: NO latency, tokens normalized on the fly",
+              omp0["generation_timing_mode"] == "batch"
+              and omp0["generation_duration_seconds"] is None
+              and omp0["generation_reasoning_tokens"] == 44)
         check("omp iter0 incomplete: dynamic backfill missing",
               omp0["data_complete"] is False
               and omp0["na_reason"] == "backfill_missing:dynamic")
@@ -352,6 +409,30 @@ def test_markdown():
         check("cleaning split by iteration",
               "By iteration (does the answer format change under repair?)" in markdown)
 
+        # runtime cost: asan serial = iter0 (3.0 s) + iter1 (120 s TIMED OUT,
+        # excluded from median/p95) -> n=2, median 3.00, timeouts 1/2;
+        # iteration-0 rows are deduped across the two variants
+        check("runtime section present", "## Runtime cost per tool" in markdown)
+        check("timeouts excluded from median and counted",
+              "| asan_ubsan | serial | 2 | 3.00 | 3.00 | 50.0% (1/2) |" in markdown)
+        check("compiler runtime aggregated",
+              "| compiler | serial | 2 | 0.50 | 0.50 | 0.0% (0/2) |" in markdown)
+
+        # effort: iter0 deduped -> serial (200/80/128) + omp (300/60/44):
+        # medians 250/70/86, reasoning sum 172; iter1 -> serial only, no
+        # reasoning field -> NA
+        check("effort section present",
+              "## Generation effort and direct latency" in markdown)
+        check("effort medians per model x iteration",
+              "| %s | 0 | 2 | 250 | 70 | 86 | 172 |" % MODEL in markdown)
+        check("missing reasoning field renders NA",
+              "| %s | 1 | 1 | 100 | 50 | NA | NA |" % MODEL in markdown)
+
+        # latency: DIRECT records only (4.2 iter0 serial + 2.0 iter1);
+        # the batch record must not contribute
+        check("latency only from direct records",
+              "| %s | 2 | 3.10 | 4.20 |" % MODEL in markdown)
+
         check("completeness counts incomplete rows",
               "Rows total: 6, incomplete: 3" in markdown)
         check("completeness splits reasons",
@@ -365,8 +446,72 @@ def test_markdown():
 # ---------------------------------------------------------------------------
 
 
+def test_legacy_timing_classification():
+    print("legacy v2 records: batch pseudo-durations never become latency")
+    from thesis.analysis_overview.build_overview import apply_generation_columns
+
+    def fresh_row():
+        return {"generation_timing_mode": None,
+                "generation_duration_seconds": None,
+                "generation_input_tokens": None,
+                "generation_output_tokens": None,
+                "generation_reasoning_tokens": None}
+
+    # legacy v2 INITIAL-generation batch record: no timing_mode, no marker
+    # in the record — the old batch poll stamped ~0 s of poll-side
+    # processing as duration_seconds. Only the run summary's api_mode
+    # identifies it; its pseudo-duration must NOT become latency.
+    legacy_batch = {
+        "status": {"success": True, "duration_seconds": 0.004},
+        "api_response": {"usage": {"input_tokens": 10, "output_tokens": 5}},
+    }
+    row = fresh_row()
+    apply_generation_columns(row, legacy_batch, run_api_mode="batch")
+    check("summary api_mode classifies legacy batch",
+          row["generation_timing_mode"] == "batch")
+    check("pseudo-duration excluded from latency",
+          row["generation_duration_seconds"] is None)
+    check("tokens still counted", row["generation_input_tokens"] == 10)
+
+    # legacy v2 REPAIR batch record: carries generation_parameters.api_mode
+    # (set by the orchestrator's batch merge) — wins even when the run
+    # summary is absent/direct
+    repair_batch = {
+        "status": {"success": True, "duration_seconds": None},
+        "generation_parameters": {"api_mode": "batch", "batch_id": "b-1"},
+        "api_response": {"usage": {"input_tokens": 10, "output_tokens": 5}},
+    }
+    row = fresh_row()
+    apply_generation_columns(row, repair_batch, run_api_mode="direct")
+    check("record marker classifies repair batch",
+          row["generation_timing_mode"] == "batch")
+
+    # plain legacy v2 direct record: real latency, kept
+    legacy_direct = {
+        "status": {"success": True, "duration_seconds": 5.2},
+        "api_response": {"usage": {"input_tokens": 10, "output_tokens": 5}},
+    }
+    row = fresh_row()
+    apply_generation_columns(row, legacy_direct, run_api_mode="direct")
+    check("legacy direct keeps its latency",
+          row["generation_timing_mode"] == "direct"
+          and row["generation_duration_seconds"] == 5.2)
+
+    # v3 record: explicit timing_mode is authoritative over everything
+    v3_direct = {
+        "status": {"success": True, "timing_mode": "direct",
+                   "duration_seconds": 3.0},
+        "api_response": {"usage": {"input_tokens": 10, "output_tokens": 5}},
+    }
+    row = fresh_row()
+    apply_generation_columns(row, v3_direct, run_api_mode="batch")
+    check("explicit timing_mode beats the run api_mode",
+          row["generation_timing_mode"] == "direct"
+          and row["generation_duration_seconds"] == 3.0)
+
+
 def main():
-    tests = [test_rows, test_csv, test_markdown]
+    tests = [test_rows, test_csv, test_markdown, test_legacy_timing_classification]
 
     for test in tests:
         test()

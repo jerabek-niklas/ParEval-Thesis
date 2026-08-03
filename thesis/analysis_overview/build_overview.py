@@ -58,6 +58,8 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
+import statistics
 import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
@@ -118,6 +120,28 @@ CLEANING_COLUMNS = (
     + ["cleaning_%s" % name for name in CLEANING_COUNTS]
 )
 
+# Per-tool runtime columns (docs/timing-and-effort.md): <tool>_seconds is
+# the tool's own duration_seconds; <tool>_timed_out marks runs whose error
+# indicates a timeout — those durations are the TIMEOUT LIMIT, not a real
+# analysis duration, and the runtime summary excludes them from median/p95
+# so a 300 s cap cannot masquerade as measured cost.
+TOOL_RUNTIME_COLUMNS = (
+    ["%s_seconds" % tool for tool in PIPELINE_TOOLS]
+    + ["%s_timed_out" % tool for tool in PIPELINE_TOOLS]
+)
+
+# Generation-side effort/timing view, filled for EVERY iteration (0 = the
+# shared initial generation) from the joined generation record.
+# generation_duration_seconds is only set for timing_mode "direct": batch
+# records carry no latency by design (queue-dominated wall time).
+GENERATION_COLUMNS = [
+    "generation_timing_mode",
+    "generation_duration_seconds",
+    "generation_input_tokens",
+    "generation_output_tokens",
+    "generation_reasoning_tokens",
+]
+
 COLUMNS = [
     "sample_id", "model", "execution_model", "problem_type", "benchmark",
     "variant", "iteration", "is_shared_initial",
@@ -126,14 +150,33 @@ COLUMNS = [
     "build_ok", "correctness_verdict", "correctness_pass_gridpoints",
     "mismatch_total",
     "blocking_count", "low_confidence_count", "non_blocking_count",
-] + ["%s_blocking" % tool for tool in PIPELINE_TOOLS] + [
+] + ["%s_blocking" % tool for tool in PIPELINE_TOOLS] + TOOL_RUNTIME_COLUMNS + [
     "enhanced_pass", "enhanced_fail", "enhanced_crash", "enhanced_timeout",
     "enhanced_build_failed", "enhanced_runtime_error", "enhanced_gated",
     "status", "stop_reason",
     "repair_prompt_tokens", "repair_completion_tokens",
+] + GENERATION_COLUMNS + [
     "duration_compile_seconds", "duration_analysis_seconds",
     "duration_tests_seconds",
+    # stage sums; duration_analysis_seconds (static+dynamic combined) is
+    # kept unchanged for compatibility, the split is new
+    "static_seconds", "dynamic_seconds", "correctness_seconds",
+    "enhanced_seconds",
 ]
+
+
+def tool_timed_out(entry: Dict[str, Any]) -> bool:
+    """Did this tool run end in a timeout (of the tool itself or its build)?
+
+    Detected from the recorded error string ("<tool> timed out", "timeout",
+    "build failed (timeout)", ...). Such entries still carry a duration —
+    but it is the configured limit, not a measured analysis time.
+    """
+    error = entry.get("error")
+    if not isinstance(error, str):
+        return False
+    lowered = error.lower()
+    return "timed out" in lowered or "timeout" in lowered
 
 
 def parse_args() -> argparse.Namespace:
@@ -175,6 +218,24 @@ class RunData:
             intermediate / orchestrator.stage_output_file(config, "dynamic_analysis")
         )
         self.responses = load_jsonl_by_sample(raw / "generations.jsonl")
+
+        # api_mode of the run that produced these responses, from the
+        # generation summary. Needed to classify LEGACY v2 records: batch
+        # mode already existed under schema v2 and stamped a near-zero
+        # poll-side duration_seconds onto batch records WITHOUT any marker
+        # in the record itself — the summary is the only per-run signal.
+        # Summaries predating the batch feature carry no api_mode and were
+        # all direct.
+        self.generation_api_mode = "direct"
+        summary_path = raw / "generation_summary.json"
+        if summary_path.exists():
+            try:
+                with summary_path.open("r", encoding="utf-8") as handle:
+                    self.generation_api_mode = (
+                        json.load(handle).get("api_mode") or "direct"
+                    )
+            except (json.JSONDecodeError, OSError):
+                pass
 
         self.enhanced: Dict[str, List[Dict[str, Any]]] = {}
         enhanced_path = intermediate / enhanced_stage.get(
@@ -230,6 +291,61 @@ def usage_tokens(usage: Any) -> "Tuple[Optional[int], Optional[int]]":
             break
 
     return prompt, completion
+
+
+def apply_generation_columns(
+    row: Dict[str, Any],
+    response: Optional[Dict[str, Any]],
+    run_api_mode: str = "direct",
+) -> None:
+    """Effort/timing view of the generation record behind this artifact.
+
+    Tokens come from api_response.usage_normalized where present (v3
+    records); older records are normalized on the fly from the raw usage —
+    same function, so both paths agree.
+
+    timing_mode classification, in order:
+      1. status.timing_mode — authoritative on v3 records.
+      2. generation_parameters.api_mode == "batch" — the marker v2 REPAIR
+         batch records carry (set by the orchestrator's batch merge).
+      3. `run_api_mode` from the run's generation summary — batch mode
+         already existed under schema v2 and stamped a near-zero poll-side
+         duration onto batch records with NO marker in the record itself;
+         the summary's api_mode is the only signal for those files.
+      4. "direct" — summaries predating the batch feature have no api_mode
+         and all of those runs were synchronous.
+    Latency is only taken from effectively-direct records; everything
+    classified as batch contributes NO duration (its recorded value, where
+    a legacy writer stamped one, is poll-side processing or queue time,
+    never model latency — docs/timing-and-effort.md).
+    """
+    if not response:
+        return
+
+    api_response = response.get("api_response") or {}
+    normalized = api_response.get("usage_normalized") or common.normalize_usage(
+        api_response.get("usage")
+    )
+
+    if normalized:
+        row["generation_input_tokens"] = normalized.get("input_tokens")
+        row["generation_output_tokens"] = normalized.get("output_tokens")
+        row["generation_reasoning_tokens"] = normalized.get("reasoning_tokens")
+
+    status = response.get("status") or {}
+    timing_mode = status.get("timing_mode")
+
+    if timing_mode is None:
+        record_mode = (response.get("generation_parameters") or {}).get("api_mode")
+        if record_mode == "batch" or run_api_mode == "batch":
+            timing_mode = "batch"
+        else:
+            timing_mode = "direct"
+
+    row["generation_timing_mode"] = timing_mode
+
+    if timing_mode == "direct":
+        row["generation_duration_seconds"] = status.get("duration_seconds")
 
 
 def apply_cleaning_columns(
@@ -316,10 +432,10 @@ def build_row(
         missing_stages.append("dynamic")
 
     blocking = low_confidence = non_blocking = 0
-    analysis_seconds = 0.0
+    stage_seconds = {"static": 0.0, "dynamic": 0.0}
     have_counts = False
 
-    for record in (static_record, dynamic_record):
+    for stage_name, record in (("static", static_record), ("dynamic", dynamic_record)):
         if record is None:
             continue
         for tool_name, entry in (record.get("tools") or {}).items():
@@ -332,13 +448,25 @@ def build_row(
                 non_blocking += int(entry.get("num_findings", 0)) - int(
                     entry.get("num_blocking", 0)
                 )
-                analysis_seconds += float(entry.get("duration_seconds", 0.0))
+
+                duration = float(entry.get("duration_seconds", 0.0))
+                stage_seconds[stage_name] += duration
+                row["%s_seconds" % tool_name] = round(duration, 3)
+                row["%s_timed_out" % tool_name] = tool_timed_out(entry)
 
     if have_counts:
         row["blocking_count"] = blocking
         row["low_confidence_count"] = low_confidence
         row["non_blocking_count"] = non_blocking
-        row["duration_analysis_seconds"] = round(analysis_seconds, 3)
+        # combined static+dynamic (pre-existing column, meaning unchanged)
+        row["duration_analysis_seconds"] = round(
+            stage_seconds["static"] + stage_seconds["dynamic"], 3
+        )
+
+    if static_record is not None:
+        row["static_seconds"] = round(stage_seconds["static"], 3)
+    if dynamic_record is not None:
+        row["dynamic_seconds"] = round(stage_seconds["dynamic"], 3)
 
     # ---- correctness -------------------------------------------------
     correctness_record = run_data.correctness.get(sample_id)
@@ -363,6 +491,9 @@ def build_row(
 
         test_seconds = sum(float(r.get("duration_seconds", 0.0)) for r in runs)
         row["duration_tests_seconds"] = round(test_seconds, 3)
+        row["correctness_seconds"] = round(
+            float(compile_info.get("duration_seconds") or 0.0) + test_seconds, 3
+        )
 
     # ---- enhanced ----------------------------------------------------
     benchmark_dir = (assembly_entry.get("drivers") or {}).get(
@@ -390,6 +521,9 @@ def build_row(
         row["enhanced_build_failed"] = counts.get("build_failed", 0)
         row["enhanced_runtime_error"] = counts.get("runtime_error", 0)
         row["enhanced_gated"] = sum(counts.get(s, 0) for s in ENHANCED_GATED)
+        row["enhanced_seconds"] = round(
+            sum(float(r.get("duration_seconds") or 0.0) for r in enhanced_records), 3
+        )
     elif enhanced_expected:
         missing_stages.append("enhanced")
 
@@ -402,6 +536,12 @@ def build_row(
         )
         row["repair_prompt_tokens"] = prompt_tokens
         row["repair_completion_tokens"] = completion_tokens
+
+    # ---- generation effort + timing (ALL iterations; 0 = the shared
+    # initial generation) ------------------------------------------------
+    apply_generation_columns(
+        row, run_data.responses.get(sample_id), run_data.generation_api_mode
+    )
 
     # ---- completeness ------------------------------------------------
     if missing_stages:
@@ -702,6 +842,199 @@ def clean_but_incorrect(rows: "List[Dict[str, Any]]") -> List[str]:
     return lines
 
 
+def _median_p95(values: "List[float]") -> "Tuple[Optional[float], Optional[float]]":
+    """(median, p95). Median because the runtime distributions are skewed
+    (means would be dominated by MUST deadlock timeouts and Valgrind
+    outliers); p95 as the honest tail. p95 = nearest-rank, hand-rolled —
+    no new dependencies."""
+    if not values:
+        return None, None
+
+    ordered = sorted(values)
+    p95_index = max(0, int(math.ceil(len(ordered) * 0.95)) - 1)
+
+    return statistics.median(ordered), ordered[p95_index]
+
+
+def _dedupe_measurement_rows(
+    rows: "List[Dict[str, Any]]",
+) -> "List[Dict[str, Any]]":
+    """One row per actually-produced artifact.
+
+    Iteration 0 is the SHARED initial generation: every variant's row
+    points at the same records, so counting it per variant would multiply
+    identical measurements by the number of variants. Iterations >= 1 are
+    genuinely distinct per variant and stay.
+    """
+    seen: set = set()
+    result: List[Dict[str, Any]] = []
+
+    for row in rows:
+        iteration = int(row["iteration"])
+        if iteration == 0:
+            key = (row["model"], row["sample_id"], 0)
+        else:
+            key = (row["model"], row["variant"], row["sample_id"], iteration)
+
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(row)
+
+    return result
+
+
+def runtime_cost_section(rows: "List[Dict[str, Any]]") -> List[str]:
+    """Median/p95 analysis runtime per tool x execution model + timeout share.
+
+    This is what lets detection performance be weighed against runtime
+    cost (gcc_analyzer ~1.03x vs. Valgrind's 20-50x vs. MUST's deadlock
+    timeouts). Timed-out runs are counted separately and EXCLUDED from
+    median/p95 — their recorded duration is the configured limit, not a
+    measured analysis time.
+    """
+    deduped = _dedupe_measurement_rows(rows)
+
+    lines = [
+        "Median and p95 of the per-sample tool runtime, split by execution "
+        "model (medians because the distributions are skewed). n = runs "
+        "with a recorded duration; timeouts are excluded from median/p95 "
+        "and reported as their own share.",
+        "",
+        "| tool | exec | n | median s | p95 s | timeouts |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+
+    printed = False
+
+    for tool in PIPELINE_TOOLS:
+        for execution_model in ("serial", "omp", "mpi"):
+            subset = [
+                r for r in deduped
+                if r["execution_model"] == execution_model
+                and r.get("%s_seconds" % tool) is not None
+            ]
+            if not subset:
+                continue
+
+            timeouts = [r for r in subset if r.get("%s_timed_out" % tool)]
+            measured = [
+                float(r["%s_seconds" % tool])
+                for r in subset
+                if not r.get("%s_timed_out" % tool)
+            ]
+
+            median, p95 = _median_p95(measured)
+            printed = True
+            lines.append(
+                "| %s | %s | %d | %s | %s | %s |"
+                % (
+                    tool,
+                    execution_model,
+                    len(subset),
+                    "%.2f" % median if median is not None else NA,
+                    "%.2f" % p95 if p95 is not None else NA,
+                    _rate(len(timeouts), len(subset)),
+                )
+            )
+
+    if not printed:
+        return ["No tool runtimes recorded."]
+
+    return lines
+
+
+def generation_effort_section(rows: "List[Dict[str, Any]]") -> List[str]:
+    """Token-based effort per model x iteration, plus direct-only latency.
+
+    Reasoning tokens are the PRIMARY effort metric: available in both API
+    modes, comparable across providers, and free of infrastructure noise.
+    Wall-clock latency is reported separately, from timing_mode == "direct"
+    records ONLY, and even then it includes network and provider load — see
+    docs/timing-and-effort.md for how it may be interpreted.
+    """
+    deduped = [
+        r for r in _dedupe_measurement_rows(rows)
+        if r.get("generation_input_tokens") is not None
+        or r.get("generation_output_tokens") is not None
+    ]
+
+    if not deduped:
+        return ["No generation usage data recorded."]
+
+    def tokens(subset: "List[Dict[str, Any]]", column: str) -> "List[int]":
+        return [int(r[column]) for r in subset if r.get(column) is not None]
+
+    lines = [
+        "Effort = tokens spent per generation (median over samples, plus "
+        "the run total). reasoning median NA means the provider reports no "
+        "reasoning-token field for this model.",
+        "",
+        "| model | iteration | n | input med | output med | reasoning med | "
+        "reasoning sum |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+
+    keys = sorted({(r["model"], int(r["iteration"])) for r in deduped})
+
+    for model, iteration in keys:
+        subset = [
+            r for r in deduped
+            if r["model"] == model and int(r["iteration"]) == iteration
+        ]
+        reasoning = tokens(subset, "generation_reasoning_tokens")
+
+        def med(values: "List[int]") -> str:
+            return "%d" % statistics.median(values) if values else NA
+
+        lines.append(
+            "| %s | %d | %d | %s | %s | %s | %s |"
+            % (
+                model,
+                iteration,
+                len(subset),
+                med(tokens(subset, "generation_input_tokens")),
+                med(tokens(subset, "generation_output_tokens")),
+                med(reasoning),
+                "%d" % sum(reasoning) if reasoning else NA,
+            )
+        )
+
+    # ---- direct latency, strictly separated --------------------------
+    lines.append("")
+    lines.append(
+        "Direct request latency (timing_mode == \"direct\" records ONLY — "
+        "batch records carry no latency by design, their wall time is "
+        "provider queue time). Latency additionally includes network and "
+        "provider load; comparable numbers require one contiguous direct "
+        "run."
+    )
+    lines.append("")
+    lines.append("| model | n (direct) | median s | p95 s |")
+    lines.append("| --- | --- | --- | --- |")
+
+    for model in sorted({r["model"] for r in deduped}):
+        latencies = [
+            float(r["generation_duration_seconds"])
+            for r in deduped
+            if r["model"] == model
+            and r.get("generation_timing_mode") == "direct"
+            and r.get("generation_duration_seconds") is not None
+        ]
+        median, p95 = _median_p95(latencies)
+        lines.append(
+            "| %s | %d | %s | %s |"
+            % (
+                model,
+                len(latencies),
+                "%.2f" % median if median is not None else NA,
+                "%.2f" % p95 if p95 is not None else NA,
+            )
+        )
+
+    return lines
+
+
 def cleaning_section(rows: "List[Dict[str, Any]]") -> List[str]:
     """Share of samples per model and cleaning flag, split by iteration.
 
@@ -873,6 +1206,22 @@ def render_markdown(
     parts.append('## "Statically clean but incorrect" (static_feedback, design §9)')
     parts.append("")
     parts.extend(clean_but_incorrect(rows))
+
+    parts.append("")
+    parts.append("## Runtime cost per tool")
+    parts.append("")
+    parts.extend(runtime_cost_section(rows))
+
+    parts.append("")
+    parts.append("## Generation effort and direct latency")
+    parts.append("")
+    parts.append(
+        "Measurement semantics: thesis/docs/timing-and-effort.md (why batch "
+        "wall time is not latency, why reasoning tokens are the primary "
+        "effort metric)."
+    )
+    parts.append("")
+    parts.extend(generation_effort_section(rows))
 
     parts.append("")
     parts.append("## Cleaning interventions")

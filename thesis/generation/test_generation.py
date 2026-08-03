@@ -196,6 +196,17 @@ def test_direct_run():
         check("refusal is not a success", records[1]["status"]["success"] is False)
         check("refusal typed", records[1]["status"]["error_type"] == "ModelRefusal")
 
+        check("schema v3", records[0]["schema_version"] == "generation.v3")
+        check("direct timing_mode on success",
+              records[0]["status"]["timing_mode"] == "direct")
+        check("direct timing_mode on refusal",
+              records[1]["status"]["timing_mode"] == "direct")
+        check("direct latency numeric",
+              isinstance(records[0]["status"]["duration_seconds"], (int, float)))
+        check("usage_normalized derived",
+              records[0]["api_response"]["usage_normalized"]
+              == {"input_tokens": 10, "output_tokens": 20, "reasoning_tokens": None})
+
         summary = json.loads((out_dir / "generation_summary.json").read_text(encoding="utf-8"))
         check("summary counts success", summary["counts"]["success"] == 1)
         check("summary counts refusal", summary["counts"]["refused"] == 1)
@@ -281,6 +292,18 @@ def test_batch_run():
             check("batch refusal typed", bad["status"]["error_type"] == "ModelRefusal")
             check("batch refusal finish_reason", bad["output"]["finish_reason"] == "refusal")
 
+            # batch timing semantics: NO latency, timestamps instead
+            for label, record in (("success", good), ("refusal", bad)):
+                check("batch %s timing_mode" % label,
+                      record["status"]["timing_mode"] == "batch")
+                check("batch %s has NO duration (queue time is not latency)" % label,
+                      record["status"]["duration_seconds"] is None)
+                check("batch %s carries both timestamps" % label,
+                      isinstance(record["status"].get("batch_submitted_at_utc"), str)
+                      and isinstance(record["status"].get("batch_completed_at_utc"), str))
+            check("batch usage_normalized derived like direct",
+                  good["api_response"]["usage_normalized"]["output_tokens"] == 20)
+
             summary = json.loads(
                 (out_dir / "generation_summary.json").read_text(encoding="utf-8")
             )
@@ -304,12 +327,149 @@ def test_batch_run():
             batch_api.submit_batch, batch_api.poll_batch = original
 
 
+def test_normalize_usage():
+    print("usage normalization: five provider shapes -> one view")
+
+    # OpenAI Responses API
+    check("openai shape", common.normalize_usage(
+        {"input_tokens": 100, "output_tokens": 50,
+         "output_tokens_details": {"reasoning_tokens": 30}})
+        == {"input_tokens": 100, "output_tokens": 50, "reasoning_tokens": 30})
+
+    # Anthropic (thinking_tokens; adaptive zero is preserved as 0, not None)
+    check("anthropic shape, explicit zero kept", common.normalize_usage(
+        {"input_tokens": 100, "output_tokens": 50,
+         "output_tokens_details": {"thinking_tokens": 0}})
+        == {"input_tokens": 100, "output_tokens": 50, "reasoning_tokens": 0})
+
+    # Gemini (flat thoughts_token_count, no details object)
+    check("gemini shape", common.normalize_usage(
+        {"prompt_token_count": 100, "candidates_token_count": 50,
+         "thoughts_token_count": 77})
+        == {"input_tokens": 100, "output_tokens": 50, "reasoning_tokens": 77})
+
+    # DashScope chat completions
+    check("dashscope shape", common.normalize_usage(
+        {"prompt_tokens": 100, "completion_tokens": 50,
+         "completion_tokens_details": {"reasoning_tokens": 12}})
+        == {"input_tokens": 100, "output_tokens": 50, "reasoning_tokens": 12})
+
+    # DashScope non-thinking model: details is null -> reasoning None
+    check("null details -> reasoning None", common.normalize_usage(
+        {"prompt_tokens": 100, "completion_tokens": 50,
+         "completion_tokens_details": None})["reasoning_tokens"] is None)
+
+    check("non-dict usage -> None", common.normalize_usage("repr(...)") is None)
+    check("None usage -> None", common.normalize_usage(None) is None)
+    check("bool is not a count", common.normalize_usage(
+        {"input_tokens": True, "output_tokens": 5})["input_tokens"] is None)
+
+
+def test_reasoning_evidence():
+    print("reasoning evidence: policy detection + warning cases")
+
+    check("anthropic effort expects", common.reasoning_expected({"effort": "medium"}))
+    check("anthropic thinking expects",
+          common.reasoning_expected({"thinking": "adaptive"}))
+    check("openai effort expects",
+          common.reasoning_expected({"reasoning_effort": "medium"}))
+    check("gemini level expects",
+          common.reasoning_expected({"thinking_level": "medium"}))
+    check("dashscope enable_thinking expects",
+          common.reasoning_expected({"extra_body": {"enable_thinking": True}}))
+    check("non-thinking model does not expect",
+          not common.reasoning_expected({"extra_body": {"thinking_budget": 8192}}))
+    check("empty config does not expect", not common.reasoning_expected({}))
+
+    def record_with(reasoning):
+        return {"sample_id": "s1", "api_response": {"usage_normalized": {
+            "input_tokens": 1, "output_tokens": 1, "reasoning_tokens": reasoning}}}
+
+    thinking_config = {"effort": "medium"}
+
+    warning = common.reasoning_evidence_warning(record_with(None), thinking_config)
+    check("missing field warns about ignored parameter",
+          warning is not None and "may be ignored" in warning)
+
+    warning = common.reasoning_evidence_warning(record_with(0), thinking_config)
+    check("explicit zero warns softly (adaptive)",
+          warning is not None and "adaptive" in warning)
+
+    check("actual reasoning -> no warning",
+          common.reasoning_evidence_warning(record_with(500), thinking_config) is None)
+    check("non-thinking model -> no warning",
+          common.reasoning_evidence_warning(record_with(None), {}) is None)
+
+
+def test_validator_timing():
+    print("validator: v3 timing rules, v2 back-compat")
+    from thesis.generation import validate_generations as vg
+
+    prompt = {"name": "27_reduce_average", "problem_type": "reduce",
+              "language": "cpp", "parallelism_model": "serial",
+              "prompt": PROMPT_TEXT}
+    summary = {"counts": {"success": 0, "truncated": 0, "refused": 0, "error": 0}}
+
+    def fresh_record():
+        record = common.build_empty_record(
+            run_id="unit", model_config={"id": "m", "provider": "openai",
+                                         "model_name": "fake"},
+            prompt=prompt, prompt_field="prompt", sample_index=0,
+            generation_parameters={},
+        )
+        common.apply_success(record, summary, ANSWER, "completed", False,
+                             "r-1", {"input_tokens": 1, "output_tokens": 2})
+        return record
+
+    direct = fresh_record()
+    common.apply_direct_timing(direct, started_at=0.0)
+    # apply_direct_timing measures against wall clock; rewrite for a stable test
+    direct["status"]["duration_seconds"] = 1.5
+    errors, _ = vg.validate_record(direct)
+    check("valid direct v3 record passes", errors == [])
+
+    batch = fresh_record()
+    common.apply_batch_timing(batch, "2026-08-01T00:00:00Z", "2026-08-01T04:00:00Z")
+    errors, _ = vg.validate_record(batch)
+    check("valid batch v3 record passes", errors == [])
+
+    bad_batch = fresh_record()
+    common.apply_batch_timing(bad_batch, "2026-08-01T00:00:00Z", "2026-08-01T04:00:00Z")
+    bad_batch["status"]["duration_seconds"] = 14400.0  # the queue-time mistake
+    errors, _ = vg.validate_record(bad_batch)
+    check("batch record with duration rejected",
+          any("queue time" in e for e in errors))
+
+    no_stamps = fresh_record()
+    common.apply_batch_timing(no_stamps, None, None)
+    errors, _ = vg.validate_record(no_stamps)
+    check("batch record without timestamps rejected",
+          sum("batch_" in e for e in errors) == 2)
+
+    no_mode = fresh_record()
+    no_mode["status"]["timing_mode"] = None
+    errors, _ = vg.validate_record(no_mode)
+    check("v3 without timing_mode rejected",
+          any("timing_mode" in e for e in errors))
+
+    legacy = fresh_record()
+    legacy["schema_version"] = "generation.v2"
+    del legacy["status"]["timing_mode"]
+    legacy["status"]["duration_seconds"] = 1.5
+    errors, _ = vg.validate_record(legacy)
+    check("v2 legacy record still validates without timing fields",
+          errors == [])
+
+
 def main():
     tests = [
         test_timeout_resolution,
         test_api_mode_resolution,
         test_direct_run,
         test_batch_run,
+        test_normalize_usage,
+        test_reasoning_evidence,
+        test_validator_timing,
     ]
 
     for test in tests:

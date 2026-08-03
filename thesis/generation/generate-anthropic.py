@@ -19,6 +19,12 @@ Notes:
       max_tokens, so the budget must be generous.
     - Refusals arrive as HTTP 200 with stop_reason == "refusal"; they are
       recorded as error_type "ModelRefusal", not as success or API error.
+    - Usage fields (persisted verbatim in api_response.usage):
+      input_tokens, output_tokens; reasoning tokens live in
+      `output_tokens_details.thinking_tokens` (the source for
+      usage_normalized.reasoning_tokens). With adaptive thinking a
+      legitimate 0 occurs on easy tasks — a MISSING field, by contrast,
+      would mean the thinking parameter is not in effect.
 """
 
 from __future__ import annotations

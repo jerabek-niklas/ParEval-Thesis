@@ -5,6 +5,11 @@ Called by:
 
 Example:
     python thesis/generation/generate-gemini.py --config thesis/config/config.yaml --profile smoke --model-id gemini_31_pro
+
+Usage fields (usage_metadata, persisted verbatim in api_response.usage):
+prompt_token_count, candidates_token_count; reasoning tokens live FLAT in
+`thoughts_token_count` (no details sub-object — the source for
+usage_normalized.reasoning_tokens).
 """
 
 from __future__ import annotations

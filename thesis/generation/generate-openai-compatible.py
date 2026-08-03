@@ -10,6 +10,17 @@ Notes:
     Uses the Chat Completions API against a configurable base_url
     (model_config.base_url or the env var named in model_config.base_url_env).
     Provider-specific options go through model_config.extra_body.
+
+    Usage fields (persisted verbatim in api_response.usage): prompt_tokens,
+    completion_tokens; reasoning tokens live in
+    `completion_tokens_details.reasoning_tokens` (DashScope; verified live
+    for the four thinking models in model-set.md's probe table). On
+    non-thinking models (qwen3-coder-plus) `completion_tokens_details` is
+    null — usage_normalized.reasoning_tokens is then None, which is
+    correct: the model has nothing to report, the parameter is not being
+    ignored. The separate `reasoning_content` text is NOT persisted (the
+    adapter reads message.content only); its token count is what
+    reasoning_tokens already measures.
 """
 
 from __future__ import annotations

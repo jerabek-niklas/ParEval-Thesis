@@ -11,6 +11,11 @@ Notes:
     so they are never sent and recorded as None. Reasoning tokens count
     toward max_output_tokens; truncation is detected via response.status ==
     "incomplete" with incomplete_details.reason == "max_output_tokens".
+
+    Usage fields (persisted verbatim in api_response.usage): input_tokens,
+    output_tokens; reasoning tokens live in
+    `output_tokens_details.reasoning_tokens` (always present on reasoning
+    models — the source for usage_normalized.reasoning_tokens).
 """
 
 from __future__ import annotations
