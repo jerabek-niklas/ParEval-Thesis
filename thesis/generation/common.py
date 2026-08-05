@@ -62,6 +62,36 @@ class ModelRefusal(Exception):
     """
 
 
+class ReasoningBudgetExhausted(Exception):
+    """The model spent the ENTIRE completion budget on reasoning.
+
+    Observed on DeepSeek V4 Pro (reasoning_effort high): finish_reason
+    "length" with EMPTY message.content — all 16384 completion tokens were
+    reasoning, the answer never started (smoke_002 combined_feedback
+    iter1, sample deepseek_v4_pro__dense_la__00_dense_la_lu_decomp__
+    serial__sample_0: 58K chars of reasoning_content for a 1.8K request).
+
+    DETERMINISTIC for a given request — retrying reproduces it token for
+    token (measured: 3 identical failures), so it is TERMINAL like
+    ModelRefusal: the record is persisted with the diagnosis in
+    error_message and is NOT dropped for retry on resume. The actual fix
+    is bounding the reasoning budget in the model config.
+    """
+
+
+# Failures that are DETERMINISTIC for a given request: retrying reproduces
+# the same outcome and only costs money. load_resume_state (initial
+# generation) keeps these records instead of dropping them for retry.
+DETERMINISTIC_ERROR_TYPES = ("ReasoningBudgetExhausted",)
+
+# The repair orchestrator's terminal set is WIDER: a ModelRefusal of a
+# repair request also ends the sample (as repair_unusable) — retrying
+# refusals forever would stall the wave. The initial generation, by
+# contrast, deliberately RETRIES refusals (pre-existing behavior: a fresh
+# attempt at the same task prompt can pass).
+TERMINAL_ERROR_TYPES = ("ModelRefusal",) + DETERMINISTIC_ERROR_TYPES
+
+
 @dataclass
 class GenerationResult:
     raw_text: str
@@ -149,11 +179,16 @@ def append_jsonl(path: Path, item: dict[str, Any]) -> None:
 
 
 def load_resume_state(path: Path) -> set[str]:
-    """Return sample_ids of successful records; drop failed records for retry.
+    """Return sample_ids of terminal records; drop retryable failures.
 
-    Only records with status.success == True are treated as existing. Failed
-    records are removed from the JSONL so that retried samples do not create
-    duplicate sample_ids (validate_generations.py enforces uniqueness).
+    Records with status.success == True are done. Failed records are
+    normally removed from the JSONL so a rerun retries them (without
+    duplicate sample_ids — validate_generations.py enforces uniqueness);
+    this includes ModelRefusal, which a fresh attempt can clear.
+    EXCEPTION: failures whose error_type is in DETERMINISTIC_ERROR_TYPES
+    are KEPT and count as existing — retrying them reproduces the failure
+    token for token and only costs money; the record with its diagnosis
+    stays in the JSONL.
     """
     if not path.exists():
         return set()
@@ -174,9 +209,13 @@ def load_resume_state(path: Path) -> set[str]:
                 continue
 
             sample_id = item.get("sample_id")
-            success = (item.get("status") or {}).get("success") is True
+            status = item.get("status") or {}
+            terminal = (
+                status.get("success") is True
+                or status.get("error_type") in DETERMINISTIC_ERROR_TYPES
+            )
 
-            if success and sample_id:
+            if terminal and sample_id:
                 successful_ids.add(sample_id)
                 kept_lines.append(line if line.endswith("\n") else line + "\n")
             else:

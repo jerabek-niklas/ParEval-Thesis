@@ -1317,11 +1317,12 @@ class RepairLoop:
 
     def _load_terminal_responses(self, path: Path) -> "Dict[str, Dict[str, Any]]":
         """Terminal response records by sample_id. Mirrors
-        common.load_resume_state, with one repair-specific difference:
-        ModelRefusal is TERMINAL (a refusal of a repair request ends the
-        sample as repair_unusable — retrying refusals forever would stall
-        the wave), while transport/API errors stay retryable and are
-        dropped for the next attempt."""
+        common.load_resume_state: success and TERMINAL_ERROR_TYPES
+        (ModelRefusal — a refusal of a repair request ends the sample as
+        repair_unusable; ReasoningBudgetExhausted — deterministic, retries
+        reproduce it and only cost money) end the sample, while
+        transport/API errors stay retryable and are dropped for the next
+        attempt."""
         if not path.exists():
             return {}
 
@@ -1341,7 +1342,9 @@ class RepairLoop:
                     continue
 
                 success = (record.get("status") or {}).get("success") is True
-                refusal = (record.get("status") or {}).get("error_type") == "ModelRefusal"
+                refusal = (record.get("status") or {}).get(
+                    "error_type"
+                ) in common.TERMINAL_ERROR_TYPES
 
                 if record.get("sample_id") and (success or refusal):
                     terminal[record["sample_id"]] = record
@@ -1416,11 +1419,23 @@ class RepairLoop:
         missing = [r["sample_id"] for r in requests if r["sample_id"] not in terminal]
 
         for sample_id, record in terminal.items():
-            if (record.get("status") or {}).get("error_type") == "ModelRefusal":
+            error_type = (record.get("status") or {}).get("error_type")
+
+            if error_type == "ModelRefusal":
                 self.mark_unusable(
                     sample_id,
                     target_iteration,
                     "model refused the repair request",
+                )
+            elif error_type == "ReasoningBudgetExhausted":
+                # deterministic per request (retries reproduce it) — the
+                # sample ends here; the diagnosis is in the record's
+                # error_message and in this state entry
+                self.mark_unusable(
+                    sample_id,
+                    target_iteration,
+                    "reasoning consumed the whole output budget: "
+                    + str((record.get("status") or {}).get("error_message"))[:200],
                 )
 
         if missing:

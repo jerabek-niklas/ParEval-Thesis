@@ -138,7 +138,7 @@ class OpenAICompatibleAdapter:
         finish_reason = self._extract_finish_reason(response)
 
         try:
-            raw_text = self._extract_text(response)
+            raw_text = self._extract_text(response, finish_reason)
         except Exception as error:
             error.raw_response = response  # type: ignore[attr-defined]
             raise
@@ -161,7 +161,7 @@ class OpenAICompatibleAdapter:
         return getattr(choices[0], "finish_reason", None)
 
     @staticmethod
-    def _extract_text(response: Any) -> str:
+    def _extract_text(response: Any, finish_reason: "str | None" = None) -> str:
         choices = getattr(response, "choices", None)
 
         if not choices:
@@ -176,6 +176,26 @@ class OpenAICompatibleAdapter:
 
         if isinstance(content, str) and content.strip():
             return content
+
+        # Empty content at finish_reason "length": the model spent the whole
+        # completion budget on reasoning and the answer never started
+        # (observed on DeepSeek V4 Pro at reasoning_effort high). This is
+        # deterministic per request — raised as the TERMINAL
+        # ReasoningBudgetExhausted (resume keeps the record instead of
+        # burning money on identical retries), with the usage numbers in the
+        # message so the diagnosis lives in the record, not the console.
+        if finish_reason == "length":
+            usage = getattr(response, "usage", None)
+            completion = getattr(usage, "completion_tokens", None)
+            details = getattr(usage, "completion_tokens_details", None)
+            reasoning = getattr(details, "reasoning_tokens", None)
+
+            raise common.ReasoningBudgetExhausted(
+                "reasoning consumed the output budget (reasoning_tokens=%s "
+                "of %s completion_tokens); bound it via extra_body."
+                "thinking_budget or lower reasoning_effort"
+                % (reasoning, completion)
+            )
 
         raise RuntimeError("Could not extract text from OpenAI-compatible response.")
 

@@ -7,7 +7,7 @@ experiment:
 
 profiles:
   smoke:
-    run_id: smoke_001
+    run_id: smoke_002
     prompt_limit: 3
     num_samples_per_prompt: 1
 
@@ -66,7 +66,7 @@ generation_defaults:
   # timeout_seconds x 3 (SDK) x (1 + retry_attempts) in the pathological case.
   # Measured with timeout_seconds 1 / retry_attempts 1: 12 s to a clean
   # APITimeoutError record instead of a hang.
-  timeout_seconds: 120
+  timeout_seconds: 300
   retry_attempts: 2
   sleep_seconds_between_requests: 0.0
   # Initial generation: direct = one synchronous call per sample;
@@ -214,6 +214,17 @@ models:
     extra_body:
       enable_thinking: true
       reasoning_effort: high
+      # REQUIRED at effort high: without a budget the reasoning can consume
+      # the ENTIRE max_tokens (measured on smoke_002 combined_feedback
+      # iter1, sample ...__serial__sample_0: 16384/16385 completion tokens
+      # were reasoning, content EMPTY, finish_reason length, 58K chars of
+      # reasoning_content for a 1.8K request — deterministic over 3
+      # retries). With the budget the same request answers cleanly:
+      # reasoning_tokens capped at exactly 8192, finish_reason stop
+      # (verified 2026-08-05). Same value as the Qwen models —
+      # non-constraining for normal spend (probes: 112-1721 tokens), well
+      # below the 16384 output cap.
+      thinking_budget: 8192
 
   # --- model-set extension (2026-07-21); API ids verified against the
   # --- provider models endpoints, see thesis/docs/model-set.md ---------
@@ -317,6 +328,11 @@ models:
     extra_body:
       enable_thinking: true
       reasoning_effort: high
+      # Same guard and value as deepseek_v4_pro (size pair runs one
+      # setting): unbounded reasoning at effort high can displace the whole
+      # output budget (measured on the pro model, see there). Acceptance
+      # verified for flash 2026-08-05.
+      thinking_budget: 8192
 
   # --- test-case generator, NOT part of the evaluation set ---------------
   # Deliberately enabled: false — this model must NEVER take part in a
@@ -573,7 +589,7 @@ stages:
     # is not workable for 11 models x 3 variants x N iterations; with the
     # templates below the loop runs unattended. Switch back to `manual` if
     # the docker socket is not available to the orchestrator.
-    external_tools_mode: docker
+    external_tools_mode: manual
     external_tools: [parcoach, llov]
     # Repo path as the HOST daemon sees it. The orchestrator runs INSIDE the
     # toolchain container (repo at /workspace) and starts the tool containers

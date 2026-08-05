@@ -327,6 +327,86 @@ def test_batch_run():
             batch_api.submit_batch, batch_api.poll_batch = original
 
 
+def test_reasoning_budget_exhausted():
+    print("reasoning-budget exhaustion: specific error, terminal, no retry")
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location(
+        "gen_oc_test", str(REPO_ROOT / "thesis" / "generation"
+                           / "generate-openai-compatible.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    # mocked DashScope response: finish_reason length, EMPTY content, all
+    # completion tokens spent on reasoning (the measured smoke_002 shape)
+    response = SimpleNamespace(
+        choices=[SimpleNamespace(
+            message=SimpleNamespace(content=""), finish_reason="length")],
+        usage=SimpleNamespace(
+            completion_tokens=16384,
+            completion_tokens_details=SimpleNamespace(reasoning_tokens=16384)),
+    )
+
+    try:
+        mod.OpenAICompatibleAdapter._extract_text(response, "length")
+        check("specific exception raised", False)
+    except common.ReasoningBudgetExhausted as error:
+        message = str(error)
+        check("specific exception raised", True)
+        check("usage numbers in the message",
+              "reasoning_tokens=16384" in message
+              and "16384 completion_tokens" in message)
+    except Exception:
+        check("specific exception raised", False)
+
+    # empty content WITHOUT length keeps the generic error (extraction bug,
+    # not a budget problem — must stay retryable)
+    try:
+        mod.OpenAICompatibleAdapter._extract_text(
+            SimpleNamespace(choices=[SimpleNamespace(
+                message=SimpleNamespace(content=""), finish_reason="stop")]),
+            "stop")
+        check("generic error for non-length empty content", False)
+    except common.ReasoningBudgetExhausted:
+        check("generic error for non-length empty content", False)
+    except RuntimeError:
+        check("generic error for non-length empty content", True)
+
+    # end to end: the record is persisted with the diagnosis and NOT retried
+    class BudgetFakeAdapter(FakeAdapter):
+        def generate(self, *args, **kwargs):
+            self.calls += 1
+            raise common.ReasoningBudgetExhausted(
+                "reasoning consumed the output budget (reasoning_tokens=16384 "
+                "of 16384 completion_tokens)")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        config_path, out_dir = write_world(tmp)
+        adapter = BudgetFakeAdapter()
+        run_with(config_path, adapter)
+
+        records = read_records(out_dir)
+        check("failed records persisted", len(records) == 2)
+        check("error type recorded",
+              records[0]["status"]["error_type"] == "ReasoningBudgetExhausted")
+        check("diagnosis in the record",
+              "reasoning consumed the output budget"
+              in records[0]["status"]["error_message"])
+
+        # resume: terminal — must NOT be dropped for retry
+        adapter2 = BudgetFakeAdapter()
+        run_with(config_path, adapter2)
+        check("no retry on resume (terminal like ModelRefusal)",
+              adapter2.calls == 0)
+        check("records kept through resume", len(read_records(out_dir)) == 2)
+
+        summary = json.loads(
+            (out_dir / "generation_summary.json").read_text(encoding="utf-8"))
+        check("resume counts them as existing",
+              summary["counts"]["skipped_existing"] == 2)
+
+
 def test_normalize_usage():
     print("usage normalization: five provider shapes -> one view")
 
@@ -467,6 +547,7 @@ def main():
         test_api_mode_resolution,
         test_direct_run,
         test_batch_run,
+        test_reasoning_budget_exhausted,
         test_normalize_usage,
         test_reasoning_evidence,
         test_validator_timing,
