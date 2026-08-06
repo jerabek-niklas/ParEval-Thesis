@@ -66,7 +66,9 @@ def fixture_config(tmp):
             "dynamic_analysis": {
                 "tools": {
                     "asan_ubsan": {"enabled": True},
-                    "tsan": {"enabled": False},
+                    # enabled but never present in any record: the
+                    # convergence table must show it as n/a, not hide it
+                    "tsan": {"enabled": True},
                     "memcheck": {"enabled": False},
                     "must": {"enabled": False},
                 }
@@ -91,11 +93,11 @@ def jsonl(config, run_id, file_name, records, raw=False):
 
 
 def tool_entry(ran=True, findings=0, blocking=0, low_confidence=0, seconds=0.5,
-               error=None):
+               error=None, finding_entries=None):
     return {
         "ran": ran, "num_findings": findings, "num_blocking": blocking,
         "num_low_confidence": low_confidence, "duration_seconds": seconds,
-        "findings": [], "error": error,
+        "findings": finding_entries or [], "error": error,
     }
 
 
@@ -141,8 +143,13 @@ def build_world(tmp):
     ])
     jsonl(config, BASE, "static_analysis.jsonl", [
         {"sample_id": S_SERIAL, "tools": {
-            "compiler": tool_entry(findings=1, blocking=1),
-            "clang_tidy": tool_entry(findings=1, blocking=0, seconds=1.0),
+            "compiler": tool_entry(findings=1, blocking=1, finding_entries=[
+                {"check_id": "error", "blocking": True,
+                 "message": "no matching function"}]),
+            "clang_tidy": tool_entry(findings=1, blocking=0, seconds=1.0,
+                                     finding_entries=[
+                {"check_id": "misc-const-correctness", "blocking": False,
+                 "message": "style"}]),
         }},
         {"sample_id": S_OMP, "tools": {
             "compiler": tool_entry(),
@@ -301,6 +308,14 @@ def test_rows():
               serial0["generation_timing_mode"] == "direct"
               and serial0["generation_duration_seconds"] == 4.2)
 
+        # ---- error classes (Fehlerklassen-Ebene) ---------------------
+        check("compile error classified as build",
+              serial0["class_build_blocking"] == 1)
+        check("non-blocking finding carries no class count",
+              serial0["class_other_blocking"] == 0)
+        check("0 is a statement, not NA (analysis ran)",
+              serial0["class_race_blocking"] == 0)
+
         serial1 = row_of(rows, S_SERIAL, "static_feedback", 1)
         check("iter1 not shared", serial1["is_shared_initial"] is False)
         check("iter1 verdict pass", serial1["correctness_verdict"] == "pass")
@@ -333,6 +348,8 @@ def test_rows():
               and omp1["na_reason"] == "repair_unusable")
         check("unusable row: analytic columns empty",
               omp1["build_ok"] is None and omp1["blocking_count"] is None)
+        check("unusable row: class columns stay NA (nothing analyzed)",
+              omp1["class_build_blocking"] is None)
         check("unusable row keeps the state", omp1["status"] == "repair_unusable")
 
         tf0 = row_of(rows, S_SERIAL, "test_feedback", 0)
@@ -394,9 +411,27 @@ def test_markdown():
         check("stop distribution counts unusable",
               "| repair_unusable | 1 |" in markdown)
 
-        # convergence: compiler blocking 2 at iteration 0 (1 serial + 0 omp
-        # = 1)... serial has 1, omp 0 -> 1; iteration 1: 0
-        check("convergence table lists compiler", "compiler" in markdown)
+        # convergence: ALL enabled tools appear as columns (config-driven,
+        # not "tools with findings"); tsan is enabled but present in no
+        # record -> n/a everywhere, asan_ubsan ran with 0 findings -> 0
+        check("convergence lists all enabled tools incl. finding-free ones",
+              "| iteration | artifacts | compiler | clang_tidy | asan_ubsan | tsan |"
+              in markdown)
+        check("enabled-but-never-ran tool shows n/a, ran-and-clean shows 0",
+              "| 0 | 2 | 1 | 0 | 0 | n/a |" in markdown)
+
+        # error classes: the compile error surfaces as class `build`,
+        # cells are "findings (samples)"
+        check("class section present",
+              "## Blocking findings by error class" in markdown)
+        check("class x iteration table rendered",
+              "**static_feedback — class x iteration" in markdown)
+        check("build class counted with sample dedup",
+              "| 0 | 2 | 1 (1) |" in markdown)
+        check("class x model final-state table rendered",
+              "**static_feedback — class x model" in markdown)
+        check("class x execution model at iteration 0 rendered",
+              "**class x execution model at iteration 0" in markdown)
 
         check("clean-but-incorrect uses the final artifact",
               "ParEval-incorrect among them: 0.0% (0/1)" in markdown)
@@ -510,8 +545,39 @@ def test_legacy_timing_classification():
           and row["generation_duration_seconds"] == 3.0)
 
 
+def test_class_dedup_and_cells():
+    print("error classes: cross-tool sample dedup (redundancy rule)")
+    from thesis.analysis_overview.build_overview import _class_cells
+    from thesis.evaluation.finding_classes import classify_finding
+
+    # llov and tsan report the SAME race on one sample: two findings land
+    # in the row's race counter...
+    row = {"class_%s_blocking" % name: 0 for name in
+           ("memory", "uninitialized", "null_deref", "arithmetic", "race",
+            "deadlock", "mpi_usage", "api_misuse", "build", "other")}
+    for tool, check_id in (("llov", "llov-data-race"), ("tsan", "tsan-data-race")):
+        cls = classify_finding(tool, check_id)
+        row["class_%s_blocking" % cls] += 1
+
+    cells = _class_cells([row])
+    check("llov+tsan same race -> findings 2", cells["race"][0] == 2)
+    check("llov+tsan same race -> samples 1 (deduplicated)",
+          cells["race"][1] == 1)
+
+    # a second sample without the race: sample rate 1 of 2, sums unchanged
+    clean = dict(row)
+    clean["class_race_blocking"] = 0
+    cells = _class_cells([row, clean])
+    check("sample rate counts rows with >=1", cells["race"] == (2, 1))
+
+    # rows with None (nothing analyzed) are excluded from both numbers
+    cells = _class_cells([row, {"class_race_blocking": None}])
+    check("NA rows excluded", cells["race"] == (2, 1))
+
+
 def main():
-    tests = [test_rows, test_csv, test_markdown, test_legacy_timing_classification]
+    tests = [test_rows, test_csv, test_markdown,
+             test_legacy_timing_classification, test_class_dedup_and_cells]
 
     for test in tests:
         test()

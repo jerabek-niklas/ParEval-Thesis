@@ -4,9 +4,13 @@ Every format decision here derives from thesis/docs/repair-loop-design.md
 (section 4, "Repair request format"): stateless self-contained requests,
 cleaned code as the line-number reference, driver-located compile errors
 translated for the model, compressed history with truncated messages, and
-NO old mismatch numbers in any history mode — fillRand runs without a
-persisted seed, so expected/got values from past iterations belong to
-different random inputs and would mislead the model.
+NO old mismatch numbers in any history mode. CORRECTED RATIONALE
+(2026-08-06): fillRand draws from UNSEEDED rand() (as if srand(1)), so the
+validation inputs are IDENTICAL across runs and iterations — old
+expected/got values are not "other random inputs". The rule stays because
+the draw ORDER can shift between call sites within a process and, more
+importantly, because old numbers describe the PREVIOUS code's output —
+after a repair the current numbers are the only ones that apply.
 
 This module is pure string building over existing stage records
 (static_analysis.jsonl, dynamic_analysis.jsonl, correctness.jsonl). It
@@ -316,7 +320,7 @@ def render_correctness(
     when the driver-patch-provided fields exist, otherwise plain verdicts.
 
     Field contract (run_correctness.py, parse_mismatch_output):
-        run["mismatches"] = [{"index": int?, "expected": x, "got": y,
+        run["mismatches"] = [{"index": int?, "rel": float?, "expected": x, "got": y,
                               "input": v?}, ...]
         run["mismatch_total"] = <int>   # ALL differing indices, not just shown
     ("mismatch" is accepted as a legacy alias.) When total > shown, the
@@ -339,6 +343,10 @@ def render_correctness(
         entries = (run.get("mismatches") or run.get("mismatch") or [])[:max_indices]
 
         for entry in entries:
+            # values pass through VERBATIM — no re-formatting/rounding in
+            # the renderer; the driver already prints round-trip precision,
+            # and any rounding here would reintroduce the
+            # "expected == got" self-contradiction the precision fix removed
             if entry.get("index") is not None:
                 detail = "    index %s: expected %s, got %s" % (
                     entry.get("index"),
@@ -350,6 +358,10 @@ def render_correctness(
                     entry.get("expected"),
                     entry.get("got"),
                 )
+            if entry.get("rel") is not None:
+                # rounding-vs-logic signal for the model (rel ~1e-9 =
+                # rounding hunt, rel large/nan = logic bug)
+                detail += " (rel %.2e)" % float(entry["rel"])
             if "input" in entry:
                 detail += " (input %s)" % entry["input"]
             lines.append(detail)

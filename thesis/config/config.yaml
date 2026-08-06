@@ -554,14 +554,32 @@ stages:
     explicit_values_max_size: 64
     # baseline.hpp is capped to this many chars in the generation prompt
     baseline_prompt_max_chars: 12000
-    # timeout per differential run (seconds)
+    # Which execution models the enhanced stage covers. [serial] = the
+    # historical behavior; the PILOT sets [serial, omp, mpi]. The GATES
+    # (baseline selftest + fast-math stability probe) stay SERIAL in every
+    # case — pilot decision, residual risks documented in
+    # docs/enhanced-tests-parallel.md: (a) driver divergence can surface as
+    # crash/timeout on omp/mpi model runs and needs manual sighting,
+    # (b) parallel rounding of a serial oracle shows up as small relative
+    # deviations at many indices (rounding signature, not a model error).
+    execution_models: [serial, omp, mpi]
+    # ONE fixed launch point for parallel samples — deliberately NOT a
+    # grid (launch grids are the correctness stage's axis). omp: thread
+    # count via OMP_NUM_THREADS + argv, mpi: mpirun -np ranks — both via
+    # the correctness stage's LaunchConfig.
+    enhanced_launch:
+      omp_threads: 4
+      mpi_ranks: 4
+    # timeout per differential run (seconds). Covers the mpirun startup
+    # overhead too (~1-2 s per run); generous headroom at the tiny
+    # DRIVER_PROBLEM_SIZE (1<<4) the stage builds with.
     run_timeout_seconds: 30
     # where generate_test_specs.py writes and run_enhanced_tests.py reads
     specs_file: thesis/results/cache/enhanced/specs.jsonl
 
   repair:
     enabled: true
-    max_iterations: 3
+    max_iterations: 2
     # Loop orchestrator (thesis/repair/orchestrator.py + run_repair.py).
     # Which of the three ablation variants run (repair-loop-design.md §2).
     variants: [static_feedback, test_feedback, combined_feedback]

@@ -1,32 +1,32 @@
 # Consolidated overview — run smoke_002
 
-Generated 2026-08-05T22:38:48.664580Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
+Generated 2026-08-06T09:46:06.259773Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
 
 ## Pass-rate trajectories (ParEval vs. enhanced — overfitting view)
 
 ### static_feedback
 | iteration | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| 0 | 33 | 78.8% (26/33) | 100.0% (220/220) |
-| 1 | 33 | 75.8% (25/33) | 100.0% (220/220) |
-| 2 | 33 | 75.8% (25/33) | 100.0% (220/220) |
-| 3 | 33 | 75.8% (25/33) | 100.0% (220/220) |
+| 0 | 33 | 78.8% (26/33) | 99.6% (235/236) |
+| 1 | 33 | 75.8% (25/33) | 100.0% (228/228) |
+| 2 | 33 | 75.8% (25/33) | 100.0% (228/228) |
+| 3 | 33 | 75.8% (25/33) | 100.0% (228/228) |
 
 ### test_feedback
 | iteration | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| 0 | 33 | 78.8% (26/33) | 100.0% (220/220) |
-| 1 | 33 | 84.8% (28/33) | 100.0% (220/220) |
-| 2 | 33 | 93.9% (31/33) | 100.0% (220/220) |
-| 3 | 33 | 93.9% (31/33) | 100.0% (220/220) |
+| 0 | 33 | 78.8% (26/33) | 99.6% (235/236) |
+| 1 | 33 | 84.8% (28/33) | 100.0% (228/228) |
+| 2 | 33 | 93.9% (31/33) | 100.0% (228/228) |
+| 3 | 33 | 93.9% (31/33) | 100.0% (228/228) |
 
 ### combined_feedback
 | iteration | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| 0 | 33 | 78.8% (26/33) | 100.0% (220/220) |
-| 1 | 33 | 84.8% (28/33) | 100.0% (220/220) |
-| 2 | 33 | 84.8% (28/33) | 100.0% (220/220) |
-| 3 | 33 | 90.9% (30/33) | 100.0% (220/220) |
+| 0 | 33 | 78.8% (26/33) | 99.6% (235/236) |
+| 1 | 33 | 84.8% (28/33) | 100.0% (228/228) |
+| 2 | 33 | 84.8% (28/33) | 100.0% (228/228) |
+| 3 | 33 | 90.9% (30/33) | 100.0% (228/228) |
 
 ## Stop-reason distribution
 
@@ -50,65 +50,158 @@ Generated 2026-08-05T22:38:48.664580Z. Source: stage JSONLs joined on (sample_id
 
 ## Blocking findings per tool over iterations (convergence)
 
-Counts are per produced artifact at that iteration (no carry-forward — this shows what the loop's artifacts still contain).
+Counts are per produced artifact at that iteration (no carry-forward — this shows what the loop's artifacts still contain). ALL enabled tools are listed, not just those with findings.
 
 ### static_feedback
-| iteration | artifacts | compiler | gcc_analyzer | clang_tidy | llov | must |
-| --- | --- | --- | --- | --- | --- | --- |
-| 0 | 33 | 0 | 5 | 26 | 8 | 1 |
-| 1 | 15 | 3 | 3 | 7 | 4 | 1 |
-| 2 | 7 | 0 | 3 | 3 | 2 | 1 |
-| 3 | 4 | 0 | 1 | 5 | 0 | 0 |
+Cell semantics: a NUMBER means the tool ran on at least one artifact at that iteration (0 = ran and found nothing — a result); n/a means the tool was not applicable on this iteration's execution-model mix (or its records are not merged yet, e.g. external containers).
+
+| iteration | artifacts | compiler | gcc_analyzer | clang_tidy | cppcheck | infer | parcoach | llov | asan_ubsan | tsan | memcheck | must |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 33 | 0 | 5 | 26 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 1 |
+| 1 | 15 | 3 | 3 | 7 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 1 |
+| 2 | 7 | 0 | 3 | 3 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 1 |
+| 3 | 4 | 0 | 1 | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
 ### test_feedback
-| iteration | artifacts | gcc_analyzer | clang_tidy | llov | must |
-| --- | --- | --- | --- | --- | --- |
-| 0 | 33 | 5 | 26 | 8 | 1 |
-| 1 | 7 | 1 | 1 | 0 | 1 |
-| 2 | 6 | 1 | 1 | 0 | 0 |
-| 3 | 2 | 0 | 0 | 0 | 0 |
+Cell semantics: a NUMBER means the tool ran on at least one artifact at that iteration (0 = ran and found nothing — a result); n/a means the tool was not applicable on this iteration's execution-model mix (or its records are not merged yet, e.g. external containers).
+
+| iteration | artifacts | compiler | gcc_analyzer | clang_tidy | cppcheck | infer | parcoach | llov | asan_ubsan | tsan | memcheck | must |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 33 | 0 | 5 | 26 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 1 |
+| 1 | 7 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| 2 | 6 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 3 | 2 | 0 | 0 | 0 | 0 | 0 | n/a | n/a | 0 | n/a | 0 | n/a |
 
 ### combined_feedback
-| iteration | artifacts | compiler | gcc_analyzer | clang_tidy | llov | must |
-| --- | --- | --- | --- | --- | --- | --- |
-| 0 | 33 | 0 | 5 | 26 | 8 | 1 |
-| 1 | 21 | 1 | 3 | 5 | 5 | 1 |
-| 2 | 12 | 1 | 1 | 1 | 3 | 0 |
-| 3 | 9 | 0 | 2 | 0 | 2 | 1 |
+Cell semantics: a NUMBER means the tool ran on at least one artifact at that iteration (0 = ran and found nothing — a result); n/a means the tool was not applicable on this iteration's execution-model mix (or its records are not merged yet, e.g. external containers).
+
+| iteration | artifacts | compiler | gcc_analyzer | clang_tidy | cppcheck | infer | parcoach | llov | asan_ubsan | tsan | memcheck | must |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 33 | 0 | 5 | 26 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 1 |
+| 1 | 21 | 1 | 3 | 5 | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 1 |
+| 2 | 12 | 1 | 1 | 1 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 |
+| 3 | 9 | 0 | 2 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 1 |
+
+## Blocking findings by error class
+
+Cells are `findings (samples)`: finding sums double-count when several tools report the same defect (redundancy by design); the sample count deduplicates across tools and is the citable number. Classes: thesis/evaluation/finding_classes.py.
+
+**static_feedback — class x iteration (per-iteration artifacts):**
+
+| iteration | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 33 | 1 (1) | 4 (2) | 25 (6) | 8 (7) | 1 (1) | 0 (0) | 1 (1) |
+| 1 | 15 | 0 (0) | 3 (2) | 4 (1) | 4 (4) | 1 (1) | 6 (1) | 0 (0) |
+| 2 | 7 | 0 (0) | 3 (3) | 3 (1) | 2 (2) | 1 (1) | 0 (0) | 0 (0) |
+| 3 | 4 | 0 (0) | 1 (1) | 5 (1) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+
+**test_feedback — class x iteration (per-iteration artifacts):**
+
+| iteration | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 33 | 1 (1) | 4 (2) | 25 (6) | 8 (7) | 1 (1) | 0 (0) | 1 (1) |
+| 1 | 7 | 0 (0) | 1 (1) | 1 (1) | 0 (0) | 1 (1) | 0 (0) | 0 (0) |
+| 2 | 6 | 0 (0) | 1 (1) | 1 (1) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| 3 | 2 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+
+**combined_feedback — class x iteration (per-iteration artifacts):**
+
+| iteration | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 33 | 1 (1) | 4 (2) | 25 (6) | 8 (7) | 1 (1) | 0 (0) | 1 (1) |
+| 1 | 21 | 0 (0) | 3 (2) | 4 (3) | 5 (5) | 1 (1) | 2 (1) | 0 (0) |
+| 2 | 12 | 0 (0) | 1 (1) | 0 (0) | 3 (3) | 0 (0) | 2 (1) | 0 (0) |
+| 3 | 9 | 0 (0) | 2 (2) | 0 (0) | 2 (2) | 1 (1) | 0 (0) | 0 (0) |
+
+**static_feedback — class x model (final state, carry-forward):**
+
+| model | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude_fable_5 | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| claude_opus_5 | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| deepseek_v4_flash | 3 | 0 (0) | 1 (1) | 5 (1) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| deepseek_v4_pro | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| gemini_31_pro | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| gemini_36_flash | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| openai_gpt55 | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| openai_gpt56_sol | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen36_35b_a3b | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen37_max | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen3_coder_api | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+
+**test_feedback — class x model (final state, carry-forward):**
+
+| model | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude_fable_5 | 3 | 0 (0) | 0 (0) | 5 (1) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| claude_opus_5 | 3 | 0 (0) | 0 (0) | 0 (0) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| deepseek_v4_flash | 3 | 1 (1) | 3 (1) | 13 (1) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| deepseek_v4_pro | 3 | 0 (0) | 1 (1) | 1 (1) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| gemini_31_pro | 3 | 0 (0) | 0 (0) | 2 (1) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| gemini_36_flash | 3 | 0 (0) | 0 (0) | 0 (0) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| openai_gpt55 | 3 | 0 (0) | 0 (0) | 1 (1) | 0 (0) | 0 (0) | 0 (0) | 1 (1) |
+| openai_gpt56_sol | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen36_35b_a3b | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen37_max | 3 | 0 (0) | 0 (0) | 2 (1) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| qwen3_coder_api | 3 | 0 (0) | 0 (0) | 2 (1) | 2 (1) | 0 (0) | 0 (0) | 0 (0) |
+
+**combined_feedback — class x model (final state, carry-forward):**
+
+| model | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude_fable_5 | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| claude_opus_5 | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| deepseek_v4_flash | 3 | 0 (0) | 1 (1) | 0 (0) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| deepseek_v4_pro | 3 | 0 (0) | 1 (1) | 0 (0) | 0 (0) | 1 (1) | 0 (0) | 0 (0) |
+| gemini_31_pro | 3 | 0 (0) | 0 (0) | 0 (0) | 1 (1) | 0 (0) | 0 (0) | 0 (0) |
+| gemini_36_flash | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| openai_gpt55 | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| openai_gpt56_sol | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen36_35b_a3b | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen37_max | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| qwen3_coder_api | 3 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+
+**class x execution model at iteration 0 (initial generations):**
+
+| exec | n | uninitialized | null_deref | arithmetic | race | mpi_usage | build | other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| serial | 11 | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) | 0 (0) |
+| omp | 11 | 0 (0) | 0 (0) | 1 (1) | 8 (7) | 0 (0) | 0 (0) | 0 (0) |
+| mpi | 11 | 1 (1) | 4 (2) | 24 (5) | 0 (0) | 1 (1) | 0 (0) | 1 (1) |
 
 ## Breakdown by problem type and execution model (final state)
 
 ### static_feedback
 | problem_type | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| dense_la | 33 | 75.8% (25/33) | 100.0% (220/220) |
+| dense_la | 33 | 75.8% (25/33) | 100.0% (228/228) |
 
 | execution_model | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
 | mpi | 11 | 90.9% (10/11) | NA |
-| omp | 11 | 81.8% (9/11) | NA |
+| omp | 11 | 81.8% (9/11) | 100.0% (8/8) |
 | serial | 11 | 54.5% (6/11) | 100.0% (220/220) |
 
 ### test_feedback
 | problem_type | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| dense_la | 33 | 93.9% (31/33) | 100.0% (220/220) |
+| dense_la | 33 | 93.9% (31/33) | 100.0% (228/228) |
 
 | execution_model | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
 | mpi | 11 | 100.0% (11/11) | NA |
-| omp | 11 | 100.0% (11/11) | NA |
+| omp | 11 | 100.0% (11/11) | 100.0% (8/8) |
 | serial | 11 | 81.8% (9/11) | 100.0% (220/220) |
 
 ### combined_feedback
 | problem_type | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| dense_la | 33 | 90.9% (30/33) | 100.0% (220/220) |
+| dense_la | 33 | 90.9% (30/33) | 100.0% (228/228) |
 
 | execution_model | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
 | mpi | 11 | 100.0% (11/11) | NA |
-| omp | 11 | 81.8% (9/11) | NA |
+| omp | 11 | 81.8% (9/11) | 100.0% (8/8) |
 | serial | 11 | 90.9% (10/11) | 100.0% (220/220) |
 
 ## "Statically clean but incorrect" (static_feedback, design §9)
@@ -116,7 +209,17 @@ Counts are per produced artifact at that iteration (no carry-forward — this sh
 Samples stopping clean (no blocking static findings): 32
 
 - ParEval-incorrect among them: 25.0% (8/32)
-- enhanced-failing among them: 0.0% (0/11)
+- enhanced-failing among them: 0.0% (0/12)
+
+## Enhanced tests by execution model
+
+Spec-run verdicts per execution model (gates are SERIAL: sight omp/mpi crash/timeout manually for driver divergence, and expect rounding signatures in fail — see docs/enhanced-tests-parallel.md).
+
+| exec | samples | pass | fail | crash | timeout | build_failed | runtime_error | gated |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| serial | 32 | 640 | 0 | 0 | 0 | 0 | 0 | 0 |
+| omp | 1 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
+| mpi | 1 | 7 | 1 | 0 | 0 | 0 | 0 | 0 |
 
 ## Runtime cost per tool
 
@@ -276,7 +379,7 @@ Rows total: 182, incomplete: 0
   "history_mode": "full",
   "host_repo_path": null,
   "low_confidence_stop_mode": "grace_once",
-  "max_iterations": 3,
+  "max_iterations": 2,
   "strategies": {
     "combined_feedback": {
       "sources": [
@@ -313,6 +416,13 @@ Rows total: 182, incomplete: 0
 {
   "baseline_prompt_max_chars": 12000,
   "enabled": true,
+  "enhanced_launch": {
+    "mpi_ranks": 4,
+    "omp_threads": 4
+  },
+  "execution_models": [
+    "serial"
+  ],
   "explicit_values_max_size": 64,
   "llm_specs_max": 8,
   "llm_specs_min": 5,

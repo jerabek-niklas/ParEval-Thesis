@@ -4,6 +4,7 @@
 #include <climits>
 #include <cfloat>
 #include <cstdio>
+#include <limits>
 #include <string>
 #include <complex>
 #include <queue>
@@ -176,15 +177,34 @@ bool fequal(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
 // (fequal / std::equal / scalar !=), but on a mismatch they print bounded,
 // machine-parseable details to stdout:
 //
-//     MISMATCH index=5 expected=3.14159 got=0 input=0.847
+//     MISMATCH index=5 expected=3.1415926535897931 got=0 rel=1.00e+00 input=0.84700000000000009
 //     MISMATCH_SUMMARY shown=3 total=47
+//
+// Numeric values print with ROUND-TRIP precision (max_digits10: double 17,
+// float 9). With the default %g precision (6 significant digits) a real
+// difference below the print resolution rendered expected and got as
+// IDENTICAL text ("expected=182071 got=182071" at |diff| < 0.5 on
+// magnitude 1.8e5, measured on smoke_002) — self-contradictory feedback
+// that ran two models into stopped_budget. fequal itself is UNTOUCHED
+// (verdict authority, byte-compatible with ParEval); only the report
+// formatting changed.
+//
+// rel=<|a-b| / max(|a|,|b|, denorm guard)> is printed for floating-point
+// and complex comparisons (scientific, 3 significant digits): the model
+// sees immediately whether it hunts a rounding or a logic error, and the
+// evaluation can mechanically split rounding signatures (rel ~1e-9 at
+// many indices) from genuine bugs (rel large / nan) — the classification
+// the omp/mpi enhanced pilot needs. Integral/bool comparisons carry no
+// rel field (any exact difference is a real bug); the parser treats it as
+// optional.
 //
 // The MISMATCH_SUMMARY line is MANDATORY on every failing comparison, even
 // when total <= shown: the model must be able to tell 3-of-3 outliers from
 // 3-of-47 (a surface problem) — never silently truncate. No output on the
-// PASS path (timing unaffected). Only rank 0 prints. Inputs are random
-// without a persisted seed, so the report is symptom feedback, not a
-// reproducible test case (see the design doc).
+// PASS path (timing unaffected). Only rank 0 prints. fillRand draws from
+// UNSEEDED rand() (as if srand(1)), so inputs are identical across runs
+// and iterations; the draw ORDER within a process still shifts between
+// call sites (see the design doc §4).
 //
 // MISMATCH_REPORT_MAX (default 3) is set by the runners from the single
 // config source stages.repair.feedback.mismatch_report_max_indices.
@@ -196,10 +216,16 @@ bool fequal(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
 
 template <typename V>
 void mismatchPrintValue(V const& v) {
+    // printf with an explicit per-call precision — deliberately NOT
+    // std::cout + setprecision, whose sticky stream state would leak into
+    // the rest of the driver output (marker lines must stay byte-identical)
     if constexpr (std::is_same_v<V, std::complex<double>>) {
-        printf("(%g,%g)", v.real(), v.imag());
+        printf("(%.*g,%.*g)",
+               std::numeric_limits<double>::max_digits10, v.real(),
+               std::numeric_limits<double>::max_digits10, v.imag());
     } else if constexpr (std::is_floating_point_v<V>) {
-        printf("%g", static_cast<double>(v));
+        printf("%.*g", std::numeric_limits<V>::max_digits10,
+               static_cast<double>(v));
     } else if constexpr (std::is_same_v<V, bool>) {
         printf("%d", static_cast<int>(v));
     } else if constexpr (std::is_integral_v<V>) {
@@ -207,6 +233,30 @@ void mismatchPrintValue(V const& v) {
     } else {
         printf("?");  // non-printable element type; field still present
     }
+}
+
+// |a-b| / max(|a|,|b|, denorm guard); nan propagates (a nan operand IS the
+// diagnosis). The guard makes 0-vs-0 impossible to reach (equal values never
+// mismatch) and 0-vs-tiny come out as rel=1.
+template <typename V>
+double mismatchRelDiff(V const& a, V const& b) {
+    double diff, magA, magB;
+
+    if constexpr (std::is_same_v<V, std::complex<double>>) {
+        diff = std::abs(a - b);
+        magA = std::abs(a);
+        magB = std::abs(b);
+    } else {
+        const double da = static_cast<double>(a);
+        const double db = static_cast<double>(b);
+        diff = std::fabs(da - db);
+        magA = std::fabs(da);
+        magB = std::fabs(db);
+    }
+
+    const double denom = std::fmax(std::fmax(magA, magB),
+                                   std::numeric_limits<double>::min());
+    return diff / denom;
 }
 
 inline bool mismatchIsRoot() {
@@ -240,6 +290,10 @@ bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred d
             mismatchPrintValue(va);
             printf(" got=");
             mismatchPrintValue(vb);
+            if constexpr (std::is_floating_point_v<V>
+                          || std::is_same_v<V, std::complex<double>>) {
+                printf(" rel=%.2e", mismatchRelDiff(va, vb));
+            }
             if (input != nullptr && i < input->size()) {
                 using I = typename InVec::value_type;
                 printf(" input=");
@@ -307,6 +361,10 @@ bool reportAndCompareScalarImpl(V const& expected, V const& got, bool equal) {
         mismatchPrintValue(expected);
         printf(" got=");
         mismatchPrintValue(got);
+        if constexpr (std::is_floating_point_v<V>
+                      || std::is_same_v<V, std::complex<double>>) {
+            printf(" rel=%.2e", mismatchRelDiff(expected, got));
+        }
         printf("\nMISMATCH_SUMMARY shown=1 total=1\n");
     }
 

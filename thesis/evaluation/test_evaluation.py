@@ -675,6 +675,85 @@ def test_tool_options() -> None:
             check(label + " rejected", True)
 
 
+def test_finding_classes() -> None:
+    print("finding_classes: prefix map per tool, conservative other + log")
+    from thesis.evaluation import finding_classes
+    from thesis.evaluation.finding_classes import CLASSES, classify_finding
+
+    cases = [
+        # compiler
+        ("compiler", "error", "build"),
+        ("compiler", "error (in driver/benchmark)", "build"),
+        ("compiler", "compile-failed", "build"),
+        ("compiler", "-Warray-bounds", "memory"),
+        ("compiler", "-Wmaybe-uninitialized", "uninitialized"),
+        ("compiler", "-Wsign-compare", "arithmetic"),
+        # gcc_analyzer (translated from the validation cwe_map)
+        ("gcc_analyzer", "-Wanalyzer-null-dereference", "null_deref"),
+        ("gcc_analyzer", "-Wanalyzer-use-after-free", "memory"),
+        ("gcc_analyzer", "-Wanalyzer-use-of-uninitialized-value", "uninitialized"),
+        ("gcc_analyzer", "-Wanalyzer-file-leak", "api_misuse"),
+        ("gcc_analyzer", "-Wanalyzer-too-complex", "other"),
+        # clang_tidy incl. clang SA; class is ORTHOGONAL to low_confidence
+        ("clang_tidy", "clang-analyzer-core.NullDereference", "null_deref"),
+        ("clang_tidy", "clang-analyzer-unix.Malloc", "memory"),
+        ("clang_tidy", "clang-analyzer-optin.mpi.MPI-Checker", "mpi_usage"),
+        ("clang_tidy", "mpi-type-mismatch", "mpi_usage"),
+        ("clang_tidy", "bugprone-narrowing-conversions", "arithmetic"),
+        ("clang_tidy", "bugprone-implicit-widening-of-multiplication-result",
+         "arithmetic"),
+        ("clang_tidy", "clang-diagnostic-error", "build"),
+        ("clang_tidy", "openmp-use-default-none", "other"),
+        # cppcheck / infer (incl. InferBO levels)
+        ("cppcheck", "arrayIndexOutOfBounds", "memory"),
+        ("cppcheck", "uninitvar", "uninitialized"),
+        ("infer", "NULL_DEREFERENCE", "null_deref"),
+        ("infer", "BUFFER_OVERRUN_L2", "memory"),
+        ("infer", "INTEGER_OVERFLOW_L1", "arithmetic"),
+        ("infer", "RESOURCE_LEAK", "api_misuse"),
+        # parallel tools
+        ("llov", "llov-data-race", "race"),
+        ("llov", "llov-region-not-analyzed", "other"),
+        ("parcoach", "parcoach-collective-ordering", "deadlock"),
+        ("tsan", "tsan-data-race", "race"),
+        ("tsan", "tsan-lock-order-inversion", "deadlock"),
+        ("helgrind", "helgrind-race", "race"),
+        ("drd", "drd-conflicting-access", "race"),
+        ("must", "must-deadlock", "deadlock"),
+        ("must", "must-datatype-null", "mpi_usage"),
+        # dynamic memory tier
+        ("asan_ubsan", "asan-heap-buffer-overflow", "memory"),
+        ("asan_ubsan", "lsan-detected-memory-leaks", "memory"),
+        ("memcheck", "memcheck-invalid-read", "memory"),
+        ("memcheck", "memcheck-uninit-value", "uninitialized"),
+        ("memcheck", "memcheck-leak-definitely-lost", "memory"),
+    ]
+
+    for tool, check_id, expected in cases:
+        check("%s/%s -> %s" % (tool, check_id, expected),
+              classify_finding(tool, check_id) == expected)
+
+    # UBSan: one check_id, class from the MESSAGE (documented exception)
+    for message, expected in (
+        ("signed integer overflow: 2147483647 + 1 ...", "arithmetic"),
+        ("member access within null pointer of type ...", "null_deref"),
+        ("index 7 out of bounds for type ...", "memory"),
+    ):
+        check("ubsan message '%s...' -> %s" % (message[:24], expected),
+              classify_finding("asan_ubsan", "ubsan-runtime-error", message)
+              == expected)
+
+    # conservative fallback: unknown -> other, logged ONCE per id
+    finding_classes._LOGGED_UNKNOWN.clear()
+    check("unknown id -> other",
+          classify_finding("cppcheck", "someBrandNewCheck") == "other")
+    check("unknown id logged once",
+          ("cppcheck", "someBrandNewCheck") in finding_classes._LOGGED_UNKNOWN)
+    check("unknown tool -> other",
+          classify_finding("not_a_tool", "x") == "other")
+    check("vocabulary is the documented ten", len(CLASSES) == 10)
+
+
 def test_stub_rewriter() -> None:
     print("parcoach: LLVM IR stub rewriter")
     from thesis.evaluation.tools import stub_external_declares
@@ -776,6 +855,7 @@ def main() -> None:
         test_inferbo_level_filter,
         test_gcc_analyzer_classification,
         test_tool_options,
+        test_finding_classes,
         test_sanitizer_parsing,
         test_valgrind_parsing,
         test_must_parsing,

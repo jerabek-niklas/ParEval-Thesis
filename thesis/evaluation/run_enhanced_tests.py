@@ -15,8 +15,29 @@ Statuses per (sample, spec): pass | fail | crash | timeout | build_failed |
 baseline_incompatible. Output: enhanced_tests.jsonl per model (schema
 enhanced_tests.v1) + per-model summary, same layout as the other stages.
 
-Scope: serial only for now (omp/mpi follow once serial is proven; they add
-the correctness launch grids). Non-parameterizable benchmarks are skipped.
+Scope: stages.enhanced_tests.execution_models selects which samples run
+(default ["serial"] = the historical behavior; the pilot sets all three).
+Parallel samples build with their own BuildConfig (-fopenmp / mpicxx) and
+launch at ONE fixed grid point (enhanced_launch: omp_threads / mpi_ranks)
+via the correctness stage's LaunchConfig — no launch grid; that axis stays
+with the correctness stage. Non-parameterizable benchmarks are skipped.
+
+THE GATES STAY SERIAL in every case (pilot decision — documented, not
+solved; see docs/enhanced-tests-parallel.md): the baseline-selftest gate
+and the fast-math stability probe run the SERIAL oracle TU, and their
+per-spec verdict (baseline_incompatible / numerically_unstable) is applied
+to samples of ALL execution models. spec_key and the gate cache are
+unchanged. Two documented residual risks of this simplification:
+  (a) driver divergence: a spec that passes the serial gate can still
+      crash in the omp/mpi DRIVER path (different code: BCAST, IS_ROOT
+      distribution). Such cases surface as crash/timeout on the MODEL run
+      and must be sighted MANUALLY in the pilot before being read as model
+      errors.
+  (b) parallel rounding: the oracle is serial; parallel model code reduces
+      in a different order. The fast-math stability probe catches part of
+      that serially (reassociation), but not all of it. Expectation:
+      small relative deviations at many indices = rounding signature, not
+      a model error.
 
 Usage (main container):
     python3 thesis/evaluation/run_enhanced_tests.py \
@@ -26,6 +47,7 @@ Usage (main container):
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -42,7 +64,10 @@ if str(REPO_ROOT) not in sys.path:
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
-from thesis.evaluation.build_config import get_build_config  # noqa: E402
+from thesis.evaluation.build_config import (  # noqa: E402
+    get_build_config,
+    get_launch_config,
+)
 from thesis.evaluation.run_correctness import parse_mismatch_output  # noqa: E402
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     build_wrapper,
@@ -108,17 +133,19 @@ def load_llm_specs(path: Path) -> "dict[str, list[dict]]":
     return by_benchmark
 
 
-def compile_sample(
+def compile_argv(
     sample: framework.AssembledSample,
     defines: "list[str]",
     out_path: str,
     extra_include_dir: "str | None" = None,
-) -> "tuple[bool, float]":
-    """Compile the serial TU via get_build_config (single source of build
-    truth, prepares the omp/mpi extension). Behavior kept identical to the
-    historical hand-built g++ line: base_command emits -O3, the trailing
-    -O1 override wins (gcc: last -O flag applies)."""
-    config = get_build_config("serial", primary_compiler="g++")
+    execution_model: str = "serial",
+) -> "list[str]":
+    """Compile command for the sample's TU via get_build_config (single
+    source of build truth: serial = g++, omp = g++ -fopenmp, mpi = mpicxx).
+    Serial behavior is byte-identical to the historical hand-built g++
+    line: base_command emits -O3, the trailing -O1 override wins (gcc:
+    last -O flag applies)."""
+    config = get_build_config(execution_model, primary_compiler="g++")
 
     include_dirs = [
         str(DRIVERS_CPP),
@@ -128,7 +155,7 @@ def compile_sample(
     if extra_include_dir:
         include_dirs.append(extra_include_dir)
 
-    argv = config.base_command(
+    return config.base_command(
         sources=[
             str(DRIVERS_CPP / config.model_driver_file),
             str(sample.benchmark_dir / "cpu.cc"),
@@ -142,6 +169,16 @@ def compile_sample(
         ],
     )
 
+
+def compile_sample(
+    sample: framework.AssembledSample,
+    defines: "list[str]",
+    out_path: str,
+    extra_include_dir: "str | None" = None,
+    execution_model: str = "serial",
+) -> "tuple[bool, float]":
+    argv = compile_argv(sample, defines, out_path, extra_include_dir, execution_model)
+
     started = time.time()
 
     try:
@@ -152,17 +189,57 @@ def compile_sample(
     return result.returncode == 0, time.time() - started
 
 
-def run_binary(binary: str, cwd: str, timeout: float) -> "tuple[str, int | None, float, str]":
+def launch_command(
+    binary: str,
+    execution_model: str,
+    launch_settings: "dict[str, Any]",
+) -> "tuple[list[str], dict[str, str]]":
+    """(argv, extra_env) for ONE fixed launch point, via the correctness
+    stage's LaunchConfig — the container details solved there (OMP thread
+    count via env AND argv, `mpirun -np`) are inherited, not duplicated.
+    Deliberately no grid: serial runs as before ([binary, "1"]), omp runs
+    at enhanced_launch.omp_threads, mpi at enhanced_launch.mpi_ranks."""
+    launch = get_launch_config(execution_model)
+
+    if execution_model == "omp":
+        params: "dict[str, Any]" = {
+            "num_threads": int(launch_settings["omp_threads"])
+        }
+    elif execution_model == "mpi":
+        params = {"num_procs": int(launch_settings["mpi_ranks"])}
+    else:
+        params = {}
+
+    return launch.command(binary, params, niter=1)
+
+
+def run_binary(
+    binary: str,
+    cwd: str,
+    timeout: float,
+    execution_model: str = "serial",
+    launch_settings: "dict[str, Any] | None" = None,
+) -> "tuple[str, int | None, float, str]":
     """Verdicts aligned with run_correctness.run_verdict: the validation
     MARKER decides fail vs pass; exit 0 without any marker is a
     runtime_error (not a fail). Returns stdout as well so the caller can
-    parse the bounded mismatch report (diagnostic only — enhanced results
-    stay held out of repair feedback)."""
+    parse the bounded mismatch report — parse_mismatch_output runs
+    unchanged over omp/mpi output, because the expected/got values are the
+    basis of the pilot's rounding-vs-bug classification. For mpi the
+    timeout covers the mpirun startup overhead as well
+    (run_timeout_seconds stays configurable)."""
+    argv, extra_env = launch_command(
+        binary, execution_model, launch_settings or {}
+    )
+
+    env = dict(os.environ)
+    env.update(extra_env)
+
     started = time.time()
 
     try:
         result = subprocess.run(
-            [binary, "1"], capture_output=True, text=True, timeout=timeout, cwd=cwd
+            argv, capture_output=True, text=True, timeout=timeout, cwd=cwd, env=env
         )
     except subprocess.TimeoutExpired:
         return "timeout", None, time.time() - started, ""
@@ -194,6 +271,8 @@ def main() -> None:
     target_cases = int(settings["target_cases_per_benchmark"])
     run_timeout = float(stage.get("run_timeout_seconds", DEFAULT_RUN_TIMEOUT))
     output_name = stage.get("output_file_name", "enhanced_tests.jsonl")
+    execution_models = list(settings["execution_models"])
+    launch_settings = dict(settings["enhanced_launch"])
 
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
 
@@ -210,7 +289,11 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
-    print(f"Enhanced tests | run {run_id} | target {target_cases} specs/benchmark | serial only")
+    print(
+        f"Enhanced tests | run {run_id} | target {target_cases} specs/benchmark "
+        f"| execution models: {'/'.join(execution_models)} "
+        "(gates stay serial)"
+    )
     print(f"LLM specs: {sum(len(v) for v in llm_specs.values())} from {args.specs}")
     print("=" * 50)
 
@@ -250,7 +333,7 @@ def main() -> None:
         for sample in framework.iter_assembled_samples(
             REPO_ROOT, intermediate_dir, run_id, model_id
         ):
-            if sample.execution_model != "serial":
+            if sample.execution_model not in execution_models:
                 continue
 
             benchmark = f"{sample.problem_type}/{sample.name}"
@@ -340,6 +423,9 @@ def main() -> None:
                     "run_id": run_id,
                     "model_id": model_id,
                     "sample_id": sample.sample_id,
+                    # explicit field so evaluations never have to parse the
+                    # sample_id for it
+                    "execution_model": sample.execution_model,
                     "benchmark": benchmark,
                     "spec": spec,
                     "created_at_utc": common.utc_now_iso(),
@@ -368,6 +454,7 @@ def main() -> None:
                     built, build_seconds = compile_sample(
                         sample, defines, binary,
                         extra_include_dir=tmp if extra_headers else None,
+                        execution_model=sample.execution_model,
                     )
 
                     if not built:
@@ -378,7 +465,9 @@ def main() -> None:
                         continue
 
                     status, exit_code, run_seconds, run_stdout = run_binary(
-                        binary, tmp, run_timeout
+                        binary, tmp, run_timeout,
+                        execution_model=sample.execution_model,
+                        launch_settings=launch_settings,
                     )
 
                 record["status"] = status
@@ -397,7 +486,9 @@ def main() -> None:
                 counts[status] += 1
                 common.append_jsonl(output_path, record)
 
-        print(f"[{model_id}] serial samples: {samples_seen}")
+        print(
+            f"[{model_id}] samples ({'/'.join(execution_models)}): {samples_seen}"
+        )
         for status in (
             "pass", "fail", "crash", "timeout", "build_failed",
             "baseline_incompatible", "numerically_unstable",

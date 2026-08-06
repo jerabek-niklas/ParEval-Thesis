@@ -226,6 +226,79 @@ def test_mutation_fillup():
     )
 
 
+def test_parallel_execution_models():
+    print("parallel: config switch, per-model build argv, fixed launch point")
+    from types import SimpleNamespace
+
+    from thesis.enhanced_tests.specs import DEFAULT_SETTINGS
+    from thesis.evaluation.run_enhanced_tests import compile_argv, launch_command
+
+    # ---- config switch ------------------------------------------------
+    check("default is serial (historical behavior)",
+          stage_settings(cfg())["execution_models"] == ["serial"])
+    check("pilot list honored",
+          stage_settings(cfg(execution_models=["serial", "omp", "mpi"]))
+          ["execution_models"] == ["serial", "omp", "mpi"])
+    check("partial enhanced_launch keeps the other default",
+          stage_settings(cfg(enhanced_launch={"omp_threads": 2}))
+          ["enhanced_launch"] == {"omp_threads": 2, "mpi_ranks": 4})
+    check("defaults object not mutated",
+          DEFAULT_SETTINGS["enhanced_launch"] == {"omp_threads": 4, "mpi_ranks": 4})
+
+    for bad, label in (
+        (cfg(execution_models=["gpu"]), "unknown execution model"),
+        (cfg(execution_models=[]), "empty execution_models"),
+        (cfg(enhanced_launch={"omp_threads": 0}), "non-positive threads"),
+        (cfg(enhanced_launch={"ranks": 4}), "unknown launch key"),
+    ):
+        try:
+            validate_enhanced_settings(bad)
+            check(label + " rejected", False)
+        except ValueError:
+            check(label + " rejected", True)
+
+    # ---- build argv per execution model -------------------------------
+    sample = SimpleNamespace(
+        source_path=Path("/x/sources/s1/generated-code.hpp"),
+        benchmark_dir=Path("/x/bench/dense_la/00_dense_la_lu_decomp"),
+    )
+
+    serial = compile_argv(sample, ["ENHANCED_TEST_SIZE_DEFAULT=4"], "/tmp/o")
+    check("serial: g++, no -fopenmp, USE_SERIAL",
+          serial[0] == "g++" and "-fopenmp" not in serial
+          and "-DUSE_SERIAL" in serial)
+    check("serial default equals explicit serial (old behavior unchanged)",
+          serial == compile_argv(sample, ["ENHANCED_TEST_SIZE_DEFAULT=4"],
+                                 "/tmp/o", None, "serial"))
+    check("historical -O1 override still last",
+          serial.index("-O3") < serial.index("-O1"))
+
+    omp = compile_argv(sample, [], "/tmp/o", None, "omp")
+    check("omp: -fopenmp + USE_OMP + omp driver",
+          "-fopenmp" in omp and "-DUSE_OMP" in omp
+          and any("omp-driver.cc" in part for part in omp))
+
+    mpi = compile_argv(sample, [], "/tmp/o", None, "mpi")
+    check("mpi: mpicxx + USE_MPI + mpi driver",
+          mpi[0] == "mpicxx" and "-DUSE_MPI" in mpi
+          and any("mpi-driver.cc" in part for part in mpi))
+
+    # ---- one fixed launch point ---------------------------------------
+    launch = {"omp_threads": 4, "mpi_ranks": 4}
+
+    check("serial launch byte-identical to the old direct call",
+          launch_command("/tmp/b", "serial", launch) == (["/tmp/b", "1"], {}))
+    check("omp launch: thread count via argv AND env",
+          launch_command("/tmp/b", "omp", launch)
+          == (["/tmp/b", "4"], {"OMP_NUM_THREADS": "4"}))
+    check("mpi launch: mpirun -np ranks",
+          launch_command("/tmp/b", "mpi", launch)
+          == (["mpirun", "-np", "4", "/tmp/b", "1"], {}))
+    check("configured ranks respected",
+          launch_command("/tmp/b", "mpi", {"omp_threads": 4, "mpi_ranks": 2})[0][2]
+          == "2")
+
+
 def main():
     tests = [
         test_config_overrides,
@@ -234,6 +307,7 @@ def main():
         test_defines_and_header,
         test_refill_rounds,
         test_mutation_fillup,
+        test_parallel_execution_models,
     ]
 
     for test in tests:

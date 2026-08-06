@@ -130,26 +130,41 @@ itself a key validation finding). Interpret A-vs-B on MPI samples as
   cycles)
 - findings as `line:check_id` + message truncated to ~80 chars
 - B/C: test verdict only (e.g. "ParEval tests: FAIL (omp at 4/8
-  threads)") — NOT the old mismatch numbers: fillRand inputs differ per
-  run (no persisted seed), so old expected/got values refer to other
-  inputs and would mislead
+  threads)") — NOT the old mismatch numbers. **Corrected rationale
+  (2026-08-06):** fillRand draws from unseeded `rand()` (as if
+  `srand(1)`), so validation inputs are IDENTICAL across runs and
+  iterations (verified: two runs byte-identical) — the original "inputs
+  differ per run" claim only holds for the draw ORDER within a process,
+  not between runs. The exclusion stays for the stronger reason: old
+  expected/got describe the PREVIOUS code's output; after a repair, only
+  the current numbers apply.
 
 **Mismatch-report note:** ParEval's validate() only returns bool today.
 The bounded expected/got report requires a mechanical driver patch of the
 fequal comparison sites (same approach as patch_drivers.py: a
 reportAndCompare helper in utilities.hpp, bounded output). Non-patchable
 validate() structures (scalar comparisons etc.) fall back to PASS/FAIL
-and are logged, as with the size patch. Feedback is symptom-level, not a
-reproducible test case (random inputs, no seed) — state this in the
-methodology chapter.
+and are logged, as with the size patch. **Determinism note (2026-08-06,
+for the methodology chapter):** the validation inputs come from unseeded
+`rand()` and are therefore identical ACROSS runs and iterations — a
+reproducibility plus (the same mismatch is re-observable), a diversity
+minus (every run tests the same input draw; input diversity comes from
+the enhanced-tests stage instead). Since 2026-08-06 the report prints
+values at round-trip precision (max_digits10) plus a `rel=` relative
+difference per line — previously the default 6-digit precision could
+render a real difference as "expected=182071 got=182071"
+(self-contradictory feedback, measured on smoke_002; two models ran to
+stopped_budget on exactly that sample). `fequal` and the verdict
+semantics are unchanged.
 
 **Config-driven formatting (stages.repair):** everything
 behavior-shaping is configured, not hardcoded (thesis/repair/feedback.py):
 
 - `history_mode: compressed | full` — compressed is the format above;
   full renders past-iteration findings at current-feedback detail.
-  Old mismatch numbers stay excluded in BOTH modes (random inputs, no
-  seed — old expected/got values belong to other inputs).
+  Old mismatch numbers stay excluded in BOTH modes (old expected/got
+  describe the previous code's output — see the corrected rationale
+  above; the inputs themselves are identical across iterations).
 
   **Decision 2026-07-31 — the default is now `full`.** This document
   originally specified `compressed` as the default. Reversed for the main

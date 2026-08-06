@@ -162,8 +162,11 @@ CORRECTNESS_FAIL = {
             # field contract of run_correctness.parse_mismatch_output:
             # shown entries + the MANDATORY total over all differing indices
             "mismatches": [
-                {"index": 0, "expected": 1.5, "got": 2.0, "input": 4.0},
-                {"index": 3, "expected": -1.5, "got": 0.0},
+                {"index": 0, "expected": 1.5, "got": 2.0, "input": 4.0,
+                 "rel": 0.25},
+                # full round-trip precision values pass through VERBATIM
+                {"index": 3, "expected": "182071.4032871512",
+                 "got": "182071.40328715043", "rel": 5.4e-12},
                 {"index": 7, "expected": 2.5, "got": 0.5},
             ],
             "mismatch_total": 47,
@@ -322,6 +325,14 @@ def test_mismatch_rendering_current():
     check("k=3 indices rendered", with_fields.count("index ") == 3)
     check("expected/got present", "expected 1.5, got 2.0" in with_fields)
     check("input value rendered when present", "(input 4.0)" in with_fields)
+    check("rel rendered when present", "(rel 2.50e-01)" in with_fields)
+    check(
+        "round-trip values pass through VERBATIM (no renderer rounding)",
+        "expected 182071.4032871512, got 182071.40328715043 (rel 5.40e-12)"
+        in with_fields,
+    )
+    index7_line = next(l for l in with_fields.splitlines() if "index 7" in l)
+    check("no rel field -> no rel rendering", "rel" not in index7_line)
     check(
         "total > shown renders the remainder",
         "... and 44 more differing indices (47 total)" in with_fields,

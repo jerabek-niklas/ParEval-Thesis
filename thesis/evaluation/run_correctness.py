@@ -111,9 +111,12 @@ def parse_validation(stdout: str) -> bool | None:
     return None
 
 
+# rel= is OPTIONAL (backward compatible: records produced before the field
+# existed, and integral/bool comparisons which never carry it, stay parseable)
 MISMATCH_LINE = re.compile(
     r"^MISMATCH(?:\s+index=(?P<index>\d+))?"
     r"\s+expected=(?P<expected>\S+)\s+got=(?P<got>\S+)"
+    r"(?:\s+rel=(?P<rel>\S+))?"
     r"(?:\s+input=(?P<input>\S+))?\s*$"
 )
 
@@ -128,10 +131,14 @@ def parse_mismatch_output(stdout: str) -> "tuple[list[dict[str, Any]], int | Non
 
     Returns (mismatches, mismatch_total). `mismatch_total` sums the totals
     of all MISMATCH_SUMMARY lines (compound verdicts can emit one summary
-    per failing comparison); None when no summary appeared. The report is
-    symptom feedback over unseeded random inputs — not reproducible
-    (repair-loop-design.md §4). The verdict marker stays authoritative;
-    this parse never influences verdict logic.
+    per failing comparison); None when no summary appeared. fillRand draws
+    from UNSEEDED rand() (as if srand(1)), so the inputs behind these
+    numbers are identical across runs and iterations (verified 2026-08-06:
+    two runs byte-identical); only the draw order within a process shifts
+    between call sites (repair-loop-design.md §4). `rel` is the relative
+    difference printed by the driver (optional field; absent on integral
+    comparisons and on records predating it). The verdict marker stays
+    authoritative; this parse never influences verdict logic.
     """
     mismatches: "list[dict[str, Any]]" = []
     total: "int | None" = None
@@ -147,6 +154,13 @@ def parse_mismatch_output(stdout: str) -> "tuple[list[dict[str, Any]], int | Non
             }
             if match.group("index") is not None:
                 entry["index"] = int(match.group("index"))
+            if match.group("rel") is not None:
+                # float("nan")/float("inf") parse fine — a nan rel IS the
+                # diagnosis (nan operand in the comparison)
+                try:
+                    entry["rel"] = float(match.group("rel"))
+                except ValueError:
+                    pass
             if match.group("input") is not None:
                 entry["input"] = match.group("input")
             mismatches.append(entry)

@@ -72,6 +72,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
+from thesis.evaluation.finding_classes import CLASSES, classify_finding  # noqa: E402
 from thesis.evaluation.tool_config import (  # noqa: E402
     STAGE_TOOLS,
     resolve_tool_settings,
@@ -142,6 +143,14 @@ GENERATION_COLUMNS = [
     "generation_reasoning_tokens",
 ]
 
+# Blocking findings per ERROR CLASS (finding_classes.py), derived from the
+# recorded check_ids at join time (read-only; no schema change). Finding
+# SUMS double-count by design — several tools reporting the same defect is
+# the redundancy tier working; the summary therefore additionally reports
+# the deduplicated "samples with >=1 blocking finding of class C" rate,
+# which is the citable number.
+CLASS_COLUMNS = ["class_%s_blocking" % name for name in CLASSES]
+
 COLUMNS = [
     "sample_id", "model", "execution_model", "problem_type", "benchmark",
     "variant", "iteration", "is_shared_initial",
@@ -150,7 +159,7 @@ COLUMNS = [
     "build_ok", "correctness_verdict", "correctness_pass_gridpoints",
     "mismatch_total",
     "blocking_count", "low_confidence_count", "non_blocking_count",
-] + ["%s_blocking" % tool for tool in PIPELINE_TOOLS] + TOOL_RUNTIME_COLUMNS + [
+] + ["%s_blocking" % tool for tool in PIPELINE_TOOLS] + CLASS_COLUMNS + TOOL_RUNTIME_COLUMNS + [
     "enhanced_pass", "enhanced_fail", "enhanced_crash", "enhanced_timeout",
     "enhanced_build_failed", "enhanced_runtime_error", "enhanced_gated",
     "status", "stop_reason",
@@ -434,6 +443,11 @@ def build_row(
     blocking = low_confidence = non_blocking = 0
     stage_seconds = {"static": 0.0, "dynamic": 0.0}
     have_counts = False
+    # blocking findings per error class, derived from the recorded
+    # check_ids (finding_classes.py) — read-only, no schema change. Sums
+    # double-count across tools by design (redundancy tier); the summary
+    # reports the deduplicated sample rate next to them.
+    class_counts: Counter = Counter()
 
     for stage_name, record in (("static", static_record), ("dynamic", dynamic_record)):
         if record is None:
@@ -449,6 +463,16 @@ def build_row(
                     entry.get("num_blocking", 0)
                 )
 
+                for finding in entry.get("findings") or []:
+                    if finding.get("blocking"):
+                        class_counts[
+                            classify_finding(
+                                tool_name,
+                                finding.get("check_id") or "",
+                                finding.get("message") or "",
+                            )
+                        ] += 1
+
                 duration = float(entry.get("duration_seconds", 0.0))
                 stage_seconds[stage_name] += duration
                 row["%s_seconds" % tool_name] = round(duration, 3)
@@ -462,6 +486,11 @@ def build_row(
         row["duration_analysis_seconds"] = round(
             stage_seconds["static"] + stage_seconds["dynamic"], 3
         )
+        # 0 is a statement ("no blocking finding of this class"), so every
+        # class column is filled once any analysis ran; rows without any
+        # analysis keep None -> NA
+        for name in CLASSES:
+            row["class_%s_blocking" % name] = int(class_counts.get(name, 0))
 
     if static_record is not None:
         row["static_seconds"] = round(stage_seconds["static"], 3)
@@ -500,8 +529,17 @@ def build_row(
         "benchmark_dir", ""
     ).replace("\\", "/")
 
+    # enhanced coverage follows the configured execution models (default
+    # [serial] = historical behavior; the pilot adds omp/mpi, and missing
+    # records there then count as backfill_missing like any other stage)
+    enhanced_models = (
+        ((config.get("stages") or {}).get("enhanced_tests") or {})
+        .get("execution_models")
+        or ["serial"]
+    )
+
     enhanced_expected = False
-    if execution_model == "serial" and benchmark_dir:
+    if execution_model in enhanced_models and benchmark_dir:
         if benchmark_dir not in marker_cache:
             cpu_cc = REPO_ROOT / benchmark_dir / "cpu.cc"
             marker_cache[benchmark_dir] = (
@@ -734,22 +772,36 @@ def stop_reason_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
     return lines
 
 
-def findings_convergence_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
+def enabled_pipeline_tools(config: Dict[str, Any]) -> "List[str]":
+    """All configured+enabled tools of both analysis stages, in canonical
+    order — the column set of the convergence table. NOT filtered to tools
+    with findings: a zero column IS information ("asan_ubsan found
+    nothing" is a result)."""
+    enabled: List[str] = []
+    for stage_name in ("static_analysis", "dynamic_analysis"):
+        for name, settings in resolve_tool_settings(config, stage_name).items():
+            if settings.enabled:
+                enabled.append(name)
+    return enabled
+
+
+def findings_convergence_table(
+    rows: "List[Dict[str, Any]]", variant: str, config: Dict[str, Any]
+) -> List[str]:
     variant_rows = [r for r in rows if r["variant"] == variant]
     if not variant_rows:
         return ["(no data)"]
 
     max_iteration = max(r["iteration"] for r in variant_rows)
-
-    tools = [
-        tool for tool in PIPELINE_TOOLS
-        if any((r.get("%s_blocking" % tool) or 0) > 0 for r in variant_rows)
-    ]
-
-    if not tools:
-        return ["(no blocking findings recorded)"]
+    tools = enabled_pipeline_tools(config)
 
     lines = [
+        "Cell semantics: a NUMBER means the tool ran on at least one "
+        "artifact at that iteration (0 = ran and found nothing — a "
+        "result); n/a means the tool was not applicable on this "
+        "iteration's execution-model mix (or its records are not merged "
+        "yet, e.g. external containers).",
+        "",
         "| iteration | artifacts | " + " | ".join(tools) + " |",
         "| --- | --- | " + " | ".join("---" for _ in tools) + " |",
     ]
@@ -759,13 +811,143 @@ def findings_convergence_table(rows: "List[Dict[str, Any]]", variant: str) -> Li
             r for r in variant_rows
             if r["iteration"] == iteration and r.get("blocking_count") is not None
         ]
-        cells = [
-            str(sum(int(r.get("%s_blocking" % tool) or 0) for r in at_iteration))
-            for tool in tools
-        ]
+
+        cells = []
+        for tool in tools:
+            values = [
+                int(r["%s_blocking" % tool])
+                for r in at_iteration
+                if r.get("%s_blocking" % tool) is not None
+            ]
+            # per-row None = the tool's record entry is not-applicable or
+            # absent; a tool with no value on ANY artifact could not run here
+            cells.append(str(sum(values)) if values else "n/a")
+
         lines.append(
             "| %d | %d | %s |" % (iteration, len(at_iteration), " | ".join(cells))
         )
+
+    return lines
+
+
+def _class_cells(
+    rows_subset: "List[Dict[str, Any]]",
+) -> "Dict[str, Tuple[int, int]]":
+    """(finding sum, samples with >=1) per class over a set of rows.
+
+    The DOUBLE-COUNTING RULE, implemented: several tools may report the
+    same defect (redundancy by design — llov and tsan flagging one race is
+    the tier working, not an error), so the finding SUM overstates unique
+    defects. The per-sample count deduplicates across tools (a row with
+    class count > 0 counts once regardless of how many tools contributed)
+    and is the citable number; the sums stay next to it.
+    """
+    cells: "Dict[str, Tuple[int, int]]" = {}
+
+    for name in CLASSES:
+        column = "class_%s_blocking" % name
+        values = [int(r[column]) for r in rows_subset if r.get(column) is not None]
+        cells[name] = (sum(values), sum(1 for v in values if v > 0))
+
+    return cells
+
+
+def _classes_in_use(rows: "List[Dict[str, Any]]") -> "List[str]":
+    return [
+        name for name in CLASSES
+        if any((r.get("class_%s_blocking" % name) or 0) > 0 for r in rows)
+    ]
+
+
+def blocking_by_class_section(
+    rows: "List[Dict[str, Any]]", variants: "List[str]"
+) -> List[str]:
+    """Blocking findings by ERROR CLASS — the level the thesis argues on
+    ("model X mostly produces class Y"), above the per-tool view.
+
+    Cell format everywhere: `<finding sum> (<samples with >=1>)`. The sum
+    double-counts across redundant tools by design; the parenthesised
+    sample count is deduplicated and is the reportable rate (see
+    _class_cells).
+    """
+    classes = _classes_in_use(rows)
+
+    if not classes:
+        return ["No blocking findings recorded."]
+
+    lines: List[str] = [
+        "Cells are `findings (samples)`: finding sums double-count when "
+        "several tools report the same defect (redundancy by design); the "
+        "sample count deduplicates across tools and is the citable number. "
+        "Classes: thesis/evaluation/finding_classes.py.",
+    ]
+
+    def table(header: str, buckets: "List[Tuple[str, List[Dict[str, Any]]]]") -> None:
+        lines.append("")
+        lines.append("| %s | n | %s |" % (header, " | ".join(classes)))
+        lines.append("| --- | --- | %s |" % " | ".join("---" for _ in classes))
+        for label, subset in buckets:
+            cells = _class_cells(subset)
+            lines.append(
+                "| %s | %d | %s |"
+                % (
+                    label,
+                    len(subset),
+                    " | ".join(
+                        "%d (%d)" % cells[name] for name in classes
+                    ),
+                )
+            )
+
+    # (a) class x iteration per variant — the per-class convergence curve
+    for variant in variants:
+        variant_rows = [
+            r for r in rows
+            if r["variant"] == variant and r.get("blocking_count") is not None
+        ]
+        if not variant_rows:
+            continue
+        lines.append("")
+        lines.append("**%s — class x iteration (per-iteration artifacts):**" % variant)
+        max_iteration = max(r["iteration"] for r in variant_rows)
+        table("iteration", [
+            (str(i), [r for r in variant_rows if r["iteration"] == i])
+            for i in range(0, max_iteration + 1)
+        ])
+
+    # (b) class x model, FINAL state (carry-forward) — the per-model
+    # error profile
+    for variant in variants:
+        grouped = _by_sample([r for r in rows if r["variant"] == variant])
+        finals: "List[Dict[str, Any]]" = []
+        for row_map in grouped.values():
+            final = _effective_row(row_map, max(row_map))
+            if final is not None and final.get("blocking_count") is not None:
+                finals.append(final)
+        if not finals:
+            continue
+        lines.append("")
+        lines.append("**%s — class x model (final state, carry-forward):**" % variant)
+        table("model", [
+            (model, [r for r in finals if r["model"] == model])
+            for model in sorted({r["model"] for r in finals})
+        ])
+
+    # (c) class x execution model at ITERATION 0 (shared rows deduplicated
+    # across variants) — where do which errors originate?
+    iteration0 = [
+        r for r in _dedupe_measurement_rows(rows)
+        if int(r["iteration"]) == 0 and r.get("blocking_count") is not None
+    ]
+    if iteration0:
+        lines.append("")
+        lines.append("**class x execution model at iteration 0 (initial generations):**")
+        table("exec", [
+            (execution_model,
+             [r for r in iteration0 if r["execution_model"] == execution_model])
+            for execution_model in ("serial", "omp", "mpi")
+            if any(r["execution_model"] == execution_model for r in iteration0)
+        ])
 
     return lines
 
@@ -1035,6 +1217,58 @@ def generation_effort_section(rows: "List[Dict[str, Any]]") -> List[str]:
     return lines
 
 
+def enhanced_by_execution_model_section(rows: "List[Dict[str, Any]]") -> List[str]:
+    """Enhanced verdicts split by execution model — the pilot's decision
+    basis for parallel enhanced tests. The GATES behind these numbers are
+    serial (documented simplification, docs/enhanced-tests-parallel.md):
+    omp/mpi crash/timeout cells may contain driver-divergence cases and
+    need manual sighting before being read as model errors; fail cells may
+    contain parallel-rounding signatures (small relative deviations at
+    many indices)."""
+    deduped = [
+        r for r in _dedupe_measurement_rows(rows)
+        if r.get("enhanced_pass") is not None
+    ]
+
+    if not deduped:
+        return ["No enhanced-test records."]
+
+    lines = [
+        "Spec-run verdicts per execution model (gates are SERIAL: sight "
+        "omp/mpi crash/timeout manually for driver divergence, and expect "
+        "rounding signatures in fail — see docs/enhanced-tests-parallel.md).",
+        "",
+        "| exec | samples | pass | fail | crash | timeout | build_failed | "
+        "runtime_error | gated |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+
+    for execution_model in ("serial", "omp", "mpi"):
+        subset = [r for r in deduped if r["execution_model"] == execution_model]
+        if not subset:
+            continue
+
+        def total(column: str) -> int:
+            return sum(int(r.get(column) or 0) for r in subset)
+
+        lines.append(
+            "| %s | %d | %d | %d | %d | %d | %d | %d | %d |"
+            % (
+                execution_model,
+                len(subset),
+                total("enhanced_pass"),
+                total("enhanced_fail"),
+                total("enhanced_crash"),
+                total("enhanced_timeout"),
+                total("enhanced_build_failed"),
+                total("enhanced_runtime_error"),
+                total("enhanced_gated"),
+            )
+        )
+
+    return lines
+
+
 def cleaning_section(rows: "List[Dict[str, Any]]") -> List[str]:
     """Share of samples per model and cleaning flag, split by iteration.
 
@@ -1186,12 +1420,18 @@ def render_markdown(
     parts.append("")
     parts.append(
         "Counts are per produced artifact at that iteration (no carry-"
-        "forward — this shows what the loop's artifacts still contain)."
+        "forward — this shows what the loop's artifacts still contain). "
+        "ALL enabled tools are listed, not just those with findings."
     )
     for variant in variants:
         parts.append("")
         parts.append("### %s" % variant)
-        parts.extend(findings_convergence_table(rows, variant))
+        parts.extend(findings_convergence_table(rows, variant, config))
+
+    parts.append("")
+    parts.append("## Blocking findings by error class")
+    parts.append("")
+    parts.extend(blocking_by_class_section(rows, variants))
 
     parts.append("")
     parts.append("## Breakdown by problem type and execution model (final state)")
@@ -1206,6 +1446,11 @@ def render_markdown(
     parts.append('## "Statically clean but incorrect" (static_feedback, design §9)')
     parts.append("")
     parts.extend(clean_but_incorrect(rows))
+
+    parts.append("")
+    parts.append("## Enhanced tests by execution model")
+    parts.append("")
+    parts.extend(enhanced_by_execution_model_section(rows))
 
     parts.append("")
     parts.append("## Runtime cost per tool")

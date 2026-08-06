@@ -139,7 +139,16 @@ DEFAULT_SETTINGS = {
     "offered_patterns": list(PATTERNS.keys()),
     "explicit_values_max_size": 64,
     "baseline_prompt_max_chars": 12000,
+    # which execution models the runner covers; ["serial"] = the historical
+    # behavior. The GATES stay serial regardless (pilot decision, see
+    # run_enhanced_tests.py docstring + docs/enhanced-tests-parallel.md).
+    "execution_models": ["serial"],
+    # ONE fixed launch point for parallel samples — deliberately not a
+    # grid (grids are the correctness stage's axis)
+    "enhanced_launch": {"omp_threads": 4, "mpi_ranks": 4},
 }
+
+ENHANCED_EXECUTION_MODELS = ("serial", "omp", "mpi")
 
 
 def stage_settings(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -153,6 +162,12 @@ def stage_settings(config: Dict[str, Any]) -> Dict[str, Any]:
     for key in DEFAULT_SETTINGS:
         if raw.get(key) is not None:
             merged[key] = raw[key]
+
+    # enhanced_launch merges PER SUBKEY: a config that sets only
+    # omp_threads must not silently lose the mpi_ranks default
+    if isinstance(raw.get("enhanced_launch"), dict):
+        merged["enhanced_launch"] = dict(DEFAULT_SETTINGS["enhanced_launch"])
+        merged["enhanced_launch"].update(raw["enhanced_launch"])
 
     if raw.get("target_cases_per_benchmark") is None and raw.get(
         "max_cases_per_benchmark"
@@ -187,6 +202,39 @@ def validate_enhanced_settings(config: Dict[str, Any]) -> None:
             "smaller than the static base set (%d sizes)"
             % (settings["target_cases_per_benchmark"], len(settings["static_base_sizes"]))
         )
+
+    models = settings["execution_models"]
+    if not isinstance(models, list) or not models:
+        raise ValueError(
+            "stages.enhanced_tests.execution_models must be a non-empty "
+            "list (got %r)" % (models,)
+        )
+    unknown_models = [m for m in models if m not in ENHANCED_EXECUTION_MODELS]
+    if unknown_models:
+        raise ValueError(
+            "stages.enhanced_tests.execution_models: unknown model(s) %s "
+            "(known: %s)" % (unknown_models, ", ".join(ENHANCED_EXECUTION_MODELS))
+        )
+
+    launch = settings["enhanced_launch"]
+    if not isinstance(launch, dict):
+        raise ValueError(
+            "stages.enhanced_tests.enhanced_launch must be a mapping "
+            "(got %r)" % (launch,)
+        )
+    for key in launch:
+        if key not in ("omp_threads", "mpi_ranks"):
+            raise ValueError(
+                "stages.enhanced_tests.enhanced_launch: unknown key '%s' "
+                "(known: omp_threads, mpi_ranks)" % key
+            )
+    for key in ("omp_threads", "mpi_ranks"):
+        value = launch.get(key, DEFAULT_SETTINGS["enhanced_launch"][key])
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError(
+                "stages.enhanced_tests.enhanced_launch.%s must be a "
+                "positive integer (got %r)" % (key, value)
+            )
 
 
 def validate_spec(
