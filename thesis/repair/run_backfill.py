@@ -61,6 +61,9 @@ from thesis.evaluation.tool_config import (  # noqa: E402
     ToolSettings,
     resolve_tool_settings,
 )
+from thesis.enhanced_tests.specs import (  # noqa: E402
+    stage_settings as enhanced_stage_settings,
+)
 from thesis.repair import orchestrator  # noqa: E402
 
 TOOLCHAIN_VERSIONS_FILE = Path("/opt/toolchain-versions.txt")
@@ -263,15 +266,23 @@ def enhanced_expected_samples(
     assembly: "Dict[str, Dict[str, Any]]",
     repo_root: Path,
     marker_cache: "Dict[str, bool]",
+    execution_models: "Optional[List[str]]" = None,
 ) -> List[str]:
-    """Serial samples whose benchmark driver is parameterizable — the same
-    eligibility the enhanced runner applies (marker check on cpu.cc)."""
+    """Samples the enhanced runner would cover: execution model in the
+    CONFIGURED stages.enhanced_tests.execution_models (default [serial] =
+    historical behavior) AND a parameterizable benchmark driver — the same
+    two eligibility checks the runner itself applies. Passing the models
+    explicitly keeps this free of a second default logic (the caller reads
+    them via specs.stage_settings)."""
+    if execution_models is None:
+        execution_models = ["serial"]
+
     expected: List[str] = []
 
     for sample_id, entry in assembly.items():
         if not entry.get("assembled"):
             continue
-        if orchestrator.execution_model_of(sample_id) != "serial":
+        if orchestrator.execution_model_of(sample_id) not in execution_models:
             continue
 
         benchmark_dir = (entry.get("drivers") or {}).get("benchmark_dir", "")
@@ -324,7 +335,16 @@ def plan_run(
         intermediate_root / run_id / model_id
         / enhanced_stage.get("output_file_name", "enhanced_tests.jsonl")
     )
-    enhanced_expected = enhanced_expected_samples(assembly, repo_root, marker_cache)
+    # the configured coverage decides applicability — specs.stage_settings
+    # is the single source for the [serial] default. not_applicable only
+    # when NO sample of the iteration falls under the configured models;
+    # per-sample coverage below then makes omp/mpi gaps `pending` while
+    # existing serial records stay valid (the runner resumes per
+    # (sample, spec) and only adds the missing ones).
+    enhanced_expected = enhanced_expected_samples(
+        assembly, repo_root, marker_cache,
+        execution_models=list(enhanced_stage_settings(config)["execution_models"]),
+    )
 
     plan = dict(run)
     plan["samples"] = len(samples)

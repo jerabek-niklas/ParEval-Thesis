@@ -60,7 +60,10 @@ this rounding-vs-bug classification in the pilot.
 
 - Held-out principle untouched: enhanced tests run only in phase-2
   backfill, never inside the repair loop, and never feed repair feedback.
-- `run_backfill.py`'s gap detection still expects enhanced records for
-  serial samples only; the pilot's omp/mpi enhanced runs are started via
-  the runner directly. Extending the backfill gap detection is a separate,
-  small change once the pilot confirms the setup.
+- `run_backfill.py`'s gap detection follows the configured
+  `execution_models` since 2026-08-07 (it previously hardcoded serial:
+  omp/mpi-only iterations were marked not_applicable and never handed to
+  the runner). Applicability now means "the iteration contains at least
+  one sample of a configured execution model"; existing serial records
+  stay valid on resume, and the runner adds the missing (sample, spec)
+  pairs itself.

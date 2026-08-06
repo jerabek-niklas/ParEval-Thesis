@@ -93,8 +93,10 @@ def write_assembly(config, run_id, samples):
         path.unlink()
 
     for sample_id in samples:
+        # dense_la ids (serial AND omp in these fixtures) sit on the real
+        # parameterizable benchmark; the mpi id keeps a non-existent path
         benchmark_dir = (
-            REAL_BENCHMARK if "serial" in sample_id
+            REAL_BENCHMARK if "dense_la" in sample_id
             else "drivers/cpp/benchmarks/sparse_la/96_spmv"
         )
         common.append_jsonl(path, {
@@ -322,6 +324,58 @@ def test_enhanced_gate():
               and "base_run__test_feedback__iter1" in enhanced_runs)
 
 
+def test_enhanced_execution_models():
+    print("enhanced applicability follows stages.enhanced_tests.execution_models")
+
+    s_omp = "m1__dense_la__00_dense_la_lu_decomp__omp__sample_0"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        config = base_config(tmp)
+        write_assembly(config, "base_run", [s_omp])
+        run = {"run_id": "base_run", "variant": None, "iteration": 0}
+
+        # default config = [serial]: an omp-only iteration is genuinely
+        # not applicable (historical behavior)
+        plan = run_backfill.plan_run(
+            config, run, MODEL, run_backfill.REPO_ROOT, {}
+        )
+        check("config [serial]: omp-only iteration not_applicable",
+              plan["enhanced"] == "not_applicable")
+
+        # pilot config: the same iteration becomes coverable
+        config["stages"]["enhanced_tests"] = {
+            "execution_models": ["serial", "omp", "mpi"]
+        }
+        plan = run_backfill.plan_run(
+            config, run, MODEL, run_backfill.REPO_ROOT, {}
+        )
+        check("config [serial,omp,mpi]: omp-only iteration pending",
+              plan["enhanced"] == "missing")
+
+        # resume semantics: an existing SERIAL record stays valid, the omp
+        # gap makes the run partial (the runner adds only the missing part)
+        write_assembly(config, "base_run", [S_SERIAL, s_omp])
+        write_stage(config, "base_run", "enhanced_tests.jsonl", [S_SERIAL])
+        plan = run_backfill.plan_run(
+            config, run, MODEL, run_backfill.REPO_ROOT, {}
+        )
+        check("existing serial records stay valid; omp gap -> partial",
+              plan["enhanced"] == "partial")
+
+        # ...and the runner is actually invoked once the loops are terminal
+        write_state(config, "static_feedback", {S_SERIAL: "stopped_clean",
+                                                s_omp: "stopped_budget"})
+        write_state(config, "test_feedback", {S_SERIAL: "stopped_tests_pass",
+                                              s_omp: "stopped_tests_pass"})
+        executor = StubExecutor()
+        run_backfill.backfill_model(
+            config, "cfg.yaml", "unit", "base_run", MODEL, executor,
+            variant_filter=None, skip_enhanced=False,
+        )
+        check("runner invoked for the omp-covering config",
+              ("enhanced", "base_run") in executor.calls)
+
+
 # ---------------------------------------------------------------------------
 # Group 4: external pending file (manual mode)
 # ---------------------------------------------------------------------------
@@ -435,6 +489,7 @@ def main():
         test_discovery,
         test_plan_gaps,
         test_enhanced_gate,
+        test_enhanced_execution_models,
         test_external_manual,
         test_toolchain,
         test_execution_sequencing,
