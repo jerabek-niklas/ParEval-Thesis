@@ -324,6 +324,26 @@ def test_enhanced_gate():
               and "base_run__test_feedback__iter1" in enhanced_runs)
 
 
+def write_enhanced(config, run_id, sample_id, count=None, status="pass"):
+    """Enhanced records with REAL spec payloads (the deterministic list
+    the runner would execute); count=None writes the full set."""
+    from thesis.enhanced_tests.specs import build_benchmark_specs
+
+    specs = build_benchmark_specs("dense_la/00_dense_la_lu_decomp", [], config)
+    if count is not None:
+        specs = specs[:count]
+
+    intermediate = Path(config["outputs"]["intermediate_dir"])
+    path = intermediate / run_id / MODEL / "enhanced_tests.jsonl"
+    if path.exists():
+        path.unlink()
+
+    for spec in specs:
+        common.append_jsonl(path, {
+            "sample_id": sample_id, "spec": spec, "status": status,
+        })
+
+
 def test_enhanced_execution_models():
     print("enhanced applicability follows stages.enhanced_tests.execution_models")
 
@@ -331,6 +351,10 @@ def test_enhanced_execution_models():
 
     with tempfile.TemporaryDirectory() as tmp:
         config = base_config(tmp)
+        # empty LLM-spec source: coverage and fixture must build the SAME
+        # deterministic list (the real repo cache would inject LLM seeds)
+        no_specs = (Path(tmp) / "no_specs.jsonl").as_posix()
+        config["stages"]["enhanced_tests"] = {"specs_file": no_specs}
         write_assembly(config, "base_run", [s_omp])
         run = {"run_id": "base_run", "variant": None, "iteration": 0}
 
@@ -344,7 +368,8 @@ def test_enhanced_execution_models():
 
         # pilot config: the same iteration becomes coverable
         config["stages"]["enhanced_tests"] = {
-            "execution_models": ["serial", "omp", "mpi"]
+            "execution_models": ["serial", "omp", "mpi"],
+            "specs_file": no_specs,
         }
         plan = run_backfill.plan_run(
             config, run, MODEL, run_backfill.REPO_ROOT, {}
@@ -352,15 +377,48 @@ def test_enhanced_execution_models():
         check("config [serial,omp,mpi]: omp-only iteration pending",
               plan["enhanced"] == "missing")
 
-        # resume semantics: an existing SERIAL record stays valid, the omp
+        # resume semantics: a COMPLETE serial spec set stays valid, the omp
         # gap makes the run partial (the runner adds only the missing part)
         write_assembly(config, "base_run", [S_SERIAL, s_omp])
-        write_stage(config, "base_run", "enhanced_tests.jsonl", [S_SERIAL])
+        write_enhanced(config, "base_run", S_SERIAL, count=None)
         plan = run_backfill.plan_run(
             config, run, MODEL, run_backfill.REPO_ROOT, {}
         )
         check("existing serial records stay valid; omp gap -> partial",
               plan["enhanced"] == "partial")
+
+        # SPEC-level completeness (the smoke_002 bug): a sample with only
+        # 8 of its expected specs must NOT count as covered — sample-level
+        # presence reported ok here and the gaps were never pulled
+        config["stages"]["enhanced_tests"] = {"specs_file": no_specs}  # [serial] default
+        write_assembly(config, "base_run", [S_SERIAL])
+        write_enhanced(config, "base_run", S_SERIAL, count=8)
+        plan = run_backfill.plan_run(
+            config, run, MODEL, run_backfill.REPO_ROOT, {}
+        )
+        check("8/20 specs -> partial, not ok (spec-level coverage)",
+              plan["enhanced"] == "partial")
+
+        write_enhanced(config, "base_run", S_SERIAL, count=None)
+        plan = run_backfill.plan_run(
+            config, run, MODEL, run_backfill.REPO_ROOT, {}
+        )
+        check("full spec set -> ok", plan["enhanced"] == "ok")
+
+        # gated records are records: replacing some statuses with
+        # baseline_incompatible must not reopen the gap
+        write_enhanced(config, "base_run", S_SERIAL, count=None,
+                       status="baseline_incompatible")
+        plan = run_backfill.plan_run(
+            config, run, MODEL, run_backfill.REPO_ROOT, {}
+        )
+        check("gated records count as present", plan["enhanced"] == "ok")
+
+        config["stages"]["enhanced_tests"] = {
+            "execution_models": ["serial", "omp", "mpi"],
+            "specs_file": no_specs,
+        }
+        write_assembly(config, "base_run", [S_SERIAL, s_omp])
 
         # ...and the runner is actually invoked once the loops are terminal
         write_state(config, "static_feedback", {S_SERIAL: "stopped_clean",

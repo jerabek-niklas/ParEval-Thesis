@@ -88,3 +88,21 @@ timeout, crash, missing report) are excluded from all metrics — a tool
 failure is not a negative result. Dynamic tools (asan_ubsan, memcheck,
 tsan*, must) only detect what the test execution triggers; their recall is
 not directly comparable to static tools' recall.
+
+## 6. Pipeline validation inputs are deterministic
+
+The ParEval drivers' `fillRand` draws from **unseeded `rand()`** (no
+`srand` anywhere in the drivers; the C standard then behaves as if
+`srand(1)`), so the "random" validation inputs are **identical across
+runs, models and repair iterations** — verified empirically (two driver
+runs byte-identical; the same expected value, e.g.
+`2.8866015260109088` at size 7 / index 15, appears in every model's
+records). Consequences for interpreting the correctness numbers:
+
+- **Reproducibility plus:** every reported mismatch is re-observable
+  bit-for-bit; failures are not launch-lottery artifacts and can be
+  re-diagnosed at any time.
+- **Input-diversity minus:** each standard-correctness run exercises
+  exactly ONE input draw per grid point. Input diversity comes from the
+  enhanced-tests stage (spec-defined patterns and sizes), not from
+  repeated validation runs.

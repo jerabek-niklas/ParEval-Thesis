@@ -176,7 +176,12 @@ def compile_sample(
     out_path: str,
     extra_include_dir: "str | None" = None,
     execution_model: str = "serial",
-) -> "tuple[bool, float]":
+) -> "tuple[bool, float, str]":
+    """(built, seconds, stderr tail). The stderr tail is persisted on
+    build_failed records (analog to static_analysis raw_stderr): without
+    it a harness divergence — an artifact that compiles in the normal
+    pipeline but not under the enhanced defines — is undiagnosable from
+    the records."""
     argv = compile_argv(sample, defines, out_path, extra_include_dir, execution_model)
 
     started = time.time()
@@ -184,9 +189,13 @@ def compile_sample(
     try:
         result = subprocess.run(argv, capture_output=True, text=True, timeout=BUILD_TIMEOUT)
     except subprocess.TimeoutExpired:
-        return False, time.time() - started
+        return False, time.time() - started, "build timeout after %ds" % BUILD_TIMEOUT
 
-    return result.returncode == 0, time.time() - started
+    return (
+        result.returncode == 0,
+        time.time() - started,
+        (result.stderr or "")[-2000:],
+    )
 
 
 def launch_command(
@@ -451,7 +460,7 @@ def main() -> None:
                         for header_name, text in extra_headers.items():
                             (Path(tmp) / header_name).write_text(text, encoding="utf-8")
 
-                    built, build_seconds = compile_sample(
+                    built, build_seconds, build_stderr = compile_sample(
                         sample, defines, binary,
                         extra_include_dir=tmp if extra_headers else None,
                         execution_model=sample.execution_model,
@@ -460,6 +469,9 @@ def main() -> None:
                     if not built:
                         record["status"] = "build_failed"
                         record["duration_seconds"] = round(build_seconds, 3)
+                        # additive field: the compile error text is the only
+                        # way to diagnose enhanced-harness divergence
+                        record["build_stderr"] = build_stderr
                         counts["build_failed"] += 1
                         common.append_jsonl(output_path, record)
                         continue

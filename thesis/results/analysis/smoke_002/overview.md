@@ -1,32 +1,32 @@
 # Consolidated overview — run smoke_002
 
-Generated 2026-08-06T14:48:31.145770Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
+Generated 2026-08-06T15:29:38.546602Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
 
 ## Pass-rate trajectories (ParEval vs. enhanced — overfitting view)
 
 ### static_feedback
 | iteration | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| 0 | 33 | 78.8% (26/33) | 99.4% (632/636) |
-| 1 | 33 | 75.8% (25/33) | 95.7% (608/635) |
-| 2 | 33 | 75.8% (25/33) | 98.9% (641/648) |
-| 3 | 33 | 75.8% (25/33) | 98.9% (641/648) |
+| 0 | 33 | 78.8% (26/33) | 98.9% (653/660) |
+| 1 | 33 | 75.8% (25/33) | 95.9% (633/660) |
+| 2 | 33 | 75.8% (25/33) | 98.9% (653/660) |
+| 3 | 33 | 75.8% (25/33) | 98.9% (653/660) |
 
 ### test_feedback
 | iteration | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| 0 | 33 | 78.8% (26/33) | 99.4% (632/636) |
-| 1 | 33 | 84.8% (28/33) | 100.0% (648/648) |
-| 2 | 33 | 93.9% (31/33) | 100.0% (648/648) |
-| 3 | 33 | 93.9% (31/33) | 100.0% (648/648) |
+| 0 | 33 | 78.8% (26/33) | 98.9% (653/660) |
+| 1 | 33 | 84.8% (28/33) | 100.0% (660/660) |
+| 2 | 33 | 93.9% (31/33) | 100.0% (660/660) |
+| 3 | 33 | 93.9% (31/33) | 100.0% (660/660) |
 
 ### combined_feedback
 | iteration | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| 0 | 33 | 78.8% (26/33) | 99.4% (632/636) |
-| 1 | 33 | 84.8% (28/33) | 96.9% (628/648) |
-| 2 | 33 | 84.8% (28/33) | 96.9% (628/648) |
-| 3 | 33 | 90.9% (30/33) | 100.0% (648/648) |
+| 0 | 33 | 78.8% (26/33) | 98.9% (653/660) |
+| 1 | 33 | 84.8% (28/33) | 97.0% (640/660) |
+| 2 | 33 | 84.8% (28/33) | 97.0% (640/660) |
+| 3 | 33 | 90.9% (30/33) | 100.0% (660/660) |
 
 ## Stop-reason distribution
 
@@ -174,34 +174,34 @@ Cells are `findings (samples)`: finding sums double-count when several tools rep
 ### static_feedback
 | problem_type | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| dense_la | 33 | 75.8% (25/33) | 98.9% (641/648) |
+| dense_la | 33 | 75.8% (25/33) | 98.9% (653/660) |
 
 | execution_model | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
 | mpi | 11 | 90.9% (10/11) | 98.2% (216/220) |
-| omp | 11 | 81.8% (9/11) | 98.6% (205/208) |
+| omp | 11 | 81.8% (9/11) | 98.6% (217/220) |
 | serial | 11 | 54.5% (6/11) | 100.0% (220/220) |
 
 ### test_feedback
 | problem_type | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| dense_la | 33 | 93.9% (31/33) | 100.0% (648/648) |
+| dense_la | 33 | 93.9% (31/33) | 100.0% (660/660) |
 
 | execution_model | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
 | mpi | 11 | 100.0% (11/11) | 100.0% (220/220) |
-| omp | 11 | 100.0% (11/11) | 100.0% (208/208) |
+| omp | 11 | 100.0% (11/11) | 100.0% (220/220) |
 | serial | 11 | 81.8% (9/11) | 100.0% (220/220) |
 
 ### combined_feedback
 | problem_type | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
-| dense_la | 33 | 90.9% (30/33) | 100.0% (648/648) |
+| dense_la | 33 | 90.9% (30/33) | 100.0% (660/660) |
 
 | execution_model | n | ParEval pass | enhanced pass (specs) |
 | --- | --- | --- | --- |
 | mpi | 11 | 100.0% (11/11) | 100.0% (220/220) |
-| omp | 11 | 81.8% (9/11) | 100.0% (208/208) |
+| omp | 11 | 81.8% (9/11) | 100.0% (220/220) |
 | serial | 11 | 90.9% (10/11) | 100.0% (220/220) |
 
 ## "Statically clean but incorrect" (static_feedback, design §9)
@@ -218,8 +218,8 @@ Spec-run verdicts per execution model (gates are SERIAL: sight omp/mpi crash/tim
 | exec | samples | pass | fail | crash | timeout | build_failed | runtime_error | gated |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | serial | 32 | 640 | 0 | 0 | 0 | 0 | 0 | 0 |
-| omp | 49 | 912 | 3 | 0 | 0 | 40 | 0 | 0 |
-| mpi | 35 | 655 | 13 | 0 | 0 | 20 | 0 | 0 |
+| omp | 49 | 937 | 3 | 0 | 0 | 40 | 0 | 0 |
+| mpi | 35 | 664 | 16 | 0 | 0 | 20 | 0 | 0 |
 
 ## Runtime cost per tool
 
@@ -421,9 +421,7 @@ Rows total: 182, incomplete: 0
     "omp_threads": 4
   },
   "execution_models": [
-    "serial",
-    "omp",
-    "mpi"
+    "serial"
   ],
   "explicit_values_max_size": 64,
   "llm_specs_max": 8,

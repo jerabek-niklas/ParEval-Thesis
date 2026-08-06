@@ -131,13 +131,17 @@ itself a key validation finding). Interpret A-vs-B on MPI samples as
 - findings as `line:check_id` + message truncated to ~80 chars
 - B/C: test verdict only (e.g. "ParEval tests: FAIL (omp at 4/8
   threads)") — NOT the old mismatch numbers. **Corrected rationale
-  (2026-08-06):** fillRand draws from unseeded `rand()` (as if
-  `srand(1)`), so validation inputs are IDENTICAL across runs and
-  iterations (verified: two runs byte-identical) — the original "inputs
-  differ per run" claim only holds for the draw ORDER within a process,
-  not between runs. The exclusion stays for the stronger reason: old
-  expected/got describe the PREVIOUS code's output; after a repair, only
-  the current numbers apply.
+  (2026-08-06/07):** fillRand draws from unseeded `rand()` (as if
+  `srand(1)`), so validation inputs are IDENTICAL across runs, models
+  and iterations — verified twice: two driver runs are byte-identical,
+  and the same expected value (e.g. `2.8866015260109088` at size 7,
+  index 15) appears across all models' enhanced records. The original
+  "old numbers refer to other random inputs" claim is therefore wrong.
+  The rule stays for COMPRESSION: because the inputs are reproducible,
+  the current iteration's report describes the same test completely —
+  old expected/got add prompt tokens without adding information (they
+  quantify the PREVIOUS code's output, which the model already sees as
+  code in the history).
 
 **Mismatch-report note:** ParEval's validate() only returns bool today.
 The bounded expected/got report requires a mechanical driver patch of the

@@ -262,6 +262,77 @@ def external_pending(
     return pending
 
 
+def enhanced_spec_coverage(
+    config: Dict[str, Any],
+    enhanced_path: Path,
+    expected_samples: List[str],
+) -> str:
+    """'ok' | 'partial' | 'missing' at (sample_id, spec) GRANULARITY.
+
+    Sample-level presence was the bug: a sample with 8 of 20 spec records
+    counted as covered, the runner was never re-invoked, and its
+    (sample, spec)-level resume never got the chance to fill the gaps.
+    Present pairs are counted against the benchmark's DETERMINISTIC
+    expected spec list (build_benchmark_specs: static base + LLM seeds +
+    mutation fill — the same list the runner executes, including the
+    under-target case where mutation space is exhausted). Gated records
+    (baseline_incompatible / numerically_unstable) are records and count
+    as present.
+    """
+    from thesis.enhanced_tests.specs import build_benchmark_specs, spec_key
+    from thesis.evaluation.run_enhanced_tests import load_llm_specs
+
+    if not expected_samples:
+        return "ok"
+
+    pairs = set()
+    if enhanced_path.exists():
+        with enhanced_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                try:
+                    row = json.loads(line)
+                    pairs.add((row["sample_id"], spec_key(row["spec"])))
+                except (ValueError, KeyError):
+                    continue
+
+    stage = (config.get("stages") or {}).get("enhanced_tests") or {}
+    specs_path = Path(
+        stage.get("specs_file")
+        or REPO_ROOT / "thesis" / "results" / "cache" / "enhanced" / "specs.jsonl"
+    )
+    llm_specs = load_llm_specs(specs_path)
+
+    expected_keys_cache: "Dict[str, List[Any]]" = {}
+    covered = 0
+
+    for sample_id in expected_samples:
+        parts = sample_id.split("__")
+        benchmark = (
+            "%s/%s" % (parts[-4], parts[-3]) if len(parts) >= 4 else ""
+        )
+
+        if benchmark not in expected_keys_cache:
+            expected_keys_cache[benchmark] = [
+                spec_key(spec)
+                for spec in build_benchmark_specs(
+                    benchmark, llm_specs.get(benchmark, []), config
+                )
+            ]
+
+        expected_keys = expected_keys_cache[benchmark]
+        if expected_keys and all(
+            (sample_id, key) in pairs for key in expected_keys
+        ):
+            covered += 1
+
+    if covered == len(expected_samples):
+        return "ok"
+
+    return "partial" if pairs else "missing"
+
+
 def enhanced_expected_samples(
     assembly: "Dict[str, Dict[str, Any]]",
     repo_root: Path,
@@ -331,16 +402,16 @@ def plan_run(
     )
 
     enhanced_stage = (config.get("stages") or {}).get("enhanced_tests") or {}
-    enhanced_records = load_jsonl_by_sample(
+    enhanced_path = (
         intermediate_root / run_id / model_id
         / enhanced_stage.get("output_file_name", "enhanced_tests.jsonl")
     )
     # the configured coverage decides applicability — specs.stage_settings
     # is the single source for the [serial] default. not_applicable only
     # when NO sample of the iteration falls under the configured models;
-    # per-sample coverage below then makes omp/mpi gaps `pending` while
-    # existing serial records stay valid (the runner resumes per
-    # (sample, spec) and only adds the missing ones).
+    # SPEC-level coverage below then makes partial samples `pending` while
+    # existing records stay valid (the runner resumes per (sample, spec)
+    # and only adds the missing ones).
     enhanced_expected = enhanced_expected_samples(
         assembly, repo_root, marker_cache,
         execution_models=list(enhanced_stage_settings(config)["execution_models"]),
@@ -357,7 +428,7 @@ def plan_run(
     plan["enhanced"] = (
         "not_applicable"
         if not enhanced_expected
-        else stage_coverage(enhanced_records, enhanced_expected)
+        else enhanced_spec_coverage(config, enhanced_path, enhanced_expected)
     )
 
     return plan
