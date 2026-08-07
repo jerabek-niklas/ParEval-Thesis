@@ -378,8 +378,11 @@ def render_correctness(
 
 def summarize_correctness(record: Optional[Dict[str, Any]]) -> Optional[str]:
     """One-sentence verdict for compressed history, e.g.
-    'ParEval tests: FAIL (omp at 4/8 threads)'. Never mismatch numbers
-    (design §4: old expected/got belong to other random inputs)."""
+    'ParEval tests: FAIL (omp at 4/8 threads)'. Never mismatch numbers —
+    a compression rule, not an input-identity one (inputs ARE identical
+    across iterations, unseeded deterministic rand()): old expected/got
+    describe the previous code's output (design §4, "Corrected
+    rationale")."""
     if not record:
         return None
 
@@ -462,8 +465,11 @@ def render_history_iteration(
     one-sentence test verdict; non-blocking findings always excluded
     (compression means: only what counts).
     full: full-detail rendering like current feedback.
-    NEITHER mode renders old mismatch numbers — fillRand has no persisted
-    seed, past expected/got values describe different inputs (design §4).
+    NEITHER mode renders old mismatch numbers — for COMPRESSION, not
+    input identity: fillRand draws from unseeded rand() (as if srand(1)),
+    so inputs are identical across iterations; but old expected/got
+    describe the PREVIOUS code's output, and after a repair only the
+    current numbers apply (design §4, "Corrected rationale").
     """
     mode = history_mode(config)
     settings = feedback_settings(config)

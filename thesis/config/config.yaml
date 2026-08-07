@@ -654,8 +654,11 @@ stages:
     #   compressed  per past iteration: cleaned code + findings with
     #               truncated messages + one-sentence test verdict
     #   full        per past iteration: cleaned code + full-detail findings
-    # Neither mode ever includes old mismatch numbers (fillRand has no
-    # persisted seed — old expected/got values belong to other inputs).
+    # Neither mode ever includes old mismatch numbers — a COMPRESSION
+    # rule, not input identity: fillRand draws from unseeded rand() (as if
+    # srand(1)), inputs are identical across iterations; old expected/got
+    # describe the PREVIOUS code's output (design §4, "Corrected
+    # rationale", 2026-08-06).
     # DECISION 2026-07-31: 'full' for the main run (the design originally
     # defaulted to 'compressed'). The repair loop itself is the object of
     # study, so the model must see the full finding detail of every past
