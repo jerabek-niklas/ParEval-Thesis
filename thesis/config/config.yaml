@@ -91,7 +91,7 @@ generation_defaults:
     You are an expert C++ and parallel programming assistant.
     Complete the given function according to the prompt.
     Return only the generated C++ code needed to complete the function.
-    Do not include Markdown, explanations, or extra text.
+    Do not include Markdown fences, explanations, or extra text.
     Preserve the required execution model: Serial, OpenMP, or MPI.
 
 # Reasoning policy (see thesis/docs/model-set.md, "Reasoning policy"):
@@ -574,6 +574,18 @@ stages:
     # overhead too (~1-2 s per run); generous headroom at the tiny
     # DRIVER_PROBLEM_SIZE (1<<4) the stage builds with.
     run_timeout_seconds: 30
+    # Worker-pool width over SAMPLES per EXECUTION model (serial/omp/mpi —
+    # execution models, not LLM models; built-in default 1/1/1 = the old
+    # serial behavior; CLI --jobs overrides with highest priority).
+    # serial=2 is safe on any >=4-core machine (each serial sample uses one
+    # core); omp/mpi stay at 1 because each sample already occupies
+    # omp_threads/mpi_ranks (4) cores — budget rule and examples in
+    # docs/parallel-execution.md. Raise only within
+    # terminals x jobs x (1|threads|ranks) <= physical cores.
+    jobs:
+      serial: 2
+      omp: 1
+      mpi: 1
     # where generate_test_specs.py writes and run_enhanced_tests.py reads
     specs_file: thesis/results/cache/enhanced/specs.jsonl
 

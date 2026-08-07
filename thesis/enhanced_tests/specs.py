@@ -146,6 +146,12 @@ DEFAULT_SETTINGS = {
     # ONE fixed launch point for parallel samples — deliberately not a
     # grid (grids are the correctness stage's axis)
     "enhanced_launch": {"omp_threads": 4, "mpi_ranks": 4},
+    # runner worker-pool width PER EXECUTION MODEL (samples run in
+    # parallel, specs within a sample stay sequential). The built-in
+    # default 1/1/1 IS the historical serial behavior; anything higher is
+    # an explicit resource decision (omp/mpi samples already occupy
+    # omp_threads/mpi_ranks cores each — see docs/parallel-execution.md).
+    "jobs": {"serial": 1, "omp": 1, "mpi": 1},
 }
 
 ENHANCED_EXECUTION_MODELS = ("serial", "omp", "mpi")
@@ -168,6 +174,12 @@ def stage_settings(config: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(raw.get("enhanced_launch"), dict):
         merged["enhanced_launch"] = dict(DEFAULT_SETTINGS["enhanced_launch"])
         merged["enhanced_launch"].update(raw["enhanced_launch"])
+
+    # jobs merges PER SUBKEY for the same reason (a config setting only
+    # serial keeps omp/mpi at the serial-behavior default 1)
+    if isinstance(raw.get("jobs"), dict):
+        merged["jobs"] = dict(DEFAULT_SETTINGS["jobs"])
+        merged["jobs"].update(raw["jobs"])
 
     if raw.get("target_cases_per_benchmark") is None and raw.get(
         "max_cases_per_benchmark"
@@ -234,6 +246,25 @@ def validate_enhanced_settings(config: Dict[str, Any]) -> None:
             raise ValueError(
                 "stages.enhanced_tests.enhanced_launch.%s must be a "
                 "positive integer (got %r)" % (key, value)
+            )
+
+    jobs = settings["jobs"]
+    if not isinstance(jobs, dict):
+        raise ValueError(
+            "stages.enhanced_tests.jobs must be a mapping of EXECUTION "
+            "models (serial/omp/mpi) to worker counts (got %r)" % (jobs,)
+        )
+    for key, value in jobs.items():
+        if key not in ENHANCED_EXECUTION_MODELS:
+            raise ValueError(
+                "stages.enhanced_tests.jobs: unknown key '%s' — keys are "
+                "EXECUTION models (%s), not LLM model ids"
+                % (key, ", ".join(ENHANCED_EXECUTION_MODELS))
+            )
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError(
+                "stages.enhanced_tests.jobs.%s must be a positive integer "
+                "(got %r)" % (key, value)
             )
 
 
@@ -384,6 +415,56 @@ def spec_defines(spec: dict) -> "List[str]":
         defines.append("ENHANCED_FILL_PARAM_K=%d" % int(params["k"]))
 
     return defines
+
+
+def spec_runtime_env(spec: dict, values_file: "Optional[str]" = None) -> "Dict[str, str]":
+    """Environment variables realizing this spec for a runtime-fill binary
+    (compiled with -DENHANCED_RUNTIME_FILL), the runtime twin of
+    spec_defines(): the pattern travels as the SAME integer id, lo/hi as
+    %.17g-formatted doubles (round-trip exact and locale-free — Python
+    formats without locale, the header parses with std::from_chars).
+    explicit_values data travels via a values FILE (one number per line,
+    row-major) whose path the caller must supply; requesting the env for an
+    explicit_values spec without one is a programming error, not a runtime
+    fallback."""
+    env = {"ENHANCED_FILL_PATTERN": str(PATTERNS[spec["pattern"]])}
+
+    params = spec.get("pattern_params") or {}
+
+    value_range = params.get("value_range")
+    if value_range:
+        env["ENHANCED_FILL_RANGE_LO"] = "%.17g" % float(value_range[0])
+        env["ENHANCED_FILL_RANGE_HI"] = "%.17g" % float(value_range[1])
+
+    if spec["pattern"] in K_PATTERNS:
+        env["ENHANCED_FILL_K"] = "%d" % int(params["k"])
+
+    if spec["pattern"] == "explicit_values":
+        if values_file is None:
+            raise ValueError(
+                "explicit_values spec needs a values_file path "
+                "(write explicit_values_file_text() first)"
+            )
+        env["ENHANCED_FILL_VALUES_FILE"] = str(values_file)
+
+    return env
+
+
+def explicit_values_file_text(spec: dict) -> Optional[str]:
+    """Text of the runtime values file for an explicit_values spec (None
+    for other patterns). One number per line, row-major, %.17g (round-trip
+    exact, locale-free). Mirrors explicit_values_header(): an EMPTY values
+    list writes a single 0.0 line (count 1), so the degenerate size-0 case
+    keeps identical semantics in both modes — the value is never read at
+    size 0, and the header's no-empty-file abort rule stays intact."""
+    if spec.get("pattern") != "explicit_values":
+        return None
+
+    values = [float(v) for v in spec.get("values") or []]
+    if not values:
+        values = [0.0]
+
+    return "".join("%.17g\n" % v for v in values)
 
 
 def explicit_values_header(spec: dict) -> Optional[str]:

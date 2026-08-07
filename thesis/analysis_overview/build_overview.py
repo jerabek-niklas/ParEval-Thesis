@@ -77,6 +77,7 @@ from thesis.evaluation.tool_config import (  # noqa: E402
     STAGE_TOOLS,
     resolve_tool_settings,
 )
+from thesis.evaluation.run_enhanced_tests import derived_file_names  # noqa: E402
 from thesis.repair import orchestrator  # noqa: E402
 from thesis.repair.run_backfill import (  # noqa: E402
     ENHANCED_MARKER,
@@ -247,15 +248,79 @@ class RunData:
                 pass
 
         self.enhanced: Dict[str, List[Dict[str, Any]]] = {}
-        enhanced_path = intermediate / enhanced_stage.get(
-            "output_file_name", "enhanced_tests.jsonl"
-        )
+        enhanced_name = enhanced_stage.get("output_file_name", "enhanced_tests.jsonl")
+        enhanced_path = intermediate / enhanced_name
         if enhanced_path.exists():
             with enhanced_path.open("r", encoding="utf-8") as handle:
                 for line in handle:
-                    if line.strip():
+                    if not line.strip():
+                        continue
+                    # tolerant like the runner's resume loader: a hard kill
+                    # can truncate the trailing appended line; one bad line
+                    # must not abort the whole overview build
+                    try:
                         record = json.loads(line)
                         self.enhanced.setdefault(record["sample_id"], []).append(record)
+                    except (ValueError, KeyError):
+                        continue
+
+        # timing semantics of THIS run's enhanced files, from the per-model
+        # summary (versioned, never guessed from record shape):
+        #   None (legacy, no marker)          duration_seconds = build+run
+        #   "run_only_plus_build_groups"      duration_seconds = run only;
+        #                                     compile times live per group in
+        #                                     the build-groups file
+        # The marker applies per (run, model) FILE. A resume ACROSS the
+        # harness change (e.g. phase-2 backfill over a legacy run with
+        # partial spec coverage) mixes semantics per record inside one
+        # file; the runner records that as legacy_mixed_rows in the
+        # summary, and the enhanced_seconds SUM stays correct either way
+        # (legacy build+run + new run-only + new group compiles = the true
+        # total) — only per-record duration splits must exclude such runs.
+        self.enhanced_timing_semantics: Optional[str] = None
+        self.enhanced_build_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+        try:
+            groups_name, summary_name = derived_file_names(enhanced_name)
+        except ValueError:
+            # legacy configs could name the output arbitrarily (the old
+            # runner accepted any name); such runs are legacy-semantics by
+            # construction — read the records, never crash the join
+            groups_name = summary_name = None
+
+        summary_path = (intermediate / summary_name) if summary_name else None
+        if summary_path is not None and summary_path.exists():
+            try:
+                with summary_path.open("r", encoding="utf-8") as handle:
+                    enhanced_summary = json.load(handle)
+                self.enhanced_timing_semantics = enhanced_summary.get("timing_semantics")
+                groups_name = enhanced_summary.get("build_groups_file") or groups_name
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        groups_path = (intermediate / groups_name) if groups_name else None
+        if groups_path is not None and groups_path.exists():
+            with groups_path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
+                    try:
+                        row = json.loads(line)
+                        self.enhanced_build_groups.setdefault(
+                            row["sample_id"], []
+                        ).append(row)
+                    except (ValueError, KeyError):
+                        continue
+
+            # A run interrupted before its summary write (or a --force
+            # rerun over a stale marker-less legacy summary) leaves
+            # new-format records WITHOUT the marker; the groups file only
+            # ever exists for grouped (run-only) runs, so its presence is
+            # the authoritative fallback signal — without it the whole
+            # compile share would silently vanish from enhanced_seconds
+            # (review finding 2026-08-08).
+            if self.enhanced_timing_semantics is None:
+                self.enhanced_timing_semantics = "run_only_plus_build_groups"
 
 
 # ---------------------------------------------------------------------------
@@ -559,9 +624,22 @@ def build_row(
         row["enhanced_build_failed"] = counts.get("build_failed", 0)
         row["enhanced_runtime_error"] = counts.get("runtime_error", 0)
         row["enhanced_gated"] = sum(counts.get(s, 0) for s in ENHANCED_GATED)
-        row["enhanced_seconds"] = round(
-            sum(float(r.get("duration_seconds") or 0.0) for r in enhanced_records), 3
+
+        # both timing semantics (versioned via the run summary, see
+        # RunData): legacy files carry build+run mixed in duration_seconds;
+        # grouped runs carry run-only durations plus per-group compile
+        # times in the build-groups file — never mixed across semantics
+        record_seconds = sum(
+            float(r.get("duration_seconds") or 0.0) for r in enhanced_records
         )
+        if run_data.enhanced_timing_semantics == "run_only_plus_build_groups":
+            compile_seconds = sum(
+                float(g.get("compile_seconds") or 0.0)
+                for g in run_data.enhanced_build_groups.get(sample_id) or []
+            )
+            row["enhanced_seconds"] = round(record_seconds + compile_seconds, 3)
+        else:
+            row["enhanced_seconds"] = round(record_seconds, 3)
     elif enhanced_expected:
         missing_stages.append("enhanced")
 

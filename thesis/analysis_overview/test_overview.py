@@ -238,8 +238,26 @@ def build_world(tmp):
         {"sample_id": S_SERIAL, "tools": {"asan_ubsan": tool_entry(
             seconds=120.0, error="asan_ubsan timed out")}},
     ])
+    # iter1 enhanced files use the NEW timing semantics (grouped builds):
+    # duration_seconds = run only, compile times per group, summary marker.
+    # The BASE run above deliberately has NO summary -> legacy semantics.
     jsonl(config, iter1, "enhanced_tests.jsonl",
-          [{"sample_id": S_SERIAL, "status": "pass"} for _ in range(4)])
+          [{"sample_id": S_SERIAL, "status": "pass", "duration_seconds": 0.1}
+           for _ in range(4)])
+    jsonl(config, iter1, "enhanced_build_groups.jsonl", [
+        {"sample_id": S_SERIAL, "execution_model": "serial", "size": 2,
+         "spec_count": 2, "compile_seconds": 2.0, "build_status": "success",
+         "build_stderr": ""},
+        {"sample_id": S_SERIAL, "execution_model": "serial", "size": 7,
+         "spec_count": 2, "compile_seconds": 1.5, "build_status": "success",
+         "build_stderr": ""},
+    ])
+    common.write_json(
+        Path(config["outputs"]["intermediate_dir"]) / iter1 / MODEL
+        / "enhanced_tests_summary.json",
+        {"timing_semantics": "run_only_plus_build_groups",
+         "build_groups_file": "enhanced_build_groups.jsonl"},
+    )
 
     return config
 
@@ -481,6 +499,50 @@ def test_markdown():
 # ---------------------------------------------------------------------------
 
 
+def test_enhanced_timing_semantics():
+    print("enhanced timing: legacy vs run_only_plus_build_groups per run")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        config = build_world(tmp)
+        rows = collect_model_rows(config, BASE, MODEL)
+
+        serial0 = row_of(rows, S_SERIAL, "static_feedback", 0)
+        check("legacy run (no summary marker): sum of durations as before",
+              serial0["enhanced_seconds"] == 1.0)
+
+        serial1 = row_of(rows, S_SERIAL, "static_feedback", 1)
+        check("grouped run: run durations + group compile times",
+              serial1["enhanced_seconds"] == 3.9)  # 4x0.1 + 2.0 + 1.5
+
+        # interrupted-run resilience: the summary write is the LAST step of
+        # a run — kill the summary (died before write) and truncate the
+        # trailing groups line (hard kill mid-append). The groups file's
+        # presence must still classify the run as run-only, and the
+        # truncated line must not abort the build.
+        iter1_dir = (Path(config["outputs"]["intermediate_dir"])
+                     / ("%s__static_feedback__iter1" % BASE) / MODEL)
+        (iter1_dir / "enhanced_tests_summary.json").unlink()
+        with (iter1_dir / "enhanced_build_groups.jsonl").open(
+                "a", encoding="utf-8") as handle:
+            handle.write('{"sample_id": "x", "compile_secon')
+
+        rows = collect_model_rows(config, BASE, MODEL)
+        serial1 = row_of(rows, S_SERIAL, "static_feedback", 1)
+        check("no summary: groups file presence classifies as run-only",
+              serial1["enhanced_seconds"] == 3.9)
+
+        # legacy config with a non-.jsonl output name: the runner rejects
+        # such names now, but the READ-ONLY join must degrade to
+        # legacy-semantics records instead of crashing on old data
+        config["stages"]["enhanced_tests"]["output_file_name"] = "weird_name"
+        try:
+            rows = collect_model_rows(config, BASE, MODEL)
+            check("non-.jsonl legacy config: overview degrades, no crash",
+                  len(rows) == 6)
+        except ValueError:
+            check("non-.jsonl legacy config: overview degrades, no crash", False)
+
+
 def test_legacy_timing_classification():
     print("legacy v2 records: batch pseudo-durations never become latency")
     from thesis.analysis_overview.build_overview import apply_generation_columns
@@ -577,6 +639,7 @@ def test_class_dedup_and_cells():
 
 def main():
     tests = [test_rows, test_csv, test_markdown,
+             test_enhanced_timing_semantics,
              test_legacy_timing_classification, test_class_dedup_and_cells]
 
     for test in tests:

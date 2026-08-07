@@ -84,6 +84,38 @@ Shared iteration-0 rows are deduplicated before aggregation (every
 variant references the same initial-generation records; counting them per
 variant would multiply identical measurements).
 
+### Enhanced-tests timing semantics (versioned, 2026-08-08)
+
+Since the compile-grouping change, an enhanced run's records carry
+**run-only** `duration_seconds` (build_failed records carry none — nothing
+ran), and compile times live per (sample, size) group in
+`enhanced_build_groups.jsonl`. The per-model summary marks such runs with
+`timing_semantics: "run_only_plus_build_groups"` and names the groups
+file. `build_overview.py` computes `enhanced_seconds` per marker: legacy
+runs (no marker) sum the mixed build+run durations exactly as before;
+grouped runs sum run durations plus group compile times. An interrupted
+run that died before its summary write is still classified correctly:
+the build-groups file only ever exists for grouped runs, so its presence
+is the fallback signal.
+
+**Mixed files are possible and recorded, not silent:** phase-2 backfill
+invokes the runner on any legacy run with partial spec coverage, which
+appends run-only records to a build+run-era file. The runner detects
+this (resume over rows without a groups file/marker), warns on the
+console, and records the count as `legacy_mixed_rows` in the summary.
+The `enhanced_seconds` **sum stays correct** for mixed files — legacy
+rows carry build+run, new rows carry run-only plus their compile times
+in the groups file, so the total is the true total either way. Only
+**per-record** duration analyses (e.g. a run-vs-build split) must
+exclude runs with `legacy_mixed_rows > 0`, because the two row
+populations cannot be told apart after the fact.
+A group row is appended for **every compile that actually happened**; a
+resume that re-compiles a partially-done group therefore appends a second
+row, keeping the sum the true compile cost. `build_failed` records carry
+no `duration_seconds` at all since the change (nothing ran; the compile
+time is in the group row) — consumers summing durations over
+build_failed rows must join the groups file instead.
+
 ## Interpreting direct latency
 
 Direct latency additionally depends on the network path and the

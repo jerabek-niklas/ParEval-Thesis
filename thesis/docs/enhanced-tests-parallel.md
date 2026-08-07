@@ -56,6 +56,23 @@ indices. The bounded mismatch report (`expected`/`got` per index, parsed
 unchanged from omp/mpi output by `parse_mismatch_output`) is the basis of
 this rounding-vs-bug classification in the pilot.
 
+## Compile grouping and worker pool (2026-08-08)
+
+The runner compiles ONE binary per (sample, size) group
+(`-DENHANCED_RUNTIME_FILL`; the fill pattern travels as environment
+variables into a **fresh process per spec** — process isolation
+unchanged, see the runtime-fill contract in
+[`drivers/cpp/enhanced-fill.hpp`](../../drivers/cpp/enhanced-fill.hpp)),
+and runs a worker pool over samples per execution model
+(`stages.enhanced_tests.jobs`, CLI `--jobs`). Gates are precomputed
+serially before the pool and are **unchanged** (compile-define path,
+same defines, same caches). Bit-equivalence of the runtime-fill path to
+the old per-spec compiles was verified against the frozen smoke_002
+reference (see the equivalence probe in the session report). Timing
+semantics are versioned — see timing-and-effort.md ("Enhanced-tests
+timing semantics"); operational rules for `--jobs` x multi-terminal
+model parallelism: [parallel-execution.md](parallel-execution.md).
+
 ## Scope notes
 
 - Held-out principle untouched: enhanced tests run only in phase-2
