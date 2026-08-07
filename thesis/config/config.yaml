@@ -7,7 +7,7 @@ experiment:
 
 profiles:
   smoke:
-    run_id: smoke_002
+    run_id: smoke_003
     prompt_limit: 3
     num_samples_per_prompt: 1
 
@@ -619,7 +619,7 @@ stages:
     # is not workable for 11 models x 3 variants x N iterations; with the
     # templates below the loop runs unattended. Switch back to `manual` if
     # the docker socket is not available to the orchestrator.
-    external_tools_mode: manual
+    external_tools_mode: docker
     external_tools: [parcoach, llov]
     # Repo path as the HOST daemon sees it. The orchestrator runs INSIDE the
     # toolchain container (repo at /workspace) and starts the tool containers
