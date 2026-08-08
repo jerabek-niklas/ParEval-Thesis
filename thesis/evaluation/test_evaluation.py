@@ -840,6 +840,106 @@ def test_llov_parse_and_filter() -> None:
     check("cpu.cc race filtered out", len(kept) == 2)
 
 
+def test_environment_gates() -> None:
+    print("environment gates: toolchain check, dynamic preflight, escape hatch")
+    import shutil
+
+    from thesis.evaluation import run_dynamic_analysis as rda
+    from thesis.evaluation.build_config import missing_toolchain
+    from thesis.evaluation.tool_config import ToolSettings
+
+    # ---- missing_toolchain (fake `which`) -----------------------------
+    original_which = shutil.which
+    try:
+        shutil.which = lambda name: "/usr/bin/" + name
+        check("full toolchain: nothing missing",
+              missing_toolchain(["serial", "omp", "mpi"]) == [])
+
+        shutil.which = lambda name: None
+        missing = missing_toolchain(["serial", "omp", "mpi"])
+        check("empty env: compiler, mpicxx AND mpirun reported",
+              len(missing) == 3 and any("mpirun" in m for m in missing))
+        check("serial-only scope skips the mpi binaries",
+              len(missing_toolchain(["serial"])) == 1)
+
+        shutil.which = lambda name: None if name == "mpirun" else "/usr/bin/" + name
+        missing = missing_toolchain(["serial", "mpi"])
+        check("launch-side mpirun checked separately from mpicxx",
+              missing == ["mpirun (mpi launches)"])
+    finally:
+        shutil.which = original_which
+
+    # ---- dynamic preflight gate (fake tools) --------------------------
+    class OkTool:
+        name = "ok_tool"
+        def is_available(self):
+            return True
+
+    class UnavailableTool:
+        name = "missing_tool"
+        def is_available(self):
+            return False
+
+    class PreflightFailTool:
+        name = "tsan_like"
+        def is_available(self):
+            return True
+        def preflight(self):
+            return "preflight binary exited -11. Fix: sysctl -w vm.mmap_rnd_bits=28"
+
+    fakes = {t.name: t for t in (OkTool(), UnavailableTool(), PreflightFailTool())}
+    original_get_tool = rda.framework.get_tool
+    try:
+        rda.framework.get_tool = lambda name: fakes[name]
+
+        failures = dict(rda.preflight_failures(list(fakes)))
+        check("healthy tool passes the gate", "ok_tool" not in failures)
+        check("unavailable tool fails the gate", "missing_tool" in failures)
+        check("tool preflight() is reused, remedy text passed through",
+              "vm.mmap_rnd_bits=28" in failures.get("tsan_like", ""))
+
+        settings = {name: ToolSettings(name=name, enabled=True,
+                                       execution_models=("omp",),
+                                       low_precision_warning=False,
+                                       low_precision_families=())
+                    for name in fakes}
+
+        try:
+            rda.apply_preflight_gate(dict(settings), skip_unavailable=False)
+            check("gate aborts (exit != 0) without the escape hatch", False)
+        except SystemExit as stop:
+            check("gate aborts (exit != 0) without the escape hatch",
+                  stop.code == 2)
+
+        usable, skipped = rda.apply_preflight_gate(
+            dict(settings), skip_unavailable=True
+        )
+        check("escape hatch drops exactly the failing tools",
+              set(usable) == {"ok_tool"})
+        check("skipped tools persisted with their reason",
+              {s["tool"] for s in skipped} == {"missing_tool", "tsan_like"}
+              and any("mmap_rnd_bits" in s["reason"] for s in skipped))
+    finally:
+        rda.framework.get_tool = original_get_tool
+
+    # ---- merge primitives (per-tool resume must not lose data) --------
+    record = {"tools": {
+        "asan_ubsan": {"num_blocking": 1, "num_low_confidence": 0},
+        "tsan": {"num_blocking": 0, "num_low_confidence": 2},
+    }}
+    check("has_blocking recomputed over ALL merged entries",
+          rda.record_has_blocking(record) is True)
+    check("low_confidence summed over ALL merged entries",
+          rda.record_low_confidence_count(record) == 2)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "dynamic_analysis.jsonl"
+        rda.write_records_atomic(path, {"s1": {"sample_id": "s1"},
+                                        "s2": {"sample_id": "s2"}})
+        loaded = rda.load_existing_records(path)
+        check("atomic write + reload roundtrip", set(loaded) == {"s1", "s2"})
+
+
 def main() -> None:
     tests = [
         test_build_config,
@@ -865,6 +965,7 @@ def main() -> None:
         test_llov_parse_and_filter,
         test_registry,
         test_finding_serialization,
+        test_environment_gates,
     ]
 
     for test in tests:

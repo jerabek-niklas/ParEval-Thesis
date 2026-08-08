@@ -99,6 +99,37 @@ def resolve_compiler(execution_model: str, primary_compiler: str) -> tuple[str, 
     raise ValueError(f"Unsupported execution model: {execution_model}")
 
 
+def missing_toolchain(
+    execution_models: "list[str]",
+    primary_compiler: str = "g++",
+) -> "list[str]":
+    """Human-readable list of toolchain pieces MISSING in this environment
+    for the given execution models — the build-side environment gate
+    (2026-08-08, same rationale as the dynamic preflight gate: a missing
+    compiler must abort the run loudly, not produce a full dataset of
+    build_failed records that looks like model failures).
+
+    Checks the exact binaries this module's configs use: the primary
+    compiler for serial/omp, mpicxx AND mpirun for mpi (mpirun is the
+    launch side — a compile-only check would let runs die later)."""
+    import shutil
+
+    required: "dict[str, str]" = {}
+
+    if any(model in ("serial", "omp") for model in execution_models):
+        required[primary_compiler] = "serial/omp builds"
+
+    if "mpi" in execution_models:
+        required["mpicxx"] = "mpi builds"
+        required["mpirun"] = "mpi launches"
+
+    return [
+        "%s (%s)" % (binary, why)
+        for binary, why in required.items()
+        if shutil.which(binary) is None
+    ]
+
+
 def get_build_config(
     execution_model: str,
     primary_compiler: str = "g++",

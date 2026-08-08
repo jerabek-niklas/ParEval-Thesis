@@ -113,6 +113,7 @@ from thesis.evaluation import framework  # noqa: E402
 from thesis.evaluation.build_config import (  # noqa: E402
     get_build_config,
     get_launch_config,
+    missing_toolchain,
 )
 from thesis.evaluation.run_correctness import parse_mismatch_output  # noqa: E402
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
@@ -713,6 +714,23 @@ def main() -> None:
 
     cli_jobs = parse_jobs_arg(args.jobs) if args.jobs else None
     jobs = resolve_jobs(settings, cli_jobs)
+
+    # environment gate BEFORE any record is written (2026-08-08, same
+    # rationale as the dynamic preflight gate): without a compiler every
+    # sample would become build_failed — a full dataset of records that
+    # reads like model failures. Scope: the stage's configured execution
+    # models; the compiler is fixed to g++ here (compile_argv and the
+    # serial gates both use it).
+    missing = missing_toolchain(execution_models, primary_compiler="g++")
+    if missing:
+        print(
+            "ENVIRONMENT GATE FAILED — aborting before any record is "
+            "written. Missing toolchain for execution models "
+            f"{'/'.join(execution_models)}: " + ", ".join(missing)
+            + ". The enhanced stage runs inside the pareval-thesis "
+            "container."
+        )
+        sys.exit(2)
 
     # MISMATCH_REPORT_MAX from the single config source
     # (stages.repair.feedback.mismatch_report_max_indices)

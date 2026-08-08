@@ -1,5 +1,8 @@
 # Parallel execution: operational rules
 
+> Before any run session, also check the per-session environment
+> prerequisites (TSan sysctl etc.): [environment-notes.md](environment-notes.md).
+
 Rules for running the pipeline faster by hand — several terminals, each on
 its own `--model-id` — and how that composes with the enhanced stage's
 `--jobs` worker pool. These are **operating rules, not code enforcement**:

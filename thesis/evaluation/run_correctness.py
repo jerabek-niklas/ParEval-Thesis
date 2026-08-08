@@ -52,6 +52,7 @@ from thesis.evaluation import framework  # noqa: E402
 from thesis.evaluation.build_config import (  # noqa: E402
     get_build_config,
     get_launch_config,
+    missing_toolchain,
 )
 from thesis.evaluation.framework import (  # noqa: E402
     AssembledSample,
@@ -383,6 +384,26 @@ def main() -> None:
     )
 
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
+
+    # environment gate BEFORE any record is written (2026-08-08, same
+    # rationale as the dynamic preflight gate): a missing compiler/mpirun
+    # would otherwise produce a FULL dataset of build_failed records that
+    # reads like model failures — an expensive silent loss. Scope: the
+    # configured sample universe (prompts.execution_models).
+    scoped_models = list(
+        (config.get("prompts") or {}).get("execution_models")
+        or ("serial", "omp", "mpi")
+    )
+    missing = missing_toolchain(scoped_models, args.primary_compiler)
+    if missing:
+        print(
+            "ENVIRONMENT GATE FAILED — aborting before any record is "
+            "written. Missing toolchain for execution models "
+            f"{'/'.join(scoped_models)}: " + ", ".join(missing)
+            + ". The correctness stage runs inside the pareval-thesis "
+            "container."
+        )
+        sys.exit(2)
 
     context = EvaluationContext(
         repo_root=REPO_ROOT,

@@ -11,9 +11,15 @@ Usage:
     # restrict to specific tools (otherwise uses stages.static_analysis.tools):
     python thesis/evaluation/run_static_analysis.py ... --tools compiler cppcheck
 
-The runner is tool-agnostic: it asks the registry for each configured tool
-and skips (with a logged warning) any tool whose binary is unavailable, so
-a partial toolchain still produces partial results instead of crashing.
+The runner is tool-agnostic: it asks the registry for each configured tool.
+ENVIRONMENT GATE (2026-08-08): if ALL requested tools are unavailable the
+run ABORTS before writing any record — that is with near certainty an
+environment error (wrong host/container), and the old skip-with-a-warning
+behavior once produced a complete host run of empty records. INDIVIDUAL
+unavailable tools remain a warning (legitimate under the parcoach/llov
+container split) and are persisted as `tools_skipped` in the per-model
+summary artifact (static_analysis_summary.json), so the gap is documented
+in the artifacts, not just in the terminal.
 """
 
 from __future__ import annotations
@@ -160,11 +166,14 @@ def run_model(
     run_id: str,
     model_id: str,
     tool_settings: "dict[str, ToolSettings]",
+    tools_skipped: "list[dict[str, str]] | None" = None,
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / "static_analysis.jsonl"
 
     records = load_existing_records(output_path)
 
+    # main()'s environment gate already dropped unavailable tools (abort
+    # when ALL are unavailable); this per-model check is a belt only
     available_tools = []
     for name in tool_settings:
         tool = framework.get_tool(name)
@@ -240,7 +249,14 @@ def run_model(
         "findings_per_tool": dict(per_tool_findings),
         "blocking_per_tool": dict(per_tool_blocking),
         "tools_run": [t.name for t in available_tools],
+        # environment-gate drops: persisted so the gap is visible in the
+        # ARTIFACTS, not only in the terminal (2026-08-08)
+        "tools_skipped": tools_skipped or [],
+        "created_at_utc": common.utc_now_iso(),
     }
+    common.write_json(
+        output_path.parent / "static_analysis_summary.json", summary
+    )
 
     print(
         f"[{model_id}] samples: {samples_seen}, "
@@ -279,6 +295,43 @@ def main() -> None:
         except KeyError:
             print(f"Tool '{name}' configured but not implemented yet, skipping.")
 
+    # Environment availability gate (2026-08-08). The old behavior — skip
+    # unavailable tools per model with a log line — once produced a full
+    # host run with ZERO tools and written empty records. ALL requested
+    # tools unavailable is with near certainty an environment error (wrong
+    # host/container), never a legitimate state -> abort BEFORE records.
+    # Individual unavailable tools stay a warning (legitimate: the
+    # parcoach/llov container split requests subsets), but the drop is
+    # persisted per model as tools_skipped in the summary artifact.
+    unavailable = [
+        name for name in known
+        if not framework.get_tool(name).is_available()
+    ]
+
+    if unavailable and len(unavailable) == len(known):
+        print(
+            "ENVIRONMENT GATE FAILED — aborting before any record is "
+            "written: ALL requested static tools are unavailable in this "
+            "environment (" + ", ".join(unavailable) + "). Wrong host or "
+            "container? compiler/clang_tidy/cppcheck/infer/gcc_analyzer "
+            "run in pareval-thesis, parcoach in parcoach-demo, llov in "
+            "pareval-llov."
+        )
+        sys.exit(2)
+
+    tools_skipped = []
+    for name in unavailable:
+        print(
+            f"WARNING: tool '{name}' unavailable in this environment — "
+            "skipped for this ENTIRE run (recorded as tools_skipped in the "
+            "summary)."
+        )
+        tools_skipped.append({
+            "tool": name,
+            "reason": "binary unavailable (is_available() failed)",
+        })
+        del known[name]
+
     context = framework.EvaluationContext(
         repo_root=REPO_ROOT,
         drivers_cpp_dir=drivers_cpp_dir,
@@ -311,6 +364,7 @@ def main() -> None:
             run_id=run_id,
             model_id=model_config["id"],
             tool_settings=known,
+            tools_skipped=tools_skipped,
         )
 
 

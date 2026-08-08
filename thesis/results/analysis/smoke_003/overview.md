@@ -1,6 +1,6 @@
 # Consolidated overview — run smoke_003
 
-Generated 2026-08-07T19:43:41.465899Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
+Generated 2026-08-08T12:14:52.151519Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
 
 ## Pass-rate trajectories (ParEval vs. enhanced — overfitting view)
 
@@ -54,16 +54,16 @@ Cell semantics: a NUMBER means the tool ran on at least one artifact at that ite
 
 | iteration | artifacts | compiler | gcc_analyzer | clang_tidy | cppcheck | infer | parcoach | llov | asan_ubsan | tsan | memcheck | must |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 33 | 0 | 12 | 21 | 0 | 0 | 0 | 3 | 0 | n/a | 0 | 0 |
-| 1 | 8 | 0 | 16 | 2 | 0 | 0 | 0 | 2 | 0 | n/a | 0 | 1 |
-| 2 | 5 | 0 | 13 | 3 | 0 | 0 | 0 | 1 | 0 | n/a | 0 | 1 |
+| 0 | 33 | 0 | 12 | 21 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 |
+| 1 | 8 | 0 | 16 | 2 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 1 |
+| 2 | 5 | 0 | 13 | 3 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 1 |
 
 ### test_feedback
 Cell semantics: a NUMBER means the tool ran on at least one artifact at that iteration (0 = ran and found nothing — a result); n/a means the tool was not applicable on this iteration's execution-model mix (or its records are not merged yet, e.g. external containers).
 
 | iteration | artifacts | compiler | gcc_analyzer | clang_tidy | cppcheck | infer | parcoach | llov | asan_ubsan | tsan | memcheck | must |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 33 | 0 | 12 | 21 | 0 | 0 | 0 | 3 | 0 | n/a | 0 | 0 |
+| 0 | 33 | 0 | 12 | 21 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 |
 | 1 | 9 | 7 | 0 | 8 | 1 | 0 | 0 | 0 | 0 | 2 | 0 | 0 |
 | 2 | 5 | 0 | 0 | 6 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 |
 
@@ -72,7 +72,7 @@ Cell semantics: a NUMBER means the tool ran on at least one artifact at that ite
 
 | iteration | artifacts | compiler | gcc_analyzer | clang_tidy | cppcheck | infer | parcoach | llov | asan_ubsan | tsan | memcheck | must |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | 33 | 0 | 12 | 21 | 0 | 0 | 0 | 3 | 0 | n/a | 0 | 0 |
+| 0 | 33 | 0 | 12 | 21 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 |
 | 1 | 16 | 64 | 14 | 20 | 1 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
 | 2 | 12 | 0 | 12 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 
@@ -235,13 +235,13 @@ Median and p95 of the per-sample tool runtime, split by execution model (medians
 | infer | mpi | 33 | 23.57 | 34.81 | 0.0% (0/33) |
 | parcoach | mpi | 33 | 0.02 | 0.03 | 45.5% (15/33) |
 | llov | omp | 36 | 0.68 | 1.82 | 0.0% (0/36) |
-| asan_ubsan | serial | 19 | 3.12 | 5.90 | 0.0% (0/19) |
-| asan_ubsan | omp | 36 | 5.04 | 8.32 | 0.0% (0/36) |
-| asan_ubsan | mpi | 33 | 23.37 | 42.88 | 6.1% (2/33) |
-| tsan | omp | 20 | 2.44 | 4.06 | 0.0% (0/20) |
-| memcheck | serial | 19 | 7.17 | 11.21 | 0.0% (0/19) |
-| memcheck | omp | 36 | 28.12 | 54.15 | 0.0% (0/36) |
-| must | mpi | 33 | 65.62 | 125.16 | 0.0% (0/33) |
+| asan_ubsan | serial | 19 | 3.23 | 4.70 | 0.0% (0/19) |
+| asan_ubsan | omp | 36 | 5.09 | 7.28 | 0.0% (0/36) |
+| asan_ubsan | mpi | 33 | 23.71 | 69.78 | 6.1% (2/33) |
+| tsan | omp | 36 | 3.96 | 10.32 | 0.0% (0/36) |
+| memcheck | serial | 19 | 7.17 | 16.57 | 0.0% (0/19) |
+| memcheck | omp | 36 | 25.86 | 54.15 | 0.0% (0/36) |
+| must | mpi | 33 | 65.46 | 125.16 | 0.0% (0/33) |
 
 ## Generation effort and direct latency
 
