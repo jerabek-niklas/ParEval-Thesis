@@ -78,6 +78,7 @@ from thesis.evaluation.tool_config import (  # noqa: E402
     resolve_tool_settings,
 )
 from thesis.evaluation.run_enhanced_tests import derived_file_names  # noqa: E402
+from thesis.evaluation.run_manifest import load_manifest  # noqa: E402
 from thesis.repair import orchestrator  # noqa: E402
 from thesis.repair.run_backfill import (  # noqa: E402
     ENHANCED_MARKER,
@@ -1556,18 +1557,62 @@ def render_markdown(
     parts.append("")
     parts.extend(completeness_section(rows))
 
-    stages = config.get("stages") or {}
+    # Config snapshot: FROZEN at run time via run_manifest.json whenever
+    # available — the live config may have changed since the run and would
+    # then document a configuration the run never ran under. Legacy runs
+    # without a manifest fall back to the live config with an explicit
+    # provenance note.
+    manifest = load_manifest(config, base_run_id)
+
     parts.append("")
     parts.append("## Effective config snapshot")
     parts.append("")
+
+    if manifest is not None:
+        snapshot_stages = (manifest.get("resolved_config") or {}).get("stages") or {}
+        parts.append(
+            "Frozen at run time (run_manifest.json, created %s by stage "
+            "'%s', git %s%s)."
+            % (
+                manifest.get("created_at_utc"),
+                manifest.get("created_by_stage"),
+                (manifest.get("git_commit") or "unknown")[:12],
+                " DIRTY" if manifest.get("git_dirty") else "",
+            )
+        )
+        drift = manifest.get("config_drift") or []
+        if drift:
+            parts.append("")
+            parts.append(
+                "**Config drift recorded** (continuation runs under a "
+                "changed config — the numbers below are the FROZEN values):"
+            )
+            for entry in drift:
+                parts.append(
+                    "- %s (%s): %s"
+                    % (
+                        entry.get("detected_at_utc"),
+                        entry.get("stage"),
+                        ", ".join(entry.get("changed_keys") or []),
+                    )
+                )
+    else:
+        snapshot_stages = config.get("stages") or {}
+        parts.append(
+            "**No run manifest — snapshot taken at report build time** "
+            "(legacy run predating run_manifest.json; the live config may "
+            "differ from what the run actually used)."
+        )
+
+    parts.append("")
     parts.append("### stages.repair")
     parts.append("```json")
-    parts.append(json.dumps(stages.get("repair") or {}, indent=2, sort_keys=True))
+    parts.append(json.dumps(snapshot_stages.get("repair") or {}, indent=2, sort_keys=True))
     parts.append("```")
     parts.append("")
     parts.append("### stages.enhanced_tests")
     parts.append("```json")
-    parts.append(json.dumps(stages.get("enhanced_tests") or {}, indent=2, sort_keys=True))
+    parts.append(json.dumps(snapshot_stages.get("enhanced_tests") or {}, indent=2, sort_keys=True))
     parts.append("```")
 
     return "\n".join(parts) + "\n"

@@ -302,6 +302,14 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
+    # freeze the run configuration on first contact with the intermediate
+    # run dir (or record config drift) — see run_manifest.py
+    from thesis.evaluation.run_manifest import ensure_run_manifest
+
+    ensure_run_manifest(
+        config, profile["run_id"], stage="assembly", profile=args.profile
+    )
+
     totals = {"assembled": 0, "skipped": 0, "warnings": 0}
 
     for model_config in models:

@@ -237,6 +237,17 @@ def main() -> None:
             "or your --model-id / --provider filters."
         )
 
+    # freeze the run configuration at the run's true start (or record
+    # config drift on continuation runs) — see run_manifest.py
+    from thesis.evaluation.run_manifest import ensure_run_manifest
+
+    ensure_run_manifest(
+        config,
+        config["profiles"][args.profile]["run_id"],
+        stage="generation",
+        profile=args.profile,
+    )
+
     print_run_overview(
         config_path=config_path,
         profile=args.profile,

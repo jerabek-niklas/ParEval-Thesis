@@ -494,6 +494,32 @@ def test_markdown():
 
         check("config snapshot included",
               "### stages.repair" in markdown and '"max_iterations": 3' in markdown)
+        check("legacy run without manifest: explicit provenance note",
+              "No run manifest — snapshot taken at report build time" in markdown)
+
+        # with a manifest, the snapshot must come FROM THE MANIFEST (frozen
+        # at run time), not from the live config — incl. the drift note
+        common.write_json(
+            Path(config["outputs"]["intermediate_dir"]) / BASE / "run_manifest.json",
+            {"run_id": BASE, "created_at_utc": "2026-08-08T00:00:00Z",
+             "created_by_stage": "assembly", "git_commit": "abcdef1234567890",
+             "git_dirty": False,
+             "resolved_config": {"stages": {"repair": {"max_iterations": 99}}},
+             "config_drift": [{"detected_at_utc": "2026-08-08T01:00:00Z",
+                               "stage": "enhanced_tests",
+                               "changed_keys": ["stages.repair.max_iterations"]}]},
+        )
+        markdown = render_markdown(rows, config, BASE)
+        check("manifest present: snapshot frozen at run time",
+              "Frozen at run time (run_manifest.json, created "
+              "2026-08-08T00:00:00Z by stage 'assembly', git abcdef123456)"
+              in markdown)
+        check("manifest values beat the live config",
+              '"max_iterations": 99' in markdown
+              and '"max_iterations": 3' not in markdown)
+        check("drift entries rendered",
+              "Config drift recorded" in markdown
+              and "stages.repair.max_iterations" in markdown)
 
 
 # ---------------------------------------------------------------------------

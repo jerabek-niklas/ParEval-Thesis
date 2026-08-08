@@ -1223,7 +1223,14 @@ class ParcoachTool:
     # hard capability (config can only narrow this; see tool_config.py)
     execution_models = ("mpi",)
 
-    def __init__(self, timeout: float = 180.0):
+    def __init__(self, timeout: float = 60.0):
+        # 60 s (lowered from 180, 2026-08-08). Measured on smoke_003:
+        # PARCOACH is BIMODAL — successful runs finish at p95 0.03 s,
+        # while ~45% of samples are GENUINE hangs (model-correlated, the
+        # analysis never terminates on them). A higher timeout rescues no
+        # run and costs 120 s per hang; the timeout also covers the
+        # clang -emit-llvm step, so do not go below 60 s. Configurable via
+        # stages.static_analysis.tools.parcoach.timeout_seconds.
         self.timeout = timeout
 
     def _clang(self) -> str | None:
@@ -1549,5 +1556,12 @@ def register_default_tools(
             ),
         )
     )
-    register_tool(ParcoachTool())
+    register_tool(
+        ParcoachTool(
+            timeout=float(
+                tool_option(config, "static_analysis", "parcoach",
+                            "timeout_seconds", 60.0)
+            )
+        )
+    )
     register_tool(LLOVTool())

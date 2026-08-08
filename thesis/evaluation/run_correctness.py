@@ -405,6 +405,14 @@ def main() -> None:
         )
         sys.exit(2)
 
+    # freeze the run configuration / record config drift (run_manifest.py)
+    from thesis.evaluation.run_manifest import ensure_run_manifest
+
+    ensure_run_manifest(
+        config, run_id, stage="correctness_tests", profile=args.profile,
+        primary_compiler=args.primary_compiler,
+    )
+
     context = EvaluationContext(
         repo_root=REPO_ROOT,
         drivers_cpp_dir=REPO_ROOT / "drivers" / "cpp",

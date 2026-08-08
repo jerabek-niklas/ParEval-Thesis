@@ -86,6 +86,9 @@ TOOL_OPTION_RANGES = {
     ("static_analysis", "gcc_analyzer", "timeout_seconds"): (float, 1.0, 3600.0),
     # InferBO confidence level still accepted as a finding
     ("static_analysis", "infer", "bufferoverrun_max_level"): (int, 0, 5),
+    # per-step timeout (clang -emit-llvm AND the parcoach pass); see
+    # ParcoachTool for the measured bimodal rationale behind the default
+    ("static_analysis", "parcoach", "timeout_seconds"): (float, 1.0, 3600.0),
 }
 
 # Default settings = current behavior. low_precision defaults follow the

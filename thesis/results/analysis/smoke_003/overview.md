@@ -1,6 +1,6 @@
 # Consolidated overview — run smoke_003
 
-Generated 2026-08-08T12:14:52.151519Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
+Generated 2026-08-08T15:26:10.964729Z. Source: stage JSONLs joined on (sample_id, variant, iteration); see overview.csv for the flat table. Trajectories are CARRY-FORWARD: a stopped sample keeps contributing its final artifact to later iterations (the population stays constant). Enhanced rates count pass over all non-gated specs (gated = baseline_incompatible + numerically_unstable).
 
 ## Pass-rate trajectories (ParEval vs. enhanced — overfitting view)
 
@@ -326,6 +326,8 @@ By iteration (does the answer format change under repair?):
 Rows total: 154, incomplete: 0
 
 ## Effective config snapshot
+
+**No run manifest — snapshot taken at report build time** (legacy run predating run_manifest.json; the live config may differ from what the run actually used).
 
 ### stages.repair
 ```json

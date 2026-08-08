@@ -742,6 +742,14 @@ def main() -> None:
 
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
 
+    # freeze the run configuration / record config drift (run_manifest.py)
+    from thesis.evaluation.run_manifest import ensure_run_manifest
+
+    ensure_run_manifest(
+        config, run_id, stage="enhanced_tests", profile=args.profile,
+        primary_compiler="g++",
+    )
+
     llm_specs = load_llm_specs(Path(args.specs))
     signatures = load_serial_signatures()
 

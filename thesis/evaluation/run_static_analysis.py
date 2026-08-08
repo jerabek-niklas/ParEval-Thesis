@@ -357,6 +357,14 @@ def main() -> None:
 
     record_toolchain_versions(intermediate_dir, run_id)
 
+    # freeze the run configuration / record config drift (run_manifest.py)
+    from thesis.evaluation.run_manifest import ensure_run_manifest
+
+    ensure_run_manifest(
+        config, run_id, stage="static_analysis", profile=args.profile,
+        primary_compiler=args.primary_compiler,
+    )
+
     for model_config in models:
         run_model(
             context=context,

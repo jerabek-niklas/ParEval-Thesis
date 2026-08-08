@@ -391,6 +391,14 @@ def main() -> None:
         print("No usable dynamic tools after the environment gate — nothing to run.")
         sys.exit(2)
 
+    # freeze the run configuration / record config drift (run_manifest.py)
+    from thesis.evaluation.run_manifest import ensure_run_manifest
+
+    ensure_run_manifest(
+        config, run_id, stage="dynamic_analysis", profile=args.profile,
+        primary_compiler=args.primary_compiler,
+    )
+
     context = framework.EvaluationContext(
         repo_root=REPO_ROOT,
         drivers_cpp_dir=drivers_cpp_dir,

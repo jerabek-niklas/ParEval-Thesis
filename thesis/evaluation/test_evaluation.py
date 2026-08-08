@@ -674,6 +674,32 @@ def test_tool_options() -> None:
         except ValueError:
             check(label + " rejected", True)
 
+    # parcoach timeout (2026-08-08): default 60 s, configurable + validated
+    from thesis.evaluation.tools import ParcoachTool, register_default_tools
+    from thesis.evaluation import framework
+
+    check("parcoach default 60 s (bimodal rationale in the constructor)",
+          ParcoachTool().timeout == 60.0)
+
+    register_default_tools(config={"stages": {"static_analysis": {"tools": {
+        "parcoach": {"enabled": True, "timeout_seconds": 90},
+    }}}})
+    check("parcoach constructed from tool_option at registration",
+          framework.get_tool("parcoach").timeout == 90.0)
+    register_default_tools()  # restore constructor defaults in the registry
+    check("no config -> parcoach default at registration",
+          framework.get_tool("parcoach").timeout == 60.0)
+
+    try:
+        validate_stage_tools(
+            {"stages": {"static_analysis": {"tools": {
+                "parcoach": {"timeout_seconds": 0.5}}}}},
+            "static_analysis",
+        )
+        check("parcoach timeout below range rejected", False)
+    except ValueError:
+        check("parcoach timeout below range rejected", True)
+
 
 def test_finding_classes() -> None:
     print("finding_classes: prefix map per tool, conservative other + log")
@@ -840,6 +866,133 @@ def test_llov_parse_and_filter() -> None:
     check("cpu.cc race filtered out", len(kept) == 2)
 
 
+def test_run_manifest() -> None:
+    print("run manifest: freeze once, record drift, never overwrite")
+    from thesis.evaluation.run_manifest import (
+        config_key_diff,
+        ensure_run_manifest,
+        load_manifest,
+        manifest_path,
+    )
+
+    check("diff: changed scalar path",
+          config_key_diff({"a": {"b": 1}}, {"a": {"b": 2}}) == ["a.b"])
+    check("diff: added and removed keys",
+          config_key_diff({"a": 1}, {"b": 1})
+          == ["a (removed)", "b (added)"])
+    check("diff: lists compare wholesale",
+          config_key_diff({"a": [1, 2]}, {"a": [1, 3]}) == ["a"])
+    check("diff: identical trees are silent",
+          config_key_diff({"a": {"b": [1]}}, {"a": {"b": [1]}}) == [])
+
+    with tempfile.TemporaryDirectory() as tmp:
+        def cfg(timeout=30):
+            return {
+                "outputs": {"intermediate_dir": str(Path(tmp) / "intermediate")},
+                "stages": {"enhanced_tests": {"run_timeout_seconds": timeout}},
+            }
+
+        first = ensure_run_manifest(cfg(), "run_x", stage="assembly",
+                                    profile="smoke")
+        path = manifest_path(cfg(), "run_x")
+        check("manifest written on first contact", path.exists())
+        check("frozen fields present",
+              first["run_id"] == "run_x" and first["created_at_utc"]
+              and first["python_version"] and first["config_drift"] == []
+              and first["resolved_config"]["stages"]["enhanced_tests"]
+              ["run_timeout_seconds"] == 30)
+
+        frozen_bytes = path.read_bytes()
+        ensure_run_manifest(cfg(), "run_x", stage="static_analysis",
+                            profile="smoke")
+        check("same config: manifest byte-identical (never rewritten)",
+              path.read_bytes() == frozen_bytes)
+
+        # continuation run with a CHANGED config: frozen snapshot stays,
+        # drift is appended and the run stays allowed
+        second = ensure_run_manifest(cfg(timeout=60), "run_x",
+                                     stage="enhanced_tests", profile="smoke")
+        check("frozen snapshot unchanged after drift",
+              second["resolved_config"]["stages"]["enhanced_tests"]
+              ["run_timeout_seconds"] == 30
+              and second["created_at_utc"] == first["created_at_utc"])
+        reloaded = load_manifest(cfg(), "run_x")
+        check("drift recorded with the changed key path",
+              len(reloaded["config_drift"]) == 1
+              and reloaded["config_drift"][0]["changed_keys"]
+              == ["stages.enhanced_tests.run_timeout_seconds"]
+              and reloaded["config_drift"][0]["stage"] == "enhanced_tests")
+
+        ensure_run_manifest(cfg(timeout=60), "run_x",
+                            stage="dynamic_analysis", profile="smoke")
+        check("identical consecutive drift not duplicated",
+              len(load_manifest(cfg(), "run_x")["config_drift"]) == 1)
+
+
+def test_must_timeout_wrapper() -> None:
+    print("must: process-group timeout wrapper (validation pattern ported)")
+    from types import SimpleNamespace
+    from thesis.evaluation import dynamic_tools
+
+    calls = []
+
+    def fake_run_command(argv, timeout=None, cwd=None, extra_env=None):
+        calls.append({"argv": list(argv), "timeout": timeout})
+        return SimpleNamespace(returncode=0, timed_out=False,
+                               duration_seconds=0.1, stdout="", stderr="")
+
+    tool = dynamic_tools.MustTool(run_timeout=300.0)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        source = Path(tmp) / "generated-code.hpp"
+        source.write_text("// stub\n", encoding="utf-8")
+        sample = SimpleNamespace(
+            execution_model="mpi",
+            source_path=source,
+            benchmark_dir=REPO_ROOT / "drivers" / "cpp" / "benchmarks"
+            / "dense_la" / "00_dense_la_lu_decomp",
+            sample_id="t__dense_la__00_dense_la_lu_decomp__mpi__sample_0",
+        )
+        context = framework.EvaluationContext(
+            repo_root=REPO_ROOT,
+            drivers_cpp_dir=REPO_ROOT / "drivers" / "cpp",
+            primary_compiler="g++",
+            config=None,
+        )
+
+        original = dynamic_tools.run_command
+        dynamic_tools.run_command = fake_run_command
+        try:
+            result = tool.run(sample, context)
+        finally:
+            dynamic_tools.run_command = original
+
+    must_runs = calls[1:]  # calls[0] is the build
+    check("two grid points ran", len(must_runs) == 2)
+    check("run argv starts with the /usr/bin/timeout wrapper",
+          all(c["argv"][0] == "/usr/bin/timeout" for c in must_runs))
+    check("wrapper params: TERM, -k 15, system timeout = run_timeout",
+          all(c["argv"][1:5] == ["--signal=TERM", "-k", "15", "300"]
+              for c in must_runs))
+    check("python timeout sits ABOVE the system timeout",
+          all(c["timeout"] == 300.0 + 60 for c in must_runs))
+    check("mocked run without report stays a tool error, never clean",
+          result.error is not None and "no report" in result.error)
+
+    # preflight message when the coreutils wrapper is missing (consumed by
+    # the run_dynamic_analysis environment gate — no silent fallback)
+    original_timeout_path = dynamic_tools.MustTool.SYSTEM_TIMEOUT
+    try:
+        dynamic_tools.MustTool.SYSTEM_TIMEOUT = str(
+            Path(tmp) / "definitely_missing_timeout"
+        )
+        reason = dynamic_tools.MustTool().preflight()
+        check("missing /usr/bin/timeout -> clear preflight failure",
+              reason is not None and "coreutils" in reason)
+    finally:
+        dynamic_tools.MustTool.SYSTEM_TIMEOUT = original_timeout_path
+
+
 def test_environment_gates() -> None:
     print("environment gates: toolchain check, dynamic preflight, escape hatch")
     import shutil
@@ -966,6 +1119,8 @@ def main() -> None:
         test_registry,
         test_finding_serialization,
         test_environment_gates,
+        test_must_timeout_wrapper,
+        test_run_manifest,
     ]
 
     for test in tests:

@@ -776,6 +776,9 @@ class MustTool:
 
     MUSTRUN = "/opt/must/bin/mustrun"
 
+    # process-group timeout wrapper (coreutils); mandatory, see preflight()
+    SYSTEM_TIMEOUT = "/usr/bin/timeout"
+
     # Deadlock classes can depend on the rank count; two grid points bound
     # the cost (each deadlocked run costs up to --must:timeout seconds).
     LAUNCH_PARAMS = [{"num_procs": 2}, {"num_procs": 4}]
@@ -788,6 +791,21 @@ class MustTool:
 
     def is_available(self) -> bool:
         return Path(self.MUSTRUN).exists() or binary_available("mustrun")
+
+    def preflight(self) -> "str | None":
+        """Environment preflight (consumed by run_dynamic_analysis's gate):
+        the /usr/bin/timeout process-group wrapper is MANDATORY — without
+        it a hung MUST run is killed only at the mustrun process, orphaned
+        MPI ranks keep the output pipes open, and the pipe drain blocks
+        for hours (observed in the tool validation). No silent fallback to
+        the unwrapped path."""
+        if not Path(self.SYSTEM_TIMEOUT).exists():
+            return (
+                f"{self.SYSTEM_TIMEOUT} (coreutils) not found — MUST needs "
+                "the system-timeout process-group wrapper to tear down "
+                "hung MPI ranks; install coreutils in the container"
+            )
+        return None
 
     def _mustrun(self) -> str:
         return self.MUSTRUN if Path(self.MUSTRUN).exists() else "mustrun"
@@ -859,6 +877,19 @@ class MustTool:
                 run_dir.mkdir()
 
                 run_argv = [
+                    # /usr/bin/timeout wrapper (ported back from the
+                    # validation variant, 2026-08-08): a Python-level
+                    # timeout kills only mustrun, while orphaned MPI ranks
+                    # keep the output pipes open — observed in the tool
+                    # validation to block the pipe drain for HOURS. The
+                    # system timeout signals mustrun in its process group,
+                    # mpirun tears the ranks down, the pipes close;
+                    # -k hard-kills stragglers.
+                    self.SYSTEM_TIMEOUT,
+                    "--signal=TERM",
+                    "-k",
+                    "15",
+                    str(int(self.run_timeout)),
                     self._mustrun(),
                     "--must:timeout",
                     str(self.MUST_TIMEOUT_SECONDS),
@@ -868,11 +899,20 @@ class MustTool:
                     str(SANITIZER_NITER),
                 ]
 
+                # the Python-side timeout must sit ABOVE the system timeout
+                # (validation pattern: run_timeout + 60) — otherwise the
+                # ineffective kill-only-mustrun path fires first again
                 result = run_command(
-                    run_argv, timeout=self.run_timeout, cwd=str(run_dir)
+                    run_argv, timeout=self.run_timeout + 60, cwd=str(run_dir)
                 )
                 duration += result.duration_seconds
                 last_exit = result.returncode
+
+                # with the wrapper, a hang surfaces as the wrapper's exit
+                # code (124 = TERM after the limit, 137 = KILLed by -k),
+                # not as a Python-level timed_out; both keep the exact
+                # record semantics of a timed-out run
+                timed_out = result.timed_out or result.returncode in (124, 137)
 
                 report = run_dir / "MUST_Output.html"
 
@@ -889,11 +929,11 @@ class MustTool:
 
                 raw_segments.append(
                     f"--- run {params} exit={result.returncode}"
-                    f"{' TIMEOUT' if result.timed_out else ''} ---\n"
+                    f"{' TIMEOUT' if timed_out else ''} ---\n"
                     + (result.stdout + "\n" + result.stderr)[:OUTPUT_CAP_PER_RUN]
                 )
 
-                if result.timed_out:
+                if timed_out:
                     error = f"run timed out at params {params}"
 
         return ToolResult(

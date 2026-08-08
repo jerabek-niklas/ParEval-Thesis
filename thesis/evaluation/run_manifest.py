@@ -1,0 +1,196 @@
+"""Run manifest: freeze the run's configuration AT RUN TIME (2026-08-08).
+
+build_overview.py used to read the LIVE config.yaml at report-build time
+and print it as the "Effective config snapshot" — after any later config
+edit the report documented a configuration the run never ran under. The
+manifest closes that gap: the FIRST stage that touches a run directory
+writes results/intermediate/<run_id>/run_manifest.json with the
+profile-resolved config plus environment provenance; every later stage
+invocation compares its config against the frozen one and, on deviation,
+prints a WARN line and APPENDS the changed key paths to the manifest's
+config_drift list. Continuation runs with a changed config are allowed —
+but visible, in the terminal AND in the artifact.
+
+The frozen fields are NEVER overwritten; only config_drift grows.
+
+Python 3.8 compatible; additive file, no record-schema change.
+"""
+
+from __future__ import annotations
+
+import json
+import platform
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+MANIFEST_NAME = "run_manifest.json"
+
+
+def _jsonable(value: Any) -> Any:
+    """Round-trip through JSON so tuple/scalar-type differences never show
+    up as false config drift (YAML loads lists, code may pass tuples)."""
+    return json.loads(json.dumps(value, sort_keys=True, default=str))
+
+
+def config_key_diff(
+    old: Any, new: Any, prefix: str = ""
+) -> "List[str]":
+    """Dot-paths where two (JSON-normalized) config trees differ.
+
+    Dicts recurse (added/removed keys included); everything else compares
+    wholesale — a changed list reports its own path, not per-element noise."""
+    if isinstance(old, dict) and isinstance(new, dict):
+        paths: "List[str]" = []
+        for key in sorted(set(old) | set(new)):
+            child_prefix = f"{prefix}.{key}" if prefix else str(key)
+            if key not in old:
+                paths.append(child_prefix + " (added)")
+            elif key not in new:
+                paths.append(child_prefix + " (removed)")
+            else:
+                paths.extend(config_key_diff(old[key], new[key], child_prefix))
+        return paths
+
+    if old != new:
+        return [prefix or "<root>"]
+
+    return []
+
+
+def _git_info() -> "Dict[str, Any]":
+    """Commit + dirty flag; tolerant — containers may lack git entirely."""
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
+            timeout=20, cwd=str(REPO_ROOT),
+        )
+        status = subprocess.run(
+            ["git", "status", "--porcelain"], capture_output=True, text=True,
+            timeout=30, cwd=str(REPO_ROOT),
+        )
+        if commit.returncode == 0:
+            return {
+                "git_commit": commit.stdout.strip(),
+                "git_dirty": bool(status.stdout.strip())
+                if status.returncode == 0 else None,
+            }
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return {"git_commit": "unknown", "git_dirty": None}
+
+
+def _compiler_version(compiler: str) -> "Optional[str]":
+    try:
+        result = subprocess.run(
+            [compiler, "--version"], capture_output=True, text=True, timeout=20
+        )
+        if result.returncode == 0 and result.stdout:
+            return result.stdout.splitlines()[0].strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def _toolchain_versions_text(intermediate_dir: Path, run_id: str) -> "Optional[str]":
+    """Reuse the existing toolchain-versions.txt logic (copy-into-run-dir)
+    from run_static_analysis instead of duplicating it, then read the
+    result. Lazy import: run_static_analysis imports THIS module."""
+    from thesis.evaluation.run_static_analysis import record_toolchain_versions
+
+    record_toolchain_versions(intermediate_dir, run_id)
+
+    target = intermediate_dir / run_id / "toolchain-versions.txt"
+    if target.exists():
+        return target.read_text(encoding="utf-8")
+    return None
+
+
+def manifest_path(config: "Dict[str, Any]", run_id: str) -> Path:
+    return Path(config["outputs"]["intermediate_dir"]) / run_id / MANIFEST_NAME
+
+
+def load_manifest(config: "Dict[str, Any]", run_id: str) -> "Optional[Dict[str, Any]]":
+    path = manifest_path(config, run_id)
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def ensure_run_manifest(
+    config: "Dict[str, Any]",
+    run_id: str,
+    stage: str,
+    profile: "Optional[str]" = None,
+    primary_compiler: str = "g++",
+) -> "Dict[str, Any]":
+    """Create the manifest on first contact with a run directory; on later
+    contacts detect and RECORD config drift (never overwrite the frozen
+    snapshot). Returns the manifest dict (frozen or freshly created)."""
+    intermediate_dir = Path(config["outputs"]["intermediate_dir"])
+    path = manifest_path(config, run_id)
+
+    existing = load_manifest(config, run_id)
+
+    if existing is None:
+        manifest: "Dict[str, Any]" = {
+            "run_id": run_id,
+            "profile": profile,
+            "created_at_utc": _utc_now(),
+            "created_by_stage": stage,
+            **_git_info(),
+            "python_version": platform.python_version(),
+            "primary_compiler": primary_compiler,
+            "primary_compiler_version": _compiler_version(primary_compiler),
+            "toolchain_versions": _toolchain_versions_text(
+                intermediate_dir, run_id
+            ),
+            "resolved_config": _jsonable(config),
+            "config_drift": [],
+        }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as handle:
+            json.dump(manifest, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+        print(f"[{stage}] run manifest frozen: {path}")
+        return manifest
+
+    changed = config_key_diff(
+        existing.get("resolved_config"), _jsonable(config)
+    )
+
+    if changed:
+        print(
+            f"[{stage}] WARNING: current config deviates from the run "
+            f"manifest frozen at {existing.get('created_at_utc')} — "
+            "continuation runs with a changed config are allowed but "
+            "RECORDED. Changed keys: " + ", ".join(changed)
+        )
+
+        drift = existing.setdefault("config_drift", [])
+        # skip only exact consecutive repeats (every resumed stage would
+        # otherwise append an identical entry per invocation)
+        if not drift or drift[-1].get("changed_keys") != changed:
+            drift.append({
+                "detected_at_utc": _utc_now(),
+                "stage": stage,
+                "changed_keys": changed,
+            })
+            with path.open("w", encoding="utf-8") as handle:
+                json.dump(existing, handle, indent=2, sort_keys=True)
+                handle.write("\n")
+
+    return existing
+
+
+def _utc_now() -> str:
+    from thesis.generation.common import utc_now_iso
+
+    return utc_now_iso()
