@@ -1713,6 +1713,25 @@ def render_markdown(
                 " DIRTY" if manifest.get("git_dirty") else "",
             )
         )
+        # the enhanced spec file is gitignored (results/cache/) — this pin
+        # is the only record of WHICH spec set the enhanced results rest on
+        specs_info = manifest.get("enhanced_specs")
+        parts.append("")
+        if specs_info:
+            parts.append(
+                "Enhanced specs pinned: %s — sha256 %s…, %s specs."
+                % (
+                    specs_info.get("path"),
+                    (specs_info.get("sha256") or "")[:12],
+                    specs_info.get("spec_count"),
+                )
+            )
+        else:
+            parts.append(
+                "Enhanced specs: not recorded (file missing at freeze time "
+                "or legacy manifest)."
+            )
+
         drift = manifest.get("config_drift") or []
         if drift:
             parts.append("")

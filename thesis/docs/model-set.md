@@ -166,6 +166,23 @@ requirement that does not exist. The token COUNTS across the three rows
 are single samples and vary by hundreds; they are not a controlled
 comparison and no effort-vs-depth conclusion is drawn from them.
 
+**Addendum 2026-08-08 (smoke_004 follow-up; A/B probe on the LU prompts
+with the pipeline system prompt):** adaptive thinking on Fable 5 is
+strongly PROMPT-DEPENDENT — serial/omp LU prompts: 0 thinking tokens
+(no thinking block), mpi: ~80–90, effort high slightly more; with and
+without an explicit `thinking: adaptive` field the numbers match
+(smoke_004 iteration 0 without the field: 0/0/89). smoke_004's
+"reasoning median 0" was therefore genuine model behavior on easy
+prompts, NOT a capture bug — the raw
+`output_tokens_details.thinking_tokens` equals `usage_normalized.
+reasoning_tokens` exactly, and the same cross-check against live
+records confirmed the field paths of all five providers. Consequences:
+(a) all Anthropic config entries now set `thinking: adaptive`
+explicitly (behaviorally a no-op on 5-series, mandatory on 4.8 —
+uniform and self-documenting); (b) the 0-token reasoning-evidence
+warning is persisted in `generation_summary.json` (stdout alone
+scrolled past unseen).
+
 Where the reasoning-token count lives per provider (all persisted in
 `api_response.usage` of the generation record, so the methodology chapter
 and the cost accounting can read it straight from the JSONL):

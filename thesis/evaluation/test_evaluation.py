@@ -1037,6 +1037,69 @@ def test_run_manifest() -> None:
         leftovers = list(path.parent.glob("run_manifest.json.*.tmp"))
         check("no temp files left behind by atomic writes", leftovers == [])
 
+    # ---- enhanced-specs pinning (the spec file is gitignored: the git
+    # commit does NOT pin the test set, this hash does) ------------------
+    with tempfile.TemporaryDirectory() as tmp:
+        specs_path = Path(tmp) / "specs.jsonl"
+        specs_path.write_text('{"a": 1}\n\nnot json\n{"b": 2}\n',
+                              encoding="utf-8")
+
+        def cfg_specs():
+            return {
+                "outputs": {"intermediate_dir": str(Path(tmp) / "intermediate")},
+                "stages": {"enhanced_tests": {"specs_file": str(specs_path)}},
+            }
+
+        first = ensure_run_manifest(cfg_specs(), "run_s", stage="generation",
+                                    profile="pilot")
+        pinned = first["enhanced_specs"]
+        check("spec pin frozen at creation (valid-JSON line count)",
+              pinned is not None and pinned["spec_count"] == 2
+              and len(pinned["sha256"]) == 64)
+
+        ensure_run_manifest(cfg_specs(), "run_s", stage="assembly",
+                            profile="pilot")
+        check("unchanged spec file: no drift",
+              load_manifest(cfg_specs(), "run_s")["config_drift"] == [])
+
+        specs_path.write_text('{"a": 1}\n{"b": 2}\n{"c": 3}\n',
+                              encoding="utf-8")
+        ensure_run_manifest(cfg_specs(), "run_s", stage="enhanced_tests",
+                            profile="pilot")
+        reloaded = load_manifest(cfg_specs(), "run_s")
+        check("changed spec file: frozen pin kept, drift recorded",
+              reloaded["enhanced_specs"]["spec_count"] == 2
+              and len(reloaded["config_drift"]) == 1
+              and any("enhanced_specs" in k
+                      for k in reloaded["config_drift"][0]["changed_keys"]))
+
+        # missing file: null pin, warn, never an abort
+        missing_cfg = {
+            "outputs": {"intermediate_dir": str(Path(tmp) / "intermediate")},
+            "stages": {"enhanced_tests": {
+                "specs_file": str(Path(tmp) / "definitely_absent.jsonl")}},
+        }
+        second = ensure_run_manifest(missing_cfg, "run_t", stage="generation",
+                                     profile="pilot")
+        check("missing spec file -> null pin, run proceeds",
+              second["enhanced_specs"] is None)
+
+        # legacy manifest without the key: backfilled once, no drift
+        legacy_path = load_manifest(cfg_specs(), "run_s")
+        manifest_file = (Path(tmp) / "intermediate" / "run_s"
+                         / "run_manifest.json")
+        stripped = dict(legacy_path)
+        stripped.pop("enhanced_specs")
+        stripped["config_drift"] = []
+        manifest_file.write_text(
+            json.dumps(stripped), encoding="utf-8")
+        backfilled = ensure_run_manifest(cfg_specs(), "run_s",
+                                         stage="static_analysis",
+                                         profile="pilot")
+        check("legacy manifest: pin backfilled without drift",
+              backfilled["enhanced_specs"] is not None
+              and backfilled["config_drift"] == [])
+
 
 def test_must_timeout_wrapper() -> None:
     print("must: process-group timeout wrapper (validation pattern ported)")

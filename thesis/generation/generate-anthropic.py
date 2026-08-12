@@ -9,13 +9,17 @@ Example:
 Notes:
     - temperature/top_p/top_k are not supported on Opus 4.7+/Fable 5 and
       are never sent.
-    - Thinking differs per model: on Claude Fable 5 and Opus 5 it is ON
-      by default (probe 2026-07-31: Opus 5 thinks with an empty payload);
-      on Opus 4.8/4.7 a request WITHOUT a thinking parameter runs with
-      thinking OFF — there it must be activated explicitly via
-      `thinking: adaptive` in the model config. Reasoning depth is
-      steered via `effort` (output_config.effort: low | medium | high |
-      xhigh | max) on all of them. Thinking tokens count toward
+    - Thinking on Fable 5/Opus 5 is ADAPTIVE AND PROMPT-DEPENDENT
+      (measured 2026-08-08, A/B on the LU prompts with the pipeline
+      system prompt): serial/omp prompts -> 0 thinking tokens, mpi ->
+      ~80-90, effort high slightly more — with and without an explicit
+      `thinking: adaptive` field the numbers match. Low/zero values on
+      easy prompts are genuine model behavior, not a capture bug; the
+      capture path (output_tokens_details.thinking_tokens) is exact.
+      The config still sets `thinking: adaptive` explicitly on all
+      Anthropic entries (mandatory on 4.8/4.7, uniform elsewhere).
+      Reasoning depth is steered via `effort` (output_config.effort:
+      low | medium | high | xhigh | max). Thinking tokens count toward
       max_tokens, so the budget must be generous.
     - Refusals arrive as HTTP 200 with stop_reason == "refusal"; they are
       recorded as error_type "ModelRefusal", not as success or API error.
@@ -51,10 +55,11 @@ def thinking_payload(model_config: dict[str, Any]) -> dict[str, Any]:
 
     Config keys (also consumed by batch_api._anthropic_submit — direct and
     batch requests must be configured identically):
-      thinking: adaptive   activates adaptive thinking. REQUIRED for
-                           Opus 4.8/4.7 (omitting it runs without
-                           thinking); redundant-but-valid on Fable 5 and
-                           Opus 5, where thinking is on by default.
+      thinking: adaptive   activates adaptive thinking. Mandatory on
+                           Opus 4.8/4.7; on Fable 5/Opus 5 behaviorally
+                           a no-op (adaptive either way, measured
+                           2026-08-08 — see module docstring) but set
+                           uniformly in the config for explicitness.
       effort: <level>      output_config.effort (low|medium|high|xhigh|max)
 
     Unknown values fail loudly — a typo must not silently change the

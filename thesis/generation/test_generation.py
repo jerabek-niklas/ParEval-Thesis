@@ -480,6 +480,29 @@ def test_reasoning_evidence():
     check("non-thinking model -> no warning",
           common.reasoning_evidence_warning(record_with(None), {}) is None)
 
+    # persisted evidence: apply_success writes the warning into the RUN
+    # SUMMARY (smoke_004: the stdout-only warning fired but scrolled past
+    # unseen — the artifact makes it reviewable after the run)
+    summary = {"counts": {"success": 0, "truncated": 0}}
+
+    def success_with(thinking, response_id):
+        record = {"sample_id": "s0", "output": {}, "api_response": {}, "status": {}}
+        common.apply_success(
+            record, summary, "code", "end_turn", False, response_id,
+            {"input_tokens": 10, "output_tokens": 5,
+             "output_tokens_details": {"thinking_tokens": thinking}},
+            model_config=thinking_config,
+        )
+
+    success_with(0, "r-1")
+    check("0-thinking warning persisted in the summary",
+          len(summary.get("reasoning_warnings", [])) == 1
+          and "0" in summary["reasoning_warnings"][0])
+
+    success_with(900, "r-2")
+    check("healthy record adds no summary warning",
+          len(summary["reasoning_warnings"]) == 1)
+
 
 def test_validator_timing():
     print("validator: v3 timing rules, v2 back-compat")
@@ -617,6 +640,43 @@ def test_prompt_selection():
         check("unknown selection rejected", True)
 
 
+def test_dry_run_no_manifest():
+    print("generate.py --dry-run: preview prints selection, freezes NOTHING")
+    import subprocess
+    import yaml
+
+    with tempfile.TemporaryDirectory() as tmp:
+        intermediate = Path(tmp) / "intermediate"
+        config = {
+            "profiles": {"t": {"run_id": "dryrun_fresh", "prompt_limit": 36,
+                               "selection": "stratified",
+                               "num_samples_per_prompt": 1}},
+            "prompts": {
+                "path": str(REPO_ROOT / "thesis" / "prompts"
+                            / "generation-prompts-thesis.json"),
+                "execution_models": ["serial", "omp", "mpi"],
+            },
+            "outputs": {"intermediate_dir": str(intermediate)},
+            "generation_defaults": {"system_prompt": "x"},
+            "models": [{"id": "m", "enabled": True, "provider": "openai",
+                        "model_name": "gpt-x", "api_key_env": "OPENAI_API_KEY"}],
+        }
+        config_path = Path(tmp) / "config.yaml"
+        config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "thesis" / "generation" / "generate.py"),
+             "--config", str(config_path), "--profile", "t", "--dry-run"],
+            capture_output=True, text=True, timeout=120, cwd=str(REPO_ROOT),
+        )
+
+        check("dry-run exits cleanly", result.returncode == 0)
+        check("selection preview printed (the point of the dry-run)",
+              "selection=stratified, 12" in result.stdout)
+        check("NO run manifest frozen by the preview",
+              not (intermediate / "dryrun_fresh" / "run_manifest.json").exists())
+
+
 def main():
     tests = [
         test_timeout_resolution,
@@ -628,6 +688,7 @@ def main():
         test_reasoning_evidence,
         test_validator_timing,
         test_prompt_selection,
+        test_dry_run_no_manifest,
     ]
 
     for test in tests:

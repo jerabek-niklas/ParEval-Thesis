@@ -266,16 +266,22 @@ def main() -> None:
     selection_block, selection_lines = prompt_selection_report(
         selected, profile_config.get("selection", "prefix"), notes
     )
+    # the selection preview is the POINT of --dry-run and always prints
     for line in selection_lines:
         print(line)
 
-    ensure_run_manifest(
-        config,
-        profile_config["run_id"],
-        stage="generation",
-        profile=args.profile,
-        prompt_selection=selection_block,
-    )
+    if not args.dry_run:
+        # NEVER in dry-run: a preview must not freeze the manifest — it
+        # would pin the config of the preview moment for the whole run
+        # (the manifest is by design never overwritten), which is exactly
+        # the trap the manifest exists to prevent.
+        ensure_run_manifest(
+            config,
+            profile_config["run_id"],
+            stage="generation",
+            profile=args.profile,
+            prompt_selection=selection_block,
+        )
 
     print_run_overview(
         config_path=config_path,

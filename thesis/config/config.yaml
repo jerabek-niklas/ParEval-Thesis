@@ -139,11 +139,17 @@ models:
 
   - id: claude_opus_5
     # Verified 2026-07-31 via GET /v1/models (id `claude-opus-5`).
-    # NO `thinking` field: unlike Opus 4.8, Opus 5 thinks WITHOUT explicit
-    # activation — probe 2026-07-31 on an MPI LU prompt with an empty
-    # payload returned 806 thinking tokens (4.8 returns 0 in that case).
-    # It therefore behaves like claude_fable_5, and the pair is now
-    # symmetric in BOTH fields, not just in effort.
+    # `thinking: adaptive` set explicitly since 2026-08-08 (measurement
+    # note below; also uniform with the 4.8 entry, where it is mandatory).
+    # MEASURED 2026-08-08 (A/B on the LU prompts, pipeline system prompt):
+    # thinking is ADAPTIVE AND PROMPT-DEPENDENT — with and without the
+    # field the behavior is practically identical (serial/omp: 0 tokens,
+    # mpi: ~80-90; smoke_004 iter0 without the field: 0/0/89). Low or
+    # zero values on easy prompts are GENUINE model behavior, not a
+    # capture bug (raw usage == usage_normalized); large one-off probe
+    # values (806 on 07-31, 1575 on 08-08) are the same adaptive regime
+    # on different prompts/contexts. The reasoning-evidence warning
+    # covers the 0 cases and is persisted in generation_summary.json.
     # effort medium = policy middle level, SAME as claude_fable_5.
     enabled: true
     provider: anthropic
@@ -153,6 +159,7 @@ models:
     # 2026-07-31: unchanged vs. Opus 4.8; batch 2.50/12.50)
     price_per_mtok_in: 5.0
     price_per_mtok_out: 25.0
+    thinking: adaptive
     effort: medium
 
   - id: claude_opus_48
@@ -175,10 +182,19 @@ models:
   - id: claude_fable_5
     # Verified available via GET /v1/models on 2026-07-21 (batch: supported).
     # Generations pair with claude_opus_5 (same provider, adjacent tiers).
-    # Thinking is ALWAYS ON on Fable 5 (no activation field needed, cannot
-    # be disabled); depth steered via effort medium — SAME level as
-    # claude_opus_5 (pair symmetry). temperature/top_p never sent;
-    # refusals surface as stop_reason "refusal" -> ModelRefusal.
+    # `thinking: adaptive` set explicitly since 2026-08-08 (uniform with
+    # the other Anthropic entries; behaviorally a no-op on Fable 5).
+    # MEASURED 2026-08-08 (A/B on the LU prompts, pipeline system prompt):
+    # thinking is ADAPTIVE AND PROMPT-DEPENDENT — serial/omp: 0 tokens,
+    # mpi: ~80-90, effort high slightly more; with and without the field
+    # the numbers match (smoke_004 iter0 without the field: 0/0/89).
+    # smoke_004's "reasoning median 0" is therefore GENUINE model
+    # behavior on easy prompts, not a capture bug: usage_normalized
+    # equals the raw output_tokens_details.thinking_tokens exactly, and
+    # the 0-token reasoning-evidence warning fired (now also persisted
+    # in generation_summary.json). effort medium = policy middle level,
+    # SAME as claude_opus_5 (pair symmetry). temperature/top_p never
+    # sent; refusals surface as stop_reason "refusal" -> ModelRefusal.
     enabled: true
     provider: anthropic
     model_name: claude-fable-5
@@ -187,6 +203,7 @@ models:
     # retrieved 2026-07-21/28); used only for the --dry-run cost estimate
     price_per_mtok_in: 10.0
     price_per_mtok_out: 50.0
+    thinking: adaptive
     effort: medium
 
   - id: qwen_best
@@ -474,6 +491,7 @@ stages:
         # validation: precision 0.506 on MBI (FP rate 0.847 on correct
         # rank-conditional collectives)
         low_precision_warning: true
+        timeout_seconds: 60
       llov:
         enabled: true
         execution_models: [omp]
@@ -587,7 +605,12 @@ stages:
     # timeout per differential run (seconds). Covers the mpirun startup
     # overhead too (~1-2 s per run); generous headroom at the tiny
     # DRIVER_PROBLEM_SIZE (1<<4) the stage builds with.
-    run_timeout_seconds: 30
+    # 30 -> 60 (2026-08-08), pilot precaution: smoke_00x ran only
+    # dense_la at sizes 0-7 (0 timeouts), the pilot covers 12 problem
+    # types and launches mpi runs via mpirun (startup overhead). A
+    # timeout costs a data point; a generous value costs nothing as long
+    # as nothing hangs.
+    run_timeout_seconds: 60
     # Worker-pool width over SAMPLES per EXECUTION model (serial/omp/mpi —
     # execution models, not LLM models; built-in default 1/1/1 = the old
     # serial behavior; CLI --jobs overrides with highest priority).

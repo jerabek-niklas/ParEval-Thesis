@@ -505,11 +505,16 @@ def test_markdown():
              "created_by_stage": "assembly", "git_commit": "abcdef1234567890",
              "git_dirty": False,
              "resolved_config": {"stages": {"repair": {"max_iterations": 99}}},
+             "enhanced_specs": {"path": "thesis/results/cache/enhanced/specs.jsonl",
+                                "sha256": "deadbeef" * 8, "spec_count": 483},
              "config_drift": [{"detected_at_utc": "2026-08-08T01:00:00Z",
                                "stage": "enhanced_tests",
                                "changed_keys": ["stages.repair.max_iterations"]}]},
         )
         markdown = render_markdown(rows, config, BASE)
+        check("enhanced spec pin rendered in the snapshot",
+              "Enhanced specs pinned: thesis/results/cache/enhanced/"
+              "specs.jsonl — sha256 deadbeefdead…, 483 specs." in markdown)
         check("manifest present: snapshot frozen at run time",
               "Frozen at run time (run_manifest.json, created "
               "2026-08-08T00:00:00Z by stage 'assembly', git abcdef123456)"

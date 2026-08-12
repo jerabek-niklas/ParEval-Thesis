@@ -156,6 +156,46 @@ def load_manifest(config: "Dict[str, Any]", run_id: str) -> "Optional[Dict[str, 
         return None
 
 
+ENHANCED_SPECS_DEFAULT = "thesis/results/cache/enhanced/specs.jsonl"
+
+
+def enhanced_specs_info(config: "Dict[str, Any]") -> "Optional[Dict[str, Any]]":
+    """{path, sha256, spec_count} of the enhanced spec file, or None when
+    it is missing (runs without the enhanced stage stay possible; the
+    caller warns). The specs are part of the TEST SET but live under
+    results/cache/ and are gitignored — the manifest's git commit does
+    NOT pin them, this hash does. spec_count counts valid-JSON lines."""
+    import hashlib
+
+    stage = (config.get("stages") or {}).get("enhanced_tests") or {}
+    raw = stage.get("specs_file") or ENHANCED_SPECS_DEFAULT
+    path = Path(raw)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+
+    if not path.exists():
+        return None
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+
+    spec_count = 0
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                json.loads(line)
+                spec_count += 1
+            except ValueError:
+                continue
+
+    return {"path": str(raw), "sha256": digest.hexdigest(),
+            "spec_count": spec_count}
+
+
 def ensure_run_manifest(
     config: "Dict[str, Any]",
     run_id: str,
@@ -170,13 +210,26 @@ def ensure_run_manifest(
 
     prompt_selection (optional, from common.prompt_selection_report):
     stored at creation; if the manifest already exists WITHOUT one, it is
-    added once — an additive enrichment, the frozen fields stay untouched."""
+    added once — an additive enrichment, the frozen fields stay untouched.
+
+    enhanced_specs pins the gitignored spec file ({path, sha256,
+    spec_count}) with resolved_config semantics: written once at
+    creation, later contacts only COMPARE and record deviations in
+    config_drift ("spec file changed after run start") — never an abort."""
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     path = manifest_path(config, run_id)
 
     existing = load_manifest(config, run_id)
 
+    specs_info = enhanced_specs_info(config)
+
     if existing is None:
+        if specs_info is None:
+            print(
+                f"[{stage}] WARNING: enhanced spec file not found — "
+                "recording enhanced_specs: null in the manifest (runs "
+                "without the enhanced stage stay possible)."
+            )
         manifest: "Dict[str, Any]" = {
             "run_id": run_id,
             "profile": profile,
@@ -190,6 +243,7 @@ def ensure_run_manifest(
                 intermediate_dir, run_id
             ),
             "resolved_config": _jsonable(config),
+            "enhanced_specs": specs_info,
             "config_drift": [],
         }
         if prompt_selection is not None:
@@ -198,21 +252,48 @@ def ensure_run_manifest(
         print(f"[{stage}] run manifest frozen: {path}")
         return manifest
 
+    enriched = False
+
     if prompt_selection is not None and "prompt_selection" not in existing:
         existing["prompt_selection"] = _jsonable(prompt_selection)
+        enriched = True
+
+    # legacy manifests (pre enhanced_specs) get the pin backfilled ONCE
+    # without counting it as drift — there is no frozen value to deviate
+    # from
+    if "enhanced_specs" not in existing:
+        existing["enhanced_specs"] = specs_info
+        enriched = True
+
+    if enriched:
         _write_manifest(path, existing)
 
     changed = config_key_diff(
         existing.get("resolved_config"), _jsonable(config)
     )
 
-    if changed:
+    specs_changed = config_key_diff(
+        existing.get("enhanced_specs"), _jsonable(specs_info),
+        prefix="enhanced_specs",
+    )
+    if specs_changed:
         print(
-            f"[{stage}] WARNING: current config deviates from the run "
-            f"manifest frozen at {existing.get('created_at_utc')} — "
-            "continuation runs with a changed config are allowed but "
-            "RECORDED. Changed keys: " + ", ".join(changed)
+            f"[{stage}] WARNING: enhanced spec file changed after run "
+            "start (%s) — the run's enhanced results no longer rest on "
+            "the pinned spec set; recorded in config_drift."
+            % ", ".join(specs_changed)
         )
+
+    changed = changed + specs_changed
+
+    if changed:
+        if changed != specs_changed:  # config part present
+            print(
+                f"[{stage}] WARNING: current config deviates from the run "
+                f"manifest frozen at {existing.get('created_at_utc')} — "
+                "continuation runs with a changed config are allowed but "
+                "RECORDED. Changed keys: " + ", ".join(changed)
+            )
 
         drift = existing.setdefault("config_drift", [])
         # skip only exact consecutive repeats (every resumed stage would

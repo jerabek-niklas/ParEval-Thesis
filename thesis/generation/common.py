@@ -918,6 +918,11 @@ def apply_success(
     warning = reasoning_evidence_warning(record, model_config)
     if warning:
         print(warning)
+        # ALSO persisted (generation_summary.json): a single stdout line
+        # scrolls past unseen — smoke_004's 0-thinking warnings fired but
+        # were only noticed via manual recomputation a day later. The
+        # artifact makes the evidence reviewable after the run.
+        summary.setdefault("reasoning_warnings", []).append(warning)
 
     summary["counts"]["success"] += 1
 
