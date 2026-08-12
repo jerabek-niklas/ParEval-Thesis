@@ -93,7 +93,7 @@ generation_defaults:
   # in shape either way.
   # Kept at `direct` by default so smoke/model_check runs stay synchronous;
   # set to `batch` for the full run.
-  api_mode: direct
+  api_mode: batch
   # Per-provider override, e.g. {gemini: direct}. Providers without a
   # verified batch API (openai_compatible = DashScope: Qwen, DeepSeek, GLM —
   # 404 on /v1/batches, measured 2026-07-21) fall back to direct with a log
