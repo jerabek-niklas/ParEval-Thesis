@@ -438,24 +438,18 @@ def compute_expected_count(
     prompt_limit = profile.get("prompt_limit")
     num_samples_per_prompt = int(profile.get("num_samples_per_prompt", 1))
 
-    filtered = prompts
+    # THE shared selection function (common.select_prompts) — the expected
+    # count agrees with the generation path by construction; a second
+    # filtering copy here would drift and normalize ignoring the warning
+    from thesis.generation.common import select_prompts
 
-    if execution_models:
-        allowed_execution_models = set(execution_models)
-        filtered = [
-            prompt for prompt in filtered
-            if prompt.get("parallelism_model") in allowed_execution_models
-        ]
-
-    if problem_types:
-        allowed_problem_types = set(problem_types)
-        filtered = [
-            prompt for prompt in filtered
-            if prompt.get("problem_type") in allowed_problem_types
-        ]
-
-    if prompt_limit is not None:
-        filtered = filtered[: int(prompt_limit)]
+    filtered, _notes = select_prompts(
+        prompts=prompts,
+        execution_models=execution_models,
+        problem_types=problem_types,
+        prompt_limit=prompt_limit,
+        selection=profile.get("selection", "prefix"),
+    )
 
     return len(filtered) * num_samples_per_prompt
 

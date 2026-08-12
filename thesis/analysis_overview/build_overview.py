@@ -1145,6 +1145,134 @@ def _dedupe_measurement_rows(
     return result
 
 
+def _race_bucket(row: "Dict[str, Any]") -> str:
+    """Corroboration class of one omp artifact row (None = tool did not
+    run / not applicable; that is DATA, not zero)."""
+    llov = row.get("llov_blocking")
+    tsan = row.get("tsan_blocking")
+
+    if llov is None and tsan is None:
+        return "no_data"
+
+    llov_positive = isinstance(llov, int) and llov > 0
+    tsan_positive = isinstance(tsan, int) and tsan > 0
+
+    if llov_positive and tsan_positive:
+        return "both"
+    if llov_positive:
+        return "llov_only"
+    if tsan_positive:
+        return "tsan_only"
+    return "neither"
+
+
+def _enhanced_cell(row: "Dict[str, Any]") -> str:
+    if row.get("enhanced_pass") is None and row.get("enhanced_fail") is None:
+        return NA
+    passed = int(row.get("enhanced_pass") or 0)
+    failed = int(row.get("enhanced_fail") or 0)
+    other = sum(int(row.get("enhanced_%s" % key) or 0)
+                for key in ("crash", "timeout", "build_failed", "runtime_error"))
+    cell = "%dp/%df" % (passed, failed)
+    if other:
+        cell += "/+%d" % other
+    return cell
+
+
+def race_corroboration_section(rows: "List[Dict[str, Any]]") -> List[str]:
+    """Cross-corroboration of OpenMP race findings: LLOV (static) against
+    TSan (dynamic), next to the ParEval verdict and the enhanced results.
+
+    Motivation (smoke_004): LLOV flagged a race on a CORRECT OpenMP LU
+    sample across every iteration (TSan 0, ParEval 4/4 grid points,
+    enhanced 20/20 pass) — static_feedback and combined_feedback burned
+    their budget on correct code. That is a DOCUMENTED method limit
+    (verify_detection.py TOOL_CLEAN_OVERRIDES: line disjointness through
+    std::vector indirection is not provable for LLOV), not a malfunction.
+    After the pilot (12 benchmarks instead of 1) these numbers make the
+    decision whether llov gets low_precision_warning DATA-BASED instead
+    of a single observation; the tool configuration itself is unchanged.
+    """
+    deduped = [
+        r for r in _dedupe_measurement_rows(rows)
+        if r["execution_model"] == "omp"
+    ]
+
+    if not deduped:
+        return ["No omp artifacts."]
+
+    buckets: Counter = Counter(_race_bucket(r) for r in deduped)
+
+    lines = [
+        "Per deduplicated omp artifact: does the static race report (LLOV) "
+        "have a dynamic witness (TSan)? `None` cells mean the tool did not "
+        "run on that artifact — that is missing data, never a clean result.",
+        "",
+        "| corroboration | artifacts |",
+        "| --- | --- |",
+        "| both report (corroborated) | %d |" % buckets.get("both", 0),
+        "| LLOV only (static, dynamically unconfirmed) | %d |" % buckets.get("llov_only", 0),
+        "| TSan only (LLOV blind/not analyzable) | %d |" % buckets.get("tsan_only", 0),
+        "| neither | %d |" % buckets.get("neither", 0),
+    ]
+    if buckets.get("no_data"):
+        lines.append("| no llov/tsan data | %d |" % buckets["no_data"])
+
+    flagged = [r for r in deduped if _race_bucket(r) in ("both", "llov_only", "tsan_only")]
+
+    if flagged:
+        lines.append("")
+        lines.append(
+            "Artifacts with at least one race report (%d of %d omp artifacts "
+            "listed; the %d without any report are only counted above):"
+            % (len(flagged), len(deduped), len(deduped) - len(flagged))
+        )
+        lines.append("")
+        lines.append("| model | variant | iter | llov | tsan | ParEval | enhanced |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+        for row in flagged:
+            lines.append(
+                "| %s | %s | %s | %s | %s | %s %s | %s |" % (
+                    row["model"], row["variant"], row["iteration"],
+                    NA if row.get("llov_blocking") is None else row["llov_blocking"],
+                    NA if row.get("tsan_blocking") is None else row["tsan_blocking"],
+                    row.get("correctness_verdict") or NA,
+                    row.get("correctness_pass_gridpoints") or "",
+                    _enhanced_cell(row),
+                )
+            )
+
+    # stopped_budget attribution: final iteration of each (sample, variant)
+    # trail; "LLOV-only" = LLOV is the SOLE blocker there (blocking_count ==
+    # llov_blocking > 0) and TSan reports nothing (0 or not run)
+    finals: "Dict[Tuple[str, str], Dict[str, Any]]" = {}
+    for row in rows:
+        if row["execution_model"] != "omp":
+            continue
+        key = (row["sample_id"], row["variant"])
+        current = finals.get(key)
+        if current is None or int(row["iteration"]) > int(current["iteration"]):
+            finals[key] = row
+
+    budget_rows = [r for r in finals.values() if r.get("status") == "stopped_budget"]
+    llov_only_budget = [
+        r for r in budget_rows
+        if isinstance(r.get("llov_blocking"), int) and r["llov_blocking"] > 0
+        and r.get("tsan_blocking") in (0, None)
+        and r.get("blocking_count") == r.get("llov_blocking")
+    ]
+
+    lines.append("")
+    lines.append(
+        "**stopped_budget attribution (omp):** %d of %d stopped_budget "
+        "outcomes end on an iteration whose ONLY blocker is an LLOV race "
+        "finding (TSan 0/not run) — budget burned without a dynamic witness."
+        % (len(llov_only_budget), len(budget_rows))
+    )
+
+    return lines
+
+
 def runtime_cost_section(rows: "List[Dict[str, Any]]") -> List[str]:
     """Median/p95 analysis runtime per tool x execution model + timeout share.
 
@@ -1530,6 +1658,11 @@ def render_markdown(
     parts.append("## Enhanced tests by execution model")
     parts.append("")
     parts.extend(enhanced_by_execution_model_section(rows))
+
+    parts.append("")
+    parts.append("## Race corroboration (omp)")
+    parts.append("")
+    parts.extend(race_corroboration_section(rows))
 
     parts.append("")
     parts.append("## Runtime cost per tool")

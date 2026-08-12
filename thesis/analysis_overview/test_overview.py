@@ -569,6 +569,65 @@ def test_enhanced_timing_semantics():
             check("non-.jsonl legacy config: overview degrades, no crash", False)
 
 
+def test_race_corroboration():
+    print("race corroboration: llov vs tsan buckets + budget attribution")
+    from thesis.analysis_overview.build_overview import race_corroboration_section
+
+    def omp_row(sample, variant, iteration, llov, tsan, status="active",
+                blocking=None, **extra):
+        row = {
+            "model": "m1", "variant": variant, "iteration": iteration,
+            "sample_id": sample, "execution_model": "omp",
+            "llov_blocking": llov, "tsan_blocking": tsan,
+            "correctness_verdict": "pass",
+            "correctness_pass_gridpoints": "4/4",
+            "enhanced_pass": 20, "enhanced_fail": 0,
+            "status": status,
+            "blocking_count": blocking if blocking is not None else (
+                (llov or 0) + (tsan or 0)),
+        }
+        row.update(extra)
+        return row
+
+    rows = [
+        # corroborated: both report
+        omp_row("s_both", "static_feedback", 0, 1, 1),
+        # the smoke_004 pattern: LLOV alone on correct code, budget burned
+        omp_row("s_llov", "static_feedback", 0, 1, 0),
+        omp_row("s_llov", "static_feedback", 2, 1, 0, status="stopped_budget"),
+        # tsan only, llov did not run
+        omp_row("s_tsan", "static_feedback", 0, None, 2),
+        # neither
+        omp_row("s_clean", "static_feedback", 0, 0, 0),
+        # no llov/tsan data at all
+        omp_row("s_nodata", "static_feedback", 0, None, None),
+        # shared iter0 under a second variant: must dedupe, not double-count
+        omp_row("s_both", "test_feedback", 0, 1, 1),
+        # stopped_budget where LLOV is NOT the sole blocker -> not attributed
+        omp_row("s_mixed", "combined_feedback", 1, 1, 0,
+                status="stopped_budget", blocking=2),
+        # serial row: must be ignored entirely
+        {"model": "m1", "variant": "static_feedback", "iteration": 0,
+         "sample_id": "s_serial", "execution_model": "serial",
+         "llov_blocking": None, "tsan_blocking": None, "status": "active",
+         "blocking_count": 0},
+    ]
+
+    text = "\n".join(race_corroboration_section(rows))
+    check("corroborated counted once despite shared iter0",
+          "| both report (corroborated) | 1 |" in text)
+    check("llov-only counted per artifact (iter0 + iter2)",
+          "| LLOV only (static, dynamically unconfirmed) | 3 |" in text)
+    check("tsan-only bucket", "| TSan only (LLOV blind/not analyzable) | 1 |" in text)
+    check("neither bucket", "| neither | 1 |" in text)
+    check("missing-data rows reported, not counted as clean",
+          "| no llov/tsan data | 1 |" in text)
+    check("detail table lists flagged artifacts with ParEval + enhanced",
+          "| m1 | static_feedback | 2 | 1 | 0 | pass 4/4 | 20p/0f |" in text)
+    check("budget attribution: only sole-LLOV-blocker finals count",
+          "1 of 2 stopped_budget outcomes" in text)
+
+
 def test_legacy_timing_classification():
     print("legacy v2 records: batch pseudo-durations never become latency")
     from thesis.analysis_overview.build_overview import apply_generation_columns
@@ -666,6 +725,7 @@ def test_class_dedup_and_cells():
 def main():
     tests = [test_rows, test_csv, test_markdown,
              test_enhanced_timing_semantics,
+             test_race_corroboration,
              test_legacy_timing_classification, test_class_dedup_and_cells]
 
     for test in tests:

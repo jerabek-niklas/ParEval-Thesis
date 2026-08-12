@@ -866,6 +866,110 @@ def test_llov_parse_and_filter() -> None:
     check("cpu.cc race filtered out", len(kept) == 2)
 
 
+def test_dynamic_run_model_entry_points() -> None:
+    print("dynamic run_model: orchestrator signature + gate on every path")
+    from types import SimpleNamespace
+
+    from thesis.evaluation import run_dynamic_analysis as rda
+    from thesis.evaluation.tool_config import ToolSettings
+
+    class CleanTool:
+        name = "clean_tool"
+        execution_models = ("serial",)
+        def is_available(self):
+            return True
+        def run(self, sample, context):
+            return framework.ToolResult(
+                tool=self.name, ran=True, exit_code=0, duration_seconds=0.1
+            )
+
+    class BrokenEnvTool:
+        name = "broken_env_tool"
+        execution_models = ("serial",)
+        def is_available(self):
+            return True
+        def preflight(self):
+            return ("preflight binary exited -11. Fix once per VM boot: "
+                    "sysctl -w vm.mmap_rnd_bits=28")
+        def run(self, sample, context):
+            raise AssertionError("must never run when the gate failed")
+
+    def settings_for(*names):
+        return {n: ToolSettings(name=n, enabled=True,
+                                execution_models=("serial",),
+                                low_precision_warning=False,
+                                low_precision_families=())
+                for n in names}
+
+    context = framework.EvaluationContext(
+        repo_root=REPO_ROOT,
+        drivers_cpp_dir=REPO_ROOT / "drivers" / "cpp",
+        primary_compiler="g++",
+        config=None,
+    )
+
+    fakes = {t.name: t for t in (CleanTool(), BrokenEnvTool())}
+    original_get_tool = rda.framework.get_tool
+    original_iter = rda.framework.iter_assembled_samples
+
+    with tempfile.TemporaryDirectory() as tmp:
+        intermediate = Path(tmp)
+        sample = SimpleNamespace(
+            sample_id="m__t__b__serial__sample_0", execution_model="serial",
+            source_path=Path(tmp) / "generated-code.hpp",
+        )
+
+        rda.framework.get_tool = lambda name: fakes[name]
+        rda.framework.iter_assembled_samples = lambda *a, **k: [sample]
+        rda.reset_preflight_cache()
+        try:
+            # 1. ORCHESTRATOR SIGNATURE: no tools_skipped kwarg (the call
+            # that raised TypeError at orchestrator.py:923)
+            summary = rda.run_model(
+                context=context, intermediate_dir=intermediate,
+                run_id="run_a", model_id="m",
+                tool_settings=settings_for("clean_tool"),
+                output_file_name="dynamic_analysis.jsonl",
+            )
+            check("run_model callable without tools_skipped (orchestrator path)",
+                  summary["samples"] == 1 and summary["tools_skipped"] == [])
+
+            # 2. gate fires on the DIRECT path too — abort, no records
+            rda.reset_preflight_cache()
+            output = intermediate / "run_b" / "m" / "dynamic_analysis.jsonl"
+            try:
+                rda.run_model(
+                    context=context, intermediate_dir=intermediate,
+                    run_id="run_b", model_id="m",
+                    tool_settings=settings_for("clean_tool", "broken_env_tool"),
+                    output_file_name="dynamic_analysis.jsonl",
+                )
+                check("failed preflight aborts the direct run_model path", False)
+            except rda.EnvironmentPreflightError as failure:
+                check("failed preflight aborts the direct run_model path",
+                      "mmap_rnd_bits=28" in str(failure))
+            check("no records written when the gate failed", not output.exists())
+
+            # 3. opt-out keeps running, records the drop in the summary
+            rda.reset_preflight_cache()
+            summary = rda.run_model(
+                context=context, intermediate_dir=intermediate,
+                run_id="run_c", model_id="m",
+                tool_settings=settings_for("clean_tool", "broken_env_tool"),
+                output_file_name="dynamic_analysis.jsonl",
+                skip_unavailable_tools=True,
+            )
+            check("opt-out runs the healthy tools only",
+                  summary["tools_run"] == ["clean_tool"])
+            check("opt-out records the drop in the summary",
+                  [s["tool"] for s in summary["tools_skipped"]]
+                  == ["broken_env_tool"])
+        finally:
+            rda.framework.get_tool = original_get_tool
+            rda.framework.iter_assembled_samples = original_iter
+            rda.reset_preflight_cache()
+
+
 def test_run_manifest() -> None:
     print("run manifest: freeze once, record drift, never overwrite")
     from thesis.evaluation.run_manifest import (
@@ -927,6 +1031,11 @@ def test_run_manifest() -> None:
                             stage="dynamic_analysis", profile="smoke")
         check("identical consecutive drift not duplicated",
               len(load_manifest(cfg(), "run_x")["config_drift"]) == 1)
+
+        # atomic writes (temp file + os.replace, race-safe for parallel
+        # per-model terminals): no .tmp stragglers survive any write path
+        leftovers = list(path.parent.glob("run_manifest.json.*.tmp"))
+        check("no temp files left behind by atomic writes", leftovers == [])
 
 
 def test_must_timeout_wrapper() -> None:
@@ -1057,13 +1166,17 @@ def test_environment_gates() -> None:
                                        low_precision_families=())
                     for name in fakes}
 
+        rda.reset_preflight_cache()
         try:
             rda.apply_preflight_gate(dict(settings), skip_unavailable=False)
-            check("gate aborts (exit != 0) without the escape hatch", False)
-        except SystemExit as stop:
-            check("gate aborts (exit != 0) without the escape hatch",
-                  stop.code == 2)
+            check("gate aborts hard without the escape hatch", False)
+        except rda.EnvironmentPreflightError as failure:
+            # main() turns this into exit 2; library callers see the same
+            # message incl. the remedy command
+            check("gate aborts hard without the escape hatch",
+                  "mmap_rnd_bits=28" in str(failure))
 
+        rda.reset_preflight_cache()
         usable, skipped = rda.apply_preflight_gate(
             dict(settings), skip_unavailable=True
         )
@@ -1119,6 +1232,7 @@ def main() -> None:
         test_registry,
         test_finding_serialization,
         test_environment_gates,
+        test_dynamic_run_model_entry_points,
         test_must_timeout_wrapper,
         test_run_manifest,
     ]

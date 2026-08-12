@@ -19,9 +19,11 @@ Python 3.8 compatible; additive file, no record-schema change.
 from __future__ import annotations
 
 import json
+import os
 import platform
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -113,6 +115,36 @@ def manifest_path(config: "Dict[str, Any]", run_id: str) -> Path:
     return Path(config["outputs"]["intermediate_dir"]) / run_id / MANIFEST_NAME
 
 
+def _write_manifest(path: Path, data: "Dict[str, Any]") -> None:
+    """ATOMIC write: temp file in the SAME directory + os.replace.
+
+    With parallel per-model terminals, two processes can start the same
+    run_id near-simultaneously — both see no manifest and both write. The
+    content is identical in that case (same config), but a reader must
+    never catch a partially written file: the rename makes every
+    observable state a complete manifest (last writer wins, benignly).
+    Same-directory temp file because os.replace is only atomic within one
+    filesystem. The drift/enrichment rewrites go through this too — the
+    torn-read hazard is identical there."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    handle = tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=str(path.parent),
+        prefix=path.name + ".", suffix=".tmp", delete=False,
+    )
+    try:
+        with handle as file:
+            json.dump(data, file, indent=2, sort_keys=True)
+            file.write("\n")
+        os.replace(handle.name, str(path))
+    except BaseException:
+        try:
+            os.unlink(handle.name)
+        except OSError:
+            pass
+        raise
+
+
 def load_manifest(config: "Dict[str, Any]", run_id: str) -> "Optional[Dict[str, Any]]":
     path = manifest_path(config, run_id)
     if not path.exists():
@@ -130,10 +162,15 @@ def ensure_run_manifest(
     stage: str,
     profile: "Optional[str]" = None,
     primary_compiler: str = "g++",
+    prompt_selection: "Optional[Dict[str, Any]]" = None,
 ) -> "Dict[str, Any]":
     """Create the manifest on first contact with a run directory; on later
     contacts detect and RECORD config drift (never overwrite the frozen
-    snapshot). Returns the manifest dict (frozen or freshly created)."""
+    snapshot). Returns the manifest dict (frozen or freshly created).
+
+    prompt_selection (optional, from common.prompt_selection_report):
+    stored at creation; if the manifest already exists WITHOUT one, it is
+    added once — an additive enrichment, the frozen fields stay untouched."""
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     path = manifest_path(config, run_id)
 
@@ -155,12 +192,15 @@ def ensure_run_manifest(
             "resolved_config": _jsonable(config),
             "config_drift": [],
         }
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as handle:
-            json.dump(manifest, handle, indent=2, sort_keys=True)
-            handle.write("\n")
+        if prompt_selection is not None:
+            manifest["prompt_selection"] = _jsonable(prompt_selection)
+        _write_manifest(path, manifest)
         print(f"[{stage}] run manifest frozen: {path}")
         return manifest
+
+    if prompt_selection is not None and "prompt_selection" not in existing:
+        existing["prompt_selection"] = _jsonable(prompt_selection)
+        _write_manifest(path, existing)
 
     changed = config_key_diff(
         existing.get("resolved_config"), _jsonable(config)
@@ -183,9 +223,7 @@ def ensure_run_manifest(
                 "stage": stage,
                 "changed_keys": changed,
             })
-            with path.open("w", encoding="utf-8") as handle:
-                json.dump(existing, handle, indent=2, sort_keys=True)
-                handle.write("\n")
+            _write_manifest(path, existing)
 
     return existing
 

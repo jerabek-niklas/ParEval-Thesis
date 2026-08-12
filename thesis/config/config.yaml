@@ -7,13 +7,27 @@ experiment:
 
 profiles:
   smoke:
-    run_id: smoke_003
+    run_id: smoke_004
     prompt_limit: 3
     num_samples_per_prompt: 1
 
+  # Pilot: every problem class once through the FULL chain (enhanced
+  # specs, driver paths, tool behavior) before the full run starts.
+  # selection: stratified = deterministic round-robin over problem_type,
+  # whole benchmarks only (all execution models per benchmark).
+  # THE CALCULATION (do not "round up" or trim this later):
+  #   36 prompts / 3 execution models = 12 benchmarks
+  #   = each of the 12 problem types exactly once.
+  # At 30, two problem types would stay untested — a prefix limit of 30
+  # would even cover only ~2 problem types (the prompt file is ordered
+  # by benchmark). With prompt_limit null in `full`, the pilot selection
+  # is automatically a SUBSET of the full selection (same run_id +
+  # resume can grow the pilot into the full run, as long as the config
+  # stays unchanged in between — the run manifest records drift).
   pilot:
     run_id: pilot_001
-    prompt_limit: 30
+    selection: stratified
+    prompt_limit: 36
     num_samples_per_prompt: 1
 
   # Dedicated base run for the repair-loop integration smoke: a planted

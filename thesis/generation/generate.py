@@ -238,14 +238,43 @@ def main() -> None:
         )
 
     # freeze the run configuration at the run's true start (or record
-    # config drift on continuation runs) — see run_manifest.py
+    # config drift on continuation runs) — see run_manifest.py. The
+    # EFFECTIVE prompt selection (stratified round-robin or prefix) plus
+    # per-benchmark enhanced capability goes into the manifest and the
+    # console, so the sample composition is visible BEFORE the run
+    # instead of surfacing afterwards as a supposed evaluation bug.
+    import json as _json
+
     from thesis.evaluation.run_manifest import ensure_run_manifest
+    from thesis.generation.common import (
+        prompt_selection_report,
+        select_prompts,
+    )
+
+    profile_config = config["profiles"][args.profile]
+    prompts_config = config.get("prompts", {})
+    prompts = _json.loads(
+        Path(prompts_config["path"]).read_text(encoding="utf-8")
+    )
+    selected, notes = select_prompts(
+        prompts=prompts,
+        execution_models=prompts_config.get("execution_models"),
+        problem_types=prompts_config.get("problem_types"),
+        prompt_limit=profile_config.get("prompt_limit"),
+        selection=profile_config.get("selection", "prefix"),
+    )
+    selection_block, selection_lines = prompt_selection_report(
+        selected, profile_config.get("selection", "prefix"), notes
+    )
+    for line in selection_lines:
+        print(line)
 
     ensure_run_manifest(
         config,
-        config["profiles"][args.profile]["run_id"],
+        profile_config["run_id"],
         stage="generation",
         profile=args.profile,
+        prompt_selection=selection_block,
     )
 
     print_run_overview(

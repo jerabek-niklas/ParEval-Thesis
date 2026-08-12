@@ -541,6 +541,82 @@ def test_validator_timing():
           errors == [])
 
 
+def test_prompt_selection():
+    print("selection: prefix regression, stratified coverage, shared helper")
+    import json as _json
+
+    prompts_path = (
+        REPO_ROOT / "thesis" / "prompts" / "generation-prompts-thesis.json"
+    )
+    prompts = _json.loads(prompts_path.read_text(encoding="utf-8"))
+    ems = ["serial", "omp", "mpi"]
+
+    def bench_key(p):
+        return (p["problem_type"], p["name"])
+
+    # 1. prefix == today's behavior byte-for-byte (smoke regression)
+    prefix3, notes = common.select_prompts(prompts, ems, None, 3, "prefix")
+    check("prefix limit 3 identical to the historical slice",
+          prefix3 == common.filter_prompts(prompts, ems, None, 3)
+          and notes == [])
+    check("prefix 3 = one benchmark in serial/omp/mpi (documented premise)",
+          len({bench_key(p) for p in prefix3}) == 1
+          and [p["parallelism_model"] for p in prefix3] == ems)
+
+    # 2. stratified 36 on the real file: full problem-type coverage
+    strat36, notes36 = common.select_prompts(prompts, ems, None, 36, "stratified")
+    benches = {}
+    for p in strat36:
+        benches.setdefault(bench_key(p), []).append(p["parallelism_model"])
+    check("36 prompts selected", len(strat36) == 36 and notes36 == [])
+    check("12 benchmarks", len(benches) == 12)
+    check("all 12 problem types covered exactly once",
+          sorted({k[0] for k in benches})
+          == sorted({p["problem_type"] for p in prompts})
+          and len({k[0] for k in benches}) == 12)
+    check("every benchmark complete (all three execution models)",
+          all(sorted(v) == sorted(ems) for v in benches.values()))
+
+    # 3. deterministic: same config -> same list
+    again, _ = common.select_prompts(prompts, ems, None, 36, "stratified")
+    check("stratified is deterministic", again == strat36)
+
+    # 4. non-multiple limit rounds DOWN to whole benchmarks + INFO
+    strat35, notes35 = common.select_prompts(prompts, ems, None, 35, "stratified")
+    check("limit 35 -> 33 prompts (11 complete benchmarks)",
+          len(strat35) == 33
+          and len({bench_key(p) for p in strat35}) == 11)
+    check("round-down announced via INFO line",
+          len(notes35) == 1 and "rounded DOWN to 33" in notes35[0])
+
+    # 5. subset property: limited selection is a subset of the full one
+    full, _ = common.select_prompts(prompts, ems, None, None, "stratified")
+    full_ids = {(p["problem_type"], p["name"], p["parallelism_model"]) for p in full}
+    check("36er selection is a subset of prompt_limit null",
+          {(p["problem_type"], p["name"], p["parallelism_model"])
+           for p in strat36} <= full_ids)
+    check("prompt_limit null selects everything", len(full) == len(
+        common.filter_prompts(prompts, ems, None, None)))
+
+    # 6. generation path and validator agree via the SHARED helper
+    from thesis.generation.validate_generations import compute_expected_count
+
+    config = {
+        "prompts": {"path": str(prompts_path), "execution_models": ems},
+        "profiles": {"pilot": {"run_id": "x", "selection": "stratified",
+                               "prompt_limit": 36,
+                               "num_samples_per_prompt": 1}},
+    }
+    check("compute_expected_count uses the same selection (36)",
+          compute_expected_count(config, "pilot") == 36)
+
+    try:
+        common.select_prompts(prompts, ems, None, 3, "random")
+        check("unknown selection rejected", False)
+    except ValueError:
+        check("unknown selection rejected", True)
+
+
 def main():
     tests = [
         test_timeout_resolution,
@@ -551,6 +627,7 @@ def main():
         test_normalize_usage,
         test_reasoning_evidence,
         test_validator_timing,
+        test_prompt_selection,
     ]
 
     for test in tests:

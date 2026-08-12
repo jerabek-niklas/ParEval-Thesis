@@ -396,6 +396,195 @@ def filter_prompts(
     return filtered
 
 
+PROMPT_SELECTIONS = ("prefix", "stratified")
+
+
+def select_prompts(
+    prompts: list[dict[str, Any]],
+    execution_models: list[str] | None,
+    problem_types: list[str] | None,
+    prompt_limit: int | None,
+    selection: str = "prefix",
+) -> "tuple[list[dict[str, Any]], list[str]]":
+    """THE prompt-selection function — used by BOTH the generation path
+    and validate_generations.compute_expected_count, so the expected and
+    actual sample counts agree by construction (two drifting copies would
+    train everyone to ignore the validation warning).
+
+    Returns (selected prompts, info lines to print).
+
+    selection="prefix" (default): today's behavior byte-for-byte — a plain
+    prefix of the benchmark-ordered prompt file. Small limits deliberately
+    keep hitting the same benchmark as before (smoke/model_check/
+    repair_smoke stay comparable across runs).
+
+    selection="stratified": deterministic round-robin over problem_type.
+    The unit of selection is the BENCHMARK, never the single prompt: every
+    selected benchmark contributes ALL configured execution models,
+    otherwise the sample would be skewed (e.g. serial-heavy) and the
+    execution-model axis of the evaluation unbalanced. Benchmarks are
+    sorted by (problem_type, benchmark_name) and the problem types walked
+    round-robin, within a type in name order — no randomness, no shuffle:
+    the same config always yields the same selection. NOTE: the name
+    order within a problem type is NOT sorted by difficulty (checked:
+    search 35 is harder than 36, reduce 26 harder than 27), so "first
+    benchmark per type" is unbiased with respect to difficulty — do not
+    "improve" this ordering later. prompt_limit stays a PROMPT count;
+    whole benchmarks are taken until the limit is reached. A limit that
+    is not a multiple of the active execution models rounds DOWN to the
+    last complete benchmark (INFO line with the effective count) — a
+    benchmark is never half-included.
+
+    Subset property: with prompt_limit None ALL prompts are selected, so
+    any limited selection is a SUBSET of the full run's — the
+    precondition for later growing a pilot into the full run under the
+    SAME run_id (resume adds only the missing samples). This holds only
+    while the configuration in between stays unchanged (the run manifest
+    records drift).
+    """
+    if selection not in PROMPT_SELECTIONS:
+        raise ValueError(
+            "profile selection must be one of %s (got %r)"
+            % ("/".join(PROMPT_SELECTIONS), selection)
+        )
+
+    filtered = filter_prompts(prompts, execution_models, problem_types, None)
+
+    if selection == "prefix":
+        if prompt_limit is not None:
+            filtered = filtered[: int(prompt_limit)]
+        return filtered, []
+
+    # ---- stratified ----------------------------------------------------
+    by_benchmark: "dict[tuple[str, str], list[dict[str, Any]]]" = {}
+    for prompt in filtered:
+        key = (
+            str(prompt.get("problem_type", "")),
+            str(prompt.get("name", "")),
+        )
+        by_benchmark.setdefault(key, []).append(prompt)
+
+    by_type: "dict[str, list[tuple[str, str]]]" = {}
+    for key in sorted(by_benchmark):
+        by_type.setdefault(key[0], []).append(key)
+
+    types = sorted(by_type)
+
+    # round-robin: round r takes the r-th benchmark of every type that
+    # still has one
+    benchmark_order: "list[tuple[str, str]]" = []
+    max_rounds = max((len(v) for v in by_type.values()), default=0)
+    for round_index in range(max_rounds):
+        for problem_type in types:
+            benchmarks = by_type[problem_type]
+            if round_index < len(benchmarks):
+                benchmark_order.append(benchmarks[round_index])
+
+    limit = None if prompt_limit is None else int(prompt_limit)
+    selected: "list[dict[str, Any]]" = []
+    notes: "list[str]" = []
+    truncated = False
+
+    for key in benchmark_order:
+        block = by_benchmark[key]
+        if limit is not None and len(selected) + len(block) > limit:
+            truncated = True
+            break
+        selected.extend(block)
+
+    # only on a genuine round-down (a block did not fit) — a prompt pool
+    # smaller than the limit is exhaustion, not rounding
+    if truncated and len(selected) < (limit or 0):
+        notes.append(
+            "INFO: prompt_limit %d is not a multiple of the benchmark "
+            "block size — rounded DOWN to %d prompts (%d complete "
+            "benchmarks); a benchmark is never half-included."
+            % (limit, len(selected),
+               len({(p.get("problem_type"), p.get("name")) for p in selected}))
+        )
+
+    return selected, notes
+
+
+def prompt_selection_report(
+    selected: list[dict[str, Any]],
+    selection: str,
+    notes: list[str],
+) -> "tuple[dict[str, Any], list[str]]":
+    """(manifest block, console lines) describing the EFFECTIVE selection.
+
+    Per selected benchmark the enhanced capability from
+    benchmark_shapes.json is included (fill_sites,
+    explicit_values_supported): "first benchmark per problem type" hits
+    structural specials — e.g. 25_reduce_* with fill_sites 0 (no enhanced
+    coverage at all) and 40_sort_* with explicit_values disabled. That is
+    a legitimate property of the suite and must NOT be "fixed" by
+    reordering (which would bias the pilot toward enhanced-friendly
+    tasks) — it only has to be VISIBLE before the run instead of
+    surfacing afterwards as a supposed bug in the evaluation.
+    """
+    from thesis.enhanced_tests.specs import benchmark_shape
+
+    benchmarks: "list[dict[str, Any]]" = []
+    seen: "dict[tuple[str, str], dict[str, Any]]" = {}
+
+    for prompt in selected:
+        key = (str(prompt.get("problem_type", "")), str(prompt.get("name", "")))
+        entry = seen.get(key)
+        if entry is None:
+            shape = benchmark_shape("%s/%s" % key)
+            entry = {
+                "problem_type": key[0],
+                "name": key[1],
+                "execution_models": [],
+                "fill_sites": shape.get("fill_sites"),
+                "explicit_values_supported": bool(
+                    shape.get("explicit_values_supported")
+                ),
+            }
+            seen[key] = entry
+            benchmarks.append(entry)
+        entry["execution_models"].append(prompt.get("parallelism_model"))
+
+    problem_types = sorted({b["problem_type"] for b in benchmarks})
+    no_fill_site = [b for b in benchmarks if not b.get("fill_sites")]
+
+    header = (
+        "selection=%s, %d Benchmarks über %d Problemtypen, %d Prompts"
+        % (selection, len(benchmarks), len(problem_types), len(selected))
+    )
+
+    lines = list(notes)
+    lines.append(header)
+    for bench in benchmarks:
+        lines.append(
+            "  %s/%s [%s] fill_sites=%s explicit_values=%s"
+            % (
+                bench["problem_type"], bench["name"],
+                "/".join(bench["execution_models"]),
+                bench["fill_sites"],
+                "yes" if bench["explicit_values_supported"] else "no",
+            )
+        )
+    lines.append(
+        "%d von %d gewählten Benchmarks ohne ENHANCED_FILL-Site "
+        "(Enhanced trägt dort nichts bei)"
+        % (len(no_fill_site), len(benchmarks))
+    )
+
+    manifest_block = {
+        "selection": selection,
+        "header": header,
+        "benchmarks": benchmarks,
+        "benchmarks_without_fill_site": [
+            "%s/%s" % (b["problem_type"], b["name"]) for b in no_fill_site
+        ],
+        "notes": list(notes),
+    }
+
+    return manifest_block, lines
+
+
 def sanitize_for_id(value: Any) -> str:
     text = str(value)
     text = text.replace("/", "_").replace("\\", "_")
@@ -1033,12 +1222,15 @@ def run_generation(adapter: ProviderAdapter) -> None:
     if not isinstance(prompts, list):
         raise ValueError(f"Expected list in prompts JSON: {prompts_path}")
 
-    prompts = filter_prompts(
+    prompts, selection_notes = select_prompts(
         prompts=prompts,
         execution_models=execution_models,
         problem_types=problem_types,
         prompt_limit=prompt_limit,
+        selection=profile.get("selection", "prefix"),
     )
+    for note in selection_notes:
+        print(note)
 
     existing_sample_ids = load_resume_state(generations_path)
 

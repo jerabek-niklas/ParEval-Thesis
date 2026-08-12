@@ -10,7 +10,10 @@ ENVIRONMENT PREFLIGHT GATE (2026-08-08): before ANY record is written, every
 enabled tool is preflighted ONCE — tools with their own preflight() (TSan:
 compile+run a trivial sanitized binary; catches the WSL2 vm.mmap_rnd_bits
 SIGSEGV) reuse it, the rest are checked via is_available(). A failing tool
-ABORTS the run with the cause and the concrete remedy command. Rationale
+ABORTS the run with the cause and the concrete remedy command. The gate is
+enforced IN run_model() (memoized per process), not just in main(): the
+repair orchestrator and run_backfill call run_model directly, and a
+main()-only gate would leave exactly the repair iterations unprotected. Rationale
 (measured on smoke_003): TSan silently produced `ran: false` for ALL 11
 models' omp samples after a VM reboot reset vm.mmap_rnd_bits — visible only
 as n/a in the overview, noticed days later. In a pilot/full run that is an
@@ -150,29 +153,61 @@ def preflight_failures(tool_names: "list[str]") -> "list[tuple[str, str]]":
     return failures
 
 
+class EnvironmentPreflightError(RuntimeError):
+    """Environment cannot run the requested tools — hard abort BEFORE any
+    record is written. main() turns this into exit 2; library callers
+    (repair orchestrator, backfill) see the exception with the same
+    message including the remedy command."""
+
+
+# preflight is memoized PER PROCESS: run_model enforces the gate on every
+# entry point (see its docstring), and re-probing per model/sample would
+# cost a compile+run each time. Keyed by the requested tool set.
+_GATE_CACHE: "dict[tuple, tuple[dict, list]]" = {}
+
+
+def reset_preflight_cache() -> None:
+    """Test hook — the cache is process-global by design."""
+    _GATE_CACHE.clear()
+
+
 def apply_preflight_gate(
     tool_settings: "dict[str, ToolSettings]",
     skip_unavailable: bool,
 ) -> "tuple[dict[str, ToolSettings], list[dict[str, str]]]":
     """Enforce the environment gate BEFORE any record is written.
 
-    Returns (usable settings, skipped notes). Aborts the process (exit 2)
-    on any failure unless --skip-unavailable-tools was given."""
+    Returns (usable settings, skipped notes). Raises
+    EnvironmentPreflightError on any failure unless the caller opted out
+    via skip_unavailable (--skip-unavailable-tools). Memoized per process
+    and per requested tool set."""
+    cache_key = (tuple(sorted(tool_settings)), bool(skip_unavailable))
+
+    if cache_key in _GATE_CACHE:
+        usable_names, skipped = _GATE_CACHE[cache_key]
+        return (
+            {name: tool_settings[name] for name in usable_names if name in tool_settings},
+            skipped,
+        )
+
     failures = preflight_failures(list(tool_settings))
 
     if not failures:
+        _GATE_CACHE[cache_key] = (list(tool_settings), [])
         return tool_settings, []
 
     if not skip_unavailable:
-        print("ENVIRONMENT PREFLIGHT FAILED — aborting before any record is written:")
-        for name, reason in failures:
-            print(f"  [{name}] {reason}")
-        print(
-            "Fix the environment, or rerun with --skip-unavailable-tools to "
-            "knowingly drop these tools (the run summary will then record "
-            "tools_skipped)."
+        message = (
+            "ENVIRONMENT PREFLIGHT FAILED — aborting before any record is "
+            "written:\n"
+            + "\n".join("  [%s] %s" % (name, reason) for name, reason in failures)
+            + "\nFix the environment, or rerun with --skip-unavailable-tools "
+            "to knowingly drop these tools (the run summary will then "
+            "record tools_skipped)."
         )
-        sys.exit(2)
+        # NOT cached: a failing gate must re-probe after the operator fixed
+        # the environment inside a long-lived process (repair loop)
+        raise EnvironmentPreflightError(message)
 
     skipped = []
     for name, reason in failures:
@@ -183,6 +218,7 @@ def apply_preflight_gate(
         name: settings for name, settings in tool_settings.items()
         if name not in {f[0] for f in failures}
     }
+    _GATE_CACHE[cache_key] = (list(usable), skipped)
     return usable, skipped
 
 
@@ -250,8 +286,27 @@ def run_model(
     model_id: str,
     tool_settings: "dict[str, ToolSettings]",
     output_file_name: str,
-    tools_skipped: "list[dict[str, str]]",
+    tools_skipped: "list[dict[str, str]] | None" = None,
+    skip_unavailable_tools: bool = False,
 ) -> dict[str, Any]:
+    """One model's dynamic analysis.
+
+    THE ENVIRONMENT GATE LIVES HERE, not only in main(): the repair
+    orchestrator (_run_analysis_stages) and run_backfill call this
+    function DIRECTLY, so a gate sitting in main() would leave exactly
+    the repair iterations unprotected — the failure mode the gate exists
+    to remove (smoke_003: TSan silently ran:false for a whole base run).
+    The gate is memoized per process, so it costs one probe, not one per
+    model or sample. tools_skipped is a keyword with a default: callers
+    that already gated (main) pass their result through, everyone else
+    gets it enforced here.
+    """
+    tool_settings, gate_skipped = apply_preflight_gate(
+        tool_settings, skip_unavailable_tools
+    )
+    if tools_skipped is None:
+        tools_skipped = gate_skipped
+
     output_path = intermediate_dir / run_id / model_id / output_file_name
 
     records = load_existing_records(output_path)
@@ -384,8 +439,17 @@ def main() -> None:
         except KeyError:
             print(f"Tool '{name}' configured but not implemented yet, skipping.")
 
-    # environment gate ONCE, before any model/record — see module docstring
-    known, tools_skipped = apply_preflight_gate(known, args.skip_unavailable_tools)
+    # environment gate ONCE, before any model/record — see module
+    # docstring. run_model enforces the same (memoized) gate for the
+    # library entry points; here it turns a failure into exit 2 with the
+    # remedy command, exactly as before.
+    try:
+        known, tools_skipped = apply_preflight_gate(
+            known, args.skip_unavailable_tools
+        )
+    except EnvironmentPreflightError as failure:
+        print(str(failure))
+        sys.exit(2)
 
     if not known:
         print("No usable dynamic tools after the environment gate — nothing to run.")
@@ -428,6 +492,7 @@ def main() -> None:
             tool_settings=known,
             output_file_name=output_file_name,
             tools_skipped=tools_skipped,
+            skip_unavailable_tools=args.skip_unavailable_tools,
         )
 
 
