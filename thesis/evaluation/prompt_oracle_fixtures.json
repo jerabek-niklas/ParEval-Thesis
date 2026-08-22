@@ -1,0 +1,662 @@
+{
+ "00_dense_la_lu_decomp": {
+  "canonicalization": "None. cpu.cc::validate() (line 76) calls reportAndCompare(A_correct, A_test, 1e-3, A), which compares all N*N doubles element-by-element in index order with an absolute-epsilon predicate (utilities.hpp:324-330) \u2014 order-sensitive, no sorting. The harness therefore prints the in-place result vector A flattened row-major in natural index order ((i,j) at A[i*N+j]); expected_json is the prompt's 2x2 example output flattened the same way. Packed-LU storage convention: U on/above the diagonal, L's Doolittle multipliers strictly below, L's unit diagonal implicit (not stored).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [[4, 3], [6, 3]]\n   output: [[4, 3], [1.5, -1.5]]",
+  "expected_json": "[4, 3, 1.5, -1.5]",
+  "harness_cpp": "// Stage-B fixture for dense_la/00_dense_la_lu_decomp\n// Executes the grading oracle correctLuFactorize on the prompt's worked example\n// and prints the resulting matrix (flattened row-major) as one JSON array.\n#include <cstdio>\n#include <vector>\n#include <cstddef>\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompts):\n    //   input:  [[4, 3], [6, 3]]  -> row-major [4, 3, 6, 3]\n    //   output: [[4, 3], [1.5, -1.5]]\n    std::vector<double> A = {4.0, 3.0, 6.0, 3.0};\n    const size_t N = 2;\n\n    correctLuFactorize(A, N);\n\n    // validate() (cpu.cc:76) compares element-by-element in index order\n    // (reportAndCompare, absolute eps) -- no reordering/canonicalization needed.\n    std::printf(\"[\");\n    for (size_t i = 0; i < A.size(); ++i) {\n        std::printf(\"%s%.17g\", (i ? \", \" : \"\"), A[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "dense_la"
+ },
+ "01_dense_la_solve": {
+  "canonicalization": "None. cpu.cc::validate() compares element-wise in index order via reportAndCompare(correct, test, 1e-4) (absolute epsilon, utilities.hpp:315-321) plus an isnan check on the candidate vector only; no sorting or order-insensitive property is involved. The harness prints x as a plain JSON array of doubles in index order; expected_json is the prompt's x in the same order.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: A=[[1,4,2], [1,2,3], [2,1,3]] b=[11, 11, 13]\noutput: x=[3, 1, 2]",
+  "expected_json": "[3, 1, 2]",
+  "harness_cpp": "// Fixture harness for dense_la/01_dense_la_solve\n// Executes the grading oracle (correctSolveLinearSystem from baseline.hpp)\n// on the prompt's worked example and prints the result as one JSON value.\n//\n// Worked example (identical in serial/omp/mpi prompts):\n//   input: A=[[1,4,2], [1,2,3], [2,1,3]] b=[11, 11, 13]\n//   output: x=[3, 1, 2]\n\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE, normally provided by utilities.hpp:19.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t N = 3;\n    // A is NxN row-major (cpu.cc data shape: element (i,j) at A[i*N+j]).\n    const std::vector<double> A = {\n        1.0, 4.0, 2.0,\n        1.0, 2.0, 3.0,\n        2.0, 1.0, 3.0\n    };\n    const std::vector<double> b = {11.0, 11.0, 13.0};\n    std::vector<double> x(N, 0.0);  // driver zero-fills x before the call (cpu.cc:82)\n\n    correctSolveLinearSystem(A, b, x, N);\n\n    // Print x as a JSON array. validate() compares element-wise in order\n    // (reportAndCompare, abs eps 1e-4) -- no canonicalization applied.\n    printf(\"[\");\n    for (size_t i = 0; i < N; ++i) {\n        printf(\"%s%.17g\", (i ? \", \" : \"\"), x[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "dense_la"
+ },
+ "02_dense_la_gemm": {
+  "canonicalization": "None needed. cpu.cc::validate() compares correct vs test elementwise in array order via reportAndCompare(correct, test, 1e-4) (utilities.hpp:315-321) with no sorting or reordering. C is printed as a flat row-major array (element (i,j) at index i*N+j), which is exactly how the driver stores it; the prompt's nested C=[[9,5],[4,2]] flattens row-major to [9, 5, 4, 2]. NO_INLINE macro (normally from utilities.hpp:19) was copied verbatim into the harness before including baseline.hpp.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: A=[[1, -1, 2], [0, -2, 1]] B=[[4, 1], [-1, 0], [2, 2]]\n   output: C=[[9, 5], [4, 2]]",
+  "expected_json": "[9, 5, 4, 2]",
+  "harness_cpp": "// Fixture harness for dense_la/02_dense_la_gemm\n// Executes the baseline oracle correctGemm() on the prompt's worked example:\n//   input: A=[[1, -1, 2], [0, -2, 1]] B=[[4, 1], [-1, 0], [2, 2]]\n//   output: C=[[9, 5], [4, 2]]\n// Prints C as one flat row-major JSON array (matches cpu.cc::validate()'s\n// elementwise reportAndCompare order \u2014 no reordering/canonicalization).\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE, normally supplied by utilities.hpp:19.\n// Copied verbatim to avoid pulling in the full driver utilities.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t M = 2, K = 3, N = 2;\n    // Row-major flattening of the worked example.\n    std::vector<double> A = {1.0, -1.0, 2.0, 0.0, -2.0, 1.0}; // 2x3\n    std::vector<double> B = {4.0, 1.0, -1.0, 0.0, 2.0, 2.0};  // 3x2\n    std::vector<double> C(M * N, 0.0); // driver zero-fills C (cpu.cc:72-73)\n\n    correctGemm(A, B, C, M, K, N);\n\n    printf(\"[\");\n    for (size_t i = 0; i < C.size(); ++i) {\n        printf(\"%s%.17g\", i ? \", \" : \"\", C[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "dense_la"
+ },
+ "03_dense_la_axpy": {
+  "canonicalization": "None. cpu.cc::validate() compares element-wise in index order (reportAndCompare(correct, test, 1e-6), utilities.hpp \u2014 absolute epsilon per element, no sorting), so the harness prints z in index order as a flat JSON array of doubles. Expected value is the prompt's z verbatim.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: x=[1, -5, 2, 9] y=[0, 4, 1, -1] alpha=2\noutput: z=[2, -6, 5, 17]",
+  "expected_json": "[2, -6, 5, 17]",
+  "harness_cpp": "// Stage-B fixture: dense_la/03_dense_la_axpy\n// Executes the grading oracle (correctAxpy from baseline.hpp) on the prompt's\n// worked example and prints the result as one JSON array.\n//\n// Prompt example (identical across serial/omp/mpi entries):\n//   input:  x=[1, -5, 2, 9] y=[0, 4, 1, -1] alpha=2\n//   output: z=[2, -6, 5, 17]\n//\n// cpu.cc::validate() compares element-wise in index order via\n// reportAndCompare(correct, test, 1e-6) -- order-sensitive, no sorting --\n// so no canonicalization is applied: z is printed in index order.\n\n#include <cstdio>\n#include <vector>\n\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    double alpha = 2.0;\n    std::vector<double> x = {1.0, -5.0, 2.0, 9.0};\n    std::vector<double> y = {0.0, 4.0, 1.0, -1.0};\n    std::vector<double> z(x.size(), 0.0);\n\n    correctAxpy(alpha, x, y, z);\n\n    std::printf(\"[\");\n    for (size_t i = 0; i < z.size(); ++i) {\n        std::printf(\"%s%.17g\", (i ? \", \" : \"\"), z[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "dense_la"
+ },
+ "04_dense_la_gemv": {
+  "canonicalization": "None needed. cpu.cc::validate() compares element-wise in index order via reportAndCompare(correct, test, 1e-4) (absolute epsilon, no sorting or order-insensitive property), so the harness prints y in natural index order as a plain JSON array of doubles. Example is identical across all three parallelism models (serial/omp/mpi), so a single JSON array (not per-model entries) is printed.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: A=[[1, -1, 2], [0, -3, 1]] x=[2, 1, 0]\n   output: y=[1, -3]",
+  "expected_json": "[1, -3]",
+  "harness_cpp": "// Stage-B fixture: dense_la/04_dense_la_gemv\n// Executes the grading oracle correctGemv on the prompt's worked example.\n#include <cstdio>\n#include <vector>\n\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Prompt example: A=[[1, -1, 2], [0, -3, 1]] (2x3, row-major), x=[2, 1, 0]\n    const std::vector<double> A = {1.0, -1.0, 2.0, 0.0, -3.0, 1.0};\n    const std::vector<double> x = {2.0, 1.0, 0.0};\n    const size_t M = 2, N = 3;\n    std::vector<double> y(M, 0.0);\n\n    correctGemv(A, x, y, M, N);\n\n    // Print y as one JSON array (element order preserved, matching\n    // cpu.cc::validate()'s element-wise comparison).\n    std::printf(\"[\");\n    for (size_t i = 0; i < M; i++) {\n        std::printf(\"%s%.17g\", i ? \", \" : \"\", y[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "dense_la"
+ },
+ "05_fft_inverse_fft": {
+  "canonicalization": "Complex numbers printed as [re, im] pairs in vector index order (in-place result). No reordering/sorting: cpu.cc::validate() (lines 91-97) compares element j against element j, real and imag parts independently, absolute eps 1e-4, root rank only. Prompt's brace notation {re,im} mapped to [re, im]; bare reals in the input mean imag=0. The prompt's {0,-0} entries are IEEE signed zeros (numerically equal to 0), kept as -0.0 in expected_json.",
+  "compare": {
+   "float_abs": 1e-06,
+   "float_rel": 1e-06
+  },
+  "example_source": "/* Compute the inverse fourier transform of x in-place.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {",
+  "expected_json": "[[0.5, 0.0], [0.125, 0.301777], [0.0, -0.0], [0.125, 0.0517767], [0.0, -0.0], [0.125, -0.0517767], [0.0, -0.0], [0.125, -0.301777]]",
+  "harness_cpp": "// Stage-B fixture for fft/05_fft_inverse_fft\n// Executes the grading oracle correctIfft() on the prompt's worked example\n// and prints the result as one JSON array of [re, im] pairs.\n#include <algorithm>\n#include <cmath>\n#include <complex>\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally supplied by drivers/cpp/utilities.hpp (line 19);\n// define it identically here so baseline.hpp compiles standalone.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Prompt worked example: input [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n    std::vector<std::complex<double>> x = {\n        {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0},\n        {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}\n    };\n\n    correctIfft(x);\n\n    // cpu.cc::validate() (lines 91-97) compares element-by-element in index\n    // order, real and imag parts independently, absolute eps 1e-4 \u2014 no\n    // sorting or reordering, so no canonicalization beyond [re, im] pairs.\n    std::printf(\"[\");\n    for (size_t i = 0; i < x.size(); ++i) {\n        std::printf(\"%s[%.17g, %.17g]\", i ? \", \" : \"\", x[i].real(), x[i].imag());\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "fft"
+ },
+ "06_fft_dft": {
+  "canonicalization": "Complex outputs printed as [re, im] pairs in bin/index order k=0..N-1, exactly the order validate() (cpu.cc:73-78) compares \u2014 it walks j=0..N-1 comparing real and imag components separately with per-component ABSOLUTE epsilon 1e-4; no sorting or order-insensitive property, so no reordering canonicalization was applied to either side. Expected_json is the prompt's \"a+bi\" list transcribed to the same [re, im] pair form (\"-10-0i\" -> [-10, 0]).",
+  "compare": {
+   "float_abs": 0.0001,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Compute the discrete fourier transform of x. Store the result in output.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8-12i, -10-0i, -8+12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {\n(serial entry of thesis/prompts/generation-prompts-thesis.json, name \"06_fft_dft\"; the omp and mpi entries carry the identical example, differing only in the \"Use OpenMP/MPI ...\" instruction line. The same example text also appears in baseline.hpp:13-14 and cpu.cc:5-6.)",
+  "expected_json": "[[30, 0], [-8, -12], [-10, 0], [-8, 12]]",
+  "harness_cpp": "// Stage-B fixture for fft/06_fft_dft\n// Executes the grading oracle correctDft() on the prompt's worked example\n// and prints the result as one JSON value: an array of [re, im] pairs,\n// index order k = 0..N-1 (validate() in cpu.cc compares per-component in\n// index order; no reordering/canonicalization applies).\n#include <cstdio>\n#include <vector>\n#include <complex>\n#include <cmath>\n\n// baseline.hpp uses NO_INLINE, normally supplied by utilities.hpp.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<double> x = {1.0, 4.0, 9.0, 16.0};\n    std::vector<std::complex<double>> output;\n    correctDft(x, output);\n\n    std::printf(\"[\");\n    for (std::size_t k = 0; k < output.size(); ++k) {\n        std::printf(\"%s[%.17g, %.17g]\", (k ? \", \" : \"\"),\n                    output[k].real(), output[k].imag());\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "fft"
+ },
+ "07_fft_fft_conjugate": {
+  "canonicalization": "None (identity). cpu.cc::validate() (lines 86-92) compares oracle vs candidate element-by-element in index order, per-component (real, imag separately) with absolute epsilon 1e-3 \u2014 order-sensitive, so no sorting/reordering is applied. Complex numbers printed as [re, im] pairs in index order 0..7. The prompt writes complex values as {real,imag}; expected_json transcribes them as [re, im] verbatim (6-significant-digit prose rounding: 2.41421 = 1+sqrt(2), 0.414214 = sqrt(2)-1). Negative zeros in the oracle output are exact zeros under the absolute comparison.",
+  "compare": {
+   "float_abs": 0.0001,
+   "float_rel": 1e-05
+  },
+  "example_source": "/* Compute the fourier transform of x in-place. Return the imaginary conjugate of each value.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {",
+  "expected_json": "[[4, 0], [1, -2.41421], [0, 0], [1, -0.414214], [0, 0], [1, 0.414214], [0, 0], [1, 2.41421]]",
+  "harness_cpp": "// Fixture for fft/07_fft_fft_conjugate\n// Oracle: fftCooleyTookey (the function cpu.cc::validate() line 78 grades against).\n// Prints the oracle output on the prompt's worked example as one JSON array of [re, im] pairs.\n\n#include <cstdio>\n#include <vector>\n#include <complex>\n#include <cmath>\n\n// Macros normally provided by the driver build (utilities.hpp / compiler flags)\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example input (identical across serial/omp/mpi prompts):\n    // input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]  (reals; imag = 0)\n    std::vector<std::complex<double>> x = {\n        {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0},\n        {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}\n    };\n\n    fftCooleyTookey(x);  // validate() oracle, in-place\n\n    // validate() compares element k of oracle vs candidate directly (index order,\n    // per-component absolute 1e-3) -> no canonicalization; print in index order.\n    printf(\"[\");\n    for (size_t i = 0; i < x.size(); ++i) {\n        printf(\"%s[%.17g, %.17g]\", (i ? \", \" : \"\"), x[i].real(), x[i].imag());\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "fft"
+ },
+ "08_fft_split_fft": {
+  "canonicalization": "None needed. cpu.cc::validate compares correctReal vs testReal and correctImag vs testImag elementwise in natural bin order (reportAndCompare, absolute eps 1e-4) with no sorting or reordering. The harness reproduces validate's exact reference path: fftCooleyTookey on a copy of x, then split bin j into r[j]=real, i[j]=imag (cpu.cc lines 80-85). Output printed as one JSON object with keys \"r\" and \"i\" (arrays of doubles, natural order), matching the structure of expected_json.",
+  "compare": {
+   "float_abs": 1e-05,
+   "float_rel": 1e-06
+  },
+  "example_source": "   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]",
+  "expected_json": "{\"r\":[4,1,0,1,0,1,0,1],\"i\":[0,-2.41421,0,-0.414214,0,0.414214,0,2.41421]}",
+  "harness_cpp": "// Fixture harness for fft/08_fft_split_fft\n// Executes the grading oracle used by cpu.cc::validate (fftCooleyTookey from\n// baseline.hpp), then splits into real/imag exactly as validate() does\n// (cpu.cc lines 80-85), and prints one JSON object {\"r\":[...],\"i\":[...]}.\n#include <cstdio>\n#include <vector>\n#include <complex>\n#include <cmath>\n\n#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n#define NO_INLINE\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example from the prompt (identical across serial/omp/mpi):\n    // input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]  (purely real)\n    std::vector<std::complex<double>> x = {\n        {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0},\n        {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}\n    };\n\n    // Mirror cpu.cc::validate: reference = fftCooleyTookey on a copy,\n    // then split into real/imag vectors. Comparison there is elementwise\n    // in natural bin order (abs eps 1e-4), so no reordering is applied.\n    std::vector<std::complex<double>> x_copy = x;\n    fftCooleyTookey(x_copy);\n\n    std::vector<double> r(x.size()), im(x.size());\n    for (size_t j = 0; j < x_copy.size(); ++j) {\n        r[j]  = x_copy[j].real();\n        im[j] = x_copy[j].imag();\n    }\n\n    printf(\"{\\\"r\\\":[\");\n    for (size_t j = 0; j < r.size(); ++j)  printf(\"%s%.17g\", j ? \",\" : \"\", r[j]);\n    printf(\"],\\\"i\\\":[\");\n    for (size_t j = 0; j < im.size(); ++j) printf(\"%s%.17g\", j ? \",\" : \"\", im[j]);\n    printf(\"]}\\n\");\n    return 0;\n}\n",
+  "problem_type": "fft"
+ },
+ "09_fft_fft_out_of_place": {
+  "canonicalization": "Complex numbers printed as [re, im] pairs in index order k=0..7, matching validate() semantics (cpu.cc:87-92): element-by-element in original order, real and imag compared independently with absolute epsilon 1e-4 \u2014 no sorting or reordering, so no canonicalization applied beyond the [re,im] encoding. Prompt's {re,im} braces transcribed to [re,im] pairs verbatim for expected_json. Prompt writes the input as bare doubles; they are the real parts, imag = 0 (signature is std::complex<double>).",
+  "compare": {
+   "float_abs": 0.0001,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.42421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]",
+  "expected_json": "[[4,0],[1,-2.42421],[0,0],[1,-0.414214],[0,0],[1,0.414214],[0,0],[1,2.41421]]",
+  "harness_cpp": "// Fixture for fft/09_fft_fft_out_of_place\n// Oracle: fftCooleyTookey (the reference used by cpu.cc::validate(), lines 78-79),\n// applied in-place to a copy of the worked-example input.\n// Output: one JSON array of [re, im] pairs in index order k=0..7 (validate()\n// compares element-by-element in order, per component, abs eps 1e-4 -- no\n// reordering canonicalization needed).\n#include <cstdio>\n#include <vector>\n#include <complex>\n#include <cmath>\n\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompts):\n    // input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n    std::vector<std::complex<double>> x = {\n        {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0},\n        {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}\n    };\n\n    // validate() does: correct = x; fftCooleyTookey(correct);\n    std::vector<std::complex<double>> correct = x;\n    fftCooleyTookey(correct);\n\n    printf(\"[\");\n    for (size_t k = 0; k < correct.size(); ++k) {\n        printf(\"%s[%.17g,%.17g]\", k ? \",\" : \"\", correct[k].real(), correct[k].imag());\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "fft"
+ },
+ "10_geometry_convex_hull": {
+  "canonicalization": "Mirrors cpu.cc::validate() (L95-109): validate() hard-checks hull size equality, then sorts BOTH candidate and oracle hulls by the lambda (a.x < b.x || (a.x == b.x && a.y < b.y)) before elementwise comparison with absolute epsilon 1e-6 per coordinate \u2014 grading is order-insensitive. The harness applies the identical sort to the oracle output before printing, and expected_json is the prompt's example output sorted the same way: prompt order [{0,3},{4,4},{3,1},{0,0}] -> sorted [[0,0],[0,3],[3,1],[4,4]]. Each Point struct prints as [x, y] (field declaration order in `struct Point { double x, y; }`). Raw (uncanonicalized) oracle emission order was [(0,0),(0,3),(4,4),(3,1)] \u2014 the same clockwise cycle as the prompt's, rotated by one vertex; per contract this pure ordering difference is neutralized, not reported as inconsistency.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]",
+  "expected_json": "[[0,0],[0,3],[3,1],[4,4]]",
+  "harness_cpp": "// Stage-B fixture: geometry/10_geometry_convex_hull\n// Executes the grading oracle (correctConvexHull, baseline.hpp) on the prompt's\n// worked example and prints the hull canonicalized the way cpu.cc::validate()\n// compares it: sorted by (x asc, then y asc). Each Point prints as [x, y].\n#include <cstdio>\n#include <vector>\n#include <algorithm>\n\n// Definitions normally provided by cpu.cc / the driver environment:\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n    std::vector<Point> points = {\n        {0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}\n    };\n    std::vector<Point> hull;\n    correctConvexHull(points, hull);\n\n    // Canonicalization mirroring cpu.cc::validate() (lines 98-103): the\n    // validator sorts both candidate and oracle hulls by (x, then y) before\n    // elementwise comparison, so vertex ordering is immaterial to grading.\n    std::sort(hull.begin(), hull.end(), [](Point const& a, Point const& b) {\n        return a.x < b.x || (a.x == b.x && a.y < b.y);\n    });\n\n    printf(\"[\");\n    for (size_t i = 0; i < hull.size(); i++) {\n        printf(\"%s[%.17g,%.17g]\", (i ? \",\" : \"\"), hull[i].x, hull[i].y);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "geometry"
+ },
+ "11_geometry_convex_hull_perimeter": {
+  "canonicalization": "None needed: validate() (cpu.cc L99) compares a single double scalar via reportAndCompareScalar(correct, test, 1e-6) \u2014 absolute epsilon, no ordering or structure involved. Harness prints the bare scalar with %.17g; expected_json is the prompt's scalar as printed.",
+  "compare": {
+   "float_abs": 5e-05,
+   "float_rel": 0
+  },
+  "example_source": "/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {\n\n(verbatim from thesis/prompts/generation-prompts-thesis.json, name \"11_geometry_convex_hull_perimeter\"; the omp/mpi entries are identical except for the inserted parallelism instruction lines \"Use OpenMP to compute in parallel.\" / \"Use MPI to compute in parallel. Assume MPI has already been initialized.\\n   Every rank has a complete copy of points. The final result is returned on rank 0.\" \u2014 same input and output in all three. Prompt preamble also defines: struct Point { double x, y; };)",
+  "expected_json": "13.4477",
+  "harness_cpp": "// Stage-B fixture: geometry/11_geometry_convex_hull_perimeter\n// Executes the grading oracle (correctConvexHullPerimeter from baseline.hpp)\n// on the prompt's worked example and prints the result as one JSON value.\n#include <cstdio>\n#include <vector>\n\n// Provided by cpu.cc / prompt preamble in the real driver; copied faithfully.\nstruct Point {\n    double x, y;\n};\n\n// NO_INLINE normally comes from drivers/cpp/utilities.hpp; neutral here.\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Prompt example (identical in serial/omp/mpi):\n    // input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n    std::vector<Point> points = {\n        {0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}\n    };\n    double perimeter = correctConvexHullPerimeter(points);\n    // validate() compares a bare scalar (reportAndCompareScalar, abs eps 1e-6):\n    // no canonicalization needed beyond printing the scalar.\n    printf(\"%.17g\\n\", perimeter);\n    return 0;\n}\n",
+  "problem_type": "geometry"
+ },
+ "12_geometry_smallest_triangle": {
+  "canonicalization": "None needed. The oracle returns a single scalar double and cpu.cc::validate() (line 99) compares it directly via reportAndCompareScalar(correct, test, 1e-4) \u2014 an order-free absolute-epsilon scalar compare. The harness prints the raw scalar with %.17g. Point struct field order is {x, y} as declared in the prompt/cpu.cc header comment, with the example's brace-init pairs mapped as {x, y}.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {",
+  "expected_json": "5.5",
+  "harness_cpp": "// Fixture harness for geometry/12_geometry_smallest_triangle\n// Executes the grading oracle (correctSmallestArea from baseline.hpp) on the\n// worked example from thesis/prompts/generation-prompts-thesis.json and prints\n// the result as a single JSON value on stdout.\n#include <cmath>\n#include <cstdio>\n#include <vector>\n\n// Provided by cpu.cc / the prompt in the real driver build; copied faithfully.\nstruct Point {\n    double x, y;\n};\n\n// NO_INLINE is normally defined in drivers/cpp/utilities.hpp; a no-op suffices\n// for oracle execution semantics.\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompt variants):\n    // input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n    std::vector<Point> points = {\n        {0.0, 10.0},\n        {5.0, 5.0},\n        {1.0, 0.0},\n        {-1.0, 1.0},\n        {-10.0, 0.0}\n    };\n\n    const double result = correctSmallestArea(points);\n\n    // validate() compares one scalar with absolute epsilon 1e-4\n    // (cpu.cc:99 reportAndCompareScalar) - no canonicalization needed.\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "geometry"
+ },
+ "13_geometry_closest_pair_2d": {
+  "canonicalization": "None needed. cpu.cc::validate() compares a single double scalar via reportAndCompareScalar(correct, test, 1e-4) \u2014 absolute epsilon on one value, no ordering or structural canonicalization. The harness prints the oracle's scalar directly with %.17g. Point struct fields are {x, y} in declaration order; the prompt's brace-initializer list maps element-wise to {x, y}.",
+  "compare": {
+   "float_abs": 5e-06,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421",
+  "expected_json": "1.41421",
+  "harness_cpp": "// Fixture harness for geometry/13_geometry_closest_pair_2d\n// Executes the grading oracle (correctClosestPair) on the prompt's worked example.\n#include <cstdio>\n#include <cmath>\n#include <vector>\n\n// Definitions normally provided by the driver/prompt preamble (cpu.cc header comment):\n#define NO_INLINE\nstruct Point {\n    double x, y;\n};\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompts):\n    // input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n    std::vector<Point> points = {\n        {2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}\n    };\n\n    const double result = correctClosestPair(points);\n\n    // Single JSON value on stdout (scalar double, %.17g).\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "geometry"
+ },
+ "14_geometry_closest_pair_1d": {
+  "canonicalization": "None needed. The oracle result is a single scalar double; cpu.cc::validate() (line 77) compares it via reportAndCompareScalar(correct, test, 1e-4) \u2014 a plain absolute-epsilon scalar comparison with no sorting or order-insensitive property. Harness prints the raw scalar with %.17g.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [7, 3, 9, 12, 31, 1]\n   output: 2",
+  "expected_json": "2",
+  "harness_cpp": "// Stage-B fixture: geometry/14_geometry_closest_pair_1d\n// Executes the grading oracle correctClosestPair() on the prompt's worked example\n// and prints the result as a single JSON value on stdout.\n//\n// Worked example (identical in serial/omp/mpi prompt entries):\n//   input: [7, 3, 9, 12, 31, 1]\n//   output: 2\n#include <cstdio>\n#include <cmath>\n#include <vector>\n\n// baseline.hpp uses the NO_INLINE macro normally supplied by utilities.hpp;\n// define it here so the harness needs only baseline.hpp.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<double> x = {7.0, 3.0, 9.0, 12.0, 31.0, 1.0};\n    const double result = correctClosestPair(x);\n    // Single scalar double; cpu.cc validate() compares via\n    // reportAndCompareScalar(correct, test, 1e-4) -- plain scalar comparison,\n    // no canonicalization needed.\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "geometry"
+ },
+ "15_graph_edge_count": {
+  "canonicalization": "None needed. cpu.cc::validate() (line 84) compares via reportAndCompareScalar(correct, test), which is exact integer equality on a single scalar (utilities.hpp reportAndCompareScalar -> expected == got). The oracle result is a single C++ int printed verbatim as a JSON integer. NO_INLINE (normally from utilities.hpp) is defined empty in the harness so baseline.hpp compiles standalone; this does not affect semantics.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 0]]\n   output: 6",
+  "expected_json": "6",
+  "harness_cpp": "// Fixture harness for graph/15_graph_edge_count\n// Executes the grading oracle (correctEdgeCount, baseline.hpp) on the prompt's\n// worked example and prints the result as a single JSON value on stdout.\n//\n// Worked example (identical in serial/omp/mpi prompts,\n// thesis/prompts/generation-prompts-thesis.json):\n//   input: [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 0]]\n//   output: 6\n//\n// cpu.cc::validate() compares via reportAndCompareScalar(correct, test),\n// i.e. exact integer equality on a scalar - no canonicalization needed.\n\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n\n// NO_INLINE is normally supplied by utilities.hpp (pulled in by cpu.cc).\n// Define it here so baseline.hpp compiles standalone.\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Row-major flattening of the 4x4 adjacency matrix from the prompt example.\n    const std::vector<int> A = {\n        0, 0, 0, 1,\n        0, 0, 0, 1,\n        0, 0, 0, 1,\n        1, 1, 1, 0\n    };\n    const size_t N = 4;\n\n    const int count = correctEdgeCount(A, N);\n    std::printf(\"%d\\n\", count);\n    return 0;\n}\n",
+  "problem_type": "graph"
+ },
+ "16_graph_largest_component": {
+  "canonicalization": "None needed. Oracle returns a single int; cpu.cc validate() compares via reportAndCompareScalar(correct, test) (utilities.hpp:375-377), exact integer equality with no epsilon and no ordering concerns. The harness prints the raw int. baseline.hpp needs only the NO_INLINE macro from utilities.hpp; the harness defines it (__attribute__((noinline))) before the include to stay standalone.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "\t input: [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]\n   output: 2",
+  "expected_json": "2",
+  "harness_cpp": "// Fixture for graph/16_graph_largest_component\n// Executes the grading oracle (correctLargestComponent from baseline.hpp)\n// on the prompt's worked example and prints the result as one JSON value.\n#include <cstdio>\n#include <vector>\n#include <cstddef>\n\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Prompt example: input: [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]\n    // Flattened row-major NxN adjacency matrix, N = 4.\n    const std::vector<int> A = {\n        0, 1, 0, 0,\n        1, 0, 0, 0,\n        0, 0, 0, 1,\n        0, 0, 1, 0\n    };\n    const size_t N = 4;\n\n    int result = correctLargestComponent(A, N);\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "graph"
+ },
+ "17_graph_highest_degree": {
+  "canonicalization": "None needed. The oracle returns a single C++ int scalar; cpu.cc validate() (line 84) compares via reportAndCompareScalar(correct, test), the 2-arg overload in utilities.hpp:375-377 which is exact integer equality (expected == got). Harness prints the raw int with printf(\"%d\"). No sorting, no structs, no floats, no complex numbers involved.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 0]]\n   output: 3",
+  "expected_json": "3",
+  "harness_cpp": "// Fixture for graph/17_graph_highest_degree\n// Executes the grading oracle correctMaxDegree (baseline.hpp) on the prompt's\n// worked example and prints the result as a single JSON value on stdout.\n//\n// Worked example (identical in serial/omp/mpi prompts):\n//   input: [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 0]]\n//   output: 3\n//\n// baseline.hpp uses the NO_INLINE macro normally supplied by utilities.hpp;\n// define it as empty here (its attributes do not affect the computed value).\n#include <cstdio>\n#include <vector>\n\n#define NO_INLINE\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t N = 4;\n    // Row-major flattening of the example adjacency matrix.\n    const std::vector<int> A = {\n        0, 0, 0, 1,   // row 0\n        0, 0, 0, 1,   // row 1\n        0, 0, 0, 1,   // row 2\n        1, 1, 1, 0    // row 3\n    };\n\n    int result = correctMaxDegree(A, N);\n\n    // cpu.cc validate() compares via reportAndCompareScalar(correct, test)\n    // -> exact int equality; no canonicalization needed for a scalar.\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "graph"
+ },
+ "18_graph_count_components": {
+  "canonicalization": "None. The oracle returns a single C++ int (component count) and cpu.cc::validate() compares it with reportAndCompareScalar(correct, test) \u2014 exact integer equality on the root rank (utilities.hpp epsilon-free int overload). The harness prints the raw int as one JSON integer; expected_json is the prompt's scalar output unchanged. The prompt's nested 4x4 list was flattened row-major into the 16-element std::vector<int> per the driver's data layout (A[i*N+j]). NO_INLINE was defined as __attribute__((noinline)) in the harness since baseline.hpp normally receives it from utilities.hpp.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]\n   output: 2",
+  "expected_json": "2",
+  "harness_cpp": "// Fixture: graph/18_graph_count_components\n// Executes the grading oracle (correctComponentCount from baseline.hpp) on the\n// worked example shared by all three prompt variants (serial/omp/mpi):\n//   input: [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]\n//   output: 2\n// Prints the oracle's return value as a single JSON integer on stdout.\n\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE, normally supplied by utilities.hpp.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Flattened row-major 4x4 adjacency matrix from the prompt example.\n    const std::vector<int> A = {\n        0, 1, 0, 0,\n        1, 0, 0, 0,\n        0, 0, 0, 1,\n        0, 0, 1, 0\n    };\n    const size_t N = 4;\n\n    int result = correctComponentCount(A, N);\n\n    // validate() compares via reportAndCompareScalar(correct, test):\n    // exact int equality on a single scalar. No canonicalization needed.\n    printf(\"%d\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "graph"
+ },
+ "19_graph_shortest_path": {
+  "canonicalization": "Single scalar int; cpu.cc validate() (lines 112-120) normalizes INT_MAX or any negative return to -1 before exact integer comparison via reportAndCompareScalar (utilities.hpp expected == got, rank 0 only). The harness applies the same INT_MAX/negative -> -1 normalization before printing (a no-op here since the result is 2). No sorting, no floats, no struct fields involved.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2",
+  "expected_json": "2",
+  "harness_cpp": "// Fixture harness for graph/19_graph_shortest_path\n// Executes the baseline oracle correctShortestPathLength on the prompt's worked example.\n#include <cstdio>\n#include <vector>\n#include <limits>\n\n// baseline.hpp uses NO_INLINE (normally from utilities.hpp); define it here to\n// avoid dragging in the full driver utilities.\n#define NO_INLINE __attribute__((noinline))\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompts):\n    //   input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n    //   output: 2\n    const std::vector<int> A = {\n        0, 1, 1, 0,\n        1, 0, 0, 1,\n        1, 0, 0, 1,\n        0, 1, 1, 0\n    };\n    const size_t N = 4;\n    const int source = 0;\n    const int dest = 3;\n\n    int result = correctShortestPathLength(A, N, source, dest);\n\n    // Mirror cpu.cc validate() normalization (lines 112-114):\n    // INT_MAX or negative -> -1 before exact integer comparison.\n    if (result == std::numeric_limits<int>::max() || result < 0) {\n        result = -1;\n    }\n\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "graph"
+ },
+ "20_histogram_pixel_histogram": {
+  "canonicalization": "None needed. cpu.cc::validate() compares via reportAndCompareEq(correct, test) \u2014 exact size_t equality over all 256 bins in natural index order (utilities.hpp:334-340), no sorting or order-insensitive property. The harness prints the full std::array<size_t,256> in index order after zero-filling bins (mirroring the driver's pre-zero at cpu.cc:67-68, since the baseline only increments). The prompt shows only the first 5 output elements followed by an ellipsis; the expected_json is the full 256-element array implied by the counting semantics (all zeros except bins[2]=2, bins[4]=1, bins[11]=1, bins[92]=2, bins[116]=1, bins[201]=2), whose first 5 elements [0, 0, 2, 0, 1] are exactly the prompt's shown prefix.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: image=[2, 116, 201, 11, 92, 92, 201, 4, 2]\n   output: [0, 0, 2, 0, 1, ...]",
+  "expected_json": "[0, 0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]",
+  "harness_cpp": "// Fixture harness for histogram/20_histogram_pixel_histogram\n// Executes the grading oracle (correctPixelCounts) on the prompt's worked example\n// and prints the full 256-bin histogram as one JSON array on stdout.\n#include <cstdio>\n#include <vector>\n#include <array>\n\n// Provided by drivers/cpp/utilities.hpp in the real driver (line 19); defined\n// here so baseline.hpp compiles standalone.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example from the prompt (identical in serial/omp/mpi entries):\n    // input: image=[2, 116, 201, 11, 92, 92, 201, 4, 2]\n    std::vector<int> image = {2, 116, 201, 11, 92, 92, 201, 4, 2};\n\n    // The driver zero-fills bins before calling the oracle (cpu.cc:67-68).\n    std::array<size_t, 256> bins;\n    bins.fill(0);\n\n    correctPixelCounts(image, bins);\n\n    // Print exactly one JSON value: the 256-element bins array.\n    std::printf(\"[\");\n    for (size_t i = 0; i < bins.size(); ++i) {\n        std::printf(\"%s%zu\", i ? \", \" : \"\", bins[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "histogram"
+ },
+ "21_histogram_bin_0-100": {
+  "canonicalization": "None needed. cpu.cc::validate() compares the 10 size_t bins element-wise in natural index order with exact integer equality (reportAndCompareEq, cpu.cc:75; predicate !(x==y), utilities.hpp:334-340). The harness prints bins[0..9] in that same order as a JSON array of integers; expected_json is the prompt's output list verbatim. Driver zero-fills bins before the oracle call (cpu.cc:30,64-65), mirrored by bins.fill(0) in the harness. NO_INLINE (a macro from utilities.hpp:19, not a type) was defined in the harness before including baseline.hpp.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\noutput: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]",
+  "expected_json": "[1, 2, 0, 3, 0, 0, 1, 2, 0, 1]",
+  "harness_cpp": "// Stage-B fixture: histogram/21_histogram_bin_0-100\n// Executes the real oracle (correctBinsBy10Count) on the prompt's worked example\n// and prints the resulting bins as a single JSON array on stdout.\n#include <algorithm>\n#include <array>\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally supplied by drivers/cpp/utilities.hpp:19\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example from thesis/prompts/generation-prompts-thesis.json\n    // (identical across serial/omp/mpi prompts):\n    //   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n    std::vector<double> x = {7.0, 32.0, 95.0, 12.0, 39.0, 32.0, 11.0, 71.0, 70.0, 66.0};\n\n    // Driver zero-initializes bins before the call (cpu.cc:30,64-65).\n    std::array<size_t, 10> bins;\n    bins.fill(0);\n\n    correctBinsBy10Count(x, bins);\n\n    // validate() compares element-wise, in order, exact integer equality\n    // (reportAndCompareEq, cpu.cc:75) -> print bins in natural index order.\n    std::printf(\"[\");\n    for (size_t i = 0; i < bins.size(); i += 1) {\n        std::printf(\"%s%zu\", (i == 0 ? \"\" : \", \"), bins[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "histogram"
+ },
+ "22_histogram_count_quadrants": {
+  "canonicalization": "None. cpu.cc::validate() compares via reportAndCompareEq (utilities.hpp) = exact per-element operator== on size_t in index order, no sorting or epsilon. Harness prints bins[0..3] in index order (quadrant I..IV per the oracle's branch order: x>=0&&y>=0 -> bin0; x<0&&y>=0 -> bin1; x<0&&y<0 -> bin2; x>=0&&y<0 -> bin3). Point struct fields in declaration order {x, y}, copied from the prompt/cpu.cc header comment. Values are integers, printed with %zu.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]",
+  "expected_json": "[3, 1, 0, 2]",
+  "harness_cpp": "// Fixture: histogram/22_histogram_count_quadrants\n// Executes the baseline oracle on the prompt's worked example and prints bins as JSON.\n#include <array>\n#include <cstdio>\n#include <vector>\n\n// Provided by cpu.cc / prompt normally; copied faithfully (declaration order: x, y).\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {\n        {1.5, 0.1}, {-3.0, 1.1}, {5.0, 9.0}, {1.5, -1.0}, {3.0, -7.0}, {0.1, 2.0}\n    };\n    std::array<size_t, 4> bins;\n    bins.fill(0); // driver zeroes bins before calling (cpu.cc:85-86)\n\n    correctCountQuadrants(points, bins);\n\n    // validate() compares element-wise exact == in index order (reportAndCompareEq),\n    // no sorting/canonicalization: print bins[0..3] in order.\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+  "problem_type": "histogram"
+ },
+ "23_histogram_first_letter_counts": {
+  "canonicalization": "None. cpu.cc::validate() compares via reportAndCompareEq(correct, test) \u2014 exact element-wise equality (!(x==y)) on all 26 size_t bins in fixed alphabet order ('a'=index 0 ... 'z'=25), no sorting, no epsilon, no scoping. Harness prints bins verbatim in index order; expected_json is the prompt's output line verbatim. Bins are zero-initialized before the oracle call, mirroring validate()'s correct.fill(0) (cpu.cc:73), since the oracle only increments.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]",
+  "expected_json": "[0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]",
+  "harness_cpp": "// Fixture harness: histogram/23_histogram_first_letter_counts\n// Executes the grading oracle (correctFirstLetterCounts, baseline.hpp) on the\n// prompt's worked example and prints the resulting bins as one JSON array.\n#include <cstdio>\n#include <array>\n#include <string>\n#include <vector>\n\n// NO_INLINE is normally supplied by utilities.hpp (drivers/cpp/utilities.hpp:19);\n// define it identically here to avoid dragging in the MPI/driver machinery.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example input (identical across serial/omp/mpi prompt entries):\n    // input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n    const std::vector<std::string> s = {\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"};\n\n    // validate() (cpu.cc:73-74) zero-fills bins before calling the oracle;\n    // mirror that here since the oracle only increments.\n    std::array<size_t, 26> bins;\n    bins.fill(0);\n\n    correctFirstLetterCounts(s, bins);\n\n    // Print bins as one JSON array of 26 unsigned integers, alphabet order.\n    // cpu.cc::validate() compares via reportAndCompareEq: exact element-wise\n    // equality on all 26 size_t bins, order-sensitive -> no canonicalization.\n    printf(\"[\");\n    for (size_t i = 0; i < bins.size(); ++i) {\n        printf(\"%s%zu\", (i ? \", \" : \"\"), bins[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "histogram"
+ },
+ "24_histogram_count_quartile": {
+  "canonicalization": "None needed. validate() (cpu.cc:77) uses reportAndCompareEq on the std::array<size_t,4> \u2014 exact element-wise == in fixed bin order, no sorting, no epsilon. Harness prints bins in declaration/index order [bin0, bin1, bin2, bin3] per example; two worked examples => outer JSON array with one 4-element inner array per example. The one contract-relevant subtlety: the oracle accumulates with += and never zeroes bins, so the harness fill(0)s bins before each call, mirroring validate() (cpu.cc:66-67).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]",
+  "expected_json": "[[2, 1, 2, 2], [2, 1, 1, 1]]",
+  "harness_cpp": "// Fixture harness for histogram/24_histogram_count_quartile\n// Runs the oracle correctCountQuartiles on both worked examples from the prompt\n// and prints a JSON array: [[bins ex1], [bins ex2]].\n#include <cstdio>\n#include <array>\n#include <vector>\n\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nstatic void runExample(const std::vector<double> &x, std::array<size_t, 4> &bins) {\n    bins.fill(0); // validate() zero-fills before each call (cpu.cc:66-67); oracle accumulates with +=\n    correctCountQuartiles(x, bins);\n}\n\nint main() {\n    const std::vector<double> x1 = {7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8};\n    const std::vector<double> x2 = {1.9, 0.2, 0.6, 10.1, 7.4};\n\n    std::array<size_t, 4> b1, b2;\n    runExample(x1, b1);\n    runExample(x2, b2);\n\n    std::printf(\"[[%zu, %zu, %zu, %zu], [%zu, %zu, %zu, %zu]]\\n\",\n                b1[0], b1[1], b1[2], b1[3],\n                b2[0], b2[1], b2[2], b2[3]);\n    return 0;\n}\n",
+  "problem_type": "histogram"
+ },
+ "25_reduce_xor": {
+  "canonicalization": "None. cpu.cc::validate() (C:/Users/jerab/Desktop/ParEval-thesis/drivers/cpp/benchmarks/reduce/25_reduce_xor/cpu.cc:90) compares a single bool scalar via reportAndCompareScalar(correct, test) \u2014 exact equality, no sorting, no epsilon, no NaN path. The harness prints the raw bool as a JSON boolean.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Return the logical XOR reduction of the vector of bools x.\n   Example:\n\n   input: [false, false, false, true]\n   output: true\n*/\nbool reduceLogicalXOR(std::vector<bool> const& x) {\n\n(serial entry, thesis/prompts/generation-prompts-thesis.json line 532; the omp entry at line 539 and mpi entry at line 546 carry the identical example lines \"input: [false, false, false, true]\" / \"output: true\", differing only in the parallelization instruction sentences)",
+  "expected_json": "true",
+  "harness_cpp": "// Fixture harness for reduce/25_reduce_xor\n// Executes the grading oracle (correctReduceLogicalXOR) on the prompt's worked example\n// and prints the result as exactly one JSON value on stdout.\n#include <cstdio>\n#include <vector>\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example from all three prompt entries (serial/omp/mpi):\n    //   input: [false, false, false, true]\n    //   output: true\n    std::vector<bool> x = {false, false, false, true};\n\n    bool result = correctReduceLogicalXOR(x);\n\n    // cpu.cc::validate() compares via reportAndCompareScalar(correct, test):\n    // exact equality on a single bool scalar. No canonicalization needed.\n    std::printf(\"%s\\n\", result ? \"true\" : \"false\");\n    return 0;\n}\n",
+  "problem_type": "reduce"
+ },
+ "26_reduce_product_of_inverses": {
+  "canonicalization": "None needed. Output is a single scalar double; cpu.cc::validate() compares it directly via reportAndCompareScalar(correct, test, 1e-4) (absolute-epsilon scalar comparison, no sorting/reordering semantics). Printed with %.17g. JSON \"25\" and \"25.0\" are the same numeric value.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Return the product of the vector x with every odd indexed element inverted.\n   i.e. x_0 * 1/x_1 * x_2 * 1/x_3 * x_4 ...\n   Example:\n\n   input: [4, 2, 10, 4, 5]\n   output: 25\n*/\ndouble productWithInverses(std::vector<double> const& x) {",
+  "expected_json": "25.0",
+  "harness_cpp": "// Stage-B fixture for reduce/26_reduce_product_of_inverses\n// Executes the real oracle (correctProductWithInverses from baseline.hpp)\n// on the prompt's worked example: input [4, 2, 10, 4, 5] -> output 25.\n// Prints exactly one JSON value (a scalar double) on stdout.\n\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses the NO_INLINE macro normally provided by utilities.hpp;\n// define it identically here to avoid pulling in the MPI/driver machinery.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> const x = {4.0, 2.0, 10.0, 4.0, 5.0};\n    double result = correctProductWithInverses(x);\n    // cpu.cc validate() compares the single scalar directly\n    // (reportAndCompareScalar, absolute eps) -- no canonicalization needed.\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "reduce"
+ },
+ "27_reduce_average": {
+  "canonicalization": "None needed. cpu.cc::validate() compares one scalar via reportAndCompareScalar(correct, test, 1e-4) \u2014 absolute epsilon on a single double, no ordering/sorting involved. Harness prints a JSON array with one scalar per worked example (example 1 first, example 2 second), matching expected_json entry-for-entry. NO_INLINE is defined in the harness (as __attribute__((noinline))) because baseline.hpp uses it but the fixture does not include utilities.hpp.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Return the average of the vector x.\n   Examples:\n\t\t\n\t input: [1, 8, 4, 5, 1]\n   output: 3.8\n\n   input: [2, 2, 2, 3]\n   output: 2.25\n*/\ndouble average(std::vector<double> const& x) {",
+  "expected_json": "[3.8, 2.25]",
+  "harness_cpp": "// Stage-B fixture for reduce/27_reduce_average\n// Executes the grading oracle correctAverage() on the two worked examples\n// from the prompt and prints a JSON array [avg_ex1, avg_ex2].\n#include <cstdio>\n#include <vector>\n\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> ex1 = {1.0, 8.0, 4.0, 5.0, 1.0};\n    std::vector<double> ex2 = {2.0, 2.0, 2.0, 3.0};\n\n    double a1 = correctAverage(ex1);\n    double a2 = correctAverage(ex2);\n\n    std::printf(\"[%.17g, %.17g]\\n\", a1, a2);\n    return 0;\n}\n",
+  "problem_type": "reduce"
+ },
+ "28_reduce_smallest_odd_number": {
+  "canonicalization": "None needed. cpu.cc::validate() (lines 51-84) compares a single int scalar via reportAndCompareScalar(correct, test) \u2014 exact integer equality, no sorting, no epsilon, no order sensitivity. The harness prints the two scalar oracle results as a JSON array [ex1_result, ex2_result] in prompt order; expected_json uses the same order. Values are plain ints printed with %d.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7",
+  "expected_json": "[1, 7]",
+  "harness_cpp": "// Fixture harness for reduce/28_reduce_smallest_odd_number\n// Executes the real oracle (correctSmallestOdd from baseline.hpp) on the\n// prompt's two worked examples and prints one JSON array on stdout.\n#include <cstdio>\n#include <limits>\n#include <vector>\n\n// Macro normally provided by drivers/cpp/utilities.hpp (line 19), copied faithfully:\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<int> ex1 = {7, 9, 5, 2, 8, 16, 4, 1};\n    std::vector<int> ex2 = {8, 36, 7, 2, 11};\n\n    int r1 = correctSmallestOdd(ex1);\n    int r2 = correctSmallestOdd(ex2);\n\n    // One JSON value: array with one entry per worked example, in prompt order.\n    std::printf(\"[%d, %d]\\n\", r1, r2);\n    return 0;\n}\n",
+  "problem_type": "reduce"
+ },
+ "29_reduce_sum_of_min_of_pairs": {
+  "canonicalization": "None. The oracle returns a single scalar double and cpu.cc::validate() (line 77) compares it directly on the root rank via reportAndCompareScalar(correct, test, 1e-4) \u2014 an absolute-epsilon scalar comparison with no sorting or reordering, so the raw scalar is printed as-is with %.17g.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: x=[3, 4, 0, 2, 3], y=[2, 5, 3, 1, 7]\n   output: 10",
+  "expected_json": "10.0",
+  "harness_cpp": "// Fixture: reduce/29_reduce_sum_of_min_of_pairs\n// Executes the grading oracle (baseline.hpp::correctSumOfMinimumElements) on the\n// worked example from the prompt and prints the result as a single JSON value.\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE (normally from utilities.hpp); define it here to\n// avoid pulling in the full driver utilities.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<double> x = {3.0, 4.0, 0.0, 2.0, 3.0};\n    const std::vector<double> y = {2.0, 5.0, 3.0, 1.0, 7.0};\n\n    const double sum = correctSumOfMinimumElements(x, y);\n\n    // Scalar double result; validate() compares the raw scalar (abs eps 1e-4),\n    // no canonicalization needed.\n    std::printf(\"%.17g\\n\", sum);\n    return 0;\n}\n",
+  "problem_type": "reduce"
+ },
+ "30_scan_prefix_sum": {
+  "canonicalization": "None. cpu.cc::validate() compares the full output vector element-by-element in index order via reportAndCompare(correct, test, 1e-6) (per-element absolute epsilon, utilities.hpp fequal); order is significant and preserved, so the harness prints output[0..5] in declaration/index order with no sorting or transformation. Plain 1-D array of doubles, no structs, no complex values.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Compute the prefix sum of the vector x into output.\n   Example:\n   \n   input: [1, 7, 4, 6, 6, 2]\n   output: [1, 8, 12, 18, 24, 26]\n*/\nvoid prefixSum(std::vector<double> const& x, std::vector<double> &output) {",
+  "expected_json": "[1.0, 8.0, 12.0, 18.0, 24.0, 26.0]",
+  "harness_cpp": "// Fixture harness for scan/30_scan_prefix_sum\n// Executes the grading oracle correctPrefixSum (baseline.hpp) on the prompt's\n// worked example and prints the result as one JSON array on stdout.\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally supplied by utilities.hpp (drivers/cpp/utilities.hpp:19);\n// defined here identically to avoid pulling in the MPI/OpenMP-laden header.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example from the prompt (identical across serial/omp/mpi):\n    //   input:  [1, 7, 4, 6, 6, 2]\n    //   output: [1, 8, 12, 18, 24, 26]\n    std::vector<double> x = {1.0, 7.0, 4.0, 6.0, 6.0, 2.0};\n    std::vector<double> output(x.size(), 0.0);\n\n    correctPrefixSum(x, output);\n\n    // cpu.cc::validate() compares element-by-element in index order\n    // (reportAndCompare, absolute eps 1e-6) -- no canonicalization needed.\n    std::printf(\"[\");\n    for (size_t i = 0; i < output.size(); ++i) {\n        std::printf(\"%s%.17g\", i ? \", \" : \"\", output[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "scan"
+ },
+ "31_scan_scan_with_min_function": {
+  "canonicalization": "None needed. cpu.cc::validate() (line 72) calls reportAndCompare(correct, test, 1e-3, input) which compares element-wise in index order over the full vector (no sorting, no order-insensitive property). Harness prints the in-place result arrays in natural index order; two worked examples -> outer JSON array with one inner float array per example, in prompt order. Floats printed with %.17g.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [8, 6, -1, 7, 3, 4, 4]\n   output: [8, 6, -1, -1, -1, -1, -1]\n\n   input: [5, 4, 6, 4, 3, 6, 1, 1]\n   output: [5, 4, 4, 4, 3, 3, 1, 1]",
+  "expected_json": "[[8, 6, -1, -1, -1, -1, -1], [5, 4, 4, 4, 3, 3, 1, 1]]",
+  "harness_cpp": "// Fixture harness for scan/31_scan_scan_with_min_function\n// Runs the oracle correctPartialMinimums (baseline.hpp) on both worked examples\n// from the prompt and prints the results as one JSON array of two float arrays.\n\n#include <algorithm>\n#include <cstdio>\n#include <limits>\n#include <numeric>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE, normally supplied by utilities.hpp via cpu.cc.\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nstatic void printVec(const std::vector<float> &v) {\n    std::printf(\"[\");\n    for (size_t i = 0; i < v.size(); ++i) {\n        std::printf(\"%.17g\", static_cast<double>(v[i]));\n        if (i + 1 < v.size()) std::printf(\", \");\n    }\n    std::printf(\"]\");\n}\n\nint main() {\n    // Worked examples verbatim from the prompt (identical across serial/omp/mpi):\n    //   input: [8, 6, -1, 7, 3, 4, 4]   -> output: [8, 6, -1, -1, -1, -1, -1]\n    //   input: [5, 4, 6, 4, 3, 6, 1, 1] -> output: [5, 4, 4, 4, 3, 3, 1, 1]\n    std::vector<std::vector<float>> examples = {\n        {8.0f, 6.0f, -1.0f, 7.0f, 3.0f, 4.0f, 4.0f},\n        {5.0f, 4.0f, 6.0f, 4.0f, 3.0f, 6.0f, 1.0f, 1.0f}\n    };\n\n    std::printf(\"[\");\n    for (size_t k = 0; k < examples.size(); ++k) {\n        correctPartialMinimums(examples[k]);  // oracle, in-place\n        printVec(examples[k]);\n        if (k + 1 < examples.size()) std::printf(\", \");\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "scan"
+ },
+ "32_scan_sum_of_prefix_sum_array": {
+  "canonicalization": "None needed. The oracle returns a single scalar double and cpu.cc::validate() (line 69) compares it with reportAndCompareScalar(correct, test, 1e-5) \u2014 absolute-epsilon scalar comparison on root only, no sorting or order-insensitive reshaping. The harness prints the scalar with %.17g; 15.0 renders as \"15\". NO_INLINE (normally supplied by utilities.hpp) is defined in the harness as __attribute__((noinline)) before including baseline.hpp, guarded by #ifndef.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Compute the prefix sum array of the vector x and return its sum.\n   Example:\n\n   input: [-7, 2, 1, 9, 4, 8]\n   output: 15\n*/\ndouble sumOfPrefixSum(std::vector<double> const& x) {",
+  "expected_json": "15.0",
+  "harness_cpp": "// Stage-B fixture: scan/32_scan_sum_of_prefix_sum_array\n// Executes the real oracle (correctSumOfPrefixSum from baseline.hpp) on the\n// worked example shared by all three prompt entries (serial/omp/mpi):\n//   input: [-7, 2, 1, 9, 4, 8]\n//   output: 15\n// Prints the oracle result as exactly one JSON value on stdout.\n#include <cstdio>\n#include <vector>\n\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> x = {-7.0, 2.0, 1.0, 9.0, 4.0, 8.0};\n    double result = correctSumOfPrefixSum(x);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "scan"
+ },
+ "33_scan_reverse_prefix_sum": {
+  "canonicalization": "None needed. cpu.cc::validate() uses reportAndCompareEq(correct, test) \u2014 exact int equality over the full vector in index order, no sorting, no epsilon. The harness prints output[0..n-1] in natural index order, one inner JSON array per worked example (two examples -> outer array of two arrays), matching the prompt's printed order verbatim.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [1, 7, 4, 6, 6, 2]\noutput: [2, 8, 14, 18, 25, 26]\n\ninput: [3, 3, 7, 1, -2]\noutput: [-2, -1, 6, 9, 12]",
+  "expected_json": "[[2, 8, 14, 18, 25, 26], [-2, -1, 6, 9, 12]]",
+  "harness_cpp": "// Stage-B fixture: scan/33_scan_reverse_prefix_sum\n// Executes the baseline oracle correctReversePrefixSum on both worked examples\n// from the prompt and prints the results as one JSON array (one entry per example).\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally provided by utilities.hpp (via the driver); stub it here.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nstatic void printVec(const std::vector<int> &v) {\n    printf(\"[\");\n    for (size_t i = 0; i < v.size(); ++i) {\n        printf(\"%s%d\", i ? \", \" : \"\", v[i]);\n    }\n    printf(\"]\");\n}\n\nint main() {\n    std::vector<std::vector<int>> inputs = {\n        {1, 7, 4, 6, 6, 2},\n        {3, 3, 7, 1, -2}\n    };\n\n    printf(\"[\");\n    for (size_t e = 0; e < inputs.size(); ++e) {\n        std::vector<int> output(inputs[e].size()); // oracle writes via output.begin(); must be pre-sized\n        correctReversePrefixSum(inputs[e], output);\n        if (e) printf(\", \");\n        printVec(output);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "scan"
+ },
+ "34_scan_largest_contiguous_subarray_sum": {
+  "canonicalization": "None needed. cpu.cc:72 validate() compares via reportAndCompareScalar(correct, test) \u2014 the two-argument overload (utilities.hpp:375-377), exact integer equality on a single scalar int, rank 0 only. The harness prints the raw scalar; expected_json is the prompt's scalar 6. Only transcription step: prompt's U+2212 minus signs written as ASCII '-' literals.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {\n\n(serial entry, thesis/prompts/generation-prompts-thesis.json line 721; omp line 728 adds \"Use OpenMP to compute in parallel.\"; mpi line 735 adds \"Use MPI to compute in parallel. Assume MPI has already been initialized.\\n   Every rank has a complete copy of x. Return the result on rank 0.\" \u2014 example lines identical in all three. Minus signs in the prompt are Unicode U+2212; transcribed as ASCII '-' int literals in the harness.)",
+  "expected_json": "6",
+  "harness_cpp": "// Stage-B fixture: scan/34_scan_largest_contiguous_subarray_sum\n// Runs the grading oracle (correctMaximumSubarray, baseline.hpp) on the\n// prompt's worked example and prints the scalar result as one JSON value.\n//\n// baseline.hpp needs the NO_INLINE macro normally supplied by utilities.hpp\n// (drivers/cpp/utilities.hpp:19); define it identically here to avoid pulling\n// in the full driver machinery (MPI/Kokkos macros).\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include <cstdio>\n#include <vector>\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example shared verbatim by all three prompt entries\n    // (serial/omp/mpi, thesis/prompts/generation-prompts-thesis.json):\n    //   input: [-2, 1, -3, 4, -1, 2, 1, -5, 4]\n    //   output: 6\n    const std::vector<int> x = {-2, 1, -3, 4, -1, 2, 1, -5, 4};\n\n    const int result = correctMaximumSubarray(x);\n\n    // cpu.cc::validate() compares via reportAndCompareScalar(correct, test)\n    // -- exact integer equality of the single scalar; no canonicalization\n    // beyond printing the scalar itself.\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "scan"
+ },
+ "35_search_search_for_last_struct_by_key": {
+  "canonicalization": "None. cpu.cc validate() compares a single size_t via reportAndCompareScalar (exact == on integers, utilities.hpp); the harness prints the raw index as a bare JSON number. Book fields in declaration order title, pages (only pages affects the result). NO_INLINE (normally from utilities.hpp) defined as __attribute__((noinline)) in the harness so baseline.hpp compiles standalone.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [{title=\"Green Eggs and Ham\", pages=72}, {title=\"gulliver's travels\", pages=362}, {title=\"Stories of Your Life\", pages=54}, {title=\"Hamilton\", pages=818}]\n   output: 2",
+  "expected_json": "2",
+  "harness_cpp": "// Fixture: search/35_search_search_for_last_struct_by_key\n// Executes the oracle correctFindLastShortBook on the prompt's worked example.\n#include <cstdio>\n#include <string>\n#include <vector>\n\n// Defined in generated code (copied verbatim from the prompt / cpu.cc comment)\nstruct Book {\n   std::string title;\n   int pages;\n};\n\n// Normally provided by utilities.hpp; baseline.hpp uses it as a function attribute.\n#define NO_INLINE __attribute__((noinline))\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Book> books = {\n        {\"Green Eggs and Ham\", 72},\n        {\"gulliver's travels\", 362},\n        {\"Stories of Your Life\", 54},\n        {\"Hamilton\", 818}\n    };\n    size_t idx = correctFindLastShortBook(books);\n    std::printf(\"%zu\\n\", idx);\n    return 0;\n}\n",
+  "problem_type": "search"
+ },
+ "36_search_check_if_array_contains_value": {
+  "canonicalization": "None needed. cpu.cc validate() (line 81) uses reportAndCompareScalar(correctIdx, testIdx) \u2014 exact scalar equality with no epsilon and no ordering component (utilities.hpp:375-376); both sides are bool results widened identically to size_t. The fixture prints the two per-example bool oracle results as a JSON array in prompt order [target=3 case, target=8 case], as JSON booleans.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: x=[1, 8, 2, 6, 4, 6], target=3\noutput: false\n\ninput: x=[1, 8, 2, 6, 4, 6], target=8\noutput: true",
+  "expected_json": "[false, true]",
+  "harness_cpp": "// Stage-B fixture: search/36_search_check_if_array_contains_value\n// Executes the grading oracle (correctContains) on the prompt's two worked\n// examples and prints the results as one JSON array [case1, case2].\n#include <algorithm>\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp expects NO_INLINE (normally supplied via utilities.hpp).\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<int> x{1, 8, 2, 6, 4, 6};\n\n    // Example 1: target=3 -> prompt says false\n    bool r1 = correctContains(x, 3);\n    // Example 2: target=8 -> prompt says true\n    bool r2 = correctContains(x, 8);\n\n    std::printf(\"[%s, %s]\\n\", r1 ? \"true\" : \"false\", r2 ? \"true\" : \"false\");\n    return 0;\n}\n",
+  "problem_type": "search"
+ },
+ "37_search_find_the_closest_number_to_pi": {
+  "canonicalization": "None. cpu.cc::validate() (line 69) compares via reportAndCompareScalar(correct, test) = utilities.hpp exact `expected == got` on size_t \u2014 a single integer, no ordering or float tolerance involved. The harness prints the returned index as one JSON integer verbatim.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1",
+  "expected_json": "1",
+  "harness_cpp": "// Fixture for search/37_search_find_the_closest_number_to_pi\n// Executes the grading oracle (correctFindClosestToPi) on the prompt's worked example.\n#include <cstdio>\n#include <cmath>\n#include <vector>\n\n#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n\n// NO_INLINE is normally provided by utilities.hpp; define it here to keep the\n// harness free of driver/MPI machinery.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> const x = {9.18, 3.05, 7.24, 11.3, -166.49, 2.1};\n    size_t idx = correctFindClosestToPi(x);\n    // validate() compares via reportAndCompareScalar => exact size_t equality;\n    // print the index as a single JSON integer.\n    std::printf(\"%zu\\n\", idx);\n    return 0;\n}\n",
+  "problem_type": "search"
+ },
+ "38_search_find_the_first_even_number": {
+  "canonicalization": "None needed. cpu.cc validate() (line 85) compares via reportAndCompareScalar(correct, test), which is exact == equality on size_t (drivers/cpp/utilities.hpp lines 375-377) \u2014 no sorting, no epsilon, no order-insensitivity. The harness prints the two scalar oracle results as a JSON array [example1_result, example2_result], parallel to the two worked examples' order in the prompt. NO_INLINE was defined in the harness verbatim from utilities.hpp line 19 (normally supplied via cpu.cc's include of utilities.hpp before baseline.hpp).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1",
+  "expected_json": "[6, 1]",
+  "harness_cpp": "// Fixture harness for search/38_search_find_the_first_even_number\n// Executes the oracle correctFindFirstEven on both worked examples from the prompt\n// and prints the results as one JSON array on stdout.\n\n#include <cstdio>\n#include <vector>\n\n// Normally provided by utilities.hpp (drivers/cpp/utilities.hpp line 19),\n// which cpu.cc includes before baseline.hpp.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<int> ex1 = {7, 3, 9, 5, 5, 7, 2, 9, 12, 11};\n    const std::vector<int> ex2 = {3, 8, 9, 9, 3, 4, 8, 6};\n\n    size_t r1 = correctFindFirstEven(ex1);\n    size_t r2 = correctFindFirstEven(ex2);\n\n    // validate() compares with reportAndCompareScalar == exact size_t equality;\n    // no canonicalization needed. One JSON array entry per worked example.\n    std::printf(\"[%zu, %zu]\", r1, r2);\n    return 0;\n}\n",
+  "problem_type": "search"
+ },
+ "39_search_xor_contains": {
+  "canonicalization": "None needed. validate() (cpu.cc:90) compares a single bool via reportAndCompareScalar = exact equality on the root rank; no sorting or tolerance applies. The prompt has two worked examples sharing x,y and differing in val, so the harness prints one JSON array [case_val7, case_val1] in prompt order; expected_json likewise.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: x=[1,8,4,3,2], y=[3,4,4,1,1,7], val=7\n   output: true\n\n   input: x=[1,8,4,3,2], y=[3,4,4,1,1,7], val=1\n   output: false",
+  "expected_json": "[true, false]",
+  "harness_cpp": "// Stage-B fixture for search/39_search_xor_contains\n// Executes the grading oracle (correctXorContains from baseline.hpp) on the\n// prompt's two worked examples and prints one JSON array [case1, case2].\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally provided by utilities.hpp (drivers/cpp/utilities.hpp:19),\n// which cpu.cc includes before baseline.hpp. Copied faithfully here.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<int> x = {1, 8, 4, 3, 2};\n    const std::vector<int> y = {3, 4, 4, 1, 1, 7};\n\n    const bool r1 = correctXorContains(x, y, 7);\n    const bool r2 = correctXorContains(x, y, 1);\n\n    std::printf(\"[%s, %s]\\n\", r1 ? \"true\" : \"false\", r2 ? \"true\" : \"false\");\n    return 0;\n}\n",
+  "problem_type": "search"
+ },
+ "40_sort_sort_an_array_of_complex_numbers_by_magnitude": {
+  "canonicalization": "None (order-sensitive). cpu.cc validate() (lines 87-92) compares element-wise in array order on rank 0: |correct[i] - test[i]| > 1e-6 fails \u2014 no sorting or order-insensitive canonicalization \u2014 so the harness prints the oracle's sorted vector as-is. Complex elements are printed as [re, im] pairs (std::complex<double> real part first, imaginary part second). The prompt's \"1.0-0.0i\" is encoded as imag = -0.0 (negative zero), which prints as -0 and compares equal to 0.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Sort the vector x of complex numbers by their magnitude in ascending order.\n   Example:\n   \n   input: [3.0-1.0i, 4.5+2.1i, 0.0-1.0i, 1.0-0.0i, 0.5+0.5i]\n   output: [0.5+0.5i, 0.0-1.0i, 1.0-0.0i, 3.0-1.0i, 4.5+2.1i]\n*/\nvoid sortComplexByMagnitude(std::vector<std::complex<double>> &x) {\n(serial entry, generation-prompts-thesis.json:847; omp entry line 854 adds \"Use OpenMP to sort in parallel.\"; mpi entry line 861 adds \"Use MPI to sort in parallel. Assume MPI has already been initialized.\\n   Every rank has a complete copy of x. Store the result in x on rank 0.\" \u2014 the example lines are byte-identical in all three)",
+  "expected_json": "[[0.5, 0.5], [0.0, -1.0], [1.0, -0.0], [3.0, -1.0], [4.5, 2.1]]",
+  "harness_cpp": "// Stage-B fixture: sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude\n// Runs the grading oracle (correctSortComplexByMagnitude, baseline.hpp) on the\n// worked example from the prompt and prints the result as one JSON value.\n#include <algorithm>\n#include <cmath>\n#include <complex>\n#include <cstdio>\n#include <vector>\n\n// Provided by utilities.hpp in the real driver (utilities.hpp:19); replicated here.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Prompt example input: [3.0-1.0i, 4.5+2.1i, 0.0-1.0i, 1.0-0.0i, 0.5+0.5i]\n    // Constructed as in cpu.cc reset(): x[i] = complex(real[i], imag[i]).\n    const double re[5] = {3.0, 4.5, 0.0, 1.0, 0.5};\n    const double im[5] = {-1.0, 2.1, -1.0, -0.0, 0.5};\n    std::vector<std::complex<double>> x;\n    x.reserve(5);\n    for (int i = 0; i < 5; i += 1) {\n        x.emplace_back(re[i], im[i]);\n    }\n\n    correctSortComplexByMagnitude(x);\n\n    // validate() (cpu.cc:87-92) compares element-wise IN ORDER:\n    // |correct[i] - test[i]| <= 1e-6. No reordering/canonicalization is applied,\n    // so print the sorted vector as-is, each element as an [re, im] pair.\n    printf(\"[\");\n    for (size_t i = 0; i < x.size(); i += 1) {\n        printf(\"%s[%.17g, %.17g]\", (i ? \", \" : \"\"), x[i].real(), x[i].imag());\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sort"
+ },
+ "41_sort_k-th_smallest_element": {
+  "canonicalization": "None. Output is a single scalar int; cpu.cc::validate() (line 78) compares via reportAndCompareScalar(correct, test) which for int is exact equality on rank 0 (utilities.hpp:375-377). Harness prints the raw int with %d.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 6",
+  "expected_json": "6",
+  "harness_cpp": "// Stage-B fixture for sort/41_sort_k-th_smallest_element\n// Executes the grading oracle (correctFindKthSmallest, baseline.hpp) on the\n// prompt's worked example and prints the result as one JSON value on stdout.\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses the NO_INLINE macro normally provided by utilities.hpp\n// (drivers/cpp/utilities.hpp:19). Define it identically here to avoid pulling\n// in the full driver harness.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompt entries):\n    //   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n    //   output: 6\n    std::vector<int> x = {1, 7, 6, 0, 2, 2, 10, 6};\n    int k = 4;\n\n    int result = correctFindKthSmallest(x, k);\n\n    // validate() compares via reportAndCompareScalar on a single int with\n    // exact equality; no canonicalization needed for a scalar.\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+  "problem_type": "sort"
+ },
+ "42_sort_sorted_ranks": {
+  "canonicalization": "None. cpu.cc::validate() (lines 52-80) compares std::vector<size_t> element-wise with exact equality via reportAndCompareEq (utilities.hpp:334-340, predicate !(x==y)) \u2014 no sorting, no order-insensitive property, no epsilon. The harness therefore prints the oracle's ranks vector verbatim, in element order, as a JSON array of non-negative integers; the outer JSON array holds one entry per worked example in prompt order (example1 first, example2 second). Note: validate()'s exactness means an alternate valid tie permutation would also be rejected by the real grader, so the ex2 disagreement is not an ordering difference validate() would tolerate.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 1, 2, 3]",
+  "expected_json": "[[2, 1, 4, 0, 3], [4, 0, 1, 2, 3]]",
+  "harness_cpp": "// Stage-B fixture for sort/42_sort_sorted_ranks\n// Executes the real oracle (correctRanks) on the prompt's two worked examples\n// and prints ONE JSON value: an array with one ranks-array per example.\n// NO_INLINE is normally provided by drivers/cpp/utilities.hpp (included by\n// cpu.cc before baseline.hpp); defined here identically (utilities.hpp:19).\n#include <cstdio>\n#include <vector>\n\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#include \"baseline.hpp\"\n\nstatic void runExample(const std::vector<float>& x, bool first) {\n    std::vector<size_t> ranks(x.size());\n    correctRanks(x, ranks);\n    if (!first) std::printf(\",\");\n    std::printf(\"[\");\n    for (size_t i = 0; i < ranks.size(); ++i) {\n        if (i) std::printf(\",\");\n        std::printf(\"%zu\", ranks[i]);\n    }\n    std::printf(\"]\");\n}\n\nint main() {\n    // Worked examples verbatim from the prompt (all three parallelism models identical):\n    //   input: [3.1, 2.8, 9.1, 0.4, 3.14]  -> output: [2, 1, 4, 0, 3]\n    //   input: [100, 7.6, 16.1, 18, 7.6]   -> output: [4, 0, 1, 2, 3]\n    const std::vector<float> ex1 = {3.1f, 2.8f, 9.1f, 0.4f, 3.14f};\n    const std::vector<float> ex2 = {100.0f, 7.6f, 16.1f, 18.0f, 7.6f};\n\n    std::printf(\"[\");\n    runExample(ex1, true);\n    runExample(ex2, false);\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sort"
+ },
+ "43_sort_sort_an_array_of_structs_by_key": {
+  "canonicalization": "Structs printed as arrays of field values in declaration order: [startTime, duration, value]. Outer array order = vector order (positional): cpu.cc::validate() (lines 107-114) compares element-by-element with exact equality on all three fields and applies no sorting/canonicalization, so none is applied here either. The value field is a 32-bit float in the prompt's own struct declaration; the prompt literal -1.22 is therefore stored as float(-1.22f) and widened to double for printing (%.17g), giving -1.2200000286102295 \u2014 expected_json uses this exact widened value so the default 1e-9 tolerances apply unloosened (1.0 and 0.0 are exact in float).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [{startTime=8, duration=4, value=-1.22}, {startTime=2, duration=10, value=1.0}, {startTime=10, duration=3, value=0.0}]\n   output: [{startTime=2, duration=10, value=1.0}, {startTime=8, duration=4, value=-1.22}, {startTime=10, duration=3, value=0.0}]",
+  "expected_json": "[[2, 10, 1.0], [8, 4, -1.2200000286102295], [10, 3, 0.0]]",
+  "harness_cpp": "// Stage-B fixture: sort/43_sort_sort_an_array_of_structs_by_key\n// Executes the baseline oracle correctSortByStartTime() on the prompt's worked example\n// and prints the result as one JSON value: an array of [startTime, duration, value]\n// triples (struct fields in declaration order), array order = vector order.\n#include <algorithm>\n#include <cstdio>\n#include <vector>\n\n// Provided by the prompt / normally by the driver environment:\nstruct Result {\n   int startTime, duration;\n   float value;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example input (identical in serial/omp/mpi prompts):\n    // [{startTime=8, duration=4, value=-1.22}, {startTime=2, duration=10, value=1.0},\n    //  {startTime=10, duration=3, value=0.0}]\n    std::vector<Result> results = {\n        {8, 4, -1.22f},\n        {2, 10, 1.0f},\n        {10, 3, 0.0f}\n    };\n\n    correctSortByStartTime(results);\n\n    // cpu.cc::validate() compares element-by-element positionally (exact equality,\n    // all three fields) -- so NO reordering canonicalization is applied here.\n    std::printf(\"[\");\n    for (size_t i = 0; i < results.size(); ++i) {\n        std::printf(\"%s[%d, %d, %.17g]\", i ? \", \" : \"\",\n                    results[i].startTime, results[i].duration,\n                    (double)results[i].value);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sort"
+ },
+ "44_sort_sort_non-zero_elements": {
+  "canonicalization": "None. cpu.cc::validate() compares via reportAndCompareEq (exact per-element integer equality over the full vector, order- and position-sensitive, no epsilon), so the harness prints the mutated vector element-by-element in index order with no sorting or reordering. Vector printed as a flat JSON array of ints. NO_INLINE (normally supplied by utilities.hpp) is defined empty in the harness so baseline.hpp compiles standalone.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Sort the vector x in ascending order ignoring elements with value 0.\n   Leave zero valued elements in-place.\n   Example:\n\n\t input: [8, 4, 0, 9, 8, 0, 1, -1, 7]\n   output: [-1, 1, 0, 4, 7, 0, 8, 8, 9]\n*/\nvoid sortIgnoreZero(std::vector<int> &x) {",
+  "expected_json": "[-1, 1, 0, 4, 7, 0, 8, 8, 9]",
+  "harness_cpp": "// Fixture for sort/44_sort_sort_non-zero_elements\n// Runs the grading oracle correctSortIgnoreZero on the prompt's worked example\n// and prints the resulting vector as a single JSON array on stdout.\n#include <cstdio>\n#include <vector>\n\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<int> x = {8, 4, 0, 9, 8, 0, 1, -1, 7};\n    correctSortIgnoreZero(x);\n\n    std::printf(\"[\");\n    for (size_t i = 0; i < x.size(); i += 1) {\n        std::printf(\"%s%d\", (i == 0 ? \"\" : \", \"), x[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sort"
+ },
+ "45_sparse_la_sparse_solve": {
+  "canonicalization": "None needed. cpu.cc::validate() compares the dense solution vector x element-wise in index order (reportAndCompare(x_correct, x_test, 1e-3), cpu.cc:123; predicate std::abs(x-y) > eps, utilities.hpp) with no sorting or reordering, so the harness prints x in natural index order [x[0], x[1]] and expected_json is the prompt's x=[3,-2] as-is. COOElement fields in declaration order {row, column, value} were used to build the input literals.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\noutput: x=[3,-2]",
+  "expected_json": "[3, -2]",
+  "harness_cpp": "// Fixture harness for sparse_la/45_sparse_la_sparse_solve\n// Executes the grading oracle (correctSolveLinearSystem, baseline.hpp) on the\n// prompt's worked example and prints x as a single JSON array on stdout.\n//\n// Worked example (identical in serial/omp/mpi prompts):\n//   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n//   output: x=[3,-2]\n#include <cstdio>\n#include <cstddef>\n#include <cmath>\n#include <vector>\n\n// COOElement is normally provided by the prompt/generated code (cpu.cc header\n// comment); baseline.hpp depends on it, so define it faithfully here first.\nstruct COOElement {\n   size_t row, column;\n   double value;\n};\n\n// NO_INLINE is normally provided by utilities.hpp; harmless no-op here.\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<COOElement> A = {{0, 0, 1.0}, {0, 1, 1.0}, {1, 1, -2.0}};\n    std::vector<double> b = {1.0, 4.0};\n    std::vector<double> x;  // oracle does x.assign(N, 0.0)\n    const size_t N = 2;\n\n    correctSolveLinearSystem(A, b, x, N);\n\n    // validate() (cpu.cc:123) compares x element-wise in index order via\n    // reportAndCompare(x_correct, x_test, 1e-3) -- no reordering, so print\n    // x as-is in index order.\n    printf(\"[\");\n    for (size_t i = 0; i < x.size(); ++i) {\n        printf(\"%s%.17g\", i ? \", \" : \"\", x[i]);\n    }\n    printf(\"]\");\n    return 0;\n}\n",
+  "problem_type": "sparse_la"
+ },
+ "46_sparse_la_spmm": {
+  "canonicalization": "None. validate() (cpu.cc:157) compares the dense output Y elementwise via reportAndCompare(correctY, testY, 1e-4) with no sorting or reordering, so the harness prints Y exactly as the oracle leaves it: flattened row-major (Y[i][j] at index i*N+j), M=2, N=2 -> 4 doubles. The prompt's nested Y=[{-1,-4},{1,0}] was flattened row-major to [-1,-4,1,0] for expected_json. Inputs A and X are sorted by (row, then column) before the oracle call, faithfully copying the driver's sortCOOElements (cpu.cc:36-40, applied at cpu.cc:142/147); the example inputs are already in that order so it is a no-op here.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]",
+  "expected_json": "[-1, -4, 1, 0]",
+  "harness_cpp": "// Fixture: sparse_la/46_sparse_la_spmm\n// Executes the grading oracle correctSpmm() from baseline.hpp on the prompt's\n// worked example and prints Y (dense MxN, row-major, flattened) as one JSON array.\n//\n// Prompt example (identical in serial/omp/mpi entries):\n//   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n//   output: Y=[{-1,-4}, {1,0}]\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n#include <algorithm>\n\n// Normally provided by utilities.hpp via cpu.cc:\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n// Struct normally provided by the prompt / cpu.cc header comment:\nstruct COOElement {\n   size_t row, column;\n   double value;\n};\n\n#include \"baseline.hpp\"\n\n// Faithful copy of cpu.cc:36-40 (driver sorts inputs before calling oracle & candidate).\nstatic void sortCOOElements(std::vector<COOElement> &vec) {\n    std::sort(vec.begin(), vec.end(), [](const COOElement &a, const COOElement &b) {\n        return (a.row == b.row) ? (a.column < b.column) : (a.row < b.row);\n    });\n}\n\nint main() {\n    // A: sparse 2x2 (M=2, K=2), X: sparse 2x2 (K=2, N=2)\n    std::vector<COOElement> A = {\n        {0, 0, -2.0},\n        {0, 1,  1.0},\n        {1, 1, -1.0}\n    };\n    std::vector<COOElement> X = {\n        {0, 1,  2.0},\n        {1, 0, -1.0}\n    };\n    const size_t M = 2, K = 2, N = 2;\n\n    sortCOOElements(A);\n    sortCOOElements(X);\n\n    std::vector<double> Y; // correctSpmm assigns Y to M*N zeros itself\n    correctSpmm(A, X, Y, M, K, N);\n\n    // validate() (cpu.cc:157) compares Y elementwise (reportAndCompare, abs eps 1e-4),\n    // no reordering -> print flat row-major, no canonicalization.\n    printf(\"[\");\n    for (size_t i = 0; i < Y.size(); ++i) {\n        printf(\"%s%.17g\", (i ? \", \" : \"\"), Y[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sparse_la"
+ },
+ "47_sparse_la_spmv": {
+  "canonicalization": "None needed. cpu.cc validate() compares the output vector y element-wise in index order via reportAndCompare(correct, test, 1e-4) (absolute epsilon, full vector, no sorting), so the harness prints y in natural index order. COOElement fields are in declaration order {row, column, value}, and the example A ({0,1,3},{1,0,-1}) is already sorted by (row, column) exactly as the driver sorts before calling, so it is passed as-is. M=N=2 are implied by the 2-element x and y (not printed in the prompt example).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]",
+  "expected_json": "[2.0, 3.0]",
+  "harness_cpp": "// Fixture harness for sparse_la/47_sparse_la_spmv\n// Executes the grading oracle correctSpmv on the prompt's worked example and\n// prints the resulting y as a single JSON array on stdout.\n//\n// Worked example (identical in serial/omp/mpi prompts):\n//   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n//   output: y=[2, 3]\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n\n// COOElement is normally declared in the prompt / generated code (cpu.cc header\n// comment); baseline.hpp has it commented out. Copied faithfully from the prompt:\nstruct COOElement {\n   size_t row, column;\n   double value;\n};\n\n// NO_INLINE is normally provided by drivers/cpp/utilities.hpp; minimal stand-in.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const double alpha = 0.5;\n    const double beta  = 1.0;\n    // Driver (cpu.cc:121-123) sorts A by (row, column) ascending before calling;\n    // the example A is already in that order.\n    const std::vector<COOElement> A = {\n        {0, 1,  3.0},\n        {1, 0, -1.0}\n    };\n    const std::vector<double> x = {-4.0, 2.0};\n    std::vector<double> y = {-1.0, 1.0};\n    const size_t M = 2, N = 2;\n\n    correctSpmv(alpha, A, x, beta, y, M, N);\n\n    // validate() (cpu.cc:133 -> reportAndCompare, utilities.hpp:315-321) compares\n    // y element-wise in index order \u2014 no reordering, so print y as-is.\n    std::printf(\"[\");\n    for (size_t i = 0; i < y.size(); ++i) {\n        std::printf(\"%s%.17g\", (i ? \", \" : \"\"), y[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sparse_la"
+ },
+ "48_sparse_la_sparse_axpy": {
+  "canonicalization": "None needed. cpu.cc::validate() (line 129) compares the two dense double vectors element-by-element via reportAndCompare(correct, test, 1e-4) with no sorting or reordering, so the harness prints z in natural index order (indices 0..12) and expected_json is the prompt's dense output verbatim. z is sized 13 (max index 12) and zero-initialized, matching the driver's pre-sizing/zero-fill (cpu.cc:89, 118-119). Element struct fields in declaration order {index, value}, but the output is plain doubles so no struct encoding applies.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/",
+  "expected_json": "[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]",
+  "harness_cpp": "// Stage-B fixture: sparse_la/48_sparse_la_sparse_axpy\n// Runs the oracle correctSparseAxpy on the prompt's worked example and prints\n// the dense result vector z as a single JSON array on stdout.\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n\n// Provided by generated-code.hpp / the prompt in the real driver; define here\n// before including baseline.hpp (copied faithfully from the prompt / cpu.cc).\nstruct Element {\n    size_t index;\n    double value;\n};\n\n// Normally supplied by utilities.hpp.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical across serial/omp/mpi prompts):\n    // input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n    // output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n    const double alpha = 1.0;\n    const std::vector<Element> x = { {5, 12.0}, {8, 3.0}, {12, -1.0} };\n    const std::vector<Element> y = { {3, 1.0}, {5, -2.0}, {7, 1.0}, {8, -3.0} };\n\n    // Driver pre-sizes z to N and zero-fills it (cpu.cc:118-119); the prompt's\n    // dense output has 13 entries (indices 0..12), so N = 13 here.\n    std::vector<double> z(13, 0.0);\n\n    correctSparseAxpy(alpha, x, y, z);\n\n    // validate() compares the dense vectors element-by-element (abs eps 1e-4),\n    // no reordering \u2014 so print z in index order, no canonicalization needed.\n    printf(\"[\");\n    for (size_t i = 0; i < z.size(); ++i) {\n        printf(\"%s%.17g\", (i ? \", \" : \"\"), z[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "sparse_la"
+ },
+ "49_sparse_la_sparse_lu_decomp": {
+  "canonicalization": "cpu.cc validate() (line 140) compares the FULL dense N*N row-major vectors L and U elementwise (reportAndCompare, abs eps 1e-3), in fixed index order \u2014 no sorting or order-insensitive comparison. The prompt's example prints L/U as COO nonzero triplets {row,column,value}; that is notational only. Canonicalization applied identically to both sides: densify the COO-notation expected output into row-major length-N*N (=4) vectors indexed i*N+j, with unmentioned cells = 0.0 (the driver zero-fills L/U before the call, cpu.cc:105-106/129-135). Harness prints one JSON object with keys \"L\" then \"U\", each a dense row-major array; expected_json uses the same shape. Input A was constructed in (row,column)-sorted order and additionally sorted in the harness, mirroring cpu.cc:126 sortCOO (no-op here). COOElement fields in declaration order {row, column, value}, but no structs appear in the printed output.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]",
+  "expected_json": "{\"L\": [1.0, 0.0, 1.5, 1.0], \"U\": [4.0, 3.0, 0.0, -1.5]}",
+  "harness_cpp": "// Stage-B fixture: sparse_la/49_sparse_la_sparse_lu_decomp\n// Executes the grading oracle correctLuFactorize on the prompt's worked example.\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n#include <algorithm>\n\n// COOElement is defined in the prompt (cpu.cc comment block / prompt text), not in baseline.hpp\nstruct COOElement {\n   size_t row, column;\n   double value;\n};\n\n// NO_INLINE normally comes from utilities.hpp; harmless no-op here\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t N = 2;\n    // Worked example from the prompt:\n    // input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n    std::vector<COOElement> A = {\n        {0, 0, 4.0},\n        {0, 1, 3.0},\n        {1, 0, 6.0},\n        {1, 1, 3.0}\n    };\n    // Mirror driver: validate() sorts A by (row, column) before calling the oracle\n    // (already in sorted order here; sort is a no-op but kept for fidelity)\n    std::sort(A.begin(), A.end(), [](COOElement const& a, COOElement const& b) {\n        return (a.row == b.row) ? (a.column < b.column) : (a.row < b.row);\n    });\n\n    // Mirror driver: L and U pre-sized to N*N and zero-filled (cpu.cc:105-106, 129-135)\n    std::vector<double> L(N * N, 0.0), U(N * N, 0.0);\n\n    correctLuFactorize(A, L, U, N);\n\n    // validate() compares the FULL dense N*N row-major vectors elementwise (cpu.cc:140),\n    // so print them index-order as-is: {\"L\": [...], \"U\": [...]}\n    printf(\"{\\\"L\\\": [\");\n    for (size_t i = 0; i < L.size(); ++i) {\n        printf(\"%s%.17g\", i ? \", \" : \"\", L[i]);\n    }\n    printf(\"], \\\"U\\\": [\");\n    for (size_t i = 0; i < U.size(); ++i) {\n        printf(\"%s%.17g\", i ? \", \" : \"\", U[i]);\n    }\n    printf(\"]}\\n\");\n    return 0;\n}\n",
+  "problem_type": "sparse_la"
+ },
+ "50_stencil_xor_kernel": {
+  "canonicalization": "Mirrors cpu.cc::validate() (cpu.cc:83-85): exact integer (in)equality, compared ONLY over interior cells (i, j in [1, N-2]); border cells (row/col 0 and N-1) are never compared by the driver and are therefore excluded from both actual and expected. For the N=4 example the compared cells are (1,1),(1,2),(2,1),(2,2), printed as a flat JSON int array in row-major order. expected_json is the same interior slice of the prompt's example output [[0,0,1,1],[1,0,0,1],[0,0,1,0],[1,0,1,0]] -> [0,0,0,1]. No sorting, no floats, no epsilon (validate uses raw int !=). Note: the example lines in example_source are verbatim from the prompt, including the prompt's own missing closing \"]]\" on the input literal. A supplementary non-fixture run printed the full 16-cell oracle grid for the receipt (see mismatch_detail).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]",
+  "expected_json": "[0, 0, 0, 1]",
+  "harness_cpp": "// Stage-B fixture harness: stencil/50_stencil_xor_kernel\n// Runs the grading oracle (correctCellsXOR from baseline.hpp) on the prompt's\n// worked example (N=4) and prints the oracle result canonicalized to the\n// comparison scope of cpu.cc::validate(): interior cells only\n// (i, j in [1, N-2]), exact int equality, row-major order.\n#include <cstdio>\n#include <cstddef>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE, normally provided by drivers/cpp/utilities.hpp.\n// Defined here to keep the harness free of the driver's MPI/Kokkos machinery.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t N = 4;\n    // Worked example input, row-major (identical in serial/omp/mpi prompts):\n    // [[0,1,1,0],[1,0,0,0],[0,0,0,0],[0,1,0,0]]\n    std::vector<int> input = {\n        0, 1, 1, 0,\n        1, 0, 0, 0,\n        0, 0, 0, 0,\n        0, 1, 0, 0\n    };\n    std::vector<int> output(N * N, 0);\n\n    correctCellsXOR(input, output, N);\n\n    // Canonicalization: cpu.cc validate() (lines 83-85) compares only interior\n    // cells: for (i = 1; i < N-1) for (j = 1; j < N-1) with exact int !=.\n    // Border cells are never compared, so they are excluded here as well.\n    std::printf(\"[\");\n    bool first = true;\n    for (size_t i = 1; i + 1 < N; ++i) {\n        for (size_t j = 1; j + 1 < N; ++j) {\n            if (!first) std::printf(\", \");\n            std::printf(\"%d\", output[i * N + j]);\n            first = false;\n        }\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "stencil"
+ },
+ "51_stencil_edge_kernel": {
+  "canonicalization": "None. cpu.cc::validate() (line 86) uses reportAndCompareEq(correct, test, input) = exact integer equality over the full flattened vector in stored order (utilities.hpp:343-349), no sorting, no epsilon. The 4x4 example matrix was flattened row-major (index = i*N + j) exactly as the data is stored, matching the prompt's \"NxN grayscale images stored in row-major\". Element type is plain C++ int; no structs, no floats, no complex values.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]",
+  "expected_json": "[255, 255, 255, 255, 255, 147, 0, 255, 36, 0, 0, 255, 255, 39, 0, 255]",
+  "harness_cpp": "// Stage-B fixture: stencil/51_stencil_edge_kernel\n// Executes the grading oracle (correctConvolveKernel from baseline.hpp) on the\n// prompt's worked example and prints the result as one JSON array (row-major).\n\n#include <cstdio>\n#include <vector>\n\n// Normally provided by utilities.hpp (drivers/cpp/utilities.hpp:19); baseline.hpp uses it.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n// Normally provided by the LLM-generated code (prompt header line; commented out\n// in baseline.hpp:4). Copied verbatim from the prompt.\nconst int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t N = 4;\n    // Worked-example input, row-major flatten of\n    // [[112, 118, 141, 152],\n    //  [93, 101, 119, 203],\n    //  [45, 17, 16, 232],\n    //  [82, 31, 49, 101]]\n    const std::vector<int> imageIn = {\n        112, 118, 141, 152,\n         93, 101, 119, 203,\n         45,  17,  16, 232,\n         82,  31,  49, 101\n    };\n    std::vector<int> imageOut(N * N, 0);\n\n    correctConvolveKernel(imageIn, imageOut, N);\n\n    // validate() uses exact integer equality over the full row-major vector\n    // (reportAndCompareEq, utilities.hpp:343-349) -> no canonicalization needed.\n    std::printf(\"[\");\n    for (size_t idx = 0; idx < imageOut.size(); ++idx) {\n        std::printf(\"%s%d\", idx == 0 ? \"\" : \", \", imageOut[idx]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "stencil"
+ },
+ "52_stencil_1d_jacobi_3-point_stencil": {
+  "canonicalization": "None needed. Output is a std::vector<double> compared element-wise in index order by cpu.cc::validate() (no sorting, no order-insensitive property), so the harness prints the vector in natural index order. The prompt's exact fractions (1, 2/3, -5/3, 4/3, 5/3) were converted to their nearest IEEE-754 doubles for expected_json; every 3-term neighbor sum in the example is an exact small integer, so FP association order cannot change the result. Note: validate() itself compares only interior indices 1..TEST_SIZE-2 with abs eps 1e-4; the fixture compares all 5 elements including boundaries (stricter), and all 5 match bit-exactly anyway.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [9, -6, -1, 2, 3]\n   output: [1, 2/3, -5/3, 4/3, 5/3]",
+  "expected_json": "[1, 0.66666666666666663, -1.6666666666666667, 1.3333333333333333, 1.6666666666666667]",
+  "harness_cpp": "// Fixture: stencil/52_stencil_1d_jacobi_3-point_stencil\n// Executes the grading oracle correctJacobi1D on the prompt's worked example\n// and prints the result as one JSON array on stdout.\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally provided by utilities.hpp; define it here so we can\n// include baseline.hpp standalone.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example from the prompt (identical across serial/omp/mpi):\n    //   input:  [9, -6, -1, 2, 3]\n    //   output: [1, 2/3, -5/3, 4/3, 5/3]\n    std::vector<double> input = {9.0, -6.0, -1.0, 2.0, 3.0};\n    std::vector<double> output(input.size(), 0.0);\n\n    correctJacobi1D(input, output);\n\n    // Print as a single JSON array. Element order preserved: cpu.cc::validate()\n    // compares element-wise (no sorting / no order-insensitive canonicalization).\n    std::printf(\"[\");\n    for (size_t i = 0; i < output.size(); i++) {\n        std::printf(\"%s%.17g\", (i ? \", \" : \"\"), output[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "stencil"
+ },
+ "53_stencil_2d_jacobi_5-point_stencil": {
+  "canonicalization": "None needed. cpu.cc::validate() (lines 79-84) compares element-wise in row-major index order with an inline absolute epsilon (1e-6) \u2014 no sorting or order-insensitive property \u2014 so the harness prints the full N*N output grid flattened row-major, and expected_json is the prompt's 2D example flattened the same way. (validate() itself only compares interior cells at TEST_SIZE, but for the 3x3 worked example the full grid is the fixture's comparison surface.) Values are plain doubles; %.17g renderings like 1.3999999999999999 are the exact double nearest 1.4.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [[3, 4, 1], [0, 1, 7], [5, 3, 2]]\n   output: [[1.4, 1.8, 2.4],[1.8, 3, 2.2], [1.6, 2.2, 2.4]]",
+  "expected_json": "[1.4, 1.8, 2.4, 1.8, 3, 2.2, 1.6, 2.2, 2.4]",
+  "harness_cpp": "// Stage-B fixture: stencil/53_stencil_2d_jacobi_5-point_stencil\n// Executes the real oracle (correctJacobi2D from baseline.hpp) on the prompt's\n// worked example and prints the result as one JSON array (row-major, N*N doubles).\n//\n// baseline.hpp uses the NO_INLINE macro normally provided by drivers/cpp/utilities.hpp;\n// define it here identically (utilities.hpp:19) to avoid pulling in the full driver header.\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n\n#include <cstdio>\n#include <vector>\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompt entries):\n    // input: [[3, 4, 1], [0, 1, 7], [5, 3, 2]]  -- NxN grid, row-major, N=3\n    const size_t N = 3;\n    std::vector<double> input = {3.0, 4.0, 1.0,\n                                 0.0, 1.0, 7.0,\n                                 5.0, 3.0, 2.0};\n    std::vector<double> output(N * N, 0.0);\n\n    correctJacobi2D(input, output, N);\n\n    // Print as exactly one JSON value: row-major array of N*N doubles.\n    // cpu.cc::validate() compares element-wise (abs eps 1e-6, interior cells only\n    // at TEST_SIZE); no reordering/canonicalization is involved, so the full grid\n    // is printed in row-major order as-is.\n    std::printf(\"[\");\n    for (size_t k = 0; k < N * N; k++) {\n        std::printf(\"%s%.17g\", (k ? \", \" : \"\"), output[k]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "stencil"
+ },
+ "54_stencil_game_of_life": {
+  "canonicalization": "Output is the full 5x5 grid flattened row-major into one JSON array of 25 ints (index i*N+j), exact integer comparison, no reordering or rounding. Note: cpu.cc::validate() (lines 89-99) compares INTERIOR cells only (i,j in [1, TEST_SIZE-2]) with exact int equality; the fixture compares the full grid, which is strictly stronger and matched anyway \u2014 so no boundary-tolerance canonicalization was needed. NO_INLINE (normally supplied via utilities.hpp through cpu.cc) is defined empty in the harness before including baseline.hpp.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input:  [[0, 0, 0, 0, 0],\n\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n(verbatim from thesis/prompts/generation-prompts-thesis.json entries at lines 1141/1148/1155 \u2014 identical example in all three parallelism models serial/omp/mpi; JSON escapes \\n and \\t rendered; second row of each grid is indented with tabs in the source)",
+  "expected_json": "[0,0,0,0,0,0,1,1,0,0,0,1,0,1,0,0,0,0,1,0,0,0,1,0,0]",
+  "harness_cpp": "// Fixture harness for stencil/54_stencil_game_of_life\n// Runs the grading oracle (correctGameOfLife from baseline.hpp) on the\n// worked example from the prompt and prints the resulting grid as one\n// JSON array (25 ints, row-major, full grid).\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses the NO_INLINE macro normally provided via utilities.hpp\n// (included by cpu.cc). Define it here so we can include baseline.hpp alone.\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    const size_t N = 5;\n    // Worked-example input, row-major (verbatim from the prompt):\n    // [[0, 0, 0, 0, 0],\n    //  [0, 1, 0, 0, 0],\n    //  [0, 1, 1, 0, 0],\n    //  [0, 0, 1, 1, 0],\n    //  [0, 1, 0, 0, 0]]\n    std::vector<int> input = {\n        0, 0, 0, 0, 0,\n        0, 1, 0, 0, 0,\n        0, 1, 1, 0, 0,\n        0, 0, 1, 1, 0,\n        0, 1, 0, 0, 0\n    };\n    std::vector<int> output(N * N, 0);\n\n    correctGameOfLife(input, output, N);\n\n    // Print exactly one JSON value: the flat row-major output grid.\n    std::printf(\"[\");\n    for (size_t k = 0; k < N * N; ++k) {\n        std::printf(\"%d%s\", output[k], (k + 1 < N * N) ? \",\" : \"\");\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "stencil"
+ },
+ "55_transform_relu": {
+  "canonicalization": "None. cpu.cc::validate() compares elementwise in original index order via reportAndCompare(correctResult, testResult, 1e-6, input) \u2014 an absolute |a-b| > 1e-6 predicate over the full vector, no sorting, no order-insensitive property. The harness therefore prints the mutated vector in place, in order. Prompt's \"0\" entries are the double value 0.0; harness %.17g likewise prints 0.0 as \"0\" and 24.0 as \"24\" \u2014 formatting only, values identical.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [-1.8, 24.0, 1.2, 0.0, -5.1, -0.2, 4.5]\n   output: [0, 24.0, 1.2, 0, 0, 0, 4.5]",
+  "expected_json": "[0.0, 24.0, 1.2, 0.0, 0.0, 0.0, 4.5]",
+  "harness_cpp": "// Fixture harness for transform/55_transform_relu\n// Executes the grading oracle (correctRelu from baseline.hpp) on the prompt's\n// worked example and prints the result as one JSON array on stdout.\n#include <algorithm>\n#include <vector>\n#include <cstdio>\n\n// baseline.hpp uses NO_INLINE, normally supplied via utilities.hpp by cpu.cc.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example input, identical in serial/omp/mpi prompts:\n    // input: [-1.8, 24.0, 1.2, 0.0, -5.1, -0.2, 4.5]\n    std::vector<double> x = {-1.8, 24.0, 1.2, 0.0, -5.1, -0.2, 4.5};\n\n    correctRelu(x);\n\n    // validate() compares elementwise in original order (|a-b| > 1e-6),\n    // so no canonicalization: print in order.\n    printf(\"[\");\n    for (size_t i = 0; i < x.size(); ++i) {\n        printf(\"%s%.17g\", (i ? \", \" : \"\"), x[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "transform"
+ },
+ "56_transform_negate_odds": {
+  "canonicalization": "None. cpu.cc validate() uses reportAndCompareEq(correctResult, testResult, input) \u2014 exact elementwise integer equality in index order over the full vector (predicate !(x == y), no sorting, no epsilon since element type is int). Harness prints the vector in index order as a flat JSON array of ints; expected_json is the prompt's output line verbatim as JSON. NO_INLINE (normally from utilities.hpp) is defined in the harness before including baseline.hpp.",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [16, 11, 12, 14, 1, 0, 5]\n   output: [8, -11, 6, 7, -1, 0, -5]",
+  "expected_json": "[8, -11, 6, 7, -1, 0, -5]",
+  "harness_cpp": "// Fixture harness for transform/56_transform_negate_odds\n// Executes the grading oracle (baseline) on the prompt's worked example and\n// prints the result as a single JSON array of ints on stdout.\n#include <algorithm>\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses the NO_INLINE macro, normally supplied via utilities.hpp.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example input from the prompt (identical across serial/omp/mpi):\n    // input:  [16, 11, 12, 14, 1, 0, 5]\n    std::vector<int> x = {16, 11, 12, 14, 1, 0, 5};\n\n    correctNegateOddsAndHalveEvens(x);\n\n    // cpu.cc validate() compares elementwise, exact integer equality, in index\n    // order (reportAndCompareEq). No canonicalization needed: print as-is.\n    std::printf(\"[\");\n    for (std::size_t i = 0; i < x.size(); ++i) {\n        std::printf(\"%s%d\", i ? \", \" : \"\", x[i]);\n    }\n    std::printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "transform"
+ },
+ "57_transform_inverse_offset": {
+  "canonicalization": "None. cpu.cc::validate() (line 68) calls reportAndCompare(correctResult, testResult, 1e-5, input), an elementwise in-order comparison with absolute epsilon 1e-5 over all elements \u2014 no sorting or order-insensitive property. Harness prints the in-place-transformed vector in original index order; expected_json is the prompt's output array verbatim.",
+  "compare": {
+   "float_abs": 1e-07,
+   "float_rel": 1e-09
+  },
+  "example_source": "/* Replace every element of the vector x with 1-1/x.\n   Example:\n\n   input: [2, 4, 1, 12, -2]\n   output: [0.5, 0.75, 0, 0.91666666, 1.5]\n*/\nvoid oneMinusInverse(std::vector<double> &x) {",
+  "expected_json": "[0.5, 0.75, 0, 0.91666666, 1.5]",
+  "harness_cpp": "// Stage-B fixture: transform/57_transform_inverse_offset\n// Runs the oracle correctOneMinusInverse on the prompt's worked example\n// and prints the transformed vector as one JSON array on stdout.\n#include <algorithm>\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE (normally supplied via utilities.hpp in cpu.cc)\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompts):\n    //   input:  [2, 4, 1, 12, -2]\n    //   output: [0.5, 0.75, 0, 0.91666666, 1.5]\n    std::vector<double> x = {2.0, 4.0, 1.0, 12.0, -2.0};\n\n    correctOneMinusInverse(x);\n\n    // validate() (cpu.cc:68 -> reportAndCompare, abs eps 1e-5) compares\n    // elementwise in original order: no canonicalization needed.\n    printf(\"[\");\n    for (size_t i = 0; i < x.size(); ++i) {\n        printf(\"%s%.17g\", (i ? \", \" : \"\"), x[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "transform"
+ },
+ "58_transform_squaring": {
+  "canonicalization": "None. cpu.cc::validate() compares via reportAndCompareEq (utilities.hpp:343-349, predicate !(x == y)): exact, order-sensitive integer equality over the full vector. The harness prints the in-place-transformed vector in natural index order; expected_json is the prompt example verbatim. No sorting, no tolerance, no struct flattening (element type is plain int).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "   input: [5, 1, 2, -4, 8]\n   output: [25, 1, 4, 16, 64]",
+  "expected_json": "[25, 1, 4, 16, 64]",
+  "harness_cpp": "// Fixture harness for transform/58_transform_squaring\n// Executes the grading oracle (correctSquareEach from baseline.hpp) on the\n// worked example from the prompt and prints the result as one JSON value.\n\n#include <cstdio>\n#include <vector>\n\n// baseline.hpp uses NO_INLINE, normally supplied by utilities.hpp via cpu.cc.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example (identical in serial/omp/mpi prompts):\n    //   input: [5, 1, 2, -4, 8]\n    std::vector<int> x = {5, 1, 2, -4, 8};\n\n    correctSquareEach(x);  // in-place oracle\n\n    // Print exactly one JSON array of ints, matching validate()'s\n    // order-sensitive exact-equality comparison (reportAndCompareEq).\n    printf(\"[\");\n    for (size_t i = 0; i < x.size(); ++i) {\n        printf(\"%s%d\", (i ? \", \" : \"\"), x[i]);\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "transform"
+ },
+ "59_transform_map_function": {
+  "canonicalization": "None. cpu.cc::validate() uses reportAndCompareEq (exact element-wise equality, full vector, in order), so the mask is printed in index order as a JSON array of booleans. isPowerOfTwo (the oracle's only dependency normally supplied via the assembled prompt head in generated-code.hpp) was copied verbatim from the prompt into the harness before including baseline.hpp; NO_INLINE (normally from utilities.hpp) is defined as __attribute__((noinline)).",
+  "compare": {
+   "float_abs": 1e-09,
+   "float_rel": 1e-09
+  },
+  "example_source": "input: [8, 0, 9, 7, 15, 64, 3]\noutput: [true, false, false, false, false, true, false]\n\n(verbatim from all three prompt entries for 59_transform_map_function in thesis/prompts/generation-prompts-thesis.json \u2014 serial/omp/mpi differ only in parallelism instructions; the prompt head defines: bool isPowerOfTwo(int x) { return (x > 0) && !(x & (x - 1)); })",
+  "expected_json": "[true, false, false, false, false, true, false]",
+  "harness_cpp": "// Fixture for transform/59_transform_map_function\n// Executes the grading oracle (correctMapPowersOfTwo from baseline.hpp) on the\n// prompt's worked example and prints the result as one JSON array of booleans.\n#include <cstdio>\n#include <vector>\n\n// NO_INLINE is normally supplied by utilities.hpp; define it standalone here.\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n\n// Helper normally provided by the prompt head that assemble_sources.py prepends\n// into generated-code.hpp (cpu.cc includes it before baseline.hpp). Copied\n// verbatim from the prompt.\nbool isPowerOfTwo(int x) {\n\treturn (x > 0) && !(x & (x - 1));\n}\n\n#include \"baseline.hpp\"\n\nint main() {\n    // Worked example input from the prompt (identical across serial/omp/mpi).\n    std::vector<int> x = {8, 0, 9, 7, 15, 64, 3};\n    std::vector<bool> mask(x.size());\n\n    correctMapPowersOfTwo(x, mask);\n\n    // validate() compares element-wise, in order, exact equality\n    // (reportAndCompareEq) -> print in order, no canonicalization needed.\n    printf(\"[\");\n    for (size_t i = 0; i < mask.size(); ++i) {\n        printf(\"%s%s\", i ? \", \" : \"\", mask[i] ? \"true\" : \"false\");\n    }\n    printf(\"]\\n\");\n    return 0;\n}\n",
+  "problem_type": "transform"
+ }
+}
