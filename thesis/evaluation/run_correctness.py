@@ -13,15 +13,25 @@ Verdict semantics (per run):
   - The exit code does NOT signal validation: the serial/omp drivers
     `return 0` after printing "Validation: FAIL", and the mpi driver calls
     MPI_Abort(comm, 0). Only the stdout marker is authoritative.
-  - pass              -> marker PASS, exit 0, no timeout
-  - validation_failed -> marker FAIL
-  - timeout           -> run hit the time limit (for omp/mpi a possible
-                         deadlock/livelock signal)
-  - runtime_error     -> anything else (crash, missing marker, non-zero exit)
+  - pass                   -> marker PASS, exit 0, no timeout
+  - validation_failed      -> marker FAIL
+  - baseline_incompatible  -> the driver announced a NON-FINITE REFERENCE
+                              (BASELINE_INCOMPATIBLE marker). The oracle,
+                              not the model, is out of domain: this is never
+                              a model failure, never a pass, produces no
+                              correctness feedback and no repair iteration,
+                              and is excluded from every pass/fail
+                              denominator (execution contract A1).
+  - timeout                -> run hit the time limit (for omp/mpi a possible
+                              deadlock/livelock signal)
+  - runtime_error          -> anything else (crash, missing marker, non-zero
+                              exit)
 
 Per-sample verdict: "pass" iff every run passed, "build_failed" if the
-compile failed, otherwise the verdict of the first failing run in grid
-order. Per-category counts are stored alongside so no information is lost.
+compile failed, "baseline_incompatible" if ANY grid point reported a
+non-finite reference (it outranks a model failure, contract A1b case 1),
+otherwise the verdict of the first failing run in grid order. Per-category
+counts are stored alongside so no information is lost.
 
 Usage (inside the pareval-thesis container):
     python3 thesis/evaluation/run_correctness.py \
@@ -75,6 +85,15 @@ OUTPUT_CAP = 4000
 
 VALIDATION_MARKER = "Validation:"
 
+# Execution contract A1e: the driver's comparator announces a NON-FINITE
+# REFERENCE (NaN/+-Inf produced by the ORACLE) on its own stdout line. That
+# is a property of the baseline, never a model failure, so it must not
+# arrive here as "Validation: FAIL". The marker is emitted exactly once per
+# process and only by the root rank (drivers/cpp/utilities.hpp,
+# mismatchNoteNonFiniteReference).
+BASELINE_INCOMPATIBLE_MARKER = "BASELINE_INCOMPATIBLE:"
+BASELINE_INCOMPATIBLE = "baseline_incompatible"
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run correctness tests on assembled samples.")
@@ -110,6 +129,24 @@ def parse_validation(stdout: str) -> bool | None:
             return "PASS" in line
 
     return None
+
+
+def count_baseline_incompatible(stdout: str) -> int:
+    """Number of BASELINE_INCOMPATIBLE marker lines in driver stdout.
+
+    Returns the COUNT, not a bool, because contract A1g requires the parser
+    to tell "marker missing" (0) from "marker more than once" (>1) apart:
+    under MPI the marker must come from the root rank exactly once, and a
+    repeated marker means the once-per-process guard did not hold (e.g. a
+    candidate printing the line itself). Neither case may be mapped onto
+    pass/fail silently — 0 falls through to the normal PASS/FAIL path, >1
+    still yields baseline_incompatible but is reported by the caller.
+    """
+    return sum(
+        1
+        for line in stdout.splitlines()
+        if line.strip().startswith(BASELINE_INCOMPATIBLE_MARKER)
+    )
 
 
 # rel= is OPTIONAL (backward compatible: records produced before the field
@@ -174,9 +211,28 @@ def parse_mismatch_output(stdout: str) -> "tuple[list[dict[str, Any]], int | Non
     return mismatches, total
 
 
-def run_verdict(validation: bool | None, exit_code: int, timed_out: bool) -> str:
+def run_verdict(
+    validation: bool | None,
+    exit_code: int,
+    timed_out: bool,
+    baseline_incompatible: bool = False,
+) -> str:
+    """Verdict of ONE grid point.
+
+    Contract A1b, case 1 is decided FIRST among the validation outcomes: a
+    non-finite REFERENCE outranks the PASS/FAIL marker, so a run whose
+    oracle produced NaN/Inf never becomes "validation_failed" (a model
+    failure) and never becomes "pass" either.
+
+    `timed_out` still comes first overall: a run that hit the wall clock has
+    no complete comparison to classify, and that classification predates
+    this contract.
+    """
     if timed_out:
         return "timeout"
+
+    if baseline_incompatible:
+        return BASELINE_INCOMPATIBLE
 
     if validation is False:
         return "validation_failed"
@@ -282,10 +338,31 @@ def run_sample(
             )
 
             validation = parse_validation(result.stdout)
-            verdict = run_verdict(validation, result.returncode, result.timed_out)
+            marker_count = count_baseline_incompatible(result.stdout)
+
+            if marker_count > 1:
+                # contract A1g: never silently mapped onto pass/fail, but the
+                # once-per-process guard was violated (candidate stdout?)
+                print(
+                    "    WARN %s %s: BASELINE_INCOMPATIBLE marker seen %d times "
+                    "(expected exactly once, root rank only)"
+                    % (sample.sample_id, params, marker_count)
+                )
+
+            verdict = run_verdict(
+                validation,
+                result.returncode,
+                result.timed_out,
+                baseline_incompatible=marker_count > 0,
+            )
             verdicts[verdict] += 1
 
-            if verdict != "pass" and sample_verdict == "pass":
+            # contract A1b: a non-finite reference outranks a model failure,
+            # so it wins the per-sample aggregation too and is never
+            # overwritten by a later failing grid point
+            if verdict == BASELINE_INCOMPATIBLE:
+                sample_verdict = BASELINE_INCOMPATIBLE
+            elif verdict != "pass" and sample_verdict == "pass":
                 sample_verdict = verdict
 
             run_entry: dict[str, Any] = {

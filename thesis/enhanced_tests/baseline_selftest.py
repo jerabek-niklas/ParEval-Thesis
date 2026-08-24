@@ -41,6 +41,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# Single source for the marker string (execution contract A1); the driver
+# side that prints it is drivers/cpp/utilities.hpp.
+from thesis.evaluation.run_correctness import (  # noqa: E402
+    BASELINE_INCOMPATIBLE_MARKER,
+)
+
 BENCHMARKS_DIR = REPO_ROOT / "drivers" / "cpp" / "benchmarks"
 DRIVERS_CPP = REPO_ROOT / "drivers" / "cpp"
 PROMPTS_JSON = REPO_ROOT / "prompts" / "generation-prompts.json"
@@ -307,6 +313,15 @@ def compile_and_run(
         except subprocess.TimeoutExpired:
             return "hang"
 
+        # Execution contract A1f: a NON-FINITE REFERENCE in the baseline gate
+        # is an invalid oracle output for this spec. Checked before the
+        # PASS/FAIL marker, because the comparator lets the run finish and
+        # print PASS while the reference was NaN/Inf. The caller maps every
+        # non-"pass" probe result onto baseline_incompatible and keeps this
+        # precise cause in baseline_gate.
+        if BASELINE_INCOMPATIBLE_MARKER in result.stdout:
+            return "non_finite_reference"
+
         if result.returncode != 0:
             return "crash"
 
@@ -330,8 +345,11 @@ def selftest_one(benchmark_dir: Path, wrapper: str, prompt_text: str, size: int)
             status = "ok"
         elif perturbed == "validate_fail":
             status = "numerically_unstable"
-        elif perturbed in ("crash", "hang"):
-            # the perturbed oracle itself misbehaves on this input
+        elif perturbed in ("crash", "hang", "non_finite_reference"):
+            # the perturbed oracle itself misbehaves on this input; a
+            # non-finite reference there is an invalid oracle output, not a
+            # stability property (contract A1f keeps the two categories
+            # separate)
             status = "baseline_incompatible"
         else:
             # probe tooling failure (build) — distinct from oracle verdicts

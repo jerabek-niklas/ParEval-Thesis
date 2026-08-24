@@ -96,6 +96,29 @@ ENHANCED_COUNTED = (
 )
 ENHANCED_GATED = ("baseline_incompatible", "numerically_unstable")
 
+# Execution contract A1b: a correctness verdict of "baseline_incompatible"
+# means the ORACLE produced a non-finite reference. It is neither a model
+# pass nor a model failure and is EXCLUDED from every ParEval pass/fail
+# denominator. It is reported separately instead of being hidden inside
+# "not pass" (which is what would silently turn an oracle defect into a
+# model defect).
+CORRECTNESS_EXCLUDED = ("baseline_incompatible",)
+
+
+def _counts_toward_correctness(row: "Dict[str, Any]") -> bool:
+    """Does this row contribute to a ParEval pass-rate denominator?"""
+    verdict = row.get("correctness_verdict")
+    return verdict is not None and verdict not in CORRECTNESS_EXCLUDED
+
+
+def _correctness_excluded(rows: "List[Dict[str, Any]]") -> int:
+    """How many rows carry an excluded (oracle-side) correctness verdict."""
+    return sum(
+        1
+        for r in rows
+        if r.get("correctness_verdict") in CORRECTNESS_EXCLUDED
+    )
+
 # Cleaning flags from assembly.jsonl (thesis/assembly/cleaning.py). These are
 # INTERVENTIONS ON THE MEASURED OBJECT: the pipeline repairs model output
 # before evaluating it, so the share of samples that needed which repair has
@@ -806,6 +829,8 @@ def trajectory_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
         "| --- | --- | --- | --- |",
     ]
 
+    excluded_total = 0
+
     for iteration in range(0, max_iteration + 1):
         pareval_n = pareval_pass = 0
         enhanced_pass = enhanced_total = 0
@@ -815,10 +840,13 @@ def trajectory_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
             if row is None:
                 continue
 
-            if row.get("correctness_verdict") is not None:
+            # contract A1b: oracle-side verdicts stay out of the denominator
+            if _counts_toward_correctness(row):
                 pareval_n += 1
                 if row["correctness_verdict"] == "pass":
                     pareval_pass += 1
+            elif row.get("correctness_verdict") in CORRECTNESS_EXCLUDED:
+                excluded_total += 1
 
             e_pass, e_total = _enhanced_counts(row)
             enhanced_pass += e_pass
@@ -832,6 +860,14 @@ def trajectory_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
                 _rate(pareval_pass, pareval_n),
                 _rate(enhanced_pass, enhanced_total),
             )
+        )
+
+    if excluded_total:
+        lines.append("")
+        lines.append(
+            "%d artifact-iteration(s) excluded from the ParEval denominator: "
+            "correctness verdict %s (non-finite oracle reference, not a model "
+            "failure)." % (excluded_total, "/".join(CORRECTNESS_EXCLUDED))
         )
 
     return lines
@@ -1046,7 +1082,8 @@ def breakdown_table(rows: "List[Dict[str, Any]]", variant: str, key: str) -> Lis
     ]
 
     for bucket, finals in sorted(buckets.items()):
-        pareval_n = sum(1 for r in finals if r.get("correctness_verdict") is not None)
+        # contract A1b: excluded (oracle-side) verdicts are not in the denominator
+        pareval_n = sum(1 for r in finals if _counts_toward_correctness(r))
         pareval_pass = sum(1 for r in finals if r.get("correctness_verdict") == "pass")
         enhanced_pass = sum(_enhanced_counts(r)[0] for r in finals)
         enhanced_total = sum(_enhanced_counts(r)[1] for r in finals)
@@ -1074,8 +1111,12 @@ def clean_but_incorrect(rows: "List[Dict[str, Any]]") -> List[str]:
     if not clean_finals:
         return ["No static_feedback sample stopped clean."]
 
-    with_verdict = [r for r in clean_finals if r.get("correctness_verdict") is not None]
+    # contract A1b: rows whose ORACLE went non-finite are excluded here too —
+    # counting them under "!= pass" is exactly the oracle-defect-as-model-
+    # defect error this contract removes
+    with_verdict = [r for r in clean_finals if _counts_toward_correctness(r)]
     incorrect = [r for r in with_verdict if r["correctness_verdict"] != "pass"]
+    excluded = _correctness_excluded(clean_finals)
 
     with_enhanced = [r for r in clean_finals if r.get("enhanced_pass") is not None]
     enhanced_failing = [
@@ -1093,7 +1134,14 @@ def clean_but_incorrect(rows: "List[Dict[str, Any]]") -> List[str]:
         % _rate(len(enhanced_failing), len(with_enhanced)),
     ]
 
-    missing = len(clean_finals) - len(with_verdict)
+    if excluded:
+        lines.append(
+            "- %d clean sample(s) excluded from the ParEval denominator "
+            "(verdict %s: non-finite oracle reference)"
+            % (excluded, "/".join(CORRECTNESS_EXCLUDED))
+        )
+
+    missing = len(clean_finals) - len(with_verdict) - excluded
     if missing:
         lines.append(
             "- %d clean sample(s) without correctness data (backfill missing)"

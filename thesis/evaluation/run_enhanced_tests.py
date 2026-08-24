@@ -115,7 +115,10 @@ from thesis.evaluation.build_config import (  # noqa: E402
     get_launch_config,
     missing_toolchain,
 )
-from thesis.evaluation.run_correctness import parse_mismatch_output  # noqa: E402
+from thesis.evaluation.run_correctness import (  # noqa: E402
+    BASELINE_INCOMPATIBLE_MARKER,
+    parse_mismatch_output,
+)
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     build_wrapper,
     compile_and_run,
@@ -477,6 +480,13 @@ def run_binary(
     stdout = stdout or ""
     stderr = stderr or ""
 
+    # Execution contract A1b/A1f, case 1 decided FIRST: a non-finite REFERENCE
+    # is a property of the oracle, never a model failure. It reuses the
+    # existing enhanced status baseline_incompatible (which is NOT merged with
+    # numerically_unstable — the two keep their distinct meanings).
+    if BASELINE_INCOMPATIBLE_MARKER in stdout:
+        return "baseline_incompatible", process.returncode, duration, stdout, stderr
+
     if "Validation: FAIL" in stdout:
         return "fail", process.returncode, duration, stdout, stderr
 
@@ -559,9 +569,16 @@ def precompute_gates(
                     sample.benchmark_dir, prompt_text, defines,
                     extra_headers=extra_headers,
                 )
-                gate_cache[key] = (
-                    "pass" if perturbed == "pass" else "numerically_unstable"
-                )
+                if perturbed == "pass":
+                    gate_cache[key] = "pass"
+                elif perturbed == "non_finite_reference":
+                    # contract A1f: an invalid (non-finite) oracle output is
+                    # baseline_incompatible, NOT numerically_unstable — the
+                    # two statuses keep their distinct meanings. Mirrors the
+                    # crash/hang handling in baseline_selftest.selftest_one.
+                    gate_cache[key] = "non_finite_reference"
+                else:
+                    gate_cache[key] = "numerically_unstable"
 
     return computed
 

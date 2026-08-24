@@ -158,11 +158,45 @@ void fillRand(T &x, DType min, DType max) {
     }
 }
 
+// Is this value finite? Non-finite = NaN or +/-Inf. Integral and boolean
+// value types are finite by construction, so the check compiles away for
+// them. complex<double> is finite iff BOTH components are.
+template <typename V>
+inline bool mismatchIsFinite(V const& v) {
+    if constexpr (std::is_same_v<V, std::complex<double>>) {
+        return std::isfinite(v.real()) && std::isfinite(v.imag());
+    } else if constexpr (std::is_floating_point_v<V>) {
+        return std::isfinite(v);
+    } else {
+        (void)v;
+        return true;
+    }
+}
+
 // compare two vectors of floating point numbers
+//
+// Non-finite semantics (execution contract A1c): fequal is SYMMETRIC and
+// never returns true when any operand is non-finite. It deliberately does
+// NOT classify which side caused it — that is the job of the role-aware
+// reportAndCompare* helpers and of the gate level. Without the explicit
+// check `std::abs(a - b) > epsilon` is FALSE for a NaN operand, i.e. a NaN
+// silently compared EQUAL to anything.
+//
+// The tolerance itself is untouched (contract A1d): for two finite operands
+// the behaviour is bit-identical to before.
+//
+// The former `assert(a.size() == b.size())` is gone for the same reason as
+// in reportAndCompareWith (contract A2): under -DNDEBUG it vanished and left
+// an out-of-bounds read behind a silent true.
 template <typename Vec, typename FType>
 bool fequal(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
-    assert(a.size() == b.size());
-    for (int i = 0; i < a.size(); i += 1) {
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < a.size(); i += 1) {
+        if (!mismatchIsFinite(a[i]) || !mismatchIsFinite(b[i])) {
+            return false;
+        }
         if (std::abs(a[i] - b[i]) > epsilon) {
             return false;
         }
@@ -185,9 +219,12 @@ bool fequal(Vec const& a, Vec const& b, FType epsilon = 1e-6) {
 // difference below the print resolution rendered expected and got as
 // IDENTICAL text ("expected=182071 got=182071" at |diff| < 0.5 on
 // magnitude 1.8e5, measured on smoke_002) — self-contradictory feedback
-// that ran two models into stopped_budget. fequal itself is UNTOUCHED
-// (verdict authority, byte-compatible with ParEval); only the report
-// formatting changed.
+// that ran two models into stopped_budget. Only the report formatting
+// changed at that time; the tolerance is still byte-compatible with
+// ParEval. (fequal was called UNTOUCHED here until the non-finite
+// semantics of execution contract A1 were added — see fequal above: the
+// tolerance is still unchanged, only NaN/Inf operands and a size mismatch
+// are now rejected instead of silently comparing equal.)
 //
 // rel=<|a-b| / max(|a|,|b|, denorm guard)> is printed for floating-point
 // and complex comparisons (scientific, 3 significant digits): the model
@@ -265,11 +302,54 @@ inline bool mismatchIsRoot() {
     return IS_ROOT(mmRank);
 }
 
+// ---------------------------------------------------------------------------
+// Non-finite REFERENCE detection (execution contract A1).
+//
+// A NaN/Inf value produced by the ORACLE is a property of the baseline, never
+// a model failure. The comparator level only DETECTS it and announces it on
+// stdout; the classification into the verdict `baseline_incompatible` happens
+// in the Python stage that parses this marker (contract A1c: comparator safe,
+// gate level classifies).
+//
+// The marker is printed EXACTLY ONCE per process and only by the root rank
+// (consistent with mismatchIsRoot(); under MPI all ranks share one stdout
+// stream, so an unguarded print would appear once per rank).
+// ---------------------------------------------------------------------------
+inline size_t &mismatchNonFiniteReferenceCount() {
+    static size_t count = 0;
+    return count;
+}
+
+inline void mismatchNoteNonFiniteReference() {
+    mismatchNonFiniteReferenceCount() += 1;
+
+    static bool emitted = false;
+    if (!emitted && mismatchIsRoot()) {
+        emitted = true;
+        printf("BASELINE_INCOMPATIBLE: non_finite_reference\n");
+    }
+}
+
+// `a` is the REFERENCE (expected), `b` the CANDIDATE (got) at every call
+// site; the roles are what makes the non-finite rule of contract A1b
+// decidable here.
 template <typename Vec, typename InVec, typename Pred>
 bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred differs) {
-    assert(a.size() == b.size());
-
     const bool isRoot = mismatchIsRoot();
+
+    // Contract A2: this used to be `assert(a.size() == b.size())`. Under
+    // -DNDEBUG the assert vanished and a wrong-length candidate compared
+    // EQUAL element-wise up to the shorter size, i.e. a silent PASS (plus an
+    // out-of-bounds read when the candidate was shorter). Report and fail.
+    if (a.size() != b.size()) {
+        if (isRoot) {
+            printf("SIZE_MISMATCH expected=%zu got=%zu\n",
+                   (size_t)a.size(), (size_t)b.size());
+            printf("MISMATCH_SUMMARY shown=0 total=1\n");
+        }
+        return false;
+    }
+
     size_t total = 0;
     size_t shown = 0;
 
@@ -278,7 +358,21 @@ bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred d
         const V va = static_cast<V>(a[i]);
         const V vb = static_cast<V>(b[i]);
 
-        if (!differs(va, vb)) {
+        // Contract A1b case 1, checked FIRST: a non-finite REFERENCE is a
+        // baseline problem. It is neither a mismatch nor a pass — the index
+        // is skipped and the process-wide marker is emitted.
+        if (!mismatchIsFinite(va)) {
+            mismatchNoteNonFiniteReference();
+            continue;
+        }
+
+        // Contract A1b case 2: finite reference, non-finite candidate -> FAIL.
+        // The tolerance predicate cannot see this (every ordered comparison
+        // with NaN is false), so it is decided before `differs` runs.
+        const bool nonFiniteCandidate = !mismatchIsFinite(vb);
+
+        // Contract A1b case 3: both finite -> unchanged behaviour.
+        if (!nonFiniteCandidate && !differs(va, vb)) {
             continue;
         }
 
@@ -352,6 +446,20 @@ bool reportAndCompareEq(Vec const& a, Vec const& b, InVec const& input) {
 // mandatory here too (shown=1 total=1)
 template <typename V>
 bool reportAndCompareScalarImpl(V const& expected, V const& got, bool equal) {
+    // Contract A1b case 1, checked FIRST: non-finite REFERENCE is a baseline
+    // problem, never a model failure. Announce it and do not fail the model.
+    if (!mismatchIsFinite(expected)) {
+        mismatchNoteNonFiniteReference();
+        return true;
+    }
+
+    // Contract A1b case 2: finite reference, non-finite candidate -> FAIL.
+    // `equal` was computed by the caller with a NaN-blind predicate, so it
+    // must be overridden here.
+    if (!mismatchIsFinite(got)) {
+        equal = false;
+    }
+
     if (equal) {
         return true;
     }

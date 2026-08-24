@@ -22,6 +22,8 @@ thesis/results/raw/
 thesis/results/intermediate/
 thesis/results/cache/
 
+thesis/docs/
+
 # tool-validation: downloaded benchmark suites + raw measurement output
 thesis/tool_validation/suites/
 thesis/tool_validation/results/drb

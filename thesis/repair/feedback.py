@@ -37,6 +37,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from thesis.evaluation.tool_config import resolve_tool_settings  # noqa: E402
+from thesis.evaluation.run_correctness import BASELINE_INCOMPATIBLE  # noqa: E402
 
 # The assembled model file name is a scaffold invariant (assembly stage);
 # findings in any other file are driver/TU context.
@@ -330,6 +331,12 @@ def render_correctness(
     if not record:
         return []
 
+    # Execution contract A1b: a non-finite REFERENCE is an oracle problem.
+    # The model gets NO correctness feedback for it — there is nothing for it
+    # to repair, and telling it "your tests failed" would be false.
+    if record.get("verdict") == BASELINE_INCOMPATIBLE:
+        return []
+
     lines = ["ParEval tests: %s" % record.get("verdict", "unknown")]
 
     for run in record.get("runs") or []:
@@ -390,6 +397,11 @@ def summarize_correctness(record: Optional[Dict[str, Any]]) -> Optional[str]:
 
     if verdict == "pass":
         return "ParEval tests: PASS"
+
+    # contract A1b: not a model failure, so it must not enter the compressed
+    # history as one either
+    if verdict == BASELINE_INCOMPATIBLE:
+        return None
 
     execution_model = record.get("execution_model", "")
     failing = []

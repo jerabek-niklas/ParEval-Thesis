@@ -495,7 +495,17 @@ def evaluate_stop(
         )
 
     test_verdict = correctness_record.get("verdict") if needs_tests else None
-    tests_ok = (test_verdict == "pass") if needs_tests else True
+
+    # Execution contract A1b: `baseline_incompatible` means the ORACLE went
+    # non-finite, not that the model failed. It must not hold the loop open —
+    # no repair iteration may be triggered by it — so it counts as "not an
+    # open test issue" here, exactly like `pass`, without being counted as a
+    # pass anywhere downstream.
+    tests_ok = (
+        test_verdict in ("pass", feedback.BASELINE_INCOMPATIBLE)
+        if needs_tests
+        else True
+    )
 
     issues: List[str] = []
     if compile_errors:
@@ -522,7 +532,15 @@ def evaluate_stop(
         status = STATUS_TESTS_PASS if variant == "test_feedback" else STATUS_CLEAN
         reason = "own sources clean at iteration %d" % iteration
         if needs_tests:
-            reason += " (ParEval pass)"
+            # contract A1b: name the ACTUAL condition. Reporting "ParEval
+            # pass" for a sample whose oracle produced a non-finite
+            # reference would put a false statement into the record and
+            # into the overview's stop-reason table.
+            reason += (
+                " (ParEval %s)" % feedback.BASELINE_INCOMPATIBLE
+                if test_verdict == feedback.BASELINE_INCOMPATIBLE
+                else " (ParEval pass)"
+            )
     elif iteration >= max_iterations:
         status = STATUS_BUDGET
         reason = "iteration budget (%d) exhausted; unresolved: %s" % (
