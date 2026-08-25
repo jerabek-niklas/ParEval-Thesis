@@ -116,7 +116,9 @@ from thesis.evaluation.build_config import (  # noqa: E402
     missing_toolchain,
 )
 from thesis.evaluation.run_correctness import (  # noqa: E402
-    BASELINE_INCOMPATIBLE_MARKER,
+    BASELINE_INCOMPATIBLE_NONCE_ENV,
+    MARKER_NONCE,
+    classify_baseline_incompatible,
     parse_mismatch_output,
 )
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
@@ -418,6 +420,10 @@ def sanitized_child_env(
     env.update(launch_env)
     if fill_env:
         env.update(fill_env)
+    # contract C2b: the per-execution marker nonce. Set LAST and from the
+    # runner's own value, so neither a stale operator export nor a spec's
+    # fill environment can substitute a nonce the parser would then accept.
+    env[BASELINE_INCOMPATIBLE_NONCE_ENV] = MARKER_NONCE
     return env
 
 
@@ -464,6 +470,8 @@ def run_binary(
         cwd=cwd, env=env, **popen_kwargs
     )
 
+    timed_out = False
+
     try:
         stdout, stderr = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -473,8 +481,13 @@ def run_binary(
             except (ProcessLookupError, PermissionError):
                 pass
         process.kill()
-        process.communicate()
-        return "timeout", None, time.time() - started, "", ""
+        # contract C2c: KEEP what the process already wrote. The marker is
+        # flushed the moment it is printed, so it is in the pipe before the
+        # hang; discarding this output (as this branch used to) made a
+        # non-finite reference followed by a hang indistinguishable from a
+        # plain model timeout.
+        stdout, stderr = process.communicate()
+        timed_out = True
 
     duration = time.time() - started
     stdout = stdout or ""
@@ -484,8 +497,17 @@ def run_binary(
     # is a property of the oracle, never a model failure. It reuses the
     # existing enhanced status baseline_incompatible (which is NOT merged with
     # numerically_unstable — the two keep their distinct meanings).
-    if BASELINE_INCOMPATIBLE_MARKER in stdout:
+    #
+    # Contract C2b: only a marker carrying THIS execution's nonce counts.
+    # Contract C3b.2: it outranks the process state, timeout included — once
+    # the reference is known to be non-evaluable, a later fault on that
+    # invalid basis is not a model failure.
+    authentic, _spoofed = classify_baseline_incompatible(stdout, MARKER_NONCE)
+    if authentic:
         return "baseline_incompatible", process.returncode, duration, stdout, stderr
+
+    if timed_out:
+        return "timeout", None, duration, stdout, stderr
 
     if "Validation: FAIL" in stdout:
         return "fail", process.returncode, duration, stdout, stderr

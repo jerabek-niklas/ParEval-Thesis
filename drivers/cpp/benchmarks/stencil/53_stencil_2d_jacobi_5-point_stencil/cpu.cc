@@ -74,19 +74,20 @@ bool validate(Context *ctx) {
         jacobi2D(input, test, TEST_SIZE);
         SYNC();
 
+        // Contract C1.5/C1b.4: former hand-written double loop. The GRADED
+        // index set is unchanged — the selector reproduces the old interior
+        // (row and column both in [1, TEST_SIZE-1)), so the border ring stays
+        // ungraded — and the 1e-6 tolerance is unchanged.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (size_t i = 1; i < TEST_SIZE-1; i += 1) {
-                for (size_t j = 1; j < TEST_SIZE-1; j += 1) {
-                    if (std::abs(test[i * TEST_SIZE + j] - correct[i * TEST_SIZE + j]) > 1e-6) {
-                        isCorrect = false;
-                        break;
-                    }
-                }
-                if (!isCorrect) {
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareSelectedWith(
+                correct, test, static_cast<std::vector<double> const*>(nullptr),
+                [](double e, double g) { return std::abs(g - e) > 1e-6; },
+                [TEST_SIZE](size_t idx) {
+                    const size_t r = idx / TEST_SIZE;
+                    const size_t c = idx % TEST_SIZE;
+                    return r >= 1 && r + 1 < TEST_SIZE && c >= 1 && c + 1 < TEST_SIZE;
+                })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

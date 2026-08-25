@@ -82,14 +82,13 @@ bool validate(Context *ctx) {
         sortComplexByMagnitude(test);
         SYNC();
         
+        // Contract C1.5: the former hand-written loop used exactly this
+        // predicate — std::abs on a complex difference is the magnitude, and
+        // that is what reportAndCompare's default predicate computes for a
+        // complex value type. Tolerance unchanged at 1e-6.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (int i = 0; i < correct.size(); i += 1) {
-                if (std::abs(correct[i] - test[i]) > 1e-6) {
-                    isCorrect = false;
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompare(correct, test, 1e-6)) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

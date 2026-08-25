@@ -92,8 +92,15 @@ bool validate(Context *ctx) {
         solveLinearSystem(A, b, test, TEST_SIZE);
         SYNC();
         
+        // Contract C1.5: the extra `std::any_of(test, isnan)` scan that used
+        // to be OR-ed in here is gone. reportAndCompare already fails a
+        // finite reference against a non-finite candidate — for NaN AND for
+        // +-Inf, which the isnan scan missed. Its only remaining effect was
+        // the case the contract forbids: at an index where the ORACLE went
+        // non-finite (helper skips it, marker emitted) a candidate NaN was
+        // turned into a MODEL failure. Tolerance unchanged at 1e-4.
         bool isCorrect = true;
-        if (IS_ROOT(rank) && (!reportAndCompare(correct, test, 1e-4) || std::any_of(test.begin(), test.end(), [](double x) { return std::isnan(x); }))) {
+        if (IS_ROOT(rank) && !reportAndCompare(correct, test, 1e-4)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

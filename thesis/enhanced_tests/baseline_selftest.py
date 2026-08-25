@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -41,10 +42,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-# Single source for the marker string (execution contract A1); the driver
-# side that prints it is drivers/cpp/utilities.hpp.
+# Single source for the marker string and its authentication (execution
+# contract A1/C2b); the driver side that prints it is
+# drivers/cpp/utilities.hpp.
 from thesis.evaluation.run_correctness import (  # noqa: E402
-    BASELINE_INCOMPATIBLE_MARKER,
+    BASELINE_INCOMPATIBLE_NONCE_ENV,
+    MARKER_NONCE,
+    classify_baseline_incompatible,
 )
 
 BENCHMARKS_DIR = REPO_ROOT / "drivers" / "cpp" / "benchmarks"
@@ -306,26 +310,47 @@ def compile_and_run(
         if build.returncode != 0:
             return "build_failed"
 
+        # contract C2b: the gate authenticates the marker exactly like the
+        # pipeline stages do, so the two cannot disagree about what counts
+        # as an oracle signal
+        env = dict(os.environ)
+        env[BASELINE_INCOMPATIBLE_NONCE_ENV] = MARKER_NONCE
+
+        timed_out = False
+
         try:
             result = subprocess.run(
-                [str(binary), "1"], capture_output=True, text=True, timeout=RUN_TIMEOUT, cwd=tmp
+                [str(binary), "1"], capture_output=True, text=True,
+                timeout=RUN_TIMEOUT, cwd=tmp, env=env,
             )
-        except subprocess.TimeoutExpired:
-            return "hang"
+            stdout = result.stdout or ""
+            returncode = result.returncode
+        except subprocess.TimeoutExpired as expired:
+            # contract C2c: a hang must not swallow an already-flushed
+            # marker — a non-finite reference that then hangs is an oracle
+            # defect, not a spec that merely runs too long
+            raw = expired.stdout or b""
+            stdout = raw.decode(errors="replace") if isinstance(raw, bytes) else raw
+            returncode = None
+            timed_out = True
 
         # Execution contract A1f: a NON-FINITE REFERENCE in the baseline gate
         # is an invalid oracle output for this spec. Checked before the
-        # PASS/FAIL marker, because the comparator lets the run finish and
-        # print PASS while the reference was NaN/Inf. The caller maps every
-        # non-"pass" probe result onto baseline_incompatible and keeps this
-        # precise cause in baseline_gate.
-        if BASELINE_INCOMPATIBLE_MARKER in result.stdout:
+        # PASS/FAIL marker AND before the process state, because the
+        # comparator lets the run finish and print PASS while the reference
+        # was NaN/Inf. The caller maps every non-"pass" probe result onto
+        # baseline_incompatible and keeps this precise cause in baseline_gate.
+        authentic, _spoofed = classify_baseline_incompatible(stdout, MARKER_NONCE)
+        if authentic:
             return "non_finite_reference"
 
-        if result.returncode != 0:
+        if timed_out:
+            return "hang"
+
+        if returncode != 0:
             return "crash"
 
-        return "pass" if "Validation: PASS" in result.stdout else "validate_fail"
+        return "pass" if "Validation: PASS" in stdout else "validate_fail"
 
 
 def selftest_one(benchmark_dir: Path, wrapper: str, prompt_text: str, size: int) -> dict:

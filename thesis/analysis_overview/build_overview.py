@@ -119,6 +119,37 @@ def _correctness_excluded(rows: "List[Dict[str, Any]]") -> int:
         if r.get("correctness_verdict") in CORRECTNESS_EXCLUDED
     )
 
+
+def _gridpoint_summary(runs: "List[Dict[str, Any]]") -> str:
+    """`correctness_pass_gridpoints` for ONE sample (contract C3.1).
+
+    A grid point whose run verdict is oracle-side (baseline_incompatible)
+    is EXCLUDED from the denominator and reported separately, so the field
+    stops showing a fail-shaped "0/4" for a sample nothing could be graded
+    on. Shapes:
+
+        "3/4"                all four grid points evaluable
+        "2/3 (1 excluded)"   one oracle-side grid point removed
+        "0 evaluable (4 excluded)"  nothing left to grade — never "0/0"
+        "NA"                 no grid points at all (e.g. build_failed)
+    """
+    if not runs:
+        return NA
+
+    evaluable = [r for r in runs if r.get("verdict") not in CORRECTNESS_EXCLUDED]
+    excluded = len(runs) - len(evaluable)
+
+    if not evaluable:
+        return "0 evaluable (%d excluded)" % excluded
+
+    passed = sum(1 for r in evaluable if r.get("verdict") == "pass")
+    text = "%d/%d" % (passed, len(evaluable))
+
+    if excluded:
+        text += " (%d excluded)" % excluded
+
+    return text
+
 # Cleaning flags from assembly.jsonl (thesis/assembly/cleaning.py). These are
 # INTERVENTIONS ON THE MEASURED OBJECT: the pipeline repairs model output
 # before evaluating it, so the share of samples that needed which repair has
@@ -600,8 +631,7 @@ def build_row(
         row["correctness_verdict"] = correctness_record.get("verdict")
 
         runs = correctness_record.get("runs") or []
-        passed = sum(1 for r in runs if r.get("verdict") == "pass")
-        row["correctness_pass_gridpoints"] = "%d/%d" % (passed, len(runs))
+        row["correctness_pass_gridpoints"] = _gridpoint_summary(runs)
 
         totals = [r.get("mismatch_total") for r in runs if r.get("mismatch_total")]
         if totals:
@@ -648,6 +678,15 @@ def build_row(
         row["enhanced_build_failed"] = counts.get("build_failed", 0)
         row["enhanced_runtime_error"] = counts.get("runtime_error", 0)
         row["enhanced_gated"] = sum(counts.get(s, 0) for s in ENHANCED_GATED)
+        # contract C3.3: the two gate reasons keep their distinct meanings, so
+        # they are also counted separately — `baseline_incompatible` is an
+        # ORACLE defect, `numerically_unstable` is a property of the
+        # differential comparison. Both stay out of the pass/fail denominator
+        # (ENHANCED_COUNTED); only the display splits them. These keys are
+        # deliberately NOT added to COLUMNS: overview.csv keeps its exact
+        # shape, the markdown tables read them from the row.
+        for gate in ENHANCED_GATED:
+            row["enhanced_%s" % gate] = counts.get(gate, 0)
 
         # both timing semantics (versioned via the run summary, see
         # RunData): legacy files carry build+run mixed in duration_seconds;
@@ -1494,8 +1533,9 @@ def enhanced_by_execution_model_section(rows: "List[Dict[str, Any]]") -> List[st
         "rounding signatures in fail — see docs/enhanced-tests-parallel.md).",
         "",
         "| exec | samples | pass | fail | crash | timeout | build_failed | "
-        "runtime_error | gated |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "runtime_error | gated | of which baseline_incompatible | "
+        "of which numerically_unstable |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
 
     for execution_model in ("serial", "omp", "mpi"):
@@ -1507,7 +1547,7 @@ def enhanced_by_execution_model_section(rows: "List[Dict[str, Any]]") -> List[st
             return sum(int(r.get(column) or 0) for r in subset)
 
         lines.append(
-            "| %s | %d | %d | %d | %d | %d | %d | %d | %d |"
+            "| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d |"
             % (
                 execution_model,
                 len(subset),
@@ -1518,8 +1558,20 @@ def enhanced_by_execution_model_section(rows: "List[Dict[str, Any]]") -> List[st
                 total("enhanced_build_failed"),
                 total("enhanced_runtime_error"),
                 total("enhanced_gated"),
+                # contract C3.3: an oracle defect must be readable as such,
+                # not hidden inside one merged "gated" number
+                total("enhanced_baseline_incompatible"),
+                total("enhanced_numerically_unstable"),
             )
         )
+
+    lines.append("")
+    lines.append(
+        "`gated` specs are OUT of the pass/fail denominator: "
+        "`baseline_incompatible` means the ORACLE was not evaluable for that "
+        "spec, `numerically_unstable` means the differential comparison "
+        "itself was not decidable there. Neither is a model result."
+    )
 
     return lines
 

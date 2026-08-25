@@ -68,14 +68,20 @@ bool validate(Context *ctx) {
         dft(x, test);
         SYNC();
         
+        // Contract C1.5: former hand-written loop, predicate verbatim (the
+        // per-component 1e-4 tolerance is unchanged). The loop was bounded by
+        // x.size() — the INPUT length — while indexing the OUTPUT vectors, so
+        // a candidate that resized `test` was read out of bounds; the helper
+        // rejects a length difference before the first element access.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (int j = 0; j < x.size(); j += 1) {
-                if (std::abs(correct[j].real() - test[j].real()) > 1e-4 || std::abs(correct[j].imag() - test[j].imag()) > 1e-4) {
-                    isCorrect = false;
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareWith(
+                correct, test,
+                static_cast<std::vector<std::complex<double>> const*>(nullptr),
+                [](std::complex<double> const& e, std::complex<double> const& g) {
+                    return std::abs(e.real() - g.real()) > 1e-4
+                        || std::abs(e.imag() - g.imag()) > 1e-4;
+                })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

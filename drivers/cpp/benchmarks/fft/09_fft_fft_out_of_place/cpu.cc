@@ -82,14 +82,17 @@ bool validate(Context *ctx) {
         fft(x, test);
         SYNC();
         
+        // Contract C1.5: former hand-written loop, predicate verbatim (the
+        // per-component 1e-4 tolerance is unchanged).
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (size_t k = 0; k < correct.size(); k += 1) {
-                if (std::abs(correct[k].real() - test[k].real()) > 1e-4 || std::abs(correct[k].imag() - test[k].imag()) > 1e-4) {
-                    isCorrect = false;
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareWith(
+                correct, test,
+                static_cast<std::vector<std::complex<double>> const*>(nullptr),
+                [](std::complex<double> const& e, std::complex<double> const& g) {
+                    return std::abs(e.real() - g.real()) > 1e-4
+                        || std::abs(e.imag() - g.imag()) > 1e-4;
+                })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

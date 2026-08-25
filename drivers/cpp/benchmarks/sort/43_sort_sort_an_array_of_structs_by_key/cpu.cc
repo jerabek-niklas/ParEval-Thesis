@@ -102,15 +102,38 @@ bool validate(Context *ctx) {
         sortByStartTime(test);
         SYNC();
         
+        // Contract C1.5/C1b.4: `Result` mixes two ints with a FLOAT, so the
+        // struct comparison was a floating-point comparison in disguise —
+        // `correct[i].value != test[i].value` is TRUE for a NaN reference
+        // (NaN != NaN), i.e. a non-finite ORACLE was scored as a MODEL
+        // failure. The loop was also bounded by correct.size() while
+        // indexing the candidate-writable `test`.
+        //
+        // The three fields are compared field-wise through the shared helper.
+        // The graded predicate is unchanged: a sample is correct iff all
+        // three fields agree at every index, which is exactly the former
+        // conjunction; && short-circuits just as the former `break` did.
         bool isCorrect = true;
         if (IS_ROOT(rank)) {
-            for (int i = 0; i < correct.size(); i += 1) {
-                if (correct[i].startTime != test[i].startTime ||
-                    correct[i].duration != test[i].duration ||
-                    correct[i].value != test[i].value) {
-                    isCorrect = false;
-                    break;
-                }
+            std::vector<int> cStart(correct.size()), tStart(test.size());
+            std::vector<int> cDur(correct.size()), tDur(test.size());
+            std::vector<float> cVal(correct.size()), tVal(test.size());
+
+            for (size_t i = 0; i < correct.size(); i += 1) {
+                cStart[i] = correct[i].startTime;
+                cDur[i] = correct[i].duration;
+                cVal[i] = correct[i].value;
+            }
+            for (size_t i = 0; i < test.size(); i += 1) {
+                tStart[i] = test[i].startTime;
+                tDur[i] = test[i].duration;
+                tVal[i] = test[i].value;
+            }
+
+            if (!reportAndCompareEq(cStart, tStart)
+                || !reportAndCompareEq(cDur, tDur)
+                || !reportAndCompareEq(cVal, tVal)) {
+                isCorrect = false;
             }
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

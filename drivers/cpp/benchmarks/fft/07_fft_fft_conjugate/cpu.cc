@@ -82,14 +82,18 @@ bool validate(Context *ctx) {
         fftConjugate(test);
         SYNC();
         
+        // Contract C1.5: former hand-written loop, predicate verbatim (the
+        // per-component 1e-3 tolerance is unchanged). The loop was bounded by
+        // TEST_SIZE while indexing a candidate-writable vector.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (int k = 0; k < TEST_SIZE; k += 1) {
-                if (std::abs(correct[k].real() - test[k].real()) > 1e-3 || std::abs(correct[k].imag() - test[k].imag()) > 1e-3) {
-                    isCorrect = false;
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareWith(
+                correct, test,
+                static_cast<std::vector<std::complex<double>> const*>(nullptr),
+                [](std::complex<double> const& e, std::complex<double> const& g) {
+                    return std::abs(e.real() - g.real()) > 1e-3
+                        || std::abs(e.imag() - g.imag()) > 1e-3;
+                })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

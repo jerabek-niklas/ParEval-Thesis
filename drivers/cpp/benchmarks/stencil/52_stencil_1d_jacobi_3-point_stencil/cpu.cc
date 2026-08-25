@@ -71,14 +71,20 @@ bool validate(Context *ctx) {
         jacobi1D(input, test);
         SYNC();
 
+        // Contract C1.5/C1b.4: former hand-written loop. The GRADED index set
+        // is unchanged — the selector reproduces the old bounds [1,
+        // TEST_SIZE-1) exactly, so the two boundary elements stay ungraded —
+        // and the 1e-4 tolerance is unchanged. What is new: a length
+        // difference is rejected before the first element access, a
+        // non-finite REFERENCE inside the graded range raises the
+        // baseline_incompatible marker instead of comparing equal, and a
+        // non-finite candidate there fails.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (size_t i = 1; i < TEST_SIZE-1; i++) {
-                if (std::abs(test[i] - correct[i]) > 1e-4) {
-                    isCorrect = false;
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareSelectedWith(
+                correct, test, static_cast<std::vector<double> const*>(nullptr),
+                [](double e, double g) { return std::abs(g - e) > 1e-4; },
+                [TEST_SIZE](size_t i) { return i >= 1 && i + 1 < TEST_SIZE; })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

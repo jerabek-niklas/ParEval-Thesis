@@ -87,14 +87,21 @@ bool validate(Context *ctx) {
         ifft(test);
         SYNC();
         
+        // Contract C1.5: the hand-written loop that used to stand here had
+        // NONE of the Wave-1 semantics — a non-finite reference compared
+        // EQUAL (every ordered comparison with NaN is false), a non-finite
+        // candidate did too, and a resized candidate was read out of bounds.
+        // The predicate below is the former condition verbatim, so the
+        // per-component 1e-4 tolerance is unchanged.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (int j = 0; j < correct.size(); j += 1) {
-                if ((std::abs(correct[j].real() - test[j].real()) > 1e-4) || (std::abs(correct[j].imag() - test[j].imag()) > 1e-4)) {
-                    isCorrect = false;
-                    break;
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareWith(
+                correct, test,
+                static_cast<std::vector<std::complex<double>> const*>(nullptr),
+                [](std::complex<double> const& e, std::complex<double> const& g) {
+                    return std::abs(e.real() - g.real()) > 1e-4
+                        || std::abs(e.imag() - g.imag()) > 1e-4;
+                })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

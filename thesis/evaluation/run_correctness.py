@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import secrets
 import sys
 import tempfile
 from collections import Counter
@@ -94,6 +95,38 @@ VALIDATION_MARKER = "Validation:"
 BASELINE_INCOMPATIBLE_MARKER = "BASELINE_INCOMPATIBLE:"
 BASELINE_INCOMPATIBLE = "baseline_incompatible"
 
+# Contract C2b: the marker is AUTHENTICATED with a per-execution nonce the
+# runner generates and hands to the binary through this environment variable.
+# The driver prints it as "BASELINE_INCOMPATIBLE: <reason> nonce=<hex>"
+# (drivers/cpp/utilities.hpp, mismatchNoteNonFiniteReference); only a line
+# carrying THIS process's nonce may influence a verdict.
+#
+# Threat model: this defeats an UNINTENTIONAL collision — a candidate that
+# happens to print the marker string cannot guess 128 random bits. It is NOT
+# forgery-proof against a candidate that deliberately reads its environment;
+# with a shared process and a shared stdout that is not solvable here and no
+# cryptographic guarantee is claimed.
+BASELINE_INCOMPATIBLE_NONCE_ENV = "PAREVAL_BI_NONCE"
+
+BASELINE_INCOMPATIBLE_LINE = re.compile(
+    r"^BASELINE_INCOMPATIBLE:\s*(?P<reason>\S+)"
+    r"(?:\s+nonce=(?P<nonce>\S+))?\s*$"
+)
+
+
+def new_marker_nonce() -> str:
+    """A fresh 128-bit hex nonce for one pipeline execution."""
+    return secrets.token_hex(16)
+
+
+# One nonce per RUNNER PROCESS. Module level on purpose: every entry point
+# (main(), run_model() from run_backfill.py, a direct run_sample() call in a
+# test) then carries an authenticated marker without having to remember a
+# parameter — a forgotten nonce would silently degrade baseline_incompatible
+# back to PASS/FAIL. The value is never persisted: it only authenticates the
+# local parser against the local child process.
+MARKER_NONCE = new_marker_nonce()
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run correctness tests on assembled samples.")
@@ -132,21 +165,58 @@ def parse_validation(stdout: str) -> bool | None:
 
 
 def count_baseline_incompatible(stdout: str) -> int:
-    """Number of BASELINE_INCOMPATIBLE marker lines in driver stdout.
+    """Number of BASELINE_INCOMPATIBLE marker lines in driver stdout,
+    REGARDLESS of authenticity.
 
     Returns the COUNT, not a bool, because contract A1g requires the parser
-    to tell "marker missing" (0) from "marker more than once" (>1) apart:
-    under MPI the marker must come from the root rank exactly once, and a
-    repeated marker means the once-per-process guard did not hold (e.g. a
-    candidate printing the line itself). Neither case may be mapped onto
-    pass/fail silently — 0 falls through to the normal PASS/FAIL path, >1
-    still yields baseline_incompatible but is reported by the caller.
+    to tell "marker missing" (0) from "marker more than once" (>1) apart.
+    This raw count never decides a verdict on its own — see
+    classify_baseline_incompatible, which splits it into authentic and
+    unauthenticated lines (contract C2b).
     """
     return sum(
         1
         for line in stdout.splitlines()
         if line.strip().startswith(BASELINE_INCOMPATIBLE_MARKER)
     )
+
+
+def classify_baseline_incompatible(
+    stdout: str, nonce: "str | None"
+) -> "tuple[int, int]":
+    """(authentic, unauthenticated) BASELINE_INCOMPATIBLE lines.
+
+    AUTHENTIC means the line carries exactly the nonce this process handed
+    to the binary (contract C2b). Everything else — a missing nonce, a
+    wrong nonce, a line a candidate printed itself — is UNAUTHENTICATED and
+    must never influence a verdict; the caller reports it as an anomaly
+    instead.
+
+    Under MPI SEVERAL authentic lines are normal: the marker is emitted once
+    per RANK, deliberately without a root-only filter and deliberately
+    without a collective (contract C2.2/C2.4).
+
+    `nonce=None` means "no nonce expected" and accepts any marker line. That
+    is only for callers that run a binary they built without passing a
+    nonce; the pipeline stages always pass one.
+    """
+    authentic = 0
+    unauthenticated = 0
+
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line.startswith(BASELINE_INCOMPATIBLE_MARKER):
+            continue
+
+        match = BASELINE_INCOMPATIBLE_LINE.match(line)
+        seen = match.group("nonce") if match else None
+
+        if nonce is None or (seen is not None and seen == nonce):
+            authentic += 1
+        else:
+            unauthenticated += 1
+
+    return authentic, unauthenticated
 
 
 # rel= is OPTIONAL (backward compatible: records produced before the field
@@ -219,20 +289,28 @@ def run_verdict(
 ) -> str:
     """Verdict of ONE grid point.
 
-    Contract A1b, case 1 is decided FIRST among the validation outcomes: a
-    non-finite REFERENCE outranks the PASS/FAIL marker, so a run whose
-    oracle produced NaN/Inf never becomes "validation_failed" (a model
-    failure) and never becomes "pass" either.
+    Contract A1b, case 1 is decided FIRST: a non-finite REFERENCE outranks
+    every other outcome, so a run whose oracle produced NaN/Inf never
+    becomes "validation_failed" (a model failure) and never becomes "pass".
 
-    `timed_out` still comes first overall: a run that hit the wall clock has
-    no complete comparison to classify, and that classification predates
-    this contract.
+    Contract C3b.2 makes it outrank the PROCESS STATE as well — including a
+    timeout, a crash and a non-zero exit. Once an AUTHENTIC marker proves
+    the reference for this validation case was not evaluable, a later fault
+    on that invalid basis must not re-enter the correctness pass/fail
+    denominator as a model failure. `timeout` and `runtime_error` are
+    fail-side outcomes in every denominator, so leaving them ahead of
+    baseline_incompatible would do exactly that. The exclusion is
+    symmetric: it removes a possible pass and a possible fail alike.
+
+    The secondary process state is NOT lost — the caller stores `timed_out`
+    and `exit_code` on the run entry, so the record still says the process
+    hung or died. No schema change, no new verdict value.
     """
-    if timed_out:
-        return "timeout"
-
     if baseline_incompatible:
         return BASELINE_INCOMPATIBLE
+
+    if timed_out:
+        return "timeout"
 
     if validation is False:
         return "validation_failed"
@@ -302,6 +380,7 @@ def run_sample(
     niter: int,
     build_timeout: float,
     run_timeout: float,
+    marker_nonce: "str | None" = None,
 ) -> dict[str, Any]:
     record: dict[str, Any] = {
         "schema_version": CORRECTNESS_SCHEMA_VERSION,
@@ -330,23 +409,46 @@ def run_sample(
         verdicts: Counter = Counter()
         sample_verdict = "pass"
 
+        nonce = marker_nonce or MARKER_NONCE
+
         for params in launch.params:
             argv, extra_env = launch.command(str(exec_path), params, niter=niter)
+
+            # contract C2b: the binary can only emit an AUTHENTIC marker if
+            # it knows this process's nonce. Verified to reach every rank
+            # under `mpirun -np N` (Open MPI forwards the launch environment).
+            extra_env = dict(extra_env or {})
+            extra_env[BASELINE_INCOMPATIBLE_NONCE_ENV] = nonce
 
             result = run_command(
                 argv, timeout=run_timeout, cwd=tmp, extra_env=extra_env
             )
 
             validation = parse_validation(result.stdout)
-            marker_count = count_baseline_incompatible(result.stdout)
+            marker_count, spoofed_markers = classify_baseline_incompatible(
+                result.stdout, nonce
+            )
 
-            if marker_count > 1:
-                # contract A1g: never silently mapped onto pass/fail, but the
-                # once-per-process guard was violated (candidate stdout?)
+            # contract C2.4: under MPI the marker legitimately appears once
+            # per RANK, so its COUNT is not an anomaly there. Under
+            # serial/omp there is exactly one process, so more than one
+            # authentic marker means the once-per-process guard did not hold.
+            if marker_count > 1 and sample.execution_model != "mpi":
                 print(
-                    "    WARN %s %s: BASELINE_INCOMPATIBLE marker seen %d times "
-                    "(expected exactly once, root rank only)"
+                    "    WARN %s %s: authentic BASELINE_INCOMPATIBLE marker "
+                    "seen %d times (expected exactly once per process)"
                     % (sample.sample_id, params, marker_count)
+                )
+
+            if spoofed_markers:
+                # contract C2b: a BASELINE_INCOMPATIBLE line WITHOUT this
+                # process's nonce never influences the verdict. It is either
+                # candidate output or a runner that forgot the nonce —
+                # both must be visible, neither may be silent.
+                print(
+                    "    WARN %s %s: %d unauthenticated BASELINE_INCOMPATIBLE "
+                    "line(s) in stdout (wrong or missing nonce) — ignored for "
+                    "the verdict" % (sample.sample_id, params, spoofed_markers)
                 )
 
             verdict = run_verdict(

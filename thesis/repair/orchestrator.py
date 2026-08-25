@@ -529,7 +529,21 @@ def evaluate_stop(
     }
 
     if not issues:
-        status = STATUS_TESTS_PASS if variant == "test_feedback" else STATUS_CLEAN
+        # Contract C3b.1: `stopped_tests_pass` ASSERTS that the ParEval tests
+        # passed. For a baseline_incompatible sample that statement is false —
+        # the oracle produced a non-finite reference, so nothing was graded.
+        # It is stored as `stopped_clean` instead: an EXISTING terminal status
+        # that says "this variant's own feedback sources raised nothing" and
+        # claims no test result. No new status is invented, no record field is
+        # added, and the stop_reason below still names the real condition, so
+        # the two cases stay distinguishable in the stop-reason table.
+        oracle_side = needs_tests and test_verdict == feedback.BASELINE_INCOMPATIBLE
+
+        status = (
+            STATUS_TESTS_PASS
+            if (variant == "test_feedback" and not oracle_side)
+            else STATUS_CLEAN
+        )
         reason = "own sources clean at iteration %d" % iteration
         if needs_tests:
             # contract A1b: name the ACTUAL condition. Reporting "ParEval

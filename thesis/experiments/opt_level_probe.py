@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -50,6 +51,10 @@ if str(REPO_ROOT) not in sys.path:
 
 from thesis.evaluation.build_config import get_build_config  # noqa: E402
 from thesis.evaluation.run_correctness import (  # noqa: E402
+    BASELINE_INCOMPATIBLE,
+    BASELINE_INCOMPATIBLE_NONCE_ENV,
+    MARKER_NONCE,
+    classify_baseline_incompatible,
     parse_mismatch_output,
     parse_validation,
     run_verdict,
@@ -161,14 +166,29 @@ def build_and_run(
                 "stderr": (build.stderr or "")[-800:],
             }
 
+        # contract C2b: the probe authenticates the marker like the pipeline
+        # stages, so its verdicts stay comparable with theirs
+        probe_env = dict(os.environ)
+        probe_env[BASELINE_INCOMPATIBLE_NONCE_ENV] = MARKER_NONCE
+
         run = subprocess.run(
             [str(exec_path), "1"],
             capture_output=True, text=True, timeout=RUN_TIMEOUT, cwd=tmp,
+            env=probe_env,
         )
 
     stdout = run.stdout or ""
     mismatches, total = parse_mismatch_output(stdout)
-    verdict = run_verdict(parse_validation(stdout), run.returncode, False)
+    # contract C3.4: this probe is a real run_verdict consumer. Without the
+    # baseline_incompatible argument a non-finite oracle reference arrived
+    # here as a plain "pass" (the driver prints Validation: PASS and exits 0
+    # while the comparator skips the non-finite indices) — an oracle defect
+    # would have looked like a clean control sample.
+    authentic, _spoofed = classify_baseline_incompatible(stdout, MARKER_NONCE)
+    verdict = run_verdict(
+        parse_validation(stdout), run.returncode, False,
+        baseline_incompatible=authentic > 0,
+    )
 
     return {
         "level": level,
@@ -321,6 +341,19 @@ def render_report(
 
     all_identical = comparison["all_identical"]
     control_pass = all(r["verdict"] == "pass" for r in control_results)
+    control_bi = [r for r in control_results if r["verdict"] == BASELINE_INCOMPATIBLE]
+
+    if control_bi:
+        # contract C3.4: an oracle-side verdict must not be reported as a
+        # failed hypothesis; the experiment simply has no valid basis here
+        lines += [
+            "",
+            "> **The control sample produced a non-finite oracle reference "
+            "(`%s`) on %d of %d levels.** The comparison below rests on an "
+            "invalid basis for those levels — this is an oracle property, "
+            "not a statement about the optimizer."
+            % (BASELINE_INCOMPATIBLE, len(control_bi), len(control_results)),
+        ]
 
     lines += [
         "",

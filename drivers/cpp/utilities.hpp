@@ -4,6 +4,8 @@
 #include <climits>
 #include <cfloat>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <complex>
@@ -311,30 +313,81 @@ inline bool mismatchIsRoot() {
 // in the Python stage that parses this marker (contract A1c: comparator safe,
 // gate level classifies).
 //
-// The marker is printed EXACTLY ONCE per process and only by the root rank
-// (consistent with mismatchIsRoot(); under MPI all ranks share one stdout
-// stream, so an unguarded print would appear once per rank).
+// MARKER AUTHENTICITY (contract C2b). stdout is shared between harness and
+// candidate code, so a CONSTANT marker string has no authority: any candidate
+// that happens to print the same line would be read as an oracle defect. The
+// marker therefore carries a per-execution nonce the runner generates and
+// passes in through the environment variable PAREVAL_BI_NONCE:
+//
+//     BASELINE_INCOMPATIBLE: non_finite_reference nonce=<hex>
+//
+// The parser accepts ONLY the nonce it generated for this process. Threat
+// model: this defeats UNINTENTIONAL collisions (case A). It is explicitly NOT
+// forgery-proof against a candidate that deliberately reads the environment
+// (case B) — with a shared process and a shared stdout that is not solvable
+// here, and no cryptographic guarantee is claimed. Transport is the
+// environment and not a compile define because the enhanced stage reuses ONE
+// binary across many runs (build groups) and configures the harness through
+// the environment already (ENHANCED_RUNTIME_FILL in enhanced-fill.hpp);
+// build command lines stay untouched.
+//
+// The marker is printed at most ONCE PER PROCESS, i.e. once per MPI RANK
+// (contract C2.2). It is deliberately NOT root-only: a non-root rank that
+// detects a non-finite reference must be able to say so, otherwise the case
+// silently degrades to `Validation: FAIL`. No collective is introduced here —
+// several markers under MPI are normal and the parser treats them as such.
+//
+// stdout is FLUSHED immediately after the marker (contract C2c): against a
+// pipe it is block-buffered, so a process that hangs, is killed on timeout or
+// aborts afterwards would otherwise lose the marker inside the buffer.
 // ---------------------------------------------------------------------------
 inline size_t &mismatchNonFiniteReferenceCount() {
     static size_t count = 0;
     return count;
 }
 
+// The nonce this process was launched with, or "" when the environment does
+// not carry one (hand-run binary). Read exactly once (magic static).
+inline const char *mismatchMarkerNonce() {
+    static const char *nonce = [] {
+        const char *value = std::getenv("PAREVAL_BI_NONCE");
+        return (value != nullptr && value[0] != '\0') ? value : "";
+    }();
+    return nonce;
+}
+
 inline void mismatchNoteNonFiniteReference() {
     mismatchNonFiniteReferenceCount() += 1;
 
     static bool emitted = false;
-    if (!emitted && mismatchIsRoot()) {
-        emitted = true;
-        printf("BASELINE_INCOMPATIBLE: non_finite_reference\n");
+    if (emitted) {
+        return;
     }
+    emitted = true;
+
+    const char *nonce = mismatchMarkerNonce();
+    // "none" when unset: the line stays readable for a hand-run binary, but a
+    // parser that expects a nonce will NOT accept it as authentic.
+    printf("BASELINE_INCOMPATIBLE: non_finite_reference nonce=%s\n",
+           (nonce[0] != '\0') ? nonce : "none");
+    fflush(stdout);
 }
 
 // `a` is the REFERENCE (expected), `b` the CANDIDATE (got) at every call
 // site; the roles are what makes the non-finite rule of contract A1b
 // decidable here.
-template <typename Vec, typename InVec, typename Pred>
-bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred differs) {
+//
+// `selected(i)` restricts the GRADED index set. Several benchmarks grade only
+// an interior (1d stencils skip both ends, 2d stencils skip the border ring):
+// their hand-written loops carried that restriction in the loop bounds. Moving
+// them onto this helper keeps the graded set BIT-IDENTICAL while giving them
+// the role-aware non-finite and size semantics (contract C1.5). Indices the
+// selector rejects are not part of the comparison, so a non-finite value there
+// is neither a mismatch nor a baseline_incompatible signal — grading an
+// ungraded index would be a change of benchmark semantics.
+template <typename Vec, typename InVec, typename Pred, typename Sel>
+bool reportAndCompareSelectedWith(Vec const& a, Vec const& b, InVec const* input,
+                                  Pred differs, Sel selected) {
     const bool isRoot = mismatchIsRoot();
 
     // Contract A2: this used to be `assert(a.size() == b.size())`. Under
@@ -354,6 +407,10 @@ bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred d
     size_t shown = 0;
 
     for (size_t i = 0; i < a.size(); i += 1) {
+        if (!selected(i)) {
+            continue;
+        }
+
         using V = typename Vec::value_type;
         const V va = static_cast<V>(a[i]);
         const V vb = static_cast<V>(b[i]);
@@ -402,6 +459,14 @@ bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred d
     }
 
     return total == 0;
+}
+
+// Every index graded — the behaviour every existing call site had before the
+// selector existed.
+template <typename Vec, typename InVec, typename Pred>
+bool reportAndCompareWith(Vec const& a, Vec const& b, InVec const* input, Pred differs) {
+    return reportAndCompareSelectedWith(a, b, input, differs,
+                                        [](size_t) { return true; });
 }
 
 // fequal replacement (same tolerance semantics), optional input vector

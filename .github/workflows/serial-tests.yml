@@ -31,9 +31,35 @@ jobs:
       - name: Run CPU test for ${{ matrix.problem }}
         run: bash test/test-serial.bash "${{ matrix.problem }}"
 
+  # Wave 1b (contract C5.4): the comparator/verdict semantics regression.
+  # Added to the EXISTING workflow on purpose — no new CI architecture. The
+  # suite compiles and runs the real drivers/cpp/utilities.hpp in serial, omp,
+  # mpi (1 rank) and mpi (2 ranks), each with and without -DNDEBUG, so Open MPI
+  # has to be present; without it the suite reports the missing toolchain as a
+  # FAILURE rather than skipping silently.
+  comparator-semantics:
+    name: Comparator semantics (contract A1/A2 + Wave 1b)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install toolchain (g++, OpenMP, Open MPI)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ libopenmpi-dev openmpi-bin
+
+      - name: Run comparator-semantics regression
+        run: python thesis/evaluation/test_comparator_semantics.py
+
   all-serial-tests:
     name: All Tests Summary
-    needs: serial-tests
+    needs: [serial-tests, comparator-semantics]
     runs-on: ubuntu-latest
     steps:
       - name: Print final message

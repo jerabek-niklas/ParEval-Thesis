@@ -78,16 +78,22 @@ bool validate(Context *ctx) {
         cellsXOR(input, test, TEST_SIZE);
         SYNC();
 
+        // Contract C1b.4: former hand-written double loop over a
+        // candidate-writable vector with NO length check — a resized
+        // candidate was read out of bounds. The GRADED index set is
+        // unchanged (interior only) and the comparison stays exact equality
+        // on int. The value type cannot be NaN/Inf, so the non-finite path
+        // of the helper compiles away here (contract C1.1 category C).
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            for (size_t i = 1; i < TEST_SIZE - 1; i++) {
-                for (size_t j = 1; j < TEST_SIZE - 1; j++) {
-                    if (test[i * TEST_SIZE + j] != correct[i * TEST_SIZE + j]) {
-                        isCorrect = false;
-                        break;
-                    }
-                }
-            }
+        if (IS_ROOT(rank) && !reportAndCompareSelectedWith(
+                correct, test, static_cast<std::vector<int> const*>(nullptr),
+                [](int e, int g) { return !(e == g); },
+                [TEST_SIZE](size_t idx) {
+                    const size_t r = idx / TEST_SIZE;
+                    const size_t c = idx % TEST_SIZE;
+                    return r >= 1 && r + 1 < TEST_SIZE && c >= 1 && c + 1 < TEST_SIZE;
+                })) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

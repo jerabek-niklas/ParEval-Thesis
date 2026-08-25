@@ -101,11 +101,31 @@ bool validate(Context *ctx) {
                 std::sort(correct.begin(), correct.end(), [](Point const& a, Point const& b) {
                     return a.x < b.x || (a.x == b.x && a.y < b.y);
                 });
+
+                // Contract C1.5: `Point` holds two doubles, so the former
+                // hand-written loop was a floating-point comparison without
+                // any of the Wave-1 semantics (a non-finite coordinate
+                // compared EQUAL). The two coordinate sequences are compared
+                // through the shared helper; the graded predicate is
+                // unchanged — a sample is correct iff every x AND every y
+                // agrees within 1e-6, and && short-circuits like the former
+                // `break`. The size check above is kept: it is part of this
+                // benchmark's semantics (a hull of the wrong length is wrong),
+                // not merely a bounds guard.
+                std::vector<double> cx(correct.size()), cy(correct.size());
+                std::vector<double> tx(test.size()), ty(test.size());
+                for (size_t i = 0; i < correct.size(); i++) {
+                    cx[i] = correct[i].x;
+                    cy[i] = correct[i].y;
+                }
                 for (size_t i = 0; i < test.size(); i++) {
-                    if (std::abs(test[i].x - correct[i].x) > 1e-6 || std::abs(test[i].y - correct[i].y) > 1e-6) {
-                        isCorrect = false;
-                        break;
-                    }
+                    tx[i] = test[i].x;
+                    ty[i] = test[i].y;
+                }
+
+                if (!reportAndCompare(cx, tx, 1e-6)
+                    || !reportAndCompare(cy, ty, 1e-6)) {
+                    isCorrect = false;
                 }
             }
         }
