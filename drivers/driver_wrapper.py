@@ -66,7 +66,19 @@ class RunOutput:
             if line.startswith("Time:"):
                 runtime = float(line.split(":")[1].strip())
             elif line.startswith("Validation:"):
-                validation = line.split(":")[1].strip() == "PASS"
+                # LEGACY (non-authenticated) upstream parse. It stays legacy on
+                # purpose: run-all.py launches the driver WITHOUT the thesis
+                # harness token, so the driver emits the historical line
+                # `Validation: PASS|FAIL` unchanged.
+                #
+                # Only the field extraction was made robust: the verdict is now
+                # the FIRST whitespace-separated token after the colon, so a
+                # driver that was (accidentally) started with a token inherited
+                # from the ambient environment and therefore printed
+                # `Validation: PASS nonce=<hex>` is no longer read as a FAIL.
+                # `line.split(":")[1].strip() == "PASS"` compared the whole
+                # remainder and silently inverted such a run.
+                validation = line.split(":", 1)[1].split()[0] == "PASS"
             elif line.startswith("BestSequential:"):
                 best_sequential_runtime = float(line.split(":")[1].strip())
 

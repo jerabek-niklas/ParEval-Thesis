@@ -442,14 +442,19 @@ def test_jobs_and_derived_names():
     os.environ["ENHANCED_FILL_RANGE_LO"] = "0"
     os.environ["ENHANCED_FILL_RANGE_HI"] = "1"
     try:
+        # contract F2.2: the harness token is now a per-child-launch argument
         env = sanitized_child_env({"OMP_NUM_THREADS": "4"},
-                                  {"ENHANCED_FILL_PATTERN": "3"})
+                                  {"ENHANCED_FILL_PATTERN": "3"},
+                                  "0123456789abcdef0123456789abcdef")
         check("inherited ENHANCED_FILL_* stripped",
               "ENHANCED_FILL_RANGE_LO" not in env
               and "ENHANCED_FILL_RANGE_HI" not in env)
         check("launch env and the spec's own fill env survive",
               env.get("OMP_NUM_THREADS") == "4"
               and env.get("ENHANCED_FILL_PATTERN") == "3")
+        check("the caller's harness token is placed in the child env",
+              env.get("PAREVAL_BI_NONCE")
+              == "0123456789abcdef0123456789abcdef")
     finally:
         del os.environ["ENHANCED_FILL_RANGE_LO"]
         del os.environ["ENHANCED_FILL_RANGE_HI"]

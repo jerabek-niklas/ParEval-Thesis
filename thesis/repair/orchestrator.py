@@ -95,11 +95,21 @@ STATUS_TESTS_PASS = "stopped_tests_pass"
 STATUS_BUDGET = "stopped_budget"
 STATUS_UNUSABLE = "repair_unusable"
 
+# Contract F3b: the ORACLE produced a non-finite reference, so the sample was
+# never gradeable and no model repair may be requested. Wave 1b stored this as
+# `stopped_clean` with a telling stop_reason — functionally distinguishable,
+# but a consumer that only counts `status == "stopped_clean"` would read a
+# non-evaluable sample as clean. It is its own terminal value now:
+# not a model pass, not a model failure, excluded from pass/fail rates,
+# separately reportable.
+STATUS_BASELINE_INCOMPATIBLE = "stopped_baseline_incompatible"
+
 TERMINAL_STATUSES = (
     STATUS_CLEAN,
     STATUS_TESTS_PASS,
     STATUS_BUDGET,
     STATUS_UNUSABLE,
+    STATUS_BASELINE_INCOMPATIBLE,
 )
 
 PHASES = (
@@ -529,21 +539,21 @@ def evaluate_stop(
     }
 
     if not issues:
-        # Contract C3b.1: `stopped_tests_pass` ASSERTS that the ParEval tests
-        # passed. For a baseline_incompatible sample that statement is false —
-        # the oracle produced a non-finite reference, so nothing was graded.
-        # It is stored as `stopped_clean` instead: an EXISTING terminal status
-        # that says "this variant's own feedback sources raised nothing" and
-        # claims no test result. No new status is invented, no record field is
-        # added, and the stop_reason below still names the real condition, so
-        # the two cases stay distinguishable in the stop-reason table.
+        # Contract C3b.1/F3b: `stopped_tests_pass` ASSERTS that the ParEval
+        # tests passed, and `stopped_clean` reads as "nothing was wrong". For a
+        # baseline_incompatible sample BOTH are misleading — the oracle
+        # produced a non-finite reference, so nothing was graded at all. It
+        # gets its own terminal status, regardless of which test-consuming
+        # variant produced it.
         oracle_side = needs_tests and test_verdict == feedback.BASELINE_INCOMPATIBLE
 
-        status = (
-            STATUS_TESTS_PASS
-            if (variant == "test_feedback" and not oracle_side)
-            else STATUS_CLEAN
-        )
+        if oracle_side:
+            status = STATUS_BASELINE_INCOMPATIBLE
+        elif variant == "test_feedback":
+            status = STATUS_TESTS_PASS
+        else:
+            status = STATUS_CLEAN
+
         reason = "own sources clean at iteration %d" % iteration
         if needs_tests:
             # contract A1b: name the ACTUAL condition. Reporting "ParEval
@@ -1868,6 +1878,11 @@ class RepairLoop:
             "stopped_tests_pass": by_status.get(STATUS_TESTS_PASS, 0),
             "stopped_budget": by_status.get(STATUS_BUDGET, 0),
             "repair_unusable": by_status.get(STATUS_UNUSABLE, 0),
+            # contract F3b.3: an explicit enumeration — a new terminal value
+            # that is not listed here would silently vanish from the summary
+            "stopped_baseline_incompatible": by_status.get(
+                STATUS_BASELINE_INCOMPATIBLE, 0
+            ),
             "pending_external": pending_external,
             "batch_id": batch.get("batch_id"),
         }

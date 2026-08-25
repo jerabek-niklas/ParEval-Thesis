@@ -12,6 +12,13 @@
 #include <queue>
 #include <type_traits>
 
+// The shared harness authentication token and the trusted Validation emitter.
+// Deliberately a separate, dependency-free header: the model drivers are
+// compiled standalone by drivers/cpp/Makefile WITHOUT -DUSE_<MODEL> and
+// WITHOUT -DDRIVER_PROBLEM_SIZE, so they cannot include this file — but both
+// sides must agree on ONE token implementation.
+#include "harness-markers.hpp"
+
 // make sure some parallel model is defined
 #if !defined(USE_SERIAL) && !defined(USE_OMP) && !defined(USE_MPI) && !defined(USE_MPI_OMP) && !defined(USE_KOKKOS) && !defined(USE_CUDA) && !defined(USE_HIP)
 #error "No parallel model not defined"
@@ -346,14 +353,11 @@ inline size_t &mismatchNonFiniteReferenceCount() {
     return count;
 }
 
-// The nonce this process was launched with, or "" when the environment does
-// not carry one (hand-run binary). Read exactly once (magic static).
+// The token this process was launched with, or "" when the environment does
+// not carry one (hand-run binary). ONE implementation, shared with the model
+// drivers' Validation emitter — see drivers/cpp/harness-markers.hpp.
 inline const char *mismatchMarkerNonce() {
-    static const char *nonce = [] {
-        const char *value = std::getenv("PAREVAL_BI_NONCE");
-        return (value != nullptr && value[0] != '\0') ? value : "";
-    }();
-    return nonce;
+    return parevalHarnessNonce();
 }
 
 inline void mismatchNoteNonFiniteReference() {

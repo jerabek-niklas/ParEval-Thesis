@@ -53,10 +53,10 @@ from thesis.evaluation.build_config import get_build_config  # noqa: E402
 from thesis.evaluation.run_correctness import (  # noqa: E402
     BASELINE_INCOMPATIBLE,
     BASELINE_INCOMPATIBLE_NONCE_ENV,
-    MARKER_NONCE,
     classify_baseline_incompatible,
+    new_marker_nonce,
+    parse_authenticated_validation,
     parse_mismatch_output,
-    parse_validation,
     run_verdict,
 )
 from thesis.evaluation.tools import DRIVER_PROBLEM_SIZE_DEFINE  # noqa: E402
@@ -166,10 +166,11 @@ def build_and_run(
                 "stderr": (build.stderr or "")[-800:],
             }
 
-        # contract C2b: the probe authenticates the marker like the pipeline
-        # stages, so its verdicts stay comparable with theirs
+        # contract C2b/F2.1: the probe authenticates like the pipeline stages,
+        # so its verdicts stay comparable with theirs — fresh token per run
+        nonce = new_marker_nonce()
         probe_env = dict(os.environ)
-        probe_env[BASELINE_INCOMPATIBLE_NONCE_ENV] = MARKER_NONCE
+        probe_env[BASELINE_INCOMPATIBLE_NONCE_ENV] = nonce
 
         run = subprocess.run(
             [str(exec_path), "1"],
@@ -184,9 +185,10 @@ def build_and_run(
     # here as a plain "pass" (the driver prints Validation: PASS and exits 0
     # while the comparator skips the non-finite indices) — an oracle defect
     # would have looked like a clean control sample.
-    authentic, _spoofed = classify_baseline_incompatible(stdout, MARKER_NONCE)
+    authentic, _spoofed = classify_baseline_incompatible(stdout, nonce)
+    validation, _anomalies = parse_authenticated_validation(stdout, nonce)
     verdict = run_verdict(
-        parse_validation(stdout), run.returncode, False,
+        validation, run.returncode, False,
         baseline_incompatible=authentic > 0,
     )
 

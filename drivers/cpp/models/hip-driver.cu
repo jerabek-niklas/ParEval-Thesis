@@ -18,6 +18,8 @@
 
 #include <hip/hip_runtime.h>
 
+#include "../harness-markers.hpp"
+
 class Context;
 extern "C++" {
     /* todo -- these could all be in a class, but I'm not sure if virtual 
@@ -85,7 +87,10 @@ int main(int argc, char **argv) {
 
     /* validate */
     const bool isValid = validate(ctx);
-    printf("Validation: %s\n", isValid ? "PASS" : "FAIL");
+    // contract F1: trusted verdict line. Authenticated form when the harness
+    // token is present, byte-identical legacy form otherwise; flushed
+    // immediately. See drivers/cpp/harness-markers.hpp.
+    parevalEmitValidation(isValid);
     if (!isValid) {
         destroy(ctx);
         return 0;

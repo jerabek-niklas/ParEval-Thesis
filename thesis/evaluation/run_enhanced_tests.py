@@ -117,8 +117,9 @@ from thesis.evaluation.build_config import (  # noqa: E402
 )
 from thesis.evaluation.run_correctness import (  # noqa: E402
     BASELINE_INCOMPATIBLE_NONCE_ENV,
-    MARKER_NONCE,
     classify_baseline_incompatible,
+    new_marker_nonce,
+    parse_authenticated_validation,
     parse_mismatch_output,
 )
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
@@ -404,6 +405,7 @@ def launch_command(
 def sanitized_child_env(
     launch_env: "dict[str, str]",
     fill_env: "dict[str, str] | None",
+    marker_nonce: str,
 ) -> "dict[str, str]":
     """Child environment for a spec process: the inherited environment is
     stripped of ALL ENHANCED_FILL_* keys BEFORE the spec's own fill env is
@@ -420,10 +422,10 @@ def sanitized_child_env(
     env.update(launch_env)
     if fill_env:
         env.update(fill_env)
-    # contract C2b: the per-execution marker nonce. Set LAST and from the
-    # runner's own value, so neither a stale operator export nor a spec's
-    # fill environment can substitute a nonce the parser would then accept.
-    env[BASELINE_INCOMPATIBLE_NONCE_ENV] = MARKER_NONCE
+    # contract C2b/F2.2: the token of THIS child execution. Set LAST and from
+    # the caller's own value, so neither a stale operator export nor a spec's
+    # fill environment can substitute a token the parser would then accept.
+    env[BASELINE_INCOMPATIBLE_NONCE_ENV] = marker_nonce
     return env
 
 
@@ -434,6 +436,7 @@ def run_binary(
     execution_model: str = "serial",
     launch_settings: "dict[str, Any] | None" = None,
     extra_env: "dict[str, str] | None" = None,
+    marker_nonce: "str | None" = None,
 ) -> "tuple[str, int | None, float, str, str]":
     """Verdicts aligned with run_correctness.run_verdict: the validation
     MARKER decides fail vs pass; exit 0 without any marker is a
@@ -452,7 +455,11 @@ def run_binary(
         binary, execution_model, launch_settings or {}
     )
 
-    env = sanitized_child_env(launch_env, extra_env)
+    # contract F2.1/F2.2: one spec process = one launch = one fresh token.
+    # `marker_nonce` exists only so tests can pin a deterministic value.
+    nonce = marker_nonce or new_marker_nonce()
+
+    env = sanitized_child_env(launch_env, extra_env, nonce)
 
     started = time.time()
 
@@ -502,20 +509,27 @@ def run_binary(
     # Contract C3b.2: it outranks the process state, timeout included — once
     # the reference is known to be non-evaluable, a later fault on that
     # invalid basis is not a model failure.
-    authentic, _spoofed = classify_baseline_incompatible(stdout, MARKER_NONCE)
+    authentic, _spoofed = classify_baseline_incompatible(stdout, nonce)
     if authentic:
         return "baseline_incompatible", process.returncode, duration, stdout, stderr
 
     if timed_out:
         return "timeout", None, duration, stdout, stderr
 
-    if "Validation: FAIL" in stdout:
+    # Contract F1.6/F3.1: the enhanced stage used to decide on the raw
+    # substrings "Validation: FAIL" / "Validation: PASS", which a candidate
+    # shares stdout with. It now uses the SAME authenticated parser as the
+    # correctness stage — including its loud HarnessTransportError when the
+    # trusted driver ran but the token never reached it.
+    validation, _anomalies = parse_authenticated_validation(stdout, nonce)
+
+    if validation is False:
         return "fail", process.returncode, duration, stdout, stderr
 
     if process.returncode != 0:
         return "crash", process.returncode, duration, stdout, stderr
 
-    if "Validation: PASS" in stdout:
+    if validation is True:
         return "pass", process.returncode, duration, stdout, stderr
 
     return "runtime_error", process.returncode, duration, stdout, stderr

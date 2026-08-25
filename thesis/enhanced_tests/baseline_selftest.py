@@ -47,8 +47,9 @@ if str(REPO_ROOT) not in sys.path:
 # drivers/cpp/utilities.hpp.
 from thesis.evaluation.run_correctness import (  # noqa: E402
     BASELINE_INCOMPATIBLE_NONCE_ENV,
-    MARKER_NONCE,
     classify_baseline_incompatible,
+    new_marker_nonce,
+    parse_authenticated_validation,
 )
 
 BENCHMARKS_DIR = REPO_ROOT / "drivers" / "cpp" / "benchmarks"
@@ -310,11 +311,12 @@ def compile_and_run(
         if build.returncode != 0:
             return "build_failed"
 
-        # contract C2b: the gate authenticates the marker exactly like the
-        # pipeline stages do, so the two cannot disagree about what counts
-        # as an oracle signal
+        # contract C2b/F2.1: the gate authenticates exactly like the pipeline
+        # stages, so the two cannot disagree about what counts as an oracle
+        # signal — with a FRESH token per probe process.
+        nonce = new_marker_nonce()
         env = dict(os.environ)
-        env[BASELINE_INCOMPATIBLE_NONCE_ENV] = MARKER_NONCE
+        env[BASELINE_INCOMPATIBLE_NONCE_ENV] = nonce
 
         timed_out = False
 
@@ -340,7 +342,7 @@ def compile_and_run(
         # comparator lets the run finish and print PASS while the reference
         # was NaN/Inf. The caller maps every non-"pass" probe result onto
         # baseline_incompatible and keeps this precise cause in baseline_gate.
-        authentic, _spoofed = classify_baseline_incompatible(stdout, MARKER_NONCE)
+        authentic, _spoofed = classify_baseline_incompatible(stdout, nonce)
         if authentic:
             return "non_finite_reference"
 
@@ -350,7 +352,11 @@ def compile_and_run(
         if returncode != 0:
             return "crash"
 
-        return "pass" if "Validation: PASS" in stdout else "validate_fail"
+        # contract F3.1: authenticated, not a raw substring test — the probe
+        # wrapper shares stdout with the oracle exactly like a candidate does
+        validation, _anomalies = parse_authenticated_validation(stdout, nonce)
+
+        return "pass" if validation is True else "validate_fail"
 
 
 def selftest_one(benchmark_dir: Path, wrapper: str, prompt_text: str, size: int) -> dict:

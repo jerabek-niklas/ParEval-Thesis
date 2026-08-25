@@ -120,6 +120,9 @@ def print_status(loops) -> None:
         ("tests", 5),
         ("budget", 6),
         ("unusable", 8),
+        # contract F3b.3: samples whose ORACLE was not evaluable. Shown as its
+        # own column so it is never read as part of "clean".
+        ("bi", 4),
         ("ext", 4),
         ("batch", 20),
     ]
@@ -140,6 +143,7 @@ def print_status(loops) -> None:
             str(row["stopped_tests_pass"]),
             str(row["stopped_budget"]),
             str(row["repair_unusable"]),
+            str(row["stopped_baseline_incompatible"]),
             str(row["pending_external"]),
             str(row["batch_id"] or "-"),
         ]

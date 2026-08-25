@@ -93,11 +93,23 @@ def test_launch_config() -> None:
 
 def test_correctness_verdicts() -> None:
     print("correctness: validation parsing and verdicts")
-    from thesis.evaluation.run_correctness import parse_validation, run_verdict
+    # contract F1.7: the non-authenticated parse is explicitly LEGACY now —
+    # same inputs, same expectations, only the name says what it is. The
+    # authenticated production parser is covered in test_comparator_semantics.
+    from thesis.evaluation.run_correctness import (
+        legacy_parse_validation,
+        run_verdict,
+    )
 
-    check("PASS parsed", parse_validation("Init\nValidation: PASS\nTime: 1.0\n") is True)
-    check("FAIL parsed", parse_validation("Validation: FAIL\n") is False)
-    check("missing marker -> None", parse_validation("Segmentation fault\n") is None)
+    check("PASS parsed",
+          legacy_parse_validation("Init\nValidation: PASS\nTime: 1.0\n") is True)
+    check("FAIL parsed", legacy_parse_validation("Validation: FAIL\n") is False)
+    check("missing marker -> None",
+          legacy_parse_validation("Segmentation fault\n") is None)
+    # contract F1.6 rule 6: no substring parsing — an authenticated line is
+    # NOT a legacy line and must not be answered by the legacy helper
+    check("authenticated line is not legacy",
+          legacy_parse_validation("Validation: PASS nonce=abc\n") is None)
 
     check("pass verdict", run_verdict(True, 0, False) == "pass")
     # drivers exit 0 after printing FAIL -> marker beats exit code

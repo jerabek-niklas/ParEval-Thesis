@@ -38,16 +38,31 @@ jobs:
   # has to be present; without it the suite reports the missing toolchain as a
   # FAILURE rather than skipping silently.
   comparator-semantics:
-    name: Comparator semantics (contract A1/A2 + Wave 1b)
-    runs-on: ubuntu-latest
+    name: Comparator semantics (contract A1/A2 + Wave 1/1b)
+    # Contract F4.2: this job — and ONLY this job — pins ubuntu-22.04. The
+    # pipeline's stated floor is Python 3.8, and the gate has to run ON that
+    # floor rather than merely claim compatibility. Python 3.8 reached EOL in
+    # October 2024 and is no longer published for the ubuntu-24.04 runner
+    # image that `ubuntu-latest` now resolves to, so `python-version: '3.8'`
+    # there cannot be provisioned by setup-python. ubuntu-22.04 is an existing
+    # GitHub runner image that still carries it. No new CI architecture, no
+    # trigger change, no change to the other jobs.
+    #
+    # Verified locally instead of in CI (GitHub Actions cannot be executed
+    # from the development host): the complete suite runs green under real
+    # Python 3.8.20 in a python:3.8-slim container with g++ and Open MPI.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Set up Python 3.8 (the pipeline's stated floor)
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.8'
+
+      - name: Show the interpreter actually used
+        run: python -VV
 
       - name: Install toolchain (g++, OpenMP, Open MPI)
         run: |

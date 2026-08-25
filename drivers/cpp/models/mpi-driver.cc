@@ -17,6 +17,8 @@
 
 #include <mpi.h>
 
+#include "../harness-markers.hpp"
+
 
 class Context;
 extern "C++" {
@@ -55,7 +57,10 @@ int main(int argc, char **argv) {
     /* validate */
     const bool isValid = validate(ctx);
     if (rank == 0) {
-        printf("Validation: %s\n", isValid ? "PASS" : "FAIL");
+        // contract F1: trusted verdict line. Authenticated form when the harness
+        // token is present, byte-identical legacy form otherwise; flushed
+        // immediately. See drivers/cpp/harness-markers.hpp.
+        parevalEmitValidation(isValid);
 
         if (!isValid) {
             destroy(ctx);

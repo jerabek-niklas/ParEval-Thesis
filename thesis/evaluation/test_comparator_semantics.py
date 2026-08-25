@@ -153,7 +153,8 @@ static int twoAttempts(std::vector<double> const& ref1,
             valid = false;
         }
     }
-    printf("Validation: %s\n", valid ? "PASS" : "FAIL");
+    // contract F1: the SAME trusted emitter the model drivers use
+    parevalEmitValidation(valid);
     return 0;
 }
 
@@ -585,7 +586,8 @@ def run_two_attempt_cases(exe, config, label, ranks):
         check("%s/%s: marker present" % (label, case), authentic == ranks,
               "authentic=%d other=%d stdout=%r" % (authentic, other, stdout))
         check("%s/%s: not turned into a model failure" % (label, case),
-              "Validation: PASS" in stdout, "stdout=%r" % stdout)
+              ("Validation: PASS nonce=%s" % TEST_NONCE) in stdout,
+              "stdout=%r" % stdout)
 
 
 def run_survival_cases(exe, config, label, ranks):
@@ -638,7 +640,8 @@ STUB_TEMPLATE = r"""
 int main() {
     printf("BASELINE_INCOMPATIBLE: non_finite_reference nonce=%(nonce)s\n");
     fflush(stdout);
-    printf("Validation: PASS\n");
+    printf("Validation: PASS nonce=%(nonce)s\n");
+    fflush(stdout);
     printf("Time: 0.1\n");
     printf("BestSequential: 0.1\n");
     %(tail)s
@@ -646,30 +649,216 @@ int main() {
 }
 """
 
+# What a CANDIDATE could print next to a genuine trusted verdict: BI markers
+# without / with a guessed token, plus a bare Validation line. None of it may
+# influence the outcome — the authentic FAIL decides (contract F1.6 rule 4).
 STUB_SPOOF = r"""
 #include <cstdio>
 int main() {
-    /* what a CANDIDATE could print: the marker string without the nonce, and
-       with a guessed one */
     printf("BASELINE_INCOMPATIBLE: non_finite_reference\n");
     printf("BASELINE_INCOMPATIBLE: non_finite_reference nonce=deadbeef\n");
-    printf("Validation: FAIL\n");
+    printf("Validation: PASS\n");
+    printf("Validation: FAIL nonce=%(nonce)s\n");
+    return 0;
+}
+"""
+
+# The trusted driver ran, but the token never reached it: only the exact
+# legacy line arrives (contract F1.6 rule 7 / F2.4).
+STUB_LEGACY_ONLY = r"""
+#include <cstdio>
+int main() {
+    printf("Validation: PASS\n");
+    printf("Time: 0.1\n");
+    printf("BestSequential: 0.1\n");
+    return 0;
+}
+"""
+
+# Contract F2.6: echoes the token the CHILD actually received, so the tests can
+# observe the per-launch lifetime from the outside. It uses the SAME header the
+# model drivers use — and compiles it exactly as drivers/cpp/Makefile does:
+# standalone, WITHOUT -DUSE_<MODEL> and WITHOUT -DDRIVER_PROBLEM_SIZE.
+STUB_NONCE_ECHO = r"""
+#include <cstdio>
+#include "harness-markers.hpp"
+int main() {
+    printf("CHILD_NONCE=%s\n", parevalHarnessNonce());
+    printf("AUTHENTICATED=%d\n", parevalAuthenticatedMode() ? 1 : 0);
+    parevalEmitValidation(true);
+    printf("Time: 0.1\n");
+    printf("BestSequential: 0.1\n");
+    return 0;
+}
+"""
+
+STUB_NONCE_ECHO_MPI = r"""
+#include <cstdio>
+#include <mpi.h>
+#include "harness-markers.hpp"
+int main(int argc, char **argv) {
+    MPI_Init(&argc, &argv);
+    int rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    printf("CHILD_NONCE=%s rank=%d\n", parevalHarnessNonce(), rank);
+    fflush(stdout);
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) { parevalEmitValidation(true); }
+    MPI_Finalize();
     return 0;
 }
 """
 
 
-def build_stub(workdir, name, source):
+def build_stub(workdir, name, source, compiler="g++"):
     src = os.path.join(workdir, name + ".cpp")
     exe = os.path.join(workdir, name)
     with open(src, "w") as fh:
         fh.write(source)
-    built = subprocess.run(["g++", "-std=c++17", "-O0", src, "-o", exe],
+    # -I DRIVERS_CPP so the stubs can use harness-markers.hpp; deliberately
+    # WITHOUT -DUSE_<MODEL>/-DDRIVER_PROBLEM_SIZE, mirroring how
+    # drivers/cpp/Makefile compiles the model drivers standalone
+    built = subprocess.run([compiler, "-std=c++17", "-O0", "-I", DRIVERS_CPP,
+                            src, "-o", exe],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            universal_newlines=True)
     if built.returncode != 0:
         return None, built.stderr[-500:]
     return exe, ""
+
+
+def observed_child_nonces(stdout):
+    """Every token the child(ren) reported via CHILD_NONCE=."""
+    found = []
+    for line in stdout.splitlines():
+        line = line.strip()
+        if line.startswith("CHILD_NONCE="):
+            found.append(line[len("CHILD_NONCE="):].split()[0])
+    return found
+
+
+BENCHMARK_DIR = os.path.join(DRIVERS_CPP, "benchmarks", "dense_la",
+                             "03_dense_la_axpy")
+
+AXPY_CANDIDATE = (
+    "void NO_INLINE axpy(double alpha, std::vector<double> const& x,\n"
+    "                    std::vector<double> const& y,\n"
+    "                    std::vector<double> &z) {\n"
+    "    correctAxpy(alpha, x, y, z);\n"
+    "}\n"
+)
+
+
+def build_real_driver(workdir, execution_model):
+    """Compile a REAL benchmark against a REAL model driver, exactly as the
+    pipeline does. Returns (exe, error)."""
+    src_dir = os.path.join(workdir, "real_%s" % execution_model)
+    if not os.path.isdir(src_dir):
+        os.makedirs(src_dir)
+    with open(os.path.join(src_dir, "generated-code.hpp"), "w") as fh:
+        fh.write(AXPY_CANDIDATE)
+
+    exe = os.path.join(workdir, "real_%s.out" % execution_model)
+    if execution_model == "mpi":
+        compiler, extra, macro = "mpicxx", [], "-DUSE_MPI"
+        driver = "mpi-driver.cc"
+    else:
+        compiler, extra, macro = "g++", [], "-DUSE_SERIAL"
+        driver = "serial-driver.cc"
+
+    argv = [compiler, "-std=c++17", "-O1", macro] + extra + [
+        "-DDRIVER_PROBLEM_SIZE=(1<<4)", "-DENHANCED_TEST_SIZE=8",
+        "-I", DRIVERS_CPP, "-I", os.path.join(DRIVERS_CPP, "models"),
+        "-I", src_dir,
+        os.path.join(DRIVERS_CPP, "models", driver),
+        os.path.join(BENCHMARK_DIR, "cpu.cc"),
+        "-o", exe,
+    ]
+    built = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           universal_newlines=True)
+    if built.returncode != 0:
+        return None, built.stderr[-800:]
+    return exe, ""
+
+
+def test_real_drivers(workdir):
+    """Contract F1.8 items 12/13/14 on the SHIPPED model drivers, not stubs."""
+    print("\n== real model drivers ==")
+
+    exe, err = build_real_driver(workdir, "serial")
+    if exe is None:
+        check("real serial driver builds", False, err)
+        return
+
+    base_env = dict(os.environ)
+    base_env.pop(NONCE_ENV, None)
+
+    # 12) LEGACY mode: byte-identical historical line, nothing else
+    legacy = subprocess.run([exe, "1"], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, universal_newlines=True,
+                            env=base_env, timeout=120).stdout
+    legacy_lines = [ln for ln in legacy.splitlines()
+                    if ln.startswith("Validation:")]
+    check("F1.8-12: legacy driver emits EXACTLY 'Validation: PASS'",
+          legacy_lines == ["Validation: PASS"], "%r" % (legacy_lines,))
+
+    # 13) the upstream parser still reads it — the real one, on real output
+    sys.path.insert(0, os.path.dirname(DRIVERS_CPP))
+    from drivers.driver_wrapper import RunOutput
+
+    parsed = RunOutput(0, legacy, "", {})
+    check("F1.8-13: the upstream legacy parser still reads it as valid",
+          parsed.is_valid is True, "is_valid=%r" % parsed.is_valid)
+
+    # and it is not confused by the authenticated form either
+    auth_env = dict(base_env)
+    auth_env[NONCE_ENV] = TEST_NONCE
+    authed = subprocess.run([exe, "1"], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, universal_newlines=True,
+                            env=auth_env, timeout=120).stdout
+    auth_lines = [ln for ln in authed.splitlines()
+                  if ln.startswith("Validation:")]
+    check("F1.8: authenticated driver emits the token form",
+          auth_lines == ["Validation: PASS nonce=%s" % TEST_NONCE],
+          "%r" % (auth_lines,))
+    check("F1.8-13: the upstream parser is robust against the token form",
+          RunOutput(0, authed, "", {}).is_valid is True)
+
+    # the thesis parser accepts the authenticated form and rejects the legacy
+    from thesis.evaluation.run_correctness import (
+        HarnessTransportError, parse_authenticated_validation,
+    )
+
+    check("F1.8-1: thesis parser reads the authenticated PASS",
+          parse_authenticated_validation(authed, TEST_NONCE)[0] is True)
+
+    raised = False
+    try:
+        parse_authenticated_validation(legacy, TEST_NONCE)
+    except HarnessTransportError:
+        raised = True
+    check("F1.8-15: real driver without the token -> loud transport error",
+          raised, "no HarnessTransportError raised")
+
+    # 14) exactly ONE authentic Validation marker under a real mpirun -n 2
+    if shutil.which("mpicxx") and shutil.which("mpirun"):
+        mexe, merr = build_real_driver(workdir, "mpi")
+        if mexe is None:
+            check("real mpi driver builds", False, merr)
+        else:
+            out = subprocess.run(
+                ["mpirun", "-n", "2", "--allow-run-as-root", "--oversubscribe",
+                 mexe, "1"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                universal_newlines=True, env=auth_env, timeout=180).stdout
+            mlines = [ln for ln in out.splitlines()
+                      if ln.startswith("Validation:")]
+            check("F1.8-14: mpirun -n 2 emits EXACTLY ONE authentic "
+                  "Validation marker",
+                  mlines == ["Validation: PASS nonce=%s" % TEST_NONCE],
+                  "%r" % (mlines,))
+            check("F1.8-14: the thesis parser accepts it",
+                  parse_authenticated_validation(out, TEST_NONCE)[0] is True)
 
 
 def test_transport(workdir):
@@ -682,14 +871,26 @@ def test_transport(workdir):
 
     from thesis.evaluation.run_correctness import (
         BASELINE_INCOMPATIBLE,
-        MARKER_NONCE,
+        HarnessTransportError,
         classify_baseline_incompatible,
         count_baseline_incompatible,
+        legacy_count_baseline_incompatible,
+        legacy_parse_validation,
         new_marker_nonce,
+        parse_authenticated_validation,
         run_verdict,
     )
 
-    AUTH = "BASELINE_INCOMPATIBLE: non_finite_reference nonce=%s\n" % MARKER_NONCE
+    # contract F2.2: no module-level production token exists any more; a test
+    # pins its own deterministic value.
+    check("F2.2: no module-level production nonce",
+          not hasattr(
+              __import__("thesis.evaluation.run_correctness",
+                         fromlist=["x"]), "MARKER_NONCE"))
+
+    NONCE = TEST_NONCE
+    AUTH = "BASELINE_INCOMPATIBLE: non_finite_reference nonce=%s\n" % NONCE
+    MARKER_NONCE = NONCE  # local alias for the assertions below
 
     # --- parser + verdict -------------------------------------------------
     check("parser: marker absent -> 0",
@@ -725,6 +926,87 @@ def test_transport(workdir):
           "rejected",
           classify_baseline_incompatible(AUTH + AUTH, MARKER_NONCE) == (2, 0))
 
+    # ---- contract F2.3: a production parser without a token fails LOUDLY ---
+    def raises(fn, exc):
+        try:
+            fn()
+        except exc:
+            return True
+        except Exception:  # noqa: BLE001
+            return False
+        return False
+
+    check("F2.3: classify_baseline_incompatible without a token raises",
+          raises(lambda: classify_baseline_incompatible(AUTH, None), ValueError))
+    check("F2.3: classify_baseline_incompatible with an empty token raises",
+          raises(lambda: classify_baseline_incompatible(AUTH, ""), ValueError))
+    check("F2.3: parse_authenticated_validation without a token raises",
+          raises(lambda: parse_authenticated_validation("", None), ValueError))
+    check("F2.5: the LEGACY BI counter still works without a token",
+          legacy_count_baseline_incompatible(
+              "BASELINE_INCOMPATIBLE: non_finite_reference\n") == 1)
+
+    # ---- contract F1.6: authenticated Validation ---------------------------
+    def V(verdict, nonce=None):
+        if nonce is None:
+            return "Validation: %s\n" % verdict
+        return "Validation: %s nonce=%s\n" % (verdict, nonce)
+
+    check("F1.6-1: authentic PASS",
+          parse_authenticated_validation(V("PASS", NONCE), NONCE)[0] is True)
+    check("F1.6-1: authentic FAIL",
+          parse_authenticated_validation(V("FAIL", NONCE), NONCE)[0] is False)
+    check("F1.6-2: no marker at all -> None",
+          parse_authenticated_validation("Segmentation fault\n", NONCE)[0] is None)
+
+    # rule 4: a candidate line next to an authentic one never wins
+    check("F1.6-4: candidate PASS before trusted FAIL -> FAIL",
+          parse_authenticated_validation(
+              V("PASS") + V("FAIL", NONCE), NONCE)[0] is False)
+    check("F1.6-4: candidate FAIL before trusted PASS -> PASS",
+          parse_authenticated_validation(
+              V("FAIL") + V("PASS", NONCE), NONCE)[0] is True)
+    check("F1.6-4: the candidate line is reported as an anomaly",
+          parse_authenticated_validation(
+              V("PASS") + V("FAIL", NONCE), NONCE)[1] != [])
+    check("F1.6-4: a candidate line is NOT a harness error",
+          parse_authenticated_validation(
+              V("PASS") + V("FAIL", NONCE), NONCE)[0] is False)
+
+    check("F1.6-4: foreign token next to an authentic marker -> authentic wins",
+          parse_authenticated_validation(
+              V("FAIL", "deadbeef") + V("PASS", NONCE), NONCE)[0] is True)
+    check("F1.6: ONLY a foreign token -> no verdict",
+          parse_authenticated_validation(V("PASS", "deadbeef"), NONCE)[0] is None)
+
+    # rule 3: two authentic markers are a transport anomaly, not "first wins"
+    two = parse_authenticated_validation(V("PASS", NONCE) + V("FAIL", NONCE), NONCE)
+    check("F1.6-3: two authentic markers -> no verdict", two[0] is None)
+    check("F1.6-3: two authentic markers are reported",
+          any("AUTHENTIC" in a for a in two[1]), "%r" % (two[1],))
+
+    # rule 7: the token never reached the child
+    check("F1.6-7: trusted legacy line in an authenticated run raises",
+          raises(lambda: parse_authenticated_validation(V("PASS"), NONCE),
+                 HarnessTransportError))
+    check("F1.6-7: the same for FAIL",
+          raises(lambda: parse_authenticated_validation(V("FAIL"), NONCE),
+                 HarnessTransportError))
+    check("F1.6-7: NOT raised when an authentic marker is present",
+          parse_authenticated_validation(
+              V("PASS") + V("PASS", NONCE), NONCE)[0] is True)
+
+    # rule 6: no substring parsing
+    check("F1.6-6: 'PASS' elsewhere in the line is not a verdict",
+          parse_authenticated_validation(
+              "Validation: something PASS\n", NONCE)[0] is None)
+
+    # F1.7: legacy helper accepts ONLY the exact historical line
+    check("F1.7: legacy helper reads the historical line",
+          legacy_parse_validation(V("PASS")) is True)
+    check("F1.7: legacy helper does not read an authenticated line",
+          legacy_parse_validation(V("PASS", NONCE)) is None)
+
     check("verdict: marker + PASS -> baseline_incompatible",
           run_verdict(True, 0, False, baseline_incompatible=True)
           == BASELINE_INCOMPATIBLE)
@@ -755,36 +1037,115 @@ def test_transport(workdir):
 
     stub_exe, err = build_stub(
         workdir, "stub",
-        STUB_TEMPLATE % {"nonce": MARKER_NONCE, "tail": ""})
+        STUB_TEMPLATE % {"nonce": NONCE, "tail": ""})
     if stub_exe is None:
         check("enhanced: stub compiles", False, err)
     else:
-        status = run_binary(stub_exe, workdir, 60.0)[0]
-        check("enhanced: marker outranks 'Validation: PASS' -> baseline_incompatible",
+        status = run_binary(stub_exe, workdir, 60.0, marker_nonce=NONCE)[0]
+        check("enhanced: marker outranks an authentic PASS -> baseline_incompatible",
               status == "baseline_incompatible", "got %r" % status)
 
     # contract C2c at the enhanced stage: marker, then the process hangs and
     # is killed. The old code discarded stdout on timeout entirely.
     hang_exe, err = build_stub(
         workdir, "stub_hang",
-        STUB_TEMPLATE % {"nonce": MARKER_NONCE, "tail": "for (;;) { sleep(1); }"})
+        STUB_TEMPLATE % {"nonce": NONCE, "tail": "for (;;) { sleep(1); }"})
     if hang_exe is None:
         check("enhanced: hang stub compiles", False, err)
     else:
-        status = run_binary(hang_exe, workdir, 5.0)[0]
+        status = run_binary(hang_exe, workdir, 5.0, marker_nonce=NONCE)[0]
         check("enhanced C2c: marker survives the timeout kill",
               status == "baseline_incompatible", "got %r" % status)
 
-    # contract C2b at the enhanced stage: an unauthenticated line must not
-    # produce baseline_incompatible
-    spoof_exe, err = build_stub(workdir, "stub_spoof", STUB_SPOOF)
+    # contract C2b/F1.6-4 at the enhanced stage: candidate lines — BI without a
+    # token, BI with a guessed token, a bare Validation: PASS — must all be
+    # ignored, and the AUTHENTIC FAIL must decide
+    spoof_exe, err = build_stub(workdir, "stub_spoof",
+                                STUB_SPOOF % {"nonce": NONCE})
     if spoof_exe is None:
         check("enhanced: spoof stub compiles", False, err)
     else:
-        status = run_binary(spoof_exe, workdir, 60.0)[0]
-        check("enhanced C2b: unauthenticated marker does NOT become "
-              "baseline_incompatible",
+        status = run_binary(spoof_exe, workdir, 60.0, marker_nonce=NONCE)[0]
+        check("enhanced C2b: unauthenticated markers do NOT become "
+              "baseline_incompatible; the authentic verdict decides",
               status == "fail", "got %r" % status)
+
+    # contract F1.6-7/F2.4 at the enhanced stage: the token never reached the
+    # child -> loud transport error, never a model verdict
+    legacy_exe, err = build_stub(workdir, "stub_legacy", STUB_LEGACY_ONLY)
+    if legacy_exe is None:
+        check("enhanced: legacy stub compiles", False, err)
+    else:
+        raised = False
+        try:
+            run_binary(legacy_exe, workdir, 60.0, marker_nonce=NONCE)
+        except HarnessTransportError:
+            raised = True
+        except Exception as exc:  # noqa: BLE001
+            raised = "wrong exception: %r" % exc
+        check("enhanced F1.6-7: legacy-only output in an authenticated run "
+              "raises a transport error", raised is True, "got %r" % raised)
+
+    # --- contract F2.6: token LIFETIME, observed from the child ------------
+    echo_exe, err = build_stub(workdir, "stub_echo", STUB_NONCE_ECHO)
+    if echo_exe is None:
+        check("F2.6: nonce-echo stub compiles", False, err)
+    else:
+        # production path: no marker_nonce argument anywhere
+        first = run_binary(echo_exe, workdir, 60.0)[3]
+        second = run_binary(echo_exe, workdir, 60.0)[3]
+        n1 = observed_child_nonces(first)
+        n2 = observed_child_nonces(second)
+        check("F2.6-1: the child really received a token",
+              len(n1) == 1 and len(n1[0]) == 32, "%r" % (n1,))
+        check("F2.6-1: two serial child launches -> different tokens",
+              n1 and n2 and n1[0] != n2[0], "%r vs %r" % (n1, n2))
+        check("F2.6: the child reports authenticated mode",
+              "AUTHENTICATED=1" in first, first)
+
+        # OMP is the same binary at a different launch point
+        omp1 = run_binary(echo_exe, workdir, 60.0, execution_model="omp",
+                          launch_settings={"omp_threads": 2})[3]
+        omp2 = run_binary(echo_exe, workdir, 60.0, execution_model="omp",
+                          launch_settings={"omp_threads": 2})[3]
+        check("F2.6-2: two omp child launches -> different tokens",
+              observed_child_nonces(omp1) != observed_child_nonces(omp2),
+              "%r vs %r" % (observed_child_nonces(omp1),
+                            observed_child_nonces(omp2)))
+
+    if shutil.which("mpicxx") and shutil.which("mpirun"):
+        mpi_exe, err = build_stub(workdir, "stub_echo_mpi",
+                                  STUB_NONCE_ECHO_MPI, compiler="mpicxx")
+        if mpi_exe is None:
+            check("F2.6: mpi nonce-echo stub compiles", False, err)
+        else:
+            launch = {"mpi_ranks": 2}
+            m1 = run_binary(mpi_exe, workdir, 120.0, execution_model="mpi",
+                            launch_settings=launch)[3]
+            m2 = run_binary(mpi_exe, workdir, 120.0, execution_model="mpi",
+                            launch_settings=launch)[3]
+            r1 = observed_child_nonces(m1)
+            r2 = observed_child_nonces(m2)
+            check("F2.6-3: both ranks reported a token", len(r1) == 2, "%r" % (r1,))
+            check("F2.6-3: ONE mpirun launch = ONE token on ALL ranks",
+                  len(set(r1)) == 1, "%r" % (r1,))
+            check("F2.6-4: the next mpirun launch uses a different token",
+                  set(r1) != set(r2), "%r vs %r" % (r1, r2))
+            check("F2.6-3: exactly one authentic Validation marker per launch",
+                  sum(1 for ln in m1.splitlines()
+                      if ln.strip().startswith("Validation:")) == 1, m1)
+
+    # --- contract F2.6-5/6/7: gates and probes get their own tokens --------
+    import inspect as _inspect
+    from thesis.enhanced_tests import baseline_selftest as _bst
+
+    check("F2.6-5: the enhanced spec launcher mints a token per process",
+          "new_marker_nonce()" in _inspect.getsource(run_binary))
+    check("F2.6-6: the baseline gate mints a token per probe process",
+          "new_marker_nonce()" in _inspect.getsource(_bst.compile_and_run))
+
+    # --- contract F1.8-12/13/14: the REAL model drivers --------------------
+    test_real_drivers(workdir)
 
     # --- repair: no model repair, no correctness feedback -----------------
     from thesis.repair import feedback
@@ -805,20 +1166,46 @@ def test_transport(workdir):
         stop_config(), "test_feedback", 1, 2,
         CLEAN_STATIC, dynamic_record(), record, None,
     )
-    from thesis.repair.orchestrator import STATUS_ACTIVE, STATUS_TESTS_PASS
+    from thesis.repair.orchestrator import (
+        STATUS_ACTIVE,
+        STATUS_BASELINE_INCOMPATIBLE,
+        STATUS_TESTS_PASS,
+        TERMINAL_STATUSES,
+    )
 
     check("repair: baseline_incompatible does not start an iteration",
-          decision.status in (STATUS_CLEAN, STATUS_TESTS_PASS),
+          decision.status != STATUS_ACTIVE,
           "status=%r reason=%r" % (decision.status, decision.stop_reason))
-    # contract C3b.1: `stopped_tests_pass` asserts the tests passed. For an
-    # oracle-side sample that statement is false, so the terminal state must
-    # be the neutral existing one.
-    check("repair C3b.1: terminal state is NOT stopped_tests_pass",
-          decision.status == STATUS_CLEAN,
+    # contract F3b.1: neither `stopped_tests_pass` (asserts a test pass) nor
+    # `stopped_clean` (reads as "nothing was wrong") may describe a sample the
+    # oracle never made gradeable. It has its own terminal value.
+    check("repair F3b.1: terminal state is stopped_baseline_incompatible",
+          decision.status == STATUS_BASELINE_INCOMPATIBLE,
           "status=%r reason=%r" % (decision.status, decision.stop_reason))
+    check("repair F3b.3: the new status is terminal",
+          STATUS_BASELINE_INCOMPATIBLE in TERMINAL_STATUSES)
     check("repair: stop reason names the real condition, not 'ParEval pass'",
           BASELINE_INCOMPATIBLE in decision.stop_reason,
           "reason=%r" % decision.stop_reason)
+
+    # contract F3b.6: combined_feedback also consumes correctness verdicts and
+    # must reach the same terminal state
+    combined = evaluate_stop(
+        stop_config(), "combined_feedback", 1, 2,
+        CLEAN_STATIC, dynamic_record(), record, None,
+    )
+    check("repair F3b.6: combined_feedback -> stopped_baseline_incompatible",
+          combined.status == STATUS_BASELINE_INCOMPATIBLE,
+          "status=%r" % combined.status)
+
+    # static_feedback does not consume correctness verdicts at all, so its
+    # semantics must be UNCHANGED
+    static_only = evaluate_stop(
+        stop_config(), "static_feedback", 1, 2,
+        CLEAN_STATIC, dynamic_record(), None, None,
+    )
+    check("repair F3b.6: static_feedback semantics unchanged",
+          static_only.status == STATUS_CLEAN, "status=%r" % static_only.status)
 
     passing = evaluate_stop(
         stop_config(), "test_feedback", 1, 2,
@@ -942,6 +1329,49 @@ def test_transport(workdir):
           "baseline_incompatible=" in probe_src, probe_src[-400:])
     check("opt_level_probe: authenticates the marker",
           "classify_baseline_incompatible" in probe_src, probe_src[-400:])
+    check("opt_level_probe F2.1: fresh token per run",
+          "new_marker_nonce()" in probe_src, probe_src[-400:])
+
+    # --- contract F3b.3: every explicit status enumeration knows the value --
+    from thesis.repair import orchestrator as orch
+
+    check("F3b.3: status_row enumerates the new status",
+          "stopped_baseline_incompatible" in inspect.getsource(orch.RepairLoop.status_row))
+
+    from thesis.repair import run_repair
+
+    check("F3b.3: the run_repair status table shows it",
+          "stopped_baseline_incompatible" in inspect.getsource(run_repair.print_status))
+
+    from thesis.analysis_overview.build_overview import (
+        LEGACY_BI_DISPLAY_STATUS, _display_status, stop_reason_table,
+    )
+
+    check("F3b.5: a frozen legacy stopped_clean + BI reason is separated",
+          _display_status({"status": "stopped_clean",
+                           "stop_reason": "own sources clean (ParEval "
+                                          "baseline_incompatible)"})
+          == LEGACY_BI_DISPLAY_STATUS)
+    check("F3b.5: an ordinary stopped_clean stays stopped_clean",
+          _display_status({"status": "stopped_clean",
+                           "stop_reason": "own sources clean (ParEval pass)"})
+          == "stopped_clean")
+
+    bi_rows = [
+        {"model": "m1", "variant": "test_feedback", "iteration": 0,
+         "sample_id": "s_bi", "execution_model": "serial",
+         "problem_type": "fft", "benchmark": "05_x",
+         "status": STATUS_BASELINE_INCOMPATIBLE,
+         "stop_reason": "own sources clean (ParEval baseline_incompatible)",
+         "correctness_verdict": BASELINE_INCOMPATIBLE},
+    ]
+    srt = stop_reason_table(bi_rows, "test_feedback")
+    check("F3b.4: the status is reported under its own name",
+          any(STATUS_BASELINE_INCOMPATIBLE in line for line in srt),
+          "table=%r" % srt)
+    check("F3b.4: it is not counted as stopped_clean",
+          not any(line.startswith("| stopped_clean |") for line in srt),
+          "table=%r" % srt)
 
 
 def main():

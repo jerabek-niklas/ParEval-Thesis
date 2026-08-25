@@ -5,14 +5,31 @@ For every assembled sample this stage:
      the assembled generated-code.hpp) exactly as the compile stage does,
   2. runs the binary over the launch grid (serial: once; omp: several
      thread counts; mpi: several rank counts),
-  3. parses the driver's "Validation: PASS|FAIL" marker from stdout,
+  3. parses the driver's AUTHENTICATED verdict line from stdout,
 and writes one record per sample to correctness.jsonl plus a per-model
 summary.
 
+TRANSPORT (execution contract F1/F2). stdout is shared between harness and
+candidate, so a constant marker string carries no authority. Every child
+launch gets a FRESH 128-bit token in PAREVAL_BI_NONCE, and the trusted
+driver echoes it:
+
+    Validation: PASS nonce=<token>
+    BASELINE_INCOMPATIBLE: non_finite_reference nonce=<token>
+
+Only lines carrying THIS launch's token can influence a verdict. A run that
+expected authentication and finds only the exact legacy line
+(`Validation: PASS`, no token) raises HarnessTransportError: the trusted
+driver ran but the token never reached it — a harness defect, not a model
+result. Upstream tooling (drivers/run-all.py, test/test-serial.bash) keeps
+launching without a token and keeps receiving the byte-identical historical
+line; see legacy_parse_validation().
+
 Verdict semantics (per run):
   - The exit code does NOT signal validation: the serial/omp drivers
-    `return 0` after printing "Validation: FAIL", and the mpi driver calls
-    MPI_Abort(comm, 0). Only the stdout marker is authoritative.
+    `return 0` after printing the FAIL verdict, and the mpi driver calls
+    MPI_Abort(comm, 0). Only the authenticated stdout marker is
+    authoritative.
   - pass                   -> marker PASS, exit 0, no timeout
   - validation_failed      -> marker FAIL
   - baseline_incompatible  -> the driver announced a NON-FINITE REFERENCE
@@ -89,9 +106,19 @@ VALIDATION_MARKER = "Validation:"
 # Execution contract A1e: the driver's comparator announces a NON-FINITE
 # REFERENCE (NaN/+-Inf produced by the ORACLE) on its own stdout line. That
 # is a property of the baseline, never a model failure, so it must not
-# arrive here as "Validation: FAIL". The marker is emitted exactly once per
-# process and only by the root rank (drivers/cpp/utilities.hpp,
-# mismatchNoteNonFiniteReference).
+# arrive here as "Validation: FAIL".
+#
+# EMISSION SEMANTICS (corrected, contract F3.4 — the earlier "root rank only"
+# comment here was stale):
+#   BI          is a LOCAL ORACLE DISCOVERY. It is emitted at most once per
+#               PROCESS, i.e. once per MPI RANK, deliberately WITHOUT a
+#               root-only filter — a non-root rank that sees a non-finite
+#               reference must be able to say so. Several BI lines under MPI
+#               are normal (drivers/cpp/utilities.hpp,
+#               mismatchNoteNonFiniteReference).
+#   Validation  is the FINAL DRIVER VERDICT and is emitted EXACTLY ONCE per
+#               `mpirun` execution, from the mpi driver's root verdict path
+#               (drivers/cpp/harness-markers.hpp, parevalEmitValidation).
 BASELINE_INCOMPATIBLE_MARKER = "BASELINE_INCOMPATIBLE:"
 BASELINE_INCOMPATIBLE = "baseline_incompatible"
 
@@ -115,17 +142,25 @@ BASELINE_INCOMPATIBLE_LINE = re.compile(
 
 
 def new_marker_nonce() -> str:
-    """A fresh 128-bit hex nonce for one pipeline execution."""
+    """A fresh 128-bit hex token for exactly ONE child execution.
+
+    Contract F2.1 — "one execution" means one launched child process group:
+      serial   one launched benchmark binary
+      omp      one launched binary for one grid point
+      mpi      one `mpirun ...` invocation; ALL of its ranks share this token
+      enhanced one launched spec process
+      gates    one launched probe process
+
+    There is deliberately NO module-level production token any more. A token
+    reused across children would still not be guessable (128 random bits), so
+    this is not primarily a new security property — it is transport hygiene:
+    exactly one launch is bound to exactly one parser, nothing is reused
+    across runs, and the transport fails closed.
+
+    The token is never persisted; it only authenticates the local parser
+    against the local child process.
+    """
     return secrets.token_hex(16)
-
-
-# One nonce per RUNNER PROCESS. Module level on purpose: every entry point
-# (main(), run_model() from run_backfill.py, a direct run_sample() call in a
-# test) then carries an authenticated marker without having to remember a
-# parameter — a forgotten nonce would silently degrade baseline_incompatible
-# back to PASS/FAIL. The value is never persisted: it only authenticates the
-# local parser against the local child process.
-MARKER_NONCE = new_marker_nonce()
 
 
 def parse_args() -> argparse.Namespace:
@@ -150,18 +185,132 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def parse_validation(stdout: str) -> bool | None:
-    """Extract the validation verdict from driver stdout.
+class HarnessTransportError(RuntimeError):
+    """The trusted harness ran, but its AUTHENTICATED marker never arrived.
 
-    Returns True (PASS), False (FAIL) or None (marker missing, i.e. the
-    program crashed or hung before printing it).
+    Raised when a thesis run expected authentication and stdout carries only
+    the exact LEGACY verdict line (contract F1.6 rule 7). That combination is
+    strong evidence that the trusted driver executed while the execution
+    token never reached the child — a harness/transport defect. It is never a
+    model result and must not be silently degraded into `runtime_error`.
+
+    The same signal also fires if a candidate printed exactly the legacy line
+    while the driver died before validating. Both are conditions under which
+    no model verdict may be derived, so failing loudly is correct for both.
+    """
+
+
+# Contract F1.6 rule 6: the verdict is parsed from the COMPLETE, explicit
+# marker format — never from a substring "PASS" anywhere in the line.
+VALIDATION_MARKER_LINE = re.compile(
+    r"^Validation:\s+(?P<verdict>PASS|FAIL)"
+    r"(?:\s+nonce=(?P<nonce>\S+))?\s*$"
+)
+
+
+def legacy_parse_validation(stdout: str) -> "bool | None":
+    """LEGACY, NON-AUTHENTICATED verdict parse (contract F1.7).
+
+    Accepts ONLY the exact historical line `Validation: PASS|FAIL` without a
+    token. It exists for upstream/read-only paths that run a driver without an
+    execution token (drivers/run-all.py, test/test-serial.bash, hand analysis
+    of frozen stdout).
+
+    It must NOT be used by the thesis evaluation pipeline: a candidate shares
+    stdout with the harness and can print this line itself. Production paths
+    use parse_authenticated_validation().
     """
     for line in stdout.splitlines():
-        line = line.strip()
-        if line.startswith(VALIDATION_MARKER):
-            return "PASS" in line
+        match = VALIDATION_MARKER_LINE.match(line.strip())
+        if match and match.group("nonce") is None:
+            return match.group("verdict") == "PASS"
 
     return None
+
+
+def parse_authenticated_validation(
+    stdout: str, nonce: "str | None"
+) -> "tuple[bool | None, list[str]]":
+    """(validation, anomalies) for ONE authenticated child execution.
+
+    `validation` is True (PASS), False (FAIL) or None. `anomalies` are
+    human-readable strings the caller reports as WARN; they never change the
+    verdict.
+
+    Rules (contract F1.6):
+      1. EXACTLY ONE authentic marker      -> its verdict
+      2. no authentic marker, no trusted   -> None (existing missing-marker /
+         legacy line                          process semantics apply)
+      3. MORE THAN ONE authentic marker    -> transport ANOMALY, None. Never
+         "first line wins".
+      4. unauthenticated lines ALONGSIDE an authentic one -> the authentic one
+         decides, the others are reported. Candidate output must not be able
+         to turn a valid trusted verdict into a harness error.
+      7. no authentic marker BUT an exact trusted LEGACY line -> the token did
+         not reach the child: HarnessTransportError.
+
+    Passing no nonce is a PROGRAMMING ERROR in a production path (contract
+    F2.3) and raises ValueError — never a silent "no authentic marker".
+    """
+    if not nonce:
+        raise ValueError(
+            "parse_authenticated_validation requires the execution token this "
+            "child was launched with. A production path must never parse "
+            "authenticated output without one; use legacy_parse_validation() "
+            "for explicitly legacy/read-only stdout."
+        )
+
+    authentic: "list[bool]" = []
+    legacy_trusted = 0
+    wrong_nonce = 0
+
+    for line in stdout.splitlines():
+        match = VALIDATION_MARKER_LINE.match(line.strip())
+        if not match:
+            continue
+
+        seen = match.group("nonce")
+
+        if seen == nonce:
+            authentic.append(match.group("verdict") == "PASS")
+        elif seen is None:
+            legacy_trusted += 1
+        else:
+            wrong_nonce += 1
+
+    anomalies: "list[str]" = []
+    if legacy_trusted:
+        anomalies.append(
+            "%d Validation line(s) without a token" % legacy_trusted
+        )
+    if wrong_nonce:
+        anomalies.append(
+            "%d Validation line(s) with a foreign token" % wrong_nonce
+        )
+
+    if len(authentic) == 1:
+        # rule 4: extra candidate lines are reported, never verdict-relevant
+        return authentic[0], anomalies
+
+    if len(authentic) > 1:
+        anomalies.append(
+            "%d AUTHENTIC Validation markers (expected exactly one) — "
+            "transport anomaly, no verdict derived" % len(authentic)
+        )
+        return None, anomalies
+
+    if legacy_trusted:
+        # rule 7
+        raise HarnessTransportError(
+            "authenticated run, but stdout carries %d trusted-looking "
+            "Validation line(s) WITHOUT the expected token and no "
+            "authenticated marker. The execution token did not reach the "
+            "child process (wrapper dropped the environment, env -i, "
+            "container/MPI launcher did not forward it). This is a harness "
+            "defect, not a model verdict." % legacy_trusted
+        )
+
+    return None, anomalies
 
 
 def count_baseline_incompatible(stdout: str) -> int:
@@ -186,20 +335,30 @@ def classify_baseline_incompatible(
 ) -> "tuple[int, int]":
     """(authentic, unauthenticated) BASELINE_INCOMPATIBLE lines.
 
-    AUTHENTIC means the line carries exactly the nonce this process handed
-    to the binary (contract C2b). Everything else — a missing nonce, a
-    wrong nonce, a line a candidate printed itself — is UNAUTHENTICATED and
-    must never influence a verdict; the caller reports it as an anomaly
-    instead.
+    AUTHENTIC means the line carries exactly the token this child was
+    launched with (contract C2b/F1.2). Everything else — a missing token, a
+    foreign token, a line a candidate printed itself — is UNAUTHENTICATED and
+    must never influence a verdict; the caller reports it as an anomaly.
 
-    Under MPI SEVERAL authentic lines are normal: the marker is emitted once
-    per RANK, deliberately without a root-only filter and deliberately
-    without a collective (contract C2.2/C2.4).
+    Under MPI SEVERAL authentic lines are normal: BI is a LOCAL ORACLE
+    DISCOVERY, emitted once per RANK, deliberately without a root-only filter
+    and without a collective (contract C2.2/C2.4). This is the intended
+    asymmetry to the Validation line, which the mpi driver emits exactly once
+    from its root verdict path.
 
-    `nonce=None` means "no nonce expected" and accepts any marker line. That
-    is only for callers that run a binary they built without passing a
-    nonce; the pipeline stages always pass one.
+    Contract F2.3: a production path must never call this without the token
+    it handed to the child. A missing token is a PROGRAMMING ERROR and raises
+    ValueError — it is not silently answered with "no authentic marker".
+    Explicitly legacy/read-only analysis uses
+    legacy_count_baseline_incompatible().
     """
+    if not nonce:
+        raise ValueError(
+            "classify_baseline_incompatible requires the execution token this "
+            "child was launched with. Use legacy_count_baseline_incompatible() "
+            "for explicitly legacy or read-only stdout."
+        )
+
     authentic = 0
     unauthenticated = 0
 
@@ -211,12 +370,22 @@ def classify_baseline_incompatible(
         match = BASELINE_INCOMPATIBLE_LINE.match(line)
         seen = match.group("nonce") if match else None
 
-        if nonce is None or (seen is not None and seen == nonce):
+        if seen is not None and seen == nonce:
             authentic += 1
         else:
             unauthenticated += 1
 
     return authentic, unauthenticated
+
+
+def legacy_count_baseline_incompatible(stdout: str) -> int:
+    """LEGACY, NON-AUTHENTICATED count of BASELINE_INCOMPATIBLE lines
+    (contract F2.5).
+
+    Only for read-only analysis of stored stdout and for explicitly legacy
+    tooling. No production path may derive a verdict from it.
+    """
+    return count_baseline_incompatible(stdout)
 
 
 # rel= is OPTIONAL (backward compatible: records produced before the field
@@ -409,14 +578,17 @@ def run_sample(
         verdicts: Counter = Counter()
         sample_verdict = "pass"
 
-        nonce = marker_nonce or MARKER_NONCE
-
         for params in launch.params:
             argv, extra_env = launch.command(str(exec_path), params, niter=niter)
 
-            # contract C2b: the binary can only emit an AUTHENTIC marker if
-            # it knows this process's nonce. Verified to reach every rank
-            # under `mpirun -np N` (Open MPI forwards the launch environment).
+            # Contract F2.1/F2.2: a FRESH token per CHILD EXECUTION. One grid
+            # point is one launch; for mpi one `mpirun` invocation, whose ranks
+            # all inherit this single token (verified in-container: Open MPI
+            # forwards the launch environment to every rank). `marker_nonce`
+            # exists only so tests can pin a deterministic value — production
+            # never passes it.
+            nonce = marker_nonce or new_marker_nonce()
+
             extra_env = dict(extra_env or {})
             extra_env[BASELINE_INCOMPATIBLE_NONCE_ENV] = nonce
 
@@ -424,7 +596,20 @@ def run_sample(
                 argv, timeout=run_timeout, cwd=tmp, extra_env=extra_env
             )
 
-            validation = parse_validation(result.stdout)
+            # Contract F1.6: only an AUTHENTICATED verdict line counts. A
+            # trusted-looking legacy line without the token raises
+            # HarnessTransportError — the driver ran but the token never
+            # reached it, which is a harness defect, not a model result.
+            validation, validation_anomalies = parse_authenticated_validation(
+                result.stdout, nonce
+            )
+
+            for anomaly in validation_anomalies:
+                print(
+                    "    WARN %s %s: %s — ignored for the verdict"
+                    % (sample.sample_id, params, anomaly)
+                )
+
             marker_count, spoofed_markers = classify_baseline_incompatible(
                 result.stdout, nonce
             )

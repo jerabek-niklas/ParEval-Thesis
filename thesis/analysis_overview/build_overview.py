@@ -912,17 +912,49 @@ def trajectory_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
     return lines
 
 
+# Contract F3b: the terminal repair status for an ORACLE-side stop. Runs made
+# BEFORE it existed stored the same situation as `stopped_clean` with a
+# stop_reason naming the verdict. Those frozen records are NEVER migrated —
+# they are separated here for READ-ONLY display only, so a mixed dataset does
+# not show a non-evaluable sample under "clean".
+REPAIR_STATUS_BASELINE_INCOMPATIBLE = "stopped_baseline_incompatible"
+LEGACY_BI_DISPLAY_STATUS = "stopped_clean (legacy, oracle-side)"
+
+
+def _display_status(row: "Dict[str, Any]") -> str:
+    status = row.get("status") or NA
+    if status == "stopped_clean":
+        reason = str(row.get("stop_reason") or "")
+        if "baseline_incompatible" in reason:
+            return LEGACY_BI_DISPLAY_STATUS
+    return status
+
+
 def stop_reason_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
     finals: Counter = Counter()
 
     grouped = _by_sample([r for r in rows if r["variant"] == variant])
     for row_map in grouped.values():
         final = row_map[max(row_map)]
-        finals[final.get("status") or NA] += 1
+        finals[_display_status(final)] += 1
 
     lines = ["| final status | samples |", "| --- | --- |"]
     for status, count in sorted(finals.items()):
         lines.append("| %s | %d |" % (status, count))
+
+    if finals.get(LEGACY_BI_DISPLAY_STATUS) or finals.get(
+        REPAIR_STATUS_BASELINE_INCOMPATIBLE
+    ):
+        lines.append("")
+        lines.append(
+            "`%s` / `%s`: the ORACLE produced a non-finite reference, so the "
+            "sample was never gradeable. Neither a model pass nor a model "
+            "failure; no repair was requested. The legacy label marks frozen "
+            "records written before the status existed — they are displayed "
+            "apart, never rewritten."
+            % (REPAIR_STATUS_BASELINE_INCOMPATIBLE, LEGACY_BI_DISPLAY_STATUS)
+        )
+
     return lines
 
 
@@ -1144,7 +1176,10 @@ def clean_but_incorrect(rows: "List[Dict[str, Any]]") -> List[str]:
     clean_finals = []
     for row_map in grouped.values():
         last = row_map[max(row_map)]
-        if last.get("status") == "stopped_clean":
+        # contract F3b.4: an oracle-side stop is not "clean" — neither the new
+        # terminal status nor a legacy stopped_clean row whose stop_reason
+        # names the verdict may enter this population
+        if _display_status(last) == "stopped_clean":
             clean_finals.append(_effective_row(row_map, max(row_map)) or last)
 
     if not clean_finals:
