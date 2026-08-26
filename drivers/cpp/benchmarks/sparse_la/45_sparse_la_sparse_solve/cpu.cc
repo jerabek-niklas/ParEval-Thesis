@@ -3,11 +3,11 @@
 //    size_t row, column;
 //    double value;
 // };
-// 
+//
 // /* Solve the sparse linear system Ax=b for x.
 //    A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.
 //    Example:
-//    
+//
 //    input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]
 //    output: x=[3,-2]
 // */
@@ -32,15 +32,141 @@ struct Context {
     size_t N;
 };
 
-void sortCOOElements(std::vector<COOElement> &vec) {
+// Harness-local helpers. Deliberately inside a named namespace: the candidate
+// translation unit is included BEFORE this file's definitions, so any
+// namespace-scope helper with a "natural" name (the pilot hit exactly this
+// with a global `sortCOOElements`) can collide with a candidate-defined
+// symbol and turn into a build failure that is falsely charged to the model.
+namespace pareval_harness {
+
+void sortCooByRowColumn(std::vector<COOElement> &vec) {
     std::sort(vec.begin(), vec.end(), [](const COOElement &a, const COOElement &b) {
         return (a.row == b.row) ? (a.column < b.column) : (a.row < b.row);
     });
 }
 
-void createRandomLinearSystem(std::vector<COOElement> &A, std::vector<size_t> &A_rows, std::vector<size_t> &A_columns, 
+// ---------------------------------------------------------------------------
+// D4 frozen VALIDATION construction (Domain Approval Wave, numeric gate
+// CLOSED — thesis/docs/benchmark-domain-table.json, row 45, `numeric_gate`):
+//
+//   * square, duplicate-free integer COO, diagonal present in every row;
+//   * per-row entries max(2, round(SPARSE_LA_SPARSITY*N)) incl. the diagonal
+//     (capped at N: a duplicate-free row cannot hold more than N columns);
+//   * off-diagonal lattice: integers with |a_ij| in [1,4], sign free;
+//   * dominance |a_ii| = S_i + g_i with S_i = sum_{j!=i}|a_ij| and
+//     g_i = ceil(S_i/4) (floor 1), i.e. |a_ii| >= 1.25*S_i (gamma = 1.25,
+//     multiplicative), diagonal sign free;
+//   * x_gen integer in [-8, 8] — the INDEPENDENT ground truth;
+//   * b = A*x_gen accumulated in integer arithmetic — every operand, every
+//     product and every partial row sum stays far below 2^53 (proof by
+//     execution: max partial row sum 10944, headroom >= 8.23e11x), so the
+//     binary64 values handed to the candidate are EXACT.
+//
+// Draws come from the harness's unseeded rand() stream (deterministic per
+// size and call order, identical on every MPI rank), like every other
+// generator in this suite. The construction is candidate-independent.
+//
+// The bounds checks below are cheap tripwires against harness corruption
+// (they cannot fire for a correct build); they are plain `if`s, NOT asserts,
+// so -DNDEBUG cannot remove them (frozen Wave-1b rule).
+// ---------------------------------------------------------------------------
+struct SparseSolveInstance {
+    std::vector<size_t> rows, columns;
+    std::vector<double> values;
+    std::vector<COOElement> A;
+    std::vector<double> b, x_gen;
+    bool exact;   // false only when a construction invariant tripwire fired
+};
+
+inline void buildDominantSystem(SparseSolveInstance &inst, size_t N) {
+    const long long kExactBound = 1LL << 53;
+
+    inst.rows.clear();
+    inst.columns.clear();
+    inst.values.clear();
+    inst.b.assign(N, 0.0);
+    inst.x_gen.resize(N);
+    inst.exact = true;
+
+    // independent ground truth first: x_gen in Z, |x_gen| <= 8
+    std::vector<long long> xInt(N);
+    for (size_t j = 0; j < N; j += 1) {
+        xInt[j] = (long long)(rand() % 17) - 8;
+        inst.x_gen[j] = (double)xInt[j];
+    }
+
+    size_t perRow = (size_t)std::llround(SPARSE_LA_SPARSITY * (double)N);
+    if (perRow < 2) {
+        perRow = 2;
+    }
+    if (perRow > N) {
+        perRow = N;   // duplicate-free row holds at most N unique columns
+    }
+
+    std::vector<unsigned char> used(N);
+    std::vector<size_t> offColumns;
+    offColumns.reserve(perRow);
+
+    for (size_t i = 0; i < N; i += 1) {
+        std::fill(used.begin(), used.end(), (unsigned char)0);
+        used[i] = 1;   // the diagonal is reserved
+
+        offColumns.clear();
+        while (offColumns.size() + 1 < perRow) {
+            const size_t c = (size_t)rand() % N;
+            if (used[c]) {
+                continue;
+            }
+            used[c] = 1;
+            offColumns.push_back(c);
+        }
+
+        long long rowSum = 0;        // b_i partial sums, exact integers
+        long long absSum = 0;        // S_i = sum_{j!=i} |a_ij|
+        for (size_t idx = 0; idx < offColumns.size(); idx += 1) {
+            const size_t c = offColumns[idx];
+            const long long magnitude = (long long)(rand() % 4) + 1;   // lattice [1,4]
+            const long long value = (rand() % 2 == 0) ? magnitude : -magnitude;
+            absSum += magnitude;
+            rowSum += value * xInt[c];
+            inst.rows.push_back(i);
+            inst.columns.push_back(c);
+            inst.values.push_back((double)value);
+        }
+
+        long long gap = (absSum + 3) / 4;   // ceil(S_i/4)
+        if (gap < 1) {
+            gap = 1;                        // floor 1 (strict dominance)
+        }
+        const long long diagMagnitude = absSum + gap;
+        const long long diag = (rand() % 2 == 0) ? diagMagnitude : -diagMagnitude;
+        rowSum += diag * xInt[i];
+        inst.rows.push_back(i);
+        inst.columns.push_back(i);
+        inst.values.push_back((double)diag);
+
+        // tripwire: every partial quantity must stay exactly representable
+        if (diagMagnitude >= kExactBound || rowSum >= kExactBound || rowSum <= -kExactBound) {
+            inst.exact = false;
+        }
+
+        inst.b[i] = (double)rowSum;
+    }
+}
+
+inline void assembleSortedCoo(SparseSolveInstance &inst) {
+    inst.A.resize(inst.rows.size());
+    for (size_t i = 0; i < inst.rows.size(); i += 1) {
+        inst.A[i] = {inst.rows[i], inst.columns[i], inst.values[i]};
+    }
+    sortCooByRowColumn(inst.A);
+}
+
+}  // namespace pareval_harness
+
+void createRandomLinearSystem(std::vector<COOElement> &A, std::vector<size_t> &A_rows, std::vector<size_t> &A_columns,
     std::vector<double> &A_values, std::vector<double> &b, std::vector<double> &x, size_t N) {
-    
+
     fillRand(A_rows, 0UL, N);
     fillRand(A_columns, 0UL, N);
     fillRand(A_values, -10.0, 10.0);
@@ -51,7 +177,7 @@ void createRandomLinearSystem(std::vector<COOElement> &A, std::vector<size_t> &A
     for (int i = 0; i < A_rows.size(); i += 1) {
         A[i] = {A_rows[i], A_columns[i], A_values[i]};
     }
-    sortCOOElements(A);
+    pareval_harness::sortCooByRowColumn(A);
 
     fillRand(x, -10.0, 10.0);
 
@@ -97,30 +223,58 @@ void NO_OPTIMIZE best(Context *ctx) {
 
 bool validate(Context *ctx) {
     const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(128);
-    const size_t nVals = TEST_SIZE * TEST_SIZE * SPARSE_LA_SPARSITY;
 
-    std::vector<size_t> A_rows(nVals), A_columns(nVals);
-    std::vector<double> A_values(nVals), b(TEST_SIZE), x_correct(TEST_SIZE), x_test(TEST_SIZE);
-    std::vector<COOElement> A(nVals);
+    std::vector<double> x_test(TEST_SIZE), x_ref(TEST_SIZE);
+    pareval_harness::SparseSolveInstance inst;
 
     int rank;
     GET_RANK(rank);
 
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
-        // set up input
-        createRandomLinearSystem(A, A_rows, A_columns, A_values, b, x_correct, TEST_SIZE);
+        // D4 frozen construction (validation only; the timed path above is
+        // deliberately unchanged). Every rank runs the identical
+        // deterministic draw; the BCASTs pin root's arrays, matching the
+        // driver convention.
+        pareval_harness::buildDominantSystem(inst, TEST_SIZE);
+        BCAST(inst.rows, UNSIGNED_LONG);
+        BCAST(inst.columns, UNSIGNED_LONG);
+        BCAST(inst.values, DOUBLE);
+        BCAST(inst.b, DOUBLE);
+        BCAST(inst.x_gen, DOUBLE);
+        pareval_harness::assembleSortedCoo(inst);
+
+        // Harness selftest (sanity check only, expected solution stays
+        // x_gen): the REAL oracle must stay finite on the D4 input. A
+        // violated construction tripwire or a non-finite reference is a
+        // harness/baseline condition, signalled through the existing
+        // baseline-incompatibility transport — never a candidate verdict.
+        std::fill(x_ref.begin(), x_ref.end(), 0.0);
+        correctSolveLinearSystem(inst.A, inst.b, x_ref, TEST_SIZE);
+        bool harnessOk = inst.exact;
+        for (size_t i = 0; i < x_ref.size(); i += 1) {
+            if (!mismatchIsFinite(x_ref[i])) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;   // trial not evaluable; never graded against the model
+        }
+
+        // grade the candidate against the INDEPENDENT ground truth x_gen
+        // (never against a numerically solved result). The tolerance is the
+        // benchmark's existing 1e-3 — deliberately unchanged in this wave.
         std::fill(x_test.begin(), x_test.end(), 0.0);
-
-        // compute correct result
-        correctSolveLinearSystem(A, b, x_correct, TEST_SIZE);
-
-        // compute test result
-        solveLinearSystem(A, b, x_test, TEST_SIZE);
+        solveLinearSystem(inst.A, inst.b, x_test, TEST_SIZE);
         SYNC();
-        
+
         bool isCorrect = true;
-        if (IS_ROOT(rank) && !reportAndCompare(x_correct, x_test, 1e-3)) {
+        if (IS_ROOT(rank) && !reportAndCompare(inst.x_gen, x_test, 1e-3)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

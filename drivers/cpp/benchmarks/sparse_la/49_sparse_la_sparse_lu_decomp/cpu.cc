@@ -3,11 +3,11 @@
 //    size_t row, column;
 //    double value;
 // };
-// 
+//
 // /* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.
 //    A is a sparse NxN matrix stored in COO format.
 //    Example:
-// 
+//
 //    input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]
 //    output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]
 // */
@@ -32,18 +32,24 @@ struct Context {
     size_t N;
 };
 
-void sortCOO(std::vector<COOElement> &A) {
+// Harness-local helpers in a named namespace: the candidate translation unit
+// is included BEFORE these definitions, so "natural" global helper names
+// (sortCOO, isCOOEqual, ...) could collide with candidate-defined symbols and
+// produce a build failure that is falsely charged to the model.
+namespace pareval_harness {
+
+void sortCooByRowColumn(std::vector<COOElement> &A) {
     std::sort(A.begin(), A.end(), [](COOElement const& a, COOElement const& b) {
         return (a.row == b.row) ? (a.column < b.column) : (a.row < b.row);
     });
 }
 
-bool isCOOEqual(std::vector<COOElement> &a, std::vector<COOElement> &b, double epsilon = 1e-6) {
+bool isCooEqual(std::vector<COOElement> &a, std::vector<COOElement> &b, double epsilon = 1e-6) {
     if (a.size() != b.size()) {
         return false;
     }
-    sortCOO(a);
-    sortCOO(b);
+    sortCooByRowColumn(a);
+    sortCooByRowColumn(b);
     for (int i = 0; i < a.size(); i += 1) {
         if (a[i].row != b[i].row || a[i].column != b[i].column || std::abs(a[i].value - b[i].value) > epsilon) {
             return false;
@@ -51,6 +57,113 @@ bool isCOOEqual(std::vector<COOElement> &a, std::vector<COOElement> &b, double e
     }
     return true;
 }
+
+// ---------------------------------------------------------------------------
+// D5 frozen VALIDATION construction (Domain Approval Wave, numeric gate
+// CLOSED — thesis/docs/benchmark-domain-table.json, row 49, `numeric_gate`):
+//
+//   * known factors as INDEPENDENT ground truth: L unit lower triangular,
+//     band k, off-diagonal integers with |v| in [1,4]; U upper triangular,
+//     band k, off-diagonal integers with |v| in [1,4], diagonal 2^e with
+//     e in [0,5] — every pivot is a power of two, every division in the
+//     unpivoted Doolittle reference is exact;
+//   * density-preserving half-bandwidth
+//     k(N) = max(1, round((SPARSE_LA_SPARSITY*N - 1)/2))  (k = 1/6/51 at
+//     N = 16/128/1024; k = half-bandwidth, entries with |i-j| <= k). A
+//     constant bandwidth was deliberately NOT chosen (frozen decision);
+//   * A = L*U computed exactly in integer arithmetic and emitted as the
+//     duplicate-free COO of ALL band cells |i-j| <= k
+//     (nnz = N*(2k+1) - k*(k+1); the product of two band-k factors is
+//     band-k). Max |intermediate| measured 848, i.e. < 2^53 by >= 9.7e12x,
+//     so every stored value is exact in binary64;
+//   * no x_gen — the ground truth of this benchmark IS the factor pair.
+//
+// Draws come from the unseeded rand() stream (deterministic per size and
+// call order, identical on every MPI rank); candidate-independent.
+//
+// The bound check below is a cheap tripwire against harness corruption; it
+// is a plain `if`, NOT an assert, so -DNDEBUG cannot remove it.
+// ---------------------------------------------------------------------------
+struct SparseLuInstance {
+    std::vector<size_t> rows, columns;
+    std::vector<double> values;
+    std::vector<COOElement> A;
+    std::vector<double> L_true, U_true;   // dense row-major ground truth
+    bool exact;
+};
+
+inline size_t luHalfBandwidth(size_t N) {
+    const long long k = std::llround((SPARSE_LA_SPARSITY * (double)N - 1.0) / 2.0);
+    return (k < 1) ? (size_t)1 : (size_t)k;
+}
+
+inline void buildLuGroundTruth(SparseLuInstance &inst, size_t N) {
+    const long long kExactBound = 1LL << 53;
+    const size_t k = luHalfBandwidth(N);
+
+    inst.rows.clear();
+    inst.columns.clear();
+    inst.values.clear();
+    inst.L_true.assign(N * N, 0.0);
+    inst.U_true.assign(N * N, 0.0);
+    inst.exact = true;
+
+    // L: unit diagonal, band-k strictly-lower integers in +-[1,4]
+    for (size_t i = 0; i < N; i += 1) {
+        inst.L_true[i * N + i] = 1.0;
+        const size_t jLo = (i > k) ? (i - k) : 0;
+        for (size_t j = jLo; j < i; j += 1) {
+            const long long magnitude = (long long)(rand() % 4) + 1;
+            inst.L_true[i * N + j] = (rand() % 2 == 0) ? (double)magnitude : -(double)magnitude;
+        }
+    }
+
+    // U: diagonal 2^e (e in [0,5]), band-k strictly-upper integers in +-[1,4]
+    for (size_t i = 0; i < N; i += 1) {
+        inst.U_true[i * N + i] = (double)(1LL << (rand() % 6));
+        const size_t jHi = (i + k < N) ? (i + k) : (N - 1);
+        for (size_t j = i + 1; j <= jHi && j < N; j += 1) {
+            const long long magnitude = (long long)(rand() % 4) + 1;
+            inst.U_true[i * N + j] = (rand() % 2 == 0) ? (double)magnitude : -(double)magnitude;
+        }
+    }
+
+    // A = L*U, exact integer accumulation, emitted for every band cell
+    // (including exact zeros from cancellation — nnz stays deterministic
+    // and the list stays duplicate-free with valid indices by construction)
+    for (size_t i = 0; i < N; i += 1) {
+        const size_t jLo = (i > k) ? (i - k) : 0;
+        const size_t jHi = (i + k < N) ? (i + k) : (N - 1);
+        for (size_t j = jLo; j <= jHi && j < N; j += 1) {
+            const size_t mLoRow = (i > k) ? (i - k) : 0;
+            const size_t mLoCol = (j > k) ? (j - k) : 0;
+            const size_t mLo = (mLoRow > mLoCol) ? mLoRow : mLoCol;
+            const size_t mHi = (i < j) ? i : j;
+
+            long long sum = 0;
+            for (size_t m = mLo; m <= mHi; m += 1) {
+                sum += (long long)inst.L_true[i * N + m] * (long long)inst.U_true[m * N + j];
+                if (sum >= kExactBound || sum <= -kExactBound) {
+                    inst.exact = false;
+                }
+            }
+
+            inst.rows.push_back(i);
+            inst.columns.push_back(j);
+            inst.values.push_back((double)sum);
+        }
+    }
+}
+
+inline void assembleSortedCoo(SparseLuInstance &inst) {
+    inst.A.resize(inst.rows.size());
+    for (size_t i = 0; i < inst.rows.size(); i += 1) {
+        inst.A[i] = {inst.rows[i], inst.columns[i], inst.values[i]};
+    }
+    sortCooByRowColumn(inst.A);
+}
+
+}  // namespace pareval_harness
 
 void reset(Context *ctx) {
     fillRand(ctx->rows, 0UL, ctx->N);
@@ -65,8 +178,8 @@ void reset(Context *ctx) {
     for (int i = 0; i < ctx->rows.size(); i += 1) {
         ctx->A.push_back({ctx->rows[i], ctx->columns[i], ctx->values[i]});
     }
-    sortCOO(ctx->A);
-    
+    pareval_harness::sortCooByRowColumn(ctx->A);
+
     std::fill(ctx->L.begin(), ctx->L.end(), 0.0);
     std::fill(ctx->U.begin(), ctx->U.end(), 0.0);
 }
@@ -97,12 +210,9 @@ void NO_OPTIMIZE best(Context *ctx) {
 
 bool validate(Context *ctx) {
     const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(64);
-    const size_t nVals = SPARSE_LA_SPARSITY * TEST_SIZE * TEST_SIZE;
 
-    std::vector<size_t> rows(nVals), columns(nVals);
-    std::vector<double> values(nVals);
-    std::vector<COOElement> A;
-    std::vector<double> L_correct(TEST_SIZE * TEST_SIZE), U_correct(TEST_SIZE * TEST_SIZE);
+    pareval_harness::SparseLuInstance inst;
+    std::vector<double> L_ref(TEST_SIZE * TEST_SIZE), U_ref(TEST_SIZE * TEST_SIZE);
     std::vector<double> L_test(TEST_SIZE * TEST_SIZE), U_test(TEST_SIZE * TEST_SIZE);
 
     int rank;
@@ -110,34 +220,54 @@ bool validate(Context *ctx) {
 
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
-        // set up input
-        ENHANCED_FILL(rows, 0UL, TEST_SIZE-1);
-        ENHANCED_FILL(columns, 0UL, TEST_SIZE-1);
-        ENHANCED_FILL(values, -10.0, 10.0);
-        BCAST(rows, UNSIGNED_LONG);
-        BCAST(columns, UNSIGNED_LONG);
-        BCAST(values, DOUBLE);
+        // D5 frozen construction (validation only; the timed path above is
+        // deliberately unchanged). Every rank runs the identical
+        // deterministic draw; the BCASTs pin root's arrays, matching the
+        // driver convention.
+        pareval_harness::buildLuGroundTruth(inst, TEST_SIZE);
+        BCAST(inst.rows, UNSIGNED_LONG);
+        BCAST(inst.columns, UNSIGNED_LONG);
+        BCAST(inst.values, DOUBLE);
+        BCAST(inst.L_true, DOUBLE);
+        BCAST(inst.U_true, DOUBLE);
+        pareval_harness::assembleSortedCoo(inst);
 
-        A.reserve(rows.size());
-        A.clear();
-        for (int i = 0; i < rows.size(); i += 1) {
-            A.push_back({rows[i], columns[i], values[i]});
+        // Harness selftest (sanity check only, the graded ground truth stays
+        // the CONSTRUCTED factor pair): the REAL unpivoted Doolittle
+        // reference must stay finite on the D5 input — for this construction
+        // it recovers L/U bit-exactly (frozen D5 evidence; re-proven in the
+        // Wave-2A regression tests). A violated tripwire or a non-finite
+        // reference is a harness/baseline condition, signalled through the
+        // existing baseline-incompatibility transport — never a candidate
+        // verdict.
+        std::fill(L_ref.begin(), L_ref.end(), 0.0);
+        std::fill(U_ref.begin(), U_ref.end(), 0.0);
+        correctLuFactorize(inst.A, L_ref, U_ref, TEST_SIZE);
+        bool harnessOk = inst.exact;
+        for (size_t i = 0; harnessOk && i < L_ref.size(); i += 1) {
+            if (!mismatchIsFinite(L_ref[i]) || !mismatchIsFinite(U_ref[i])) {
+                harnessOk = false;
+            }
         }
-        sortCOO(A);
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;   // trial not evaluable; never graded against the model
+        }
 
-        // compute correct result
-        std::fill(L_correct.begin(), L_correct.end(), 0.0);
-        std::fill(U_correct.begin(), U_correct.end(), 0.0);
-        correctLuFactorize(A, L_correct, U_correct, TEST_SIZE);
-
-        // compute test result
+        // grade the candidate against the INDEPENDENT constructed ground
+        // truth. The tolerance is the benchmark's existing 1e-3 —
+        // deliberately unchanged in this wave (bit-exactness is NOT demanded
+        // of the candidate).
         std::fill(L_test.begin(), L_test.end(), 0.0);
         std::fill(U_test.begin(), U_test.end(), 0.0);
-        luFactorize(A, L_test, U_test, TEST_SIZE);
+        luFactorize(inst.A, L_test, U_test, TEST_SIZE);
         SYNC();
-        
+
         bool isCorrect = true;
-        if (IS_ROOT(rank) && (!reportAndCompare(L_correct, L_test, 1e-3) || !reportAndCompare(U_correct, U_test, 1e-3))) {
+        if (IS_ROOT(rank) && (!reportAndCompare(inst.L_true, L_test, 1e-3) || !reportAndCompare(inst.U_true, U_test, 1e-3))) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

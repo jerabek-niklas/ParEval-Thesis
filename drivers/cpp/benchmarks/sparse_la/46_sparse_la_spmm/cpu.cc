@@ -3,11 +3,11 @@
 //    size_t row, column;
 //    double value;
 // };
-// 
+//
 // /* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.
 //    X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.
 //    Example:
-// 
+//
 //    input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]
 //    output: Y=[{-1,-4}, {1,0}]
 // */
@@ -33,11 +33,67 @@ struct Context {
     size_t M, K, N;
 };
 
-void sortCOOElements(std::vector<COOElement> &vec) {
+// Harness-local helpers in a named namespace: the candidate translation unit
+// is included BEFORE these definitions, so "natural" global helper names
+// (the pilot hit exactly this with a global `sortCOOElements`) can collide
+// with candidate-defined symbols and produce a build failure that is falsely
+// charged to the model.
+namespace pareval_harness {
+
+void sortCooByRowColumn(std::vector<COOElement> &vec) {
     std::sort(vec.begin(), vec.end(), [](const COOElement &a, const COOElement &b) {
         return (a.row == b.row) ? (a.column < b.column) : (a.row < b.row);
     });
 }
+
+// Unique-coordinate COO draw (frozen I5 contract: at most one entry per
+// (row, column)): `count` DISTINCT cells of an nRows x nCols matrix, uniform
+// via rejection on the unseeded rand() stream — deterministic per call order
+// and identical on every MPI rank. Indices are valid by construction
+// (row < nRows, column < nCols). Returns false only when the request is
+// unsatisfiable (count > nRows*nCols) — a harness tripwire, not a reachable
+// path for the derived nnz = floor(0.1 * nRows * nCols).
+inline bool drawUniqueCoordinates(std::vector<size_t> &rows, std::vector<size_t> &cols,
+                                  size_t nRows, size_t nCols) {
+    const size_t count = rows.size();
+    const size_t cells = nRows * nCols;
+    if (count > cells) {
+        return false;
+    }
+    if (count == 0) {
+        return true;
+    }
+
+    std::vector<unsigned char> used(cells, 0);
+    size_t drawn = 0;
+    while (drawn < count) {
+        const size_t cell = (size_t)rand() % cells;
+        if (used[cell]) {
+            continue;
+        }
+        used[cell] = 1;
+        rows[drawn] = cell / nCols;
+        cols[drawn] = cell % nCols;
+        drawn += 1;
+    }
+    return true;
+}
+
+// Invalid-harness-input tripwire (A1.2): the oracle below writes
+// Y[a.row*N + x.column] without a bounds guard, so out-of-range indices must
+// never reach it. Cannot fire for the constructive draw above; kept as a
+// plain `if`-based guard (NDEBUG-proof) against harness corruption.
+inline bool cooIndicesInRange(std::vector<size_t> const& rows, std::vector<size_t> const& cols,
+                              size_t nRows, size_t nCols) {
+    for (size_t i = 0; i < rows.size(); i += 1) {
+        if (rows[i] >= nRows || cols[i] >= nCols) {
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace pareval_harness
 
 void reset(Context *ctx) {
     fillRand(ctx->X_rows, 0UL, ctx->K);
@@ -60,12 +116,12 @@ void reset(Context *ctx) {
     for (int i = 0; i < ctx->X_rows.size(); i += 1) {
         ctx->X.push_back({ctx->X_rows[i], ctx->X_columns[i], ctx->X_values[i]});
     }
-    sortCOOElements(ctx->X);
+    pareval_harness::sortCooByRowColumn(ctx->X);
 
     for (int i = 0; i < ctx->A_rows.size(); i += 1) {
         ctx->A.push_back({ctx->A_rows[i], ctx->A_columns[i], ctx->A_values[i]});
     }
-    sortCOOElements(ctx->A);
+    pareval_harness::sortCooByRowColumn(ctx->A);
 }
 
 Context *init() {
@@ -117,13 +173,16 @@ bool validate(Context *ctx) {
 
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
-        // set up input
-        ENHANCED_FILL(X_rows, 0UL, TEST_SIZE);
-        ENHANCED_FILL(X_columns, 0UL, TEST_SIZE);
+        // set up input: unique (row, column) coordinates by construction
+        // (frozen I5 duplicate contract); the VALUE arrays keep their
+        // ENHANCED_FILL pattern hook, the index arrays are structural and no
+        // longer pattern-fillable (index-pattern policy is queued to the
+        // enhanced wave).
+        bool harnessOk =
+            pareval_harness::drawUniqueCoordinates(X_rows, X_columns, TEST_SIZE, TEST_SIZE);
+        harnessOk = harnessOk &&
+            pareval_harness::drawUniqueCoordinates(A_rows, A_columns, TEST_SIZE, TEST_SIZE);
         ENHANCED_FILL(X_values, -1.0, 1.0);
-
-        ENHANCED_FILL(A_rows, 0UL, TEST_SIZE);
-        ENHANCED_FILL(A_columns, 0UL, TEST_SIZE);
         ENHANCED_FILL(A_values, -1.0, 1.0);
 
         BCAST(X_rows, UNSIGNED_LONG);
@@ -133,18 +192,33 @@ bool validate(Context *ctx) {
         BCAST(A_columns, UNSIGNED_LONG);
         BCAST(A_values, DOUBLE);
 
+        // invalid harness input is announced through the existing
+        // baseline-incompatibility transport and never reaches the unguarded
+        // oracle and never grades the candidate (A1.2: no OOB, no silent
+        // skip, no candidate blame).
+        harnessOk = harnessOk &&
+            pareval_harness::cooIndicesInRange(X_rows, X_columns, TEST_SIZE, TEST_SIZE) &&
+            pareval_harness::cooIndicesInRange(A_rows, A_columns, TEST_SIZE, TEST_SIZE);
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         std::fill(correctY.begin(), correctY.end(), 0.0); // every rank sets Y to 0
         std::fill(testY.begin(), testY.end(), 0.0); // every rank sets Y to 0
 
         for (int i = 0; i < X_rows.size(); i += 1) {
             X[i] = {X_rows[i], X_columns[i], X_values[i]};
         }
-        sortCOOElements(X);
+        pareval_harness::sortCooByRowColumn(X);
 
         for (int i = 0; i < A_rows.size(); i += 1) {
             A[i] = {A_rows[i], A_columns[i], A_values[i]};
         }
-        sortCOOElements(A);
+        pareval_harness::sortCooByRowColumn(A);
 
         // compute correct result
         correctSpmm(A, X, correctY, TEST_SIZE, TEST_SIZE, TEST_SIZE);
@@ -152,7 +226,7 @@ bool validate(Context *ctx) {
         // compute test result
         spmm(A, X, testY, TEST_SIZE, TEST_SIZE, TEST_SIZE);
         SYNC();
-        
+
         bool isCorrect = true;
         if (IS_ROOT(rank) && !reportAndCompare(correctY, testY, 1e-4)) {
             isCorrect = false;
@@ -160,6 +234,72 @@ bool validate(Context *ctx) {
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {
             return false;
+        }
+    }
+
+    // A8/I13: deterministic NONSQUARE discriminating case — one extra check
+    // per validate(), dimensions mirror the timed geometry (M, K = M/4,
+    // N = M/2, pairwise distinct for TEST_SIZE >= 4), sparse indices drawn
+    // uniquely WITHIN their respective dimensions. A candidate that
+    // hardwires a single square extent cannot pass this case. The S/M/L axis
+    // is untouched: this is an additional shape probe, not a size redefinition.
+    if (TEST_SIZE >= 4) {
+        const size_t nsM = TEST_SIZE;
+        const size_t nsK = TEST_SIZE / 4;
+        const size_t nsN = TEST_SIZE / 2;
+        const size_t nsVals_A = nsM * nsK * SPARSE_LA_SPARSITY;
+        const size_t nsVals_X = nsK * nsN * SPARSE_LA_SPARSITY;
+
+        std::vector<size_t> nsA_rows(nsVals_A), nsA_columns(nsVals_A);
+        std::vector<size_t> nsX_rows(nsVals_X), nsX_columns(nsVals_X);
+        std::vector<double> nsA_values(nsVals_A), nsX_values(nsVals_X);
+        std::vector<COOElement> nsA(nsVals_A), nsX(nsVals_X);
+        std::vector<double> nsCorrectY(nsM * nsN, 0.0), nsTestY(nsM * nsN, 0.0);
+
+        bool harnessOk =
+            pareval_harness::drawUniqueCoordinates(nsA_rows, nsA_columns, nsM, nsK);
+        harnessOk = harnessOk &&
+            pareval_harness::drawUniqueCoordinates(nsX_rows, nsX_columns, nsK, nsN);
+        fillRand(nsA_values, -1.0, 1.0);
+        fillRand(nsX_values, -1.0, 1.0);
+
+        BCAST(nsA_rows, UNSIGNED_LONG);
+        BCAST(nsA_columns, UNSIGNED_LONG);
+        BCAST(nsA_values, DOUBLE);
+        BCAST(nsX_rows, UNSIGNED_LONG);
+        BCAST(nsX_columns, UNSIGNED_LONG);
+        BCAST(nsX_values, DOUBLE);
+
+        harnessOk = harnessOk &&
+            pareval_harness::cooIndicesInRange(nsA_rows, nsA_columns, nsM, nsK) &&
+            pareval_harness::cooIndicesInRange(nsX_rows, nsX_columns, nsK, nsN);
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+
+        if (harnessOk) {
+            for (size_t i = 0; i < nsVals_A; i += 1) {
+                nsA[i] = {nsA_rows[i], nsA_columns[i], nsA_values[i]};
+            }
+            pareval_harness::sortCooByRowColumn(nsA);
+            for (size_t i = 0; i < nsVals_X; i += 1) {
+                nsX[i] = {nsX_rows[i], nsX_columns[i], nsX_values[i]};
+            }
+            pareval_harness::sortCooByRowColumn(nsX);
+
+            correctSpmm(nsA, nsX, nsCorrectY, nsM, nsK, nsN);
+            spmm(nsA, nsX, nsTestY, nsM, nsK, nsN);
+            SYNC();
+
+            bool isCorrect = true;
+            if (IS_ROOT(rank) && !reportAndCompare(nsCorrectY, nsTestY, 1e-4)) {
+                isCorrect = false;
+            }
+            BCAST_PTR(&isCorrect, 1, CXX_BOOL);
+            if (!isCorrect) {
+                return false;
+            }
         }
     }
 

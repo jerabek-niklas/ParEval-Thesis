@@ -413,52 +413,40 @@
   "sparse_la/46_sparse_la_spmm": {
     "elements_per_site": [
       "unknown:nVals_X",
-      "unknown:nVals_X",
-      "unknown:nVals_X",
-      "unknown:nVals_A",
-      "unknown:nVals_A",
       "unknown:nVals_A"
     ],
     "explicit_values_supported": false,
-    "fill_sites": 6,
-    "notes": "non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_A; non-canonical extent: unknown:nVals_A; non-canonical extent: unknown:nVals_A; explicit_values disabled: 6 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
-    "total_elements": "unknown:nVals_X + unknown:nVals_X + unknown:nVals_X + unknown:nVals_A + unknown:nVals_A + unknown:nVals_A"
+    "fill_sites": 2,
+    "notes": "non-canonical extent: unknown:nVals_X; non-canonical extent: unknown:nVals_A; explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals_X + unknown:nVals_A"
   },
   "sparse_la/47_sparse_la_spmv": {
     "elements_per_site": [
-      "unknown:nVals",
-      "unknown:nVals",
       "unknown:nVals",
       "n",
       "n"
     ],
     "explicit_values_supported": false,
-    "fill_sites": 5,
-    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 5 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
-    "total_elements": "unknown:nVals + unknown:nVals + unknown:nVals + n + n"
+    "fill_sites": 3,
+    "notes": "non-canonical extent: unknown:nVals; explicit_values disabled: 3 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals + n + n"
   },
   "sparse_la/48_sparse_la_sparse_axpy": {
     "elements_per_site": [
       "unknown:nVals",
-      "unknown:nVals",
-      "unknown:nVals",
       "unknown:nVals"
     ],
     "explicit_values_supported": false,
-    "fill_sites": 4,
-    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 4 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
-    "total_elements": "unknown:nVals + unknown:nVals + unknown:nVals + unknown:nVals"
+    "fill_sites": 2,
+    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 2 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
+    "total_elements": "unknown:nVals + unknown:nVals"
   },
   "sparse_la/49_sparse_la_sparse_lu_decomp": {
-    "elements_per_site": [
-      "unknown:nVals",
-      "unknown:nVals",
-      "unknown:nVals"
-    ],
+    "elements_per_site": [],
     "explicit_values_supported": false,
-    "fill_sites": 3,
-    "notes": "non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; non-canonical extent: unknown:nVals; explicit_values disabled: 3 fill sites \u2014 value-to-vector mapping would be ambiguous (every site would receive the SAME list)",
-    "total_elements": "unknown:nVals + unknown:nVals + unknown:nVals"
+    "fill_sites": 0,
+    "notes": "no ENHANCED_FILL site; explicit_values disabled: nothing to fill",
+    "total_elements": "0"
   },
   "stencil/50_stencil_xor_kernel": {
     "elements_per_site": [

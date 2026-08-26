@@ -89,7 +89,12 @@ bool validate(Context *ctx) {
 
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
-        // set up input
+        // set up input. The adjacency matrix is REBUILT FROM ZERO for every
+        // attempt: randomConnectedUndirectedGraph only ever ADDS edges, so
+        // without this reset the graph of attempt t contained every edge of
+        // attempts 0..t-1 (measured density 0.60 -> 0.84 -> 0.94 -> 0.98)
+        // and the attempts were not independent (audit issue #77).
+        std::fill(A.begin(), A.end(), 0);
         randomConnectedUndirectedGraph(A, TEST_SIZE);
         int source = rand() % TEST_SIZE;
         int dest;

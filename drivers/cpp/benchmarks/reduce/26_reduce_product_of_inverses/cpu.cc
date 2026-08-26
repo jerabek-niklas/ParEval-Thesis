@@ -22,6 +22,70 @@ struct Context {
     std::vector<double> x;
 };
 
+namespace pareval_harness {
+
+// ---------------------------------------------------------------------------
+// Frozen D6 comparator for reduce/26 (Domain Approval Wave, numeric gate
+// CLOSED — thesis/docs/benchmark-domain-table.json, row 26, `numeric_gate`;
+// verdict rules = frozen I8):
+//
+//   Let r = trusted reference, c = candidate, n = actual input length,
+//   u = 2^-53 (unit roundoff), eps_rel = 8*n*u.
+//
+//   A) r is NaN/Inf                    -> baseline_incompatible
+//   B) r finite, c NaN/Inf             -> FAIL
+//   C) r == 0.0 exactly                -> PASS iff |c| <= DBL_MIN
+//   D) 0 < |r| < DBL_MIN (subnormal)   -> baseline_incompatible
+//   E) otherwise                       -> PASS iff |c - r| <= eps_rel * |r|
+//
+//   Pure relative comparison: NO absolute floor and NO max(1, |r|) term
+//   (frozen — the historical absolute 1e-4 epsilon is replaced by exactly
+//   this rule set).
+//
+// baseline_incompatible travels over the EXISTING marker transport
+// (mismatchNoteNonFiniteReference -> "BASELINE_INCOMPATIBLE: ..."): the
+// Wave-1 verdict classification depends on the authenticated marker line,
+// not on the reason substring, and the transport vocabulary is frozen — no
+// new marker and no new verdict class is introduced here. Rules A and B and
+// the mismatch reporting are delegated to the shared role-aware
+// reportAndCompareScalarImpl, which implements exactly those two rules.
+//
+// Under the frozen primary domain (x_i in [1,100]) and the frozen sizes
+// S/M/L = 15/64/256 the branches C and D are NOT regularly reachable
+// (measured neutrality window ends near n ~ 308); they are implemented for
+// out-of-domain probes and covered synthetically by the Wave-2A tests.
+// ---------------------------------------------------------------------------
+inline bool compareProductOfInverses(double reference, double candidate, size_t n) {
+    // Rule D first: a nonzero subnormal reference is finite, so the shared
+    // impl below would grade it; the frozen semantics demand
+    // baseline_incompatible instead.
+    if (mismatchIsFinite(reference) && reference != 0.0 &&
+        std::fabs(reference) < std::numeric_limits<double>::min()) {
+        mismatchNoteNonFiniteReference();
+        return true;   // not a model failure — not evaluable
+    }
+
+    const double unitRoundoff = std::numeric_limits<double>::epsilon() / 2.0;   // 2^-53
+    const double epsRel = 8.0 * (double)n * unitRoundoff;
+
+    bool equal;
+    if (reference == 0.0) {
+        // Rule C: exact-zero reference — the only absolute window that
+        // exists in the frozen contract.
+        equal = std::fabs(candidate) <= std::numeric_limits<double>::min();
+    } else {
+        // Rule E: pure relative comparison (NaN/Inf operands fall through
+        // as unequal / are decided by rules A/B in the shared impl).
+        equal = std::fabs(candidate - reference) <= epsRel * std::fabs(reference);
+    }
+
+    // Rules A and B + bounded MISMATCH reporting live in the shared
+    // role-aware scalar comparator (Wave-1 semantics, unchanged).
+    return reportAndCompareScalarImpl(reference, candidate, equal);
+}
+
+}  // namespace pareval_harness
+
 void reset(Context *ctx) {
     fillRand(ctx->x, 1.0, 100.0);
     BCAST(ctx->x, DOUBLE);
@@ -69,7 +133,10 @@ bool validate(Context *ctx) {
         SYNC();
 
         bool isCorrect = true;
-        if (IS_ROOT(rank) && !reportAndCompareScalar(correct, test, 1e-4)) {
+        // Frozen D6 verdict semantics (rules A-E above) with
+        // eps_rel = 8 * n * u over the ACTUAL input length — replaces the
+        // historical absolute 1e-4 scalar comparison.
+        if (IS_ROOT(rank) && !pareval_harness::compareProductOfInverses(correct, test, x.size())) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

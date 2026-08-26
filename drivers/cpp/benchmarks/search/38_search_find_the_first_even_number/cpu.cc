@@ -68,7 +68,12 @@ bool validate(Context *ctx) {
         std::vector<int> x(TEST_SIZE);
         ENHANCED_FILL(x, 1, 100);
         if (i == 1) {
-            for (size_t j = 0; j < 20; j += 1) {
+            // size-safe: only existing elements are overwritten — the
+            // unconditional x[0..19] write was a heap overflow for every
+            // TEST_SIZE < 20 (frozen finding; the mathematical sentinel
+            // semantics of the benchmark are unchanged by this guard).
+            const size_t overwriteCount = std::min<size_t>(20, x.size());
+            for (size_t j = 0; j < overwriteCount; j += 1) {
                 x[j] = 2 * (rand() % 50) + 1;
             }
         }

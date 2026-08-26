@@ -32,6 +32,57 @@ struct Context {
     size_t N;
 };
 
+// Harness-local helpers in a named namespace: the candidate translation unit
+// is included BEFORE these definitions, so "natural" global helper names can
+// collide with candidate-defined symbols and produce a build failure that is
+// falsely charged to the model.
+namespace pareval_harness {
+
+// Unique-index draw (frozen I5 contract for this benchmark: at most one
+// entry per index within one sparse vector): `count` DISTINCT indices from
+// [0, n), uniform via rejection on the unseeded rand() stream —
+// deterministic per call order and identical on every MPI rank. Indices are
+// valid by construction. Returns false only when the request is
+// unsatisfiable — a harness tripwire, unreachable for the derived
+// nnz = floor(0.1 * n).
+inline bool drawUniqueIndices(std::vector<size_t> &indices, size_t n) {
+    const size_t count = indices.size();
+    if (count > n) {
+        return false;
+    }
+    if (count == 0) {
+        return true;
+    }
+
+    std::vector<unsigned char> used(n, 0);
+    size_t drawn = 0;
+    while (drawn < count) {
+        const size_t index = (size_t)rand() % n;
+        if (used[index]) {
+            continue;
+        }
+        used[index] = 1;
+        indices[drawn] = index;
+        drawn += 1;
+    }
+    return true;
+}
+
+// Invalid-harness-input tripwire (A1.2): the oracle below scatters into
+// z[index] without a bounds guard, so out-of-range indices must never reach
+// it. Plain `if`-based (NDEBUG-proof); unreachable for the constructive
+// draw above.
+inline bool indicesInRange(std::vector<size_t> const& indices, size_t n) {
+    for (size_t i = 0; i < indices.size(); i += 1) {
+        if (indices[i] >= n) {
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace pareval_harness
+
 void reset(Context *ctx) {
     ctx->alpha = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
     fillRand(ctx->xIndices, 0UL, ctx->N);
@@ -95,10 +146,16 @@ bool validate(Context *ctx) {
 
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
-        // set up input
+        // set up input: unique indices per sparse vector by construction
+        // (frozen I5 duplicate contract — a well-formed sparse vector has at
+        // most one entry per index); the VALUE arrays keep their
+        // ENHANCED_FILL pattern hook, the index arrays are structural and no
+        // longer pattern-fillable (index-pattern policy is queued to the
+        // enhanced wave). x and y may still share indices — that is the
+        // benchmark's merge case, not a duplicate.
         double alpha = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
-        ENHANCED_FILL(xIndices, 0UL, TEST_SIZE);
-        ENHANCED_FILL(yIndices, 0UL, TEST_SIZE);
+        bool harnessOk = pareval_harness::drawUniqueIndices(xIndices, TEST_SIZE);
+        harnessOk = harnessOk && pareval_harness::drawUniqueIndices(yIndices, TEST_SIZE);
         ENHANCED_FILL(xValues, -1.0, 1.0);
         ENHANCED_FILL(yValues, -1.0, 1.0);
 
@@ -107,6 +164,22 @@ bool validate(Context *ctx) {
         BCAST(yIndices, UNSIGNED_LONG);
         BCAST(xValues, DOUBLE);
         BCAST(yValues, DOUBLE);
+
+        // invalid harness input (out-of-range scatter target or a result
+        // buffer of the wrong length) is announced through the existing
+        // baseline-incompatibility transport, never reaches the unguarded
+        // oracle and never grades the candidate (A1.2).
+        harnessOk = harnessOk &&
+            pareval_harness::indicesInRange(xIndices, TEST_SIZE) &&
+            pareval_harness::indicesInRange(yIndices, TEST_SIZE) &&
+            correct.size() == TEST_SIZE && test.size() == TEST_SIZE;
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
 
         for (int i = 0; i < xIndices.size(); i += 1) {
             x[i] = {xIndices[i], xValues[i]};

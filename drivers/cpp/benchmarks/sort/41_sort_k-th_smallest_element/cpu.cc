@@ -26,7 +26,10 @@ void reset(Context *ctx) {
     fillRand(ctx->x, 0, 10000);
     BCAST(ctx->x, INT);
 
-    ctx->k = rand() % ctx->x.size();
+    // frozen k domain: 1 <= k <= n (the historical rand() % n drew the
+    // invalid k = 0, sending the 1-indexed oracle into x_copy[-1] also on
+    // the timing path via best()).
+    ctx->k = (int)(rand() % ctx->x.size()) + 1;
     BCAST_PTR(&ctx->k, 1, INT);
 }
 
@@ -58,13 +61,27 @@ bool validate(Context *ctx) {
     int rank;
     GET_RANK(rank);
 
+    if (x.empty()) {
+        // n = 0 lies outside the frozen mathematical domain (1 <= k <= n
+        // requires n >= 1): no valid rank exists, and drawing one would be a
+        // modulo-by-zero followed by the oracle's x_copy[-1] read. A size-0
+        // instance is invalid harness input, announced through the existing
+        // baseline-incompatibility transport and never graded against the
+        // candidate.
+        mismatchNoteNonFiniteReference();
+        return true;
+    }
+
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
         // set up input
         ENHANCED_FILL(x, 0, 10000);
         BCAST(x, INT);
 
-        k = rand() % x.size();
+        // frozen k domain: 1 <= k <= n, 1-indexed over the multiset (the
+        // historical draw rand() % n produced the invalid k = 0 and could
+        // never produce k = n).
+        k = (int)(rand() % x.size()) + 1;
         BCAST_PTR(&k, 1, INT);
 
         // compute correct result

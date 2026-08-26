@@ -92,6 +92,40 @@ bool validate(Context *ctx) {
         }
     }
 
+    // A8/I13: deterministic NONSQUARE discriminating case — one extra check
+    // per validate(). The dimensions mirror the timed geometry
+    // (M, K = M/4, N = M/2; pairwise distinct for TEST_SIZE >= 4), so a
+    // candidate that hardwires one square extent for every dimension cannot
+    // pass. Inputs come from the deterministic unseeded rand() stream; the
+    // S/M/L axis is untouched — this is an additional shape probe, not a
+    // size redefinition.
+    if (TEST_SIZE >= 4) {
+        const size_t nsM = TEST_SIZE;
+        const size_t nsK = TEST_SIZE / 4;
+        const size_t nsN = TEST_SIZE / 2;
+
+        std::vector<double> A_ns(nsM * nsK), B_ns(nsK * nsN);
+        std::vector<double> correct_ns(nsM * nsN, 0.0), test_ns(nsM * nsN, 0.0);
+
+        fillRand(A_ns, -1.0, 1.0);
+        fillRand(B_ns, -1.0, 1.0);
+        BCAST(A_ns, DOUBLE);
+        BCAST(B_ns, DOUBLE);
+
+        correctGemm(A_ns, B_ns, correct_ns, nsM, nsK, nsN);
+        gemm(A_ns, B_ns, test_ns, nsM, nsK, nsN);
+        SYNC();
+
+        bool isCorrect = true;
+        if (IS_ROOT(rank) && !reportAndCompare(correct_ns, test_ns, 1e-4)) {
+            isCorrect = false;
+        }
+        BCAST_PTR(&isCorrect, 1, CXX_BOOL);
+        if (!isCorrect) {
+            return false;
+        }
+    }
+
     return true;
 }
 

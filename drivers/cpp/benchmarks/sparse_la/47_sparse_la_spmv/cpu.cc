@@ -32,6 +32,62 @@ struct Context {
     size_t M, N;
 };
 
+// Harness-local helpers in a named namespace: the candidate translation unit
+// is included BEFORE these definitions, so "natural" global helper names can
+// collide with candidate-defined symbols and produce a build failure that is
+// falsely charged to the model.
+namespace pareval_harness {
+
+// Unique-coordinate COO draw (frozen I5 contract: at most one entry per
+// (row, column)): `count` DISTINCT cells of an nRows x nCols matrix, uniform
+// via rejection on the unseeded rand() stream — deterministic per call order
+// and identical on every MPI rank. Indices are valid by construction.
+// Returns false only when the request is unsatisfiable — a harness tripwire,
+// unreachable for the derived nnz = floor(0.1 * nRows * nCols).
+inline bool drawUniqueCoordinates(std::vector<size_t> &rows, std::vector<size_t> &cols,
+                                  size_t nRows, size_t nCols) {
+    const size_t count = rows.size();
+    const size_t cells = nRows * nCols;
+    if (count > cells) {
+        return false;
+    }
+    if (count == 0) {
+        return true;
+    }
+
+    std::vector<unsigned char> used(cells, 0);
+    size_t drawn = 0;
+    while (drawn < count) {
+        const size_t cell = (size_t)rand() % cells;
+        if (used[cell]) {
+            continue;
+        }
+        used[cell] = 1;
+        rows[drawn] = cell / nCols;
+        cols[drawn] = cell % nCols;
+        drawn += 1;
+    }
+    return true;
+}
+
+// Invalid-harness-input tripwire (A1.2). The oracle of THIS benchmark guards
+// its own index range (baseline.hpp drops out-of-range triples), but an
+// unguarded candidate — the natural reading of the prompt — would go out of
+// bounds on invalid harness input; such input must never grade the
+// candidate. Plain `if`-based (NDEBUG-proof); unreachable for the
+// constructive draw above.
+inline bool cooIndicesInRange(std::vector<size_t> const& rows, std::vector<size_t> const& cols,
+                              size_t nRows, size_t nCols) {
+    for (size_t i = 0; i < rows.size(); i += 1) {
+        if (rows[i] >= nRows || cols[i] >= nCols) {
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace pareval_harness
+
 void reset(Context *ctx) {
     ctx->alpha = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
     ctx->beta = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
@@ -97,11 +153,15 @@ bool validate(Context *ctx) {
 
     const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int trialIter = 0; trialIter < numTries; trialIter += 1) {
-        // set up input
+        // set up input: unique (row, column) coordinates by construction
+        // (frozen I5 duplicate contract); the VALUE arrays and the dense
+        // vectors keep their ENHANCED_FILL pattern hook, the index arrays
+        // are structural and no longer pattern-fillable (index-pattern
+        // policy is queued to the enhanced wave).
         double alpha = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
         double beta = (rand() / (double) RAND_MAX) * 2.0 - 1.0;
-        ENHANCED_FILL(rows, 0UL, TEST_SIZE);
-        ENHANCED_FILL(columns, 0UL, TEST_SIZE);
+        bool harnessOk =
+            pareval_harness::drawUniqueCoordinates(rows, columns, TEST_SIZE, TEST_SIZE);
         ENHANCED_FILL(values, -1.0, 1.0);
         ENHANCED_FILL(x, -1.0, 1.0);
         ENHANCED_FILL(correct, -1.0, 1.0);
@@ -114,6 +174,19 @@ bool validate(Context *ctx) {
         BCAST(x, DOUBLE);
         BCAST(correct, DOUBLE);
         test = correct;
+
+        // invalid harness input is announced through the existing
+        // baseline-incompatibility transport and never grades the candidate
+        // (A1.2: no OOB, no silent skip, no candidate blame).
+        harnessOk = harnessOk &&
+            pareval_harness::cooIndicesInRange(rows, columns, TEST_SIZE, TEST_SIZE);
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
 
         for (size_t i = 0; i < A.size(); i += 1) {
             A[i] = {rows[i], columns[i], values[i]};
