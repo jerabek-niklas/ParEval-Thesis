@@ -113,14 +113,17 @@ bool validate(Context *ctx) {
         int test = shortestPathLength(A, TEST_SIZE, source, dest);
         SYNC();
 
-        // normalize "not-found" results
-        if (correct == std::numeric_limits<int>::max() || correct < 0) {
-            correct = -1;
-        }
-        if (test == std::numeric_limits<int>::max() || test < 0) {
-            test = -1;
-        }
-        
+        // Wave 2B (frozen queue: sentinel collapse, audit item in the
+        // sentinel/UB repair list): the historical normalization mapped
+        // INT_MAX and EVERY negative candidate value to -1 before comparing,
+        // so -1, -5 and INT_MAX were silently treated as the same verdict —
+        // an alias set the prompt never states. The frozen family semantics
+        // are exact: self distance = 0, unreachable = INT_MAX. The scalar
+        // comparison below now grades the raw values. Observable behaviour
+        // is unchanged for every input the current connected-graph generator
+        // can produce (the reference is never INT_MAX or negative there);
+        // the collapse only mattered for unreachable pairs, which become
+        // gradeable exactly when a later wave introduces them.
         bool isCorrect = true;
         if (IS_ROOT(rank) && !reportAndCompareScalar(correct, test)) {
             isCorrect = false;

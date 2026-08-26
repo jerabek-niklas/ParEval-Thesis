@@ -23,6 +23,59 @@ struct Context {
     std::vector<double> real, imag;
 };
 
+namespace pareval_harness {
+
+// Frozen I10 invariant validator for sort40. A candidate output is correct
+// iff (1) it is a PERMUTATION of the input — the complex value multiset is
+// preserved exactly (values are copied, never computed, so exact equality
+// is the right predicate) — and (2) the magnitudes are non-decreasing.
+// NO tie order is demanded: any permutation of equal-magnitude values that
+// satisfies (2) passes. The historical element-wise comparison against ONE
+// std::sort reference sequence rejected mathematically correct tie
+// permutations (audit BL-12, class E — the frozen defect this replaces).
+
+inline bool magnitudesNonDecreasing(std::vector<std::complex<double>> const& out) {
+    size_t shown = 0;
+    size_t total = 0;
+    for (size_t i = 1; i < out.size(); i += 1) {
+        if (std::abs(out[i]) < std::abs(out[i - 1])) {
+            total += 1;
+            if (shown < (size_t)(MISMATCH_REPORT_MAX)) {
+                shown += 1;
+                printf("MISMATCH index=%zu expected=magnitude>=%.*g got=%.*g\n", i,
+                       std::numeric_limits<double>::max_digits10, std::abs(out[i - 1]),
+                       std::numeric_limits<double>::max_digits10, std::abs(out[i]));
+            }
+        }
+    }
+    if (total > 0) {
+        printf("MISMATCH_SUMMARY shown=%zu total=%zu\n", shown, total);
+    }
+    return total == 0;
+}
+
+inline bool sameComplexMultiset(std::vector<std::complex<double>> const& input,
+                                std::vector<std::complex<double>> const& output) {
+    std::vector<std::complex<double>> a = input;
+    std::vector<std::complex<double>> b = output;
+    auto lexi = [](std::complex<double> const& p, std::complex<double> const& q) {
+        return p.real() < q.real() || (p.real() == q.real() && p.imag() < q.imag());
+    };
+    std::sort(a.begin(), a.end(), lexi);
+    std::sort(b.begin(), b.end(), lexi);
+    // exact equality; a length mismatch is rejected inside the shared helper
+    return reportAndCompareEq(a, b);
+}
+
+inline bool validSortByMagnitude(std::vector<std::complex<double>> const& input,
+                                 std::vector<std::complex<double>> const& output) {
+    const bool multisetOk = sameComplexMultiset(input, output);
+    const bool orderOk = magnitudesNonDecreasing(output);
+    return multisetOk && orderOk;
+}
+
+}  // namespace pareval_harness
+
 void reset(Context *ctx) {
     fillRand(ctx->real, -100.0, 100.0);
     fillRand(ctx->imag, -100.0, 100.0);
@@ -57,7 +110,7 @@ bool validate(Context *ctx) {
     const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
     std::vector<double> real(TEST_SIZE), imag(TEST_SIZE);
-    std::vector<std::complex<double>> correct(TEST_SIZE), test(TEST_SIZE);
+    std::vector<std::complex<double>> input(TEST_SIZE), correct(TEST_SIZE), test(TEST_SIZE);
 
     int rank;
     GET_RANK(rank);
@@ -70,24 +123,57 @@ bool validate(Context *ctx) {
         BCAST(real, DOUBLE);
         BCAST(imag, DOUBLE);
 
-        for (int i = 0; i < correct.size(); i += 1) {
-            correct[i] = std::complex<double>(real[i], imag[i]);
-            test[i] = std::complex<double>(real[i], imag[i]);
+        for (int i = 0; i < input.size(); i += 1) {
+            input[i] = std::complex<double>(real[i], imag[i]);
+            correct[i] = input[i];
+            test[i] = input[i];
         }
 
-        // compute correct result
+        // Non-finite components make "sort by magnitude" ungradeable (a NaN
+        // magnitude is an inconsistent comparator); such input is outside
+        // the frozen primary value domain ([-100,100] per component) and is
+        // announced through the existing baseline-incompatibility transport,
+        // never graded against the candidate.
+        bool harnessOk = true;
+        for (size_t i = 0; i < input.size(); i += 1) {
+            if (!mismatchIsFinite(input[i])) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
+        // harness selftest: the reference sort must itself satisfy the
+        // frozen invariants (permutation + non-decreasing magnitudes); a
+        // violation would be harness corruption, not a candidate failure
         correctSortComplexByMagnitude(correct);
+        bool refOk = true;
+        if (IS_ROOT(rank) && !pareval_harness::validSortByMagnitude(input, correct)) {
+            refOk = false;
+        }
+        if (!refOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&refOk, 1, CXX_BOOL);
+        if (!refOk) {
+            continue;
+        }
 
         // compute test result
         sortComplexByMagnitude(test);
         SYNC();
-        
-        // Contract C1.5: the former hand-written loop used exactly this
-        // predicate — std::abs on a complex difference is the magnitude, and
-        // that is what reportAndCompare's default predicate computes for a
-        // complex value type. Tolerance unchanged at 1e-6.
+
+        // Frozen I10 invariant validation (multiset preserved + magnitudes
+        // non-decreasing); no tie order is demanded — replaces the
+        // element-wise comparison against one reference sequence.
         bool isCorrect = true;
-        if (IS_ROOT(rank) && !reportAndCompare(correct, test, 1e-6)) {
+        if (IS_ROOT(rank) && !pareval_harness::validSortByMagnitude(input, test)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

@@ -28,6 +28,80 @@ struct Context {
     std::vector<float> value;
 };
 
+namespace pareval_harness {
+
+// Frozen I10 invariant validator for sort43. A candidate output is correct
+// iff (1) it is a PERMUTATION of the input records — the record multiset
+// over (startTime, duration, value) is preserved exactly (all three fields
+// are copied, never computed) — and (2) the key startTime is non-decreasing.
+// NO stable-sort requirement and NO tie-by-index rule: any order of
+// equal-key records passes. The historical exact comparison against the
+// UNSTABLE std::sort reference graded libstdc++'s incidental tie
+// permutation (frozen defect: a stable_sort of the same input disagreed
+// with the oracle in 500/500 trials at n >= 64).
+
+inline bool recordLess(Result const& a, Result const& b) {
+    if (a.startTime != b.startTime) return a.startTime < b.startTime;
+    if (a.duration != b.duration) return a.duration < b.duration;
+    return a.value < b.value;
+}
+
+inline bool keysNonDecreasing(std::vector<Result> const& out) {
+    size_t shown = 0;
+    size_t total = 0;
+    for (size_t i = 1; i < out.size(); i += 1) {
+        if (out[i].startTime < out[i - 1].startTime) {
+            total += 1;
+            if (shown < (size_t)(MISMATCH_REPORT_MAX)) {
+                shown += 1;
+                printf("MISMATCH index=%zu expected=startTime>=%d got=%d\n",
+                       i, out[i - 1].startTime, out[i].startTime);
+            }
+        }
+    }
+    if (total > 0) {
+        printf("MISMATCH_SUMMARY shown=%zu total=%zu\n", shown, total);
+    }
+    return total == 0;
+}
+
+inline bool sameRecordMultiset(std::vector<Result> const& input,
+                               std::vector<Result> const& output) {
+    std::vector<Result> a = input;
+    std::vector<Result> b = output;
+    std::sort(a.begin(), a.end(), recordLess);
+    std::sort(b.begin(), b.end(), recordLess);
+
+    // exact field-wise comparison through the shared helpers (a length
+    // mismatch is rejected inside; float `value` is a verbatim copy, so
+    // exact equality is the right predicate)
+    std::vector<int> aStart(a.size()), bStart(b.size());
+    std::vector<int> aDur(a.size()), bDur(b.size());
+    std::vector<float> aVal(a.size()), bVal(b.size());
+    for (size_t i = 0; i < a.size(); i += 1) {
+        aStart[i] = a[i].startTime;
+        aDur[i] = a[i].duration;
+        aVal[i] = a[i].value;
+    }
+    for (size_t i = 0; i < b.size(); i += 1) {
+        bStart[i] = b[i].startTime;
+        bDur[i] = b[i].duration;
+        bVal[i] = b[i].value;
+    }
+    return reportAndCompareEq(aStart, bStart)
+        && reportAndCompareEq(aDur, bDur)
+        && reportAndCompareEq(aVal, bVal);
+}
+
+inline bool validSortByStartTime(std::vector<Result> const& input,
+                                 std::vector<Result> const& output) {
+    const bool multisetOk = sameRecordMultiset(input, output);
+    const bool orderOk = keysNonDecreasing(output);
+    return multisetOk && orderOk;
+}
+
+}  // namespace pareval_harness
+
 void reset(Context *ctx) {
     fillRand(ctx->startTime, 0, 100);
     fillRand(ctx->duration, 1, 10);
@@ -67,7 +141,7 @@ void NO_OPTIMIZE best(Context *ctx) {
 bool validate(Context *ctx) {
     const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
-    std::vector<Result> correct(TEST_SIZE), test(TEST_SIZE);
+    std::vector<Result> input(TEST_SIZE), correct(TEST_SIZE), test(TEST_SIZE);
     std::vector<int> startTime(TEST_SIZE), duration(TEST_SIZE);
     std::vector<float> value(TEST_SIZE);
 
@@ -86,55 +160,41 @@ bool validate(Context *ctx) {
         BCAST(value, FLOAT);
 
         for (int i = 0; i < startTime.size(); i += 1) {
-            correct[i].startTime = startTime[i];
-            correct[i].duration = duration[i];
-            correct[i].value = value[i];
+            input[i].startTime = startTime[i];
+            input[i].duration = duration[i];
+            input[i].value = value[i];
 
-            test[i].startTime = startTime[i];
-            test[i].duration = duration[i];
-            test[i].value = value[i];
+            correct[i] = input[i];
+            test[i] = input[i];
         }
 
-        // compute correct result
+        // harness selftest: the reference sort must itself satisfy the
+        // frozen invariants (record permutation + non-decreasing key); a
+        // violation would be harness corruption, not a candidate failure
         correctSortByStartTime(correct);
+        bool refOk = true;
+        if (IS_ROOT(rank) && !pareval_harness::validSortByStartTime(input, correct)) {
+            refOk = false;
+        }
+        if (!refOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&refOk, 1, CXX_BOOL);
+        if (!refOk) {
+            continue;
+        }
 
         // compute test result
         sortByStartTime(test);
         SYNC();
-        
-        // Contract C1.5/C1b.4: `Result` mixes two ints with a FLOAT, so the
-        // struct comparison was a floating-point comparison in disguise —
-        // `correct[i].value != test[i].value` is TRUE for a NaN reference
-        // (NaN != NaN), i.e. a non-finite ORACLE was scored as a MODEL
-        // failure. The loop was also bounded by correct.size() while
-        // indexing the candidate-writable `test`.
-        //
-        // The three fields are compared field-wise through the shared helper.
-        // The graded predicate is unchanged: a sample is correct iff all
-        // three fields agree at every index, which is exactly the former
-        // conjunction; && short-circuits just as the former `break` did.
+
+        // Frozen I10 invariant validation (record multiset preserved + key
+        // non-decreasing); no stable-sort requirement, no tie-by-index —
+        // replaces the field-wise comparison against one unstable reference
+        // sequence.
         bool isCorrect = true;
-        if (IS_ROOT(rank)) {
-            std::vector<int> cStart(correct.size()), tStart(test.size());
-            std::vector<int> cDur(correct.size()), tDur(test.size());
-            std::vector<float> cVal(correct.size()), tVal(test.size());
-
-            for (size_t i = 0; i < correct.size(); i += 1) {
-                cStart[i] = correct[i].startTime;
-                cDur[i] = correct[i].duration;
-                cVal[i] = correct[i].value;
-            }
-            for (size_t i = 0; i < test.size(); i += 1) {
-                tStart[i] = test[i].startTime;
-                tDur[i] = test[i].duration;
-                tVal[i] = test[i].value;
-            }
-
-            if (!reportAndCompareEq(cStart, tStart)
-                || !reportAndCompareEq(cDur, tDur)
-                || !reportAndCompareEq(cVal, tVal)) {
-                isCorrect = false;
-            }
+        if (IS_ROOT(rank) && !pareval_harness::validSortByStartTime(input, test)) {
+            isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);
         if (!isCorrect) {

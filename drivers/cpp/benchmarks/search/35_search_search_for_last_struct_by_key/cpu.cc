@@ -64,6 +64,17 @@ bool validate(Context *ctx) {
 
     const size_t TEST_SIZE = ENHANCED_TEST_SIZE_DEFAULT(1024);
 
+    if (TEST_SIZE == 0) {
+        // Wave 2B (frozen sentinel/UB queue): the frozen minimum size of this
+        // benchmark is n >= 1; at n == 0 the forced-write below would be a
+        // modulo-by-zero (SIGFPE — historically a harness crash attributed to
+        // the sample). A size-0 instance is invalid harness input, announced
+        // through the existing baseline-incompatibility transport and never
+        // graded against the candidate.
+        mismatchNoteNonFiniteReference();
+        return true;
+    }
+
     const size_t numTries = 5;
     for (int i = 0; i < numTries; i += 1) {
         std::vector<int> pages(TEST_SIZE);

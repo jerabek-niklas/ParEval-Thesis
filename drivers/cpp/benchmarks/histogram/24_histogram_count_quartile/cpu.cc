@@ -63,6 +63,30 @@ bool validate(Context *ctx) {
         // set up input
         ENHANCED_FILL(x, 0.0, 100.0);
         BCAST(x, DOUBLE);
+
+        // Wave 2B (frozen sentinel/UB queue): the frozen value domain of the
+        // domain table is 0 <= v < 2^31 — below 0 the prompt's four
+        // half-open intervals contain no value (the negative-fraction
+        // semantics is an OPEN decision, BL-08, deliberately not taken
+        // here), and at |v| >= 2^31 the oracle's `(int) val` cast is UB. The
+        // negated comparison catches NaN as out-of-domain too. Invalid
+        // harness input is announced through the existing
+        // baseline-incompatibility transport and never grades the candidate.
+        bool harnessOk = true;
+        for (size_t j = 0; j < x.size(); j += 1) {
+            if (!(x[j] >= 0.0 && x[j] < 2147483648.0)) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         correct.fill(0);
         test.fill(0);
 

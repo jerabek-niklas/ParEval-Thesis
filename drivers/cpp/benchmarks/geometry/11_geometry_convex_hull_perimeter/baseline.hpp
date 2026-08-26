@@ -10,23 +10,42 @@
    output: 13.4477
 */
 double NO_INLINE correctConvexHullPerimeter(std::vector<Point> const& points) {
-    // The polygon needs to have at least three points
-    if (points.size() < 3)   {
-        return 0;
-    }
+    // Wave 2B (frozen I11 family semantics): the perimeter is a function of
+    // the DISTINCT point set — duplicates are irrelevant; one distinct point
+    // (or an empty vector) -> 0; two or more distinct collinear points ->
+    // twice the length of the spanning segment (2 * extent). The historical
+    // code guarded on points.size() and was NOT set-invariant: {(0,0),(3,4)}
+    // -> 0 but {(0,0),(0,0),(3,4)} -> 10 for the SAME point set (audit
+    // BL-02, class F).
+    auto dist = [](Point const& p1, Point const& p2) {
+        return sqrt(pow(p2.x-p1.x, 2) + pow(p2.y-p1.y, 2));
+    };
 
     std::vector<Point> pointsSorted = points;
 
     std::sort(pointsSorted.begin(), pointsSorted.end(), [](Point const& a, Point const& b) {
         return a.x < b.x || (a.x == b.x && a.y < b.y);
     });
+    pointsSorted.erase(std::unique(pointsSorted.begin(), pointsSorted.end(),
+                                   [](Point const& a, Point const& b) {
+                                       return a.x == b.x && a.y == b.y;
+                                   }),
+                       pointsSorted.end());
+
+    if (pointsSorted.size() <= 1) {
+        // empty input or all points coincident
+        return 0;
+    }
+    if (pointsSorted.size() == 2) {
+        // degenerate segment: closed boundary = there and back
+        return 2.0 * dist(pointsSorted[0], pointsSorted[1]);
+    }
+    // (>= 3 distinct collinear points need no special branch: the monotone
+    // chain below reduces them to the two extremes and the closing loop then
+    // yields exactly 2 * extent.)
 
     auto CrossProduct = [](Point const& a, Point const& b, Point const& c) {
         return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x) > 0;
-    };
-
-    auto dist = [](Point const& p1, Point const& p2) {
-        return sqrt(pow(p2.x-p1.x, 2) + pow(p2.y-p1.y, 2));
     };
 
 

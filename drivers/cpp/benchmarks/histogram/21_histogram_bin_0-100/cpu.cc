@@ -61,6 +61,29 @@ bool validate(Context *ctx) {
         // set up input
         ENHANCED_FILL(x, 0.0, 100.0);
         BCAST(x, DOUBLE);
+
+        // Wave 2B (frozen sentinel/UB queue): the frozen value domain is
+        // x[i] in [0, 100] (stated in the prompt; 100.0 exactly is IN domain
+        // and clamped into bins[9] by the oracle). Outside it the oracle's
+        // static_cast<size_t>(x[i]/10) is UB for negatives/huge values/NaN.
+        // The negated comparison catches NaN as out-of-domain too. Invalid
+        // harness input is announced through the existing
+        // baseline-incompatibility transport and never grades the candidate.
+        bool harnessOk = true;
+        for (size_t j = 0; j < x.size(); j += 1) {
+            if (!(x[j] >= 0.0 && x[j] <= 100.0)) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         correct.fill(0);
         test.fill(0);
 

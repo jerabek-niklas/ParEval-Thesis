@@ -62,6 +62,28 @@ bool validate(Context *ctx) {
         ENHANCED_FILL(x, -100, 100);
         BCAST(x, INT);
 
+        // Wave 2B (frozen sentinel/UB queue): the frozen value domain is
+        // |x[i]| <= 100 (D0: it keeps every partial suffix sum below 2^31 at
+        // every frozen size); outside it the oracle's int accumulation is
+        // signed-overflow UB (measured for pattern-injected INT_MIN/INT_MAX
+        // at odd n). Out-of-domain harness input is announced through the
+        // existing baseline-incompatibility transport and never grades the
+        // candidate.
+        bool harnessOk = true;
+        for (size_t j = 0; j < x.size(); j += 1) {
+            if (x[j] < -100 || x[j] > 100) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         // compute correct result
         correctReversePrefixSum(x, correct);
 

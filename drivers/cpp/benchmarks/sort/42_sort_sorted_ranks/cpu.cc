@@ -26,6 +26,69 @@ struct Context {
     std::vector<size_t> ranks;
 };
 
+namespace pareval_harness {
+
+// Frozen I10 invariant validator for sort42. A candidate rank vector is
+// correct iff (1) it is a PERMUTATION of 0..n-1 and (2) placing each x[j]
+// at position ranks[j] yields a non-decreasing value sequence. NO tie order
+// is demanded: for duplicate values every rank assignment satisfying
+// (1) and (2) passes. The historical exact comparison against correctRanks'
+// UNSTABLE std::sort output graded libstdc++'s incidental tie permutation
+// (frozen defect: the oracle's ranks differ from the canonical stable
+// ranking in 100% of measured trials at n >= 65536).
+
+inline bool validRanks(std::vector<float> const& x, std::vector<size_t> const& r) {
+    if (r.size() != x.size()) {
+        printf("SIZE_MISMATCH expected=%zu got=%zu\n", (size_t)x.size(), (size_t)r.size());
+        printf("MISMATCH_SUMMARY shown=0 total=1\n");
+        return false;
+    }
+
+    const size_t n = r.size();
+    size_t shown = 0;
+    size_t total = 0;
+
+    std::vector<unsigned char> seen(n, 0);
+    for (size_t j = 0; j < n; j += 1) {
+        if (r[j] >= n || seen[r[j]]) {
+            // out-of-range or duplicate rank: not a permutation
+            total += 1;
+            if (shown < (size_t)(MISMATCH_REPORT_MAX)) {
+                shown += 1;
+                printf("MISMATCH index=%zu expected=unique-rank<%zu got=%zu\n", j, n, r[j]);
+            }
+            continue;
+        }
+        seen[r[j]] = 1;
+    }
+
+    if (total == 0) {
+        // permutation holds -> the applied sequence is fully defined
+        std::vector<float> applied(n);
+        for (size_t j = 0; j < n; j += 1) {
+            applied[r[j]] = x[j];
+        }
+        for (size_t i = 1; i < n; i += 1) {
+            if (applied[i] < applied[i - 1]) {
+                total += 1;
+                if (shown < (size_t)(MISMATCH_REPORT_MAX)) {
+                    shown += 1;
+                    printf("MISMATCH index=%zu expected=value>=%.*g got=%.*g\n", i,
+                           std::numeric_limits<float>::max_digits10, (double)applied[i - 1],
+                           std::numeric_limits<float>::max_digits10, (double)applied[i]);
+                }
+            }
+        }
+    }
+
+    if (total > 0) {
+        printf("MISMATCH_SUMMARY shown=%zu total=%zu\n", shown, total);
+    }
+    return total == 0;
+}
+
+}  // namespace pareval_harness
+
 void reset(Context *ctx) {
     fillRand(ctx->x, -100.0, 100.0);
     BCAST(ctx->x, FLOAT);
@@ -64,14 +127,37 @@ bool validate(Context *ctx) {
         ENHANCED_FILL(x, -100.0, 100.0);
         BCAST(x, FLOAT);
 
-        // compute correct result
+        // harness selftest: the reference ranking must itself satisfy the
+        // frozen invariants (permutation + non-decreasing application); a
+        // violation would be harness corruption, not a candidate failure
         correctRanks(x, correct);
+        bool refOk = true;
+        if (IS_ROOT(rank) && !pareval_harness::validRanks(x, correct)) {
+            refOk = false;
+        }
+        if (!refOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&refOk, 1, CXX_BOOL);
+        if (!refOk) {
+            continue;
+        }
 
         // compute test result
         ranks(x, test);
         SYNC();
-        
-        if (IS_ROOT(rank) && !reportAndCompareEq(correct, test)) {
+
+        // Frozen I10 invariant validation (permutation + non-decreasing
+        // application); no tie order is demanded — replaces the exact
+        // comparison against one reference rank sequence. The verdict is
+        // broadcast so every rank takes the same exit (the former
+        // root-only early return could diverge under MPI).
+        bool isCorrect = true;
+        if (IS_ROOT(rank) && !pareval_harness::validRanks(x, test)) {
+            isCorrect = false;
+        }
+        BCAST_PTR(&isCorrect, 1, CXX_BOOL);
+        if (!isCorrect) {
             return false;
         }
     }

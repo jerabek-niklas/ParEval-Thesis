@@ -9,17 +9,31 @@
    output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]
 */
 void NO_INLINE correctConvexHull(std::vector<Point> const& points, std::vector<Point> &hull) {
-    // The polygon needs to have at least three points
-    if (points.size() < 3)   {
-        hull = points;
-        return;
-    }
-
+    // Wave 2B (frozen I11 family semantics): the hull is a function of the
+    // DISTINCT point set — duplicates in the input are irrelevant, and every
+    // hull vertex appears exactly once in the result. The historical code
+    // guarded on points.size() and could return a coincident point TWICE
+    // (all-identical input -> a 2-entry "hull"). The result is graded as a
+    // vertex SET (the validator sorts both sides), so deduplication changes
+    // no non-degenerate verdict.
     std::vector<Point> pointsSorted = points;
 
     std::sort(pointsSorted.begin(), pointsSorted.end(), [](Point const& a, Point const& b) {
         return a.x < b.x || (a.x == b.x && a.y < b.y);
     });
+    pointsSorted.erase(std::unique(pointsSorted.begin(), pointsSorted.end(),
+                                   [](Point const& a, Point const& b) {
+                                       return a.x == b.x && a.y == b.y;
+                                   }),
+                       pointsSorted.end());
+
+    // Fewer than three DISTINCT points: the hull is those distinct points
+    // themselves (one point -> that point once; two points -> the segment's
+    // two endpoints).
+    if (pointsSorted.size() < 3)   {
+        hull = pointsSorted;
+        return;
+    }
 
     auto CrossProduct = [](Point const& a, Point const& b, Point const& c) {
         return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x) > 0;

@@ -64,6 +64,28 @@ bool validate(Context *ctx) {
         ENHANCED_FILL(image, 0, 255);
         BCAST(image, INT);
 
+        // Wave 2B (frozen sentinel/UB queue): the frozen value domain is
+        // pixel values in [0, 255] (stated in the prompt); the oracle indexes
+        // bins[image[i]] with NO bounds check, so out-of-domain harness input
+        // (pattern-injected values) was an out-of-bounds write / SEGV inside
+        // the ORACLE, attributed to the sample. Invalid harness input is
+        // announced through the existing baseline-incompatibility transport
+        // and never reaches the oracle and never grades the candidate.
+        bool harnessOk = true;
+        for (size_t j = 0; j < image.size(); j += 1) {
+            if (image[j] < 0 || image[j] > 255) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         std::fill(correct.begin(), correct.end(), 0);
         std::fill(test.begin(), test.end(), 0);
 

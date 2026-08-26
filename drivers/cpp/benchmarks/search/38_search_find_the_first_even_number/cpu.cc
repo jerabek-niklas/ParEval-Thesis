@@ -62,7 +62,15 @@ bool validate(Context *ctx) {
     int rank;
     GET_RANK(rank);
 
-    const size_t numTries = 10;
+    // Wave 2B (frozen queue: validation-attempt normalization): the
+    // benchmark-local hardcode `numTries = 10` is replaced by the suite-wide
+    // attempt contract. The deterministic try-1 special case below (all-odd
+    // prefix) is still reached — attempt index 1 is the SECOND of the
+    // MAX_VALIDATION_ATTEMPTS = 2 attempts. What is given up is the extra
+    // random coverage of attempts 2..9; the suite-wide contract's known
+    // sensitivity limit (few deterministic unseeded-rand attempts) now
+    // applies to this benchmark like to every other one.
+    const size_t numTries = MAX_VALIDATION_ATTEMPTS;
     for (int i = 0; i < numTries; i += 1) {
         // set up input
         std::vector<int> x(TEST_SIZE);

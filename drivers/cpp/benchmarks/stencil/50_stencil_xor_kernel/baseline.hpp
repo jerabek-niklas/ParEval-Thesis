@@ -16,6 +16,12 @@
             [1, 0, 1, 0]]
 */
 void NO_INLINE correctCellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {
+    // Wave 2B (frozen I4): the neighborhood is the 8-neighbor MOORE
+    // neighborhood — this reproduces the prompt's own worked example exactly
+    // in all 16 cells, while the historical 4-neighbor (von Neumann) version
+    // contradicted it in 6 of 16 cells (measured; the prompt example was the
+    // authoritative side of the frozen decision). Out-of-grid cells do not
+    // count; the literal == 1 rule is unchanged.
     for (size_t i = 0; i < N; ++i) {
         for (size_t j = 0; j < N; ++j) {
             int count = 0;
@@ -23,6 +29,10 @@ void NO_INLINE correctCellsXOR(std::vector<int> const& input, std::vector<int> &
             if (i < N-1 && input[(i+1)*N + j] == 1) ++count;
             if (j > 0 && input[i*N + j-1] == 1) ++count;
             if (j < N-1 && input[i*N + j+1] == 1) ++count;
+            if (i > 0 && j > 0 && input[(i-1)*N + j-1] == 1) ++count;
+            if (i > 0 && j < N-1 && input[(i-1)*N + j+1] == 1) ++count;
+            if (i < N-1 && j > 0 && input[(i+1)*N + j-1] == 1) ++count;
+            if (i < N-1 && j < N-1 && input[(i+1)*N + j+1] == 1) ++count;
             output[i*N + j] = (count == 1) ? 1 : 0;
         }
     }

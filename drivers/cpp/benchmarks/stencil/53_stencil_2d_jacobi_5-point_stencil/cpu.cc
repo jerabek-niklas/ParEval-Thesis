@@ -74,19 +74,14 @@ bool validate(Context *ctx) {
         jacobi2D(input, test, TEST_SIZE);
         SYNC();
 
-        // Contract C1.5/C1b.4: former hand-written double loop. The GRADED
-        // index set is unchanged — the selector reproduces the old interior
-        // (row and column both in [1, TEST_SIZE-1)), so the border ring stays
-        // ungraded — and the 1e-6 tolerance is unchanged.
+        // Wave 2B (frozen I14): FULL-vector validation including the border
+        // ring — the historical interior-only window never graded the
+        // prompt's stated zero-padding boundary rule at any size (measured:
+        // 0 boundary cells compared) and made N = 1 and N = 2 vacuous
+        // passes. The 1e-6 tolerance is unchanged; size check and the
+        // role-aware non-finite semantics come from the shared helper.
         bool isCorrect = true;
-        if (IS_ROOT(rank) && !reportAndCompareSelectedWith(
-                correct, test, static_cast<std::vector<double> const*>(nullptr),
-                [](double e, double g) { return std::abs(g - e) > 1e-6; },
-                [TEST_SIZE](size_t idx) {
-                    const size_t r = idx / TEST_SIZE;
-                    const size_t c = idx % TEST_SIZE;
-                    return r >= 1 && r + 1 < TEST_SIZE && c >= 1 && c + 1 < TEST_SIZE;
-                })) {
+        if (IS_ROOT(rank) && !reportAndCompare(correct, test, 1e-6)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

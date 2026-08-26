@@ -37,20 +37,25 @@ void NO_INLINE correctFft(std::vector<std::complex<double>> const& x, std::vecto
 			T *= phiT;
 		}
 	}
-	// Decimate
-	unsigned int m = (unsigned int)std::log2(N);
-	for (unsigned int a = 0; a < N; a++) {
-		unsigned int b = a;
-		// Reverse bits
-		b = (((b & 0xaaaaaaaa) >> 1) | ((b & 0x55555555) << 1));
-		b = (((b & 0xcccccccc) >> 2) | ((b & 0x33333333) << 2));
-		b = (((b & 0xf0f0f0f0) >> 4) | ((b & 0x0f0f0f0f) << 4));
-		b = (((b & 0xff00ff00) >> 8) | ((b & 0x00ff00ff) << 8));
-		b = ((b >> 16) | (b << 16)) >> (32 - m);
-		if (b > a) {
-			std::complex<double> t = output[a];
-			output[a] = output[b];
-			output[b] = t;
+	// Decimate. Wave 2B guard (frozen FFT-family N=1/shift finding): the
+	// bit-reversal permutation of fewer than two elements is the identity;
+	// running it at N <= 1 evaluated `>> (32 - m)` with m = 0 — a
+	// shift-by-32 on a 32-bit type, formal UB (UBSan-verified).
+	if (N > 1) {
+		unsigned int m = (unsigned int)std::log2(N);
+		for (unsigned int a = 0; a < N; a++) {
+			unsigned int b = a;
+			// Reverse bits
+			b = (((b & 0xaaaaaaaa) >> 1) | ((b & 0x55555555) << 1));
+			b = (((b & 0xcccccccc) >> 2) | ((b & 0x33333333) << 2));
+			b = (((b & 0xf0f0f0f0) >> 4) | ((b & 0x0f0f0f0f) << 4));
+			b = (((b & 0xff00ff00) >> 8) | ((b & 0x00ff00ff) << 8));
+			b = ((b >> 16) | (b << 16)) >> (32 - m);
+			if (b > a) {
+				std::complex<double> t = output[a];
+				output[a] = output[b];
+				output[b] = t;
+			}
 		}
 	}
 }

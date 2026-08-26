@@ -63,6 +63,31 @@ bool validate(Context *ctx) {
         ENHANCED_FILL(x, 0.0, 100.0);
         BCAST(x, INT);
 
+        // Wave 2B (frozen sentinel/UB queue): the frozen input domain is
+        // non-negative values (queued prompt contract) with INT_MAX excluded
+        // (INT_MAX is simultaneously a legal odd value and the oracle's fold
+        // identity, so "smallest odd is INT_MAX" and "no odd exists" are
+        // indistinguishable — the catalogued sentinel collision). Negative
+        // odd values additionally grade an unpinned parity convention
+        // (the oracle's a % 2 == 1 treats them as even). Out-of-domain
+        // harness input (pattern-injected INT_MIN/INT_MAX) is announced
+        // through the existing baseline-incompatibility transport and never
+        // grades the candidate.
+        bool harnessOk = true;
+        for (size_t j = 0; j < x.size(); j += 1) {
+            if (x[j] < 0 || x[j] == std::numeric_limits<int>::max()) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         // compute correct result
         correct = correctSmallestOdd(x);
 

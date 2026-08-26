@@ -75,6 +75,28 @@ bool validate(Context *ctx) {
         std::fill(correct.begin(), correct.end(), 0);
         BCAST(input, INT);
 
+        // Wave 2B (frozen sentinel/UB queue): the frozen value domain is
+        // grayscale pixels in [0, 255] (queued prompt contract; D0's
+        // int-accumulation bound). Outside it the oracle's `int sum` over 9
+        // taps with coefficients up to 8 overflows (UB, measured for
+        // pattern-injected INT_MIN/INT_MAX). Out-of-domain harness input is
+        // announced through the existing baseline-incompatibility transport
+        // and never grades the candidate.
+        bool harnessOk = true;
+        for (size_t j = 0; j < input.size(); j += 1) {
+            if (input[j] < 0 || input[j] > 255) {
+                harnessOk = false;
+                break;
+            }
+        }
+        if (!harnessOk) {
+            mismatchNoteNonFiniteReference();
+        }
+        BCAST_PTR(&harnessOk, 1, CXX_BOOL);
+        if (!harnessOk) {
+            continue;
+        }
+
         // compute correct result
         correctConvolveKernel(input, correct, TEST_SIZE);
 

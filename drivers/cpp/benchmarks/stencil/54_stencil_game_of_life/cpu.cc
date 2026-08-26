@@ -84,19 +84,15 @@ bool validate(Context *ctx) {
         gameOfLife(input, test, TEST_SIZE);
         SYNC();
 
-        // Contract C1b.4: former hand-written double loop over a
-        // candidate-writable vector with NO length check. The GRADED index
-        // set is unchanged (interior only) and the comparison stays exact
-        // equality on int (category C: no NaN/Inf possible).
+        // Wave 2B (frozen I14): FULL-grid validation including the border
+        // ring. The oracle's frozen boundary semantics — out-of-grid cells
+        // are DEAD, no wrap-around — are unchanged and are now actually
+        // graded: the historical interior-only window accepted a toroidal
+        // (wrap-around) candidate at every size (measured) and made N = 1
+        // and N = 2 vacuous passes. Exact equality on int, size-checked,
+        // through the shared role-aware helper.
         bool isCorrect = true;
-        if (IS_ROOT(rank) && !reportAndCompareSelectedWith(
-                correct, test, static_cast<std::vector<int> const*>(nullptr),
-                [](int e, int g) { return !(e == g); },
-                [TEST_SIZE](size_t idx) {
-                    const size_t r = idx / TEST_SIZE;
-                    const size_t c = idx % TEST_SIZE;
-                    return r >= 1 && r + 1 < TEST_SIZE && c >= 1 && c + 1 < TEST_SIZE;
-                })) {
+        if (IS_ROOT(rank) && !reportAndCompareEq(correct, test)) {
             isCorrect = false;
         }
         BCAST_PTR(&isCorrect, 1, CXX_BOOL);

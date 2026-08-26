@@ -29,22 +29,27 @@ void NO_INLINE correctFft(std::vector<std::complex<double>> &x) {
 			T *= phiT;
 		}
 	}
-	// Decimate
-	unsigned int m = (unsigned int)std::log2(N);
-	for (unsigned int a = 0; a < N; a++)
-	{
-		unsigned int b = a;
-		// Reverse bits
-		b = (((b & 0xaaaaaaaa) >> 1) | ((b & 0x55555555) << 1));
-		b = (((b & 0xcccccccc) >> 2) | ((b & 0x33333333) << 2));
-		b = (((b & 0xf0f0f0f0) >> 4) | ((b & 0x0f0f0f0f) << 4));
-		b = (((b & 0xff00ff00) >> 8) | ((b & 0x00ff00ff) << 8));
-		b = ((b >> 16) | (b << 16)) >> (32 - m);
-		if (b > a)
+	// Decimate. Wave 2B guard (frozen FFT-family N=1/shift finding): the
+	// bit-reversal permutation of fewer than two elements is the identity;
+	// running it at N <= 1 evaluated `>> (32 - m)` with m = 0 — a
+	// shift-by-32 on a 32-bit type, formal UB (UBSan-verified).
+	if (N > 1) {
+		unsigned int m = (unsigned int)std::log2(N);
+		for (unsigned int a = 0; a < N; a++)
 		{
-			std::complex<double> t = x[a];
-			x[a] = x[b];
-			x[b] = t;
+			unsigned int b = a;
+			// Reverse bits
+			b = (((b & 0xaaaaaaaa) >> 1) | ((b & 0x55555555) << 1));
+			b = (((b & 0xcccccccc) >> 2) | ((b & 0x33333333) << 2));
+			b = (((b & 0xf0f0f0f0) >> 4) | ((b & 0x0f0f0f0f) << 4));
+			b = (((b & 0xff00ff00) >> 8) | ((b & 0x00ff00ff) << 8));
+			b = ((b >> 16) | (b << 16)) >> (32 - m);
+			if (b > a)
+			{
+				std::complex<double> t = x[a];
+				x[a] = x[b];
+				x[b] = t;
+			}
 		}
 	}
 
@@ -54,7 +59,19 @@ void NO_INLINE correctFft(std::vector<std::complex<double>> &x) {
 	}
 }
 
-void fftCooleyTookey(std::vector<std::complex<double>>& x) {
+namespace pareval_harness {
+
+// Recursive radix-2 core WITHOUT any conjugation: computes the plain
+// unnormalized negative-exponent DFT of x in place (power-of-two N).
+// Harness-local (named namespace) so no candidate symbol can collide.
+//
+// The historical fftCooleyTookey conjugated INSIDE this recursion, so every
+// level conjugated its sub-result; conjugation is antilinear and does not
+// commute out of the butterfly combine, and the composite was NOT a Fourier
+// transform for N >= 4 (frozen audit finding, class C). The frozen fix
+// (I12) is: conjugation exactly ONCE, at top level — see fftCooleyTookey
+// below.
+inline void fftRecursionNoConjugate(std::vector<std::complex<double>>& x) {
     const size_t N = x.size();
     if (N <= 1) return;
 
@@ -68,8 +85,8 @@ void fftCooleyTookey(std::vector<std::complex<double>>& x) {
 	}
 
     // conquer
-    fftCooleyTookey(even);
-    fftCooleyTookey(odd);
+    fftRecursionNoConjugate(even);
+    fftRecursionNoConjugate(odd);
 
     // combine
     for (size_t k = 0; k < N/2; ++k) {
@@ -77,8 +94,19 @@ void fftCooleyTookey(std::vector<std::complex<double>>& x) {
         x[k    ] = even[k] + t;
         x[k+N/2] = even[k] - t;
     }
+}
 
-	// conjugate
+}  // namespace pareval_harness
+
+void fftCooleyTookey(std::vector<std::complex<double>>& x) {
+    // Frozen I12 contract: conj(DFT_-(x)), unnormalized. The recursion
+    // computes the plain DFT; the conjugation is applied exactly ONCE at top
+    // level — also for N <= 1, where the historical early return dropped it
+    // (the DFT of a single sample is the sample, so the answer there is
+    // conj(x[0])).
+    pareval_harness::fftRecursionNoConjugate(x);
+
+	// conjugate (top level, exactly once)
 	for (size_t i = 0; i < x.size(); i += 1) {
 		x[i] = std::conj(x[i]);
 	}
