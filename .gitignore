@@ -22,7 +22,17 @@ thesis/results/raw/
 thesis/results/intermediate/
 thesis/results/cache/
 
-thesis/docs/
+# thesis/docs/ stays ignored by default, but the frozen domain/audit
+# documents must be versionable. A directory-level ignore cannot be
+# re-included from below, so the rule is the file pattern plus explicit
+# negations for exactly these five documents — deliberately NO general
+# unignore for arbitrary new files (Domain Approval Wave, 2026-08-25).
+thesis/docs/*
+!thesis/docs/benchmark-domain-table.json
+!thesis/docs/fft-family-consistency.md
+!thesis/docs/oracle-audit-calibration-45.md
+!thesis/docs/oracle-correctness-audit.md
+!thesis/docs/domain-table-approval-report.md
 
 # tool-validation: downloaded benchmark suites + raw measurement output
 thesis/tool_validation/suites/
