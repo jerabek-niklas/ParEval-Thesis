@@ -5,6 +5,7 @@ struct COOElement {
 
 /* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.
    X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.
+   The COO lists are duplicate-free: no two elements of A (and no two elements of X) share the same (row, column) pair, and every index lies within the stated matrix dimensions.
    Use OpenMP to compute in parallel.
    Example:
 

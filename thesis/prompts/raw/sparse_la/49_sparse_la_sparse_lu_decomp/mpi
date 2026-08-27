@@ -5,6 +5,7 @@ struct COOElement {
 
 /* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.
    A is a sparse NxN matrix stored in COO format.
+   A's COO list is duplicate-free (no two elements share the same (row, column) pair, all indices in [0, N)), and A is guaranteed to admit a factorization A = L*U with L unit lower triangular and U upper triangular: every leading principal minor of A of order 1..N-1 is non-zero. Return exactly this factorization - no row or column permutation. L and U are dense NxN row-major buffers (entry (i,j) at index i*N+j); L has ones on its diagonal, and every entry outside the respective triangle is 0.
    Use MPI to compute in parallel. Assume MPI has already been initialized.
    Every rank has a complete copy of A. Store the result in L and U on rank 0.
    Example:

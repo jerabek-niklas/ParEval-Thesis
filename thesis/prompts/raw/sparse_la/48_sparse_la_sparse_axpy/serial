@@ -4,6 +4,7 @@ struct Element {
 };
 
 /* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.
+   x and y are sorted by ascending index; within each of them no index appears more than once, and every index is a valid position in z.
    Example:
    
    input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1

@@ -1,4 +1,5 @@
 /* Compute the fourier transform of x. Store real part of results in r and imaginary in i.
+   The length of x is a power of two.
    Example:
 
    input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]

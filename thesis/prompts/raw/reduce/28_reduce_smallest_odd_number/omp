@@ -1,4 +1,5 @@
 /* Return the value of the smallest odd number in the vector x.
+   Every element of x is non-negative. If x contains no odd number - in particular if x is empty - return std::numeric_limits<int>::max().
    Use OpenMP to compute in parallel.
    Examples:
 

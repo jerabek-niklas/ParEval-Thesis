@@ -7,6 +7,7 @@ double distance(Point const& p1, Point const& p2) {
 }
 
 /* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.
+   The result depends only on the distinct point set. If the points do not span a polygon - fewer than three distinct points, or all points collinear - return twice the length of the segment that spans them, and 0 if all points coincide or the vector is empty.
    Example:
 
    input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]

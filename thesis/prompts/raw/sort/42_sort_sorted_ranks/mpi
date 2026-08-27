@@ -1,5 +1,6 @@
 /* For each value in the vector x compute its index in the sorted vector.
    Store the results in `ranks`.
+   The ranks are a permutation of 0..x.size()-1; values that compare equal may receive their tied ranks in any order among themselves.
    Use MPI to compute in parallel. Assume MPI has already been initialized.
    Every process has a complete copy of x. Store the result in ranks on process 0.
    Examples:
@@ -8,6 +9,6 @@
    output: [2, 1, 4, 0, 3]
  
    input: [100, 7.6, 16.1, 18, 7.6]
-   output: [4, 0, 1, 2, 3]
+   output: [4, 0, 2, 3, 1]
 */
 void ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {

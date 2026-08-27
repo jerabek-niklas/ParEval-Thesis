@@ -1,0 +1,1113 @@
+{
+ "_meta": {
+  "generated_by": "Wave 3 atomic prompt wave",
+  "date": "2026-08-27",
+  "prompt_source_of_truth": "thesis/prompts/raw/<problem_type>/<name>/{serial,omp,mpi}",
+  "generated_file": "thesis/prompts/generation-prompts-thesis.json",
+  "p0_definition": "prompt state at the pilot_001 baseline commit",
+  "p0_commit": "6846d689fd81186b2161786dc7f52d485ccf2b5c",
+  "p1_definition": "pre-Wave-3 working-tree state",
+  "p1_equals_p0": true,
+  "pre_wave3_prompt_change_count": 0,
+  "p2_definition": "post-Wave-3 regenerated state (raw edits + create_generation_prompts.py, default options)",
+  "p2_file_sha256": "5e73e79ef89f81e42ccbce5e5f0a37d4c7340aff34f2b225091c6933e66c3341",
+  "identity_rule": "stable identity is (problem_type, name, parallelism_model); prompt_id is problem_type/name/parallelism_model; array indices are never used",
+  "change_nature_note": "every Wave-3 change states an already-implemented frozen semantic (grading convention, generator domain, or corrected worked example); no change alters what is computed or graded, so all are classified SEMANTIC clarifications of the prompt contract, none MECHANICAL",
+  "rechenvorschrift_count": 0,
+  "total_changed_prompts": 69,
+  "total_changed_benchmarks": 23,
+  "benchmarks_partially_changed": 0
+ },
+ "E_benchmark_projection": [
+  "fft/05_fft_inverse_fft",
+  "fft/06_fft_dft",
+  "fft/07_fft_fft_conjugate",
+  "fft/08_fft_split_fft",
+  "fft/09_fft_fft_out_of_place",
+  "geometry/10_geometry_convex_hull",
+  "geometry/11_geometry_convex_hull_perimeter",
+  "graph/19_graph_shortest_path",
+  "histogram/21_histogram_bin_0-100",
+  "histogram/23_histogram_first_letter_counts",
+  "histogram/24_histogram_count_quartile",
+  "reduce/28_reduce_smallest_odd_number",
+  "search/38_search_find_the_first_even_number",
+  "sort/41_sort_k-th_smallest_element",
+  "sort/42_sort_sorted_ranks",
+  "sparse_la/45_sparse_la_sparse_solve",
+  "sparse_la/46_sparse_la_spmm",
+  "sparse_la/47_sparse_la_spmv",
+  "sparse_la/48_sparse_la_sparse_axpy",
+  "sparse_la/49_sparse_la_sparse_lu_decomp",
+  "stencil/50_stencil_xor_kernel",
+  "stencil/51_stencil_edge_kernel",
+  "stencil/54_stencil_game_of_life"
+ ],
+ "regeneration_set": [
+  {
+   "prompt_id": "fft/05_fft_inverse_fft/serial",
+   "problem_type": "fft",
+   "name": "05_fft_inverse_fft",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "441abaae748d2ebaea7b292a981caaf5c5c8a63f6331fb137844f01e578fc5a5",
+   "p1_prompt_sha256": "441abaae748d2ebaea7b292a981caaf5c5c8a63f6331fb137844f01e578fc5a5",
+   "p2_prompt_sha256": "8683c0283bd409bbe493c77a49b1d8a44f3a428a583e9dbe345bc2a845471c68",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/05_fft_inverse_fft/omp",
+   "problem_type": "fft",
+   "name": "05_fft_inverse_fft",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "56e2131a5c0c2ca41dd4cba570e991b8b40fe212d8de12ae7b8b35e7ffac879f",
+   "p1_prompt_sha256": "56e2131a5c0c2ca41dd4cba570e991b8b40fe212d8de12ae7b8b35e7ffac879f",
+   "p2_prompt_sha256": "8569add60e2a9d907f78636afe61cd248f057d5518708ac7e0ffb27a385cf5ed",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/05_fft_inverse_fft/mpi",
+   "problem_type": "fft",
+   "name": "05_fft_inverse_fft",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "9913198b67e33e6e9f2d87c9619a33e40725690f3493dd0870057209ccdf150d",
+   "p1_prompt_sha256": "9913198b67e33e6e9f2d87c9619a33e40725690f3493dd0870057209ccdf150d",
+   "p2_prompt_sha256": "90c490f74a86822b749af8b100ceae4515f20f6f225d3ca1a68f2c5fc83c3779",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/06_fft_dft/serial",
+   "problem_type": "fft",
+   "name": "06_fft_dft",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "02e7f67750ddd5b519c4d0b5b071b7bf789fa74b059104fe6155b7912d2f2903",
+   "p1_prompt_sha256": "02e7f67750ddd5b519c4d0b5b071b7bf789fa74b059104fe6155b7912d2f2903",
+   "p2_prompt_sha256": "e15ee3a8a58b7b8608fd9d45d45c34a0e226db6e71b7e373dc8544ede5feae09",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/06_fft_dft/omp",
+   "problem_type": "fft",
+   "name": "06_fft_dft",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "a6853bd76a97b3e6c01f7fca8e7b5404c23c4919cb9cbf075a6516dd3187161d",
+   "p1_prompt_sha256": "a6853bd76a97b3e6c01f7fca8e7b5404c23c4919cb9cbf075a6516dd3187161d",
+   "p2_prompt_sha256": "b49239df5e0b5a69d22a7fa549042616c9e5ffa7d725914ac4d2659e39bfe4f4",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/06_fft_dft/mpi",
+   "problem_type": "fft",
+   "name": "06_fft_dft",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "c2c8dbfa05df5071b09171287f6304136ddd7d84b3f978b25ee8aef0be5d256b",
+   "p1_prompt_sha256": "c2c8dbfa05df5071b09171287f6304136ddd7d84b3f978b25ee8aef0be5d256b",
+   "p2_prompt_sha256": "cc7af74c8f02ca34e81e5c42289fcf21a335980d808909d7df66c21f4dfdc059",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/07_fft_fft_conjugate/serial",
+   "problem_type": "fft",
+   "name": "07_fft_fft_conjugate",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "69adcb36425c269a5fb6158228c781544517b719bc95c1c692869586e1a9e49c",
+   "p1_prompt_sha256": "69adcb36425c269a5fb6158228c781544517b719bc95c1c692869586e1a9e49c",
+   "p2_prompt_sha256": "ed710dd014c218911e971800d3b7f7af90b982270a5144cd5ed5caa9625bd873",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "DOMAENENRESTRIKTION",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/07_fft_fft_conjugate/omp",
+   "problem_type": "fft",
+   "name": "07_fft_fft_conjugate",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "86318498bd105490f7292badfc0c4e05eb8f80bbee6b7ea07b1cb47e22049696",
+   "p1_prompt_sha256": "86318498bd105490f7292badfc0c4e05eb8f80bbee6b7ea07b1cb47e22049696",
+   "p2_prompt_sha256": "676f81a6efeb693e668b03dec26c6ff763e43f615aae1bb83adbf032ee4ae7ed",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "DOMAENENRESTRIKTION",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/07_fft_fft_conjugate/mpi",
+   "problem_type": "fft",
+   "name": "07_fft_fft_conjugate",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "468b0046e19f63c0dade433bb40b77601551b76d9cb20b628b4648f0fd60d450",
+   "p1_prompt_sha256": "468b0046e19f63c0dade433bb40b77601551b76d9cb20b628b4648f0fd60d450",
+   "p2_prompt_sha256": "bdee5281a506ce2d454a52e3249538351af389c57a12d7abd7ede7c255b56827",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "DOMAENENRESTRIKTION",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/08_fft_split_fft/serial",
+   "problem_type": "fft",
+   "name": "08_fft_split_fft",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "e9d298175c3c6108db7524f1144639787d452300532e6c50fa2f811512b4ec42",
+   "p1_prompt_sha256": "e9d298175c3c6108db7524f1144639787d452300532e6c50fa2f811512b4ec42",
+   "p2_prompt_sha256": "ca5b36996b0919d63be12a6bdd06f4aae3a248550ea8e2465bf88fa26dc53fea",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/08_fft_split_fft/omp",
+   "problem_type": "fft",
+   "name": "08_fft_split_fft",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "f2a8a65e7374d468b088379f3150b932286872ccaa26df68d25a2860a276b218",
+   "p1_prompt_sha256": "f2a8a65e7374d468b088379f3150b932286872ccaa26df68d25a2860a276b218",
+   "p2_prompt_sha256": "4abea50c42dfdeaacf571aecdf56a000886f83d1bc5fc415dcfb08b42452db71",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/08_fft_split_fft/mpi",
+   "problem_type": "fft",
+   "name": "08_fft_split_fft",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "25095642a82ccbde68c107e4d6c84c4a401bbdb25afc52131f6762acdaadc609",
+   "p1_prompt_sha256": "25095642a82ccbde68c107e4d6c84c4a401bbdb25afc52131f6762acdaadc609",
+   "p2_prompt_sha256": "a4e0adb3e74d65f821a4f7634ca9b7f82ad86e24dfe5dce6c0ced6adfddb33bc",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/09_fft_fft_out_of_place/serial",
+   "problem_type": "fft",
+   "name": "09_fft_fft_out_of_place",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "8e3adfe6d3d43530a432260658a198b38e9b8b099bc633a07e6bb48e665c6008",
+   "p1_prompt_sha256": "8e3adfe6d3d43530a432260658a198b38e9b8b099bc633a07e6bb48e665c6008",
+   "p2_prompt_sha256": "0e382d5252aa6f3d99fedfc1bcc6803fa82036b05a85cf48baf0cae7ecfbffc7",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/09_fft_fft_out_of_place/omp",
+   "problem_type": "fft",
+   "name": "09_fft_fft_out_of_place",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "674d2148dc1b023fde30b4e8c912eb0240ad9002a6fa44d0320a01f51cbf380d",
+   "p1_prompt_sha256": "674d2148dc1b023fde30b4e8c912eb0240ad9002a6fa44d0320a01f51cbf380d",
+   "p2_prompt_sha256": "8b371d9b65407b85494e0d11f683f506f186691fe038c862492d3b4a24d937d1",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "fft/09_fft_fft_out_of_place/mpi",
+   "problem_type": "fft",
+   "name": "09_fft_fft_out_of_place",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "bd290956f87158ed4979592d03cc975d24a6fdfc59491edc897e1b4cbb290c4c",
+   "p1_prompt_sha256": "bd290956f87158ed4979592d03cc975d24a6fdfc59491edc897e1b4cbb290c4c",
+   "p2_prompt_sha256": "6972ca968e31f50f6e4d186332b5a2ca4c197d2ad14bbe210a86844ecc93948a",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "geometry/10_geometry_convex_hull/serial",
+   "problem_type": "geometry",
+   "name": "10_geometry_convex_hull",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "a9beda7e45a0aeaaac48532985fe8aea1f27a4002ebb1e8baa0041f6e0483f6e",
+   "p1_prompt_sha256": "a9beda7e45a0aeaaac48532985fe8aea1f27a4002ebb1e8baa0041f6e0483f6e",
+   "p2_prompt_sha256": "b9620794bb8076118b4994313fd102fda4c4fea5388e556c0c204fad354e62ed",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "geometry/10_geometry_convex_hull/omp",
+   "problem_type": "geometry",
+   "name": "10_geometry_convex_hull",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "7e22eda544b4b37a372fe1461a2539c7b844203366a283baa5a0e882bd40e3d6",
+   "p1_prompt_sha256": "7e22eda544b4b37a372fe1461a2539c7b844203366a283baa5a0e882bd40e3d6",
+   "p2_prompt_sha256": "908360ea1e6fc10416067cc73e0c1a4efbf100e00e184c84b1feaa278503dd39",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "geometry/10_geometry_convex_hull/mpi",
+   "problem_type": "geometry",
+   "name": "10_geometry_convex_hull",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "f7e26ff4145d19b09221f4bd3e1fdf17fd3bae7988a499960d0cf54017000ef8",
+   "p1_prompt_sha256": "f7e26ff4145d19b09221f4bd3e1fdf17fd3bae7988a499960d0cf54017000ef8",
+   "p2_prompt_sha256": "5448afdc520ade9ffe11eb188794511578b3262d2afed08a8ebc3f639cdea3eb",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "geometry/11_geometry_convex_hull_perimeter/serial",
+   "problem_type": "geometry",
+   "name": "11_geometry_convex_hull_perimeter",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "ea37952ae820a8e8fa5bc892bcbe2fca7b3186e642953ec89f0267ce573672f7",
+   "p1_prompt_sha256": "ea37952ae820a8e8fa5bc892bcbe2fca7b3186e642953ec89f0267ce573672f7",
+   "p2_prompt_sha256": "1a97aa9e457a1893e3f48de523de79264784fb193c8ee7701b1c2a45c56b7a09",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "geometry/11_geometry_convex_hull_perimeter/omp",
+   "problem_type": "geometry",
+   "name": "11_geometry_convex_hull_perimeter",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "00b1059174a59f063fa5cb5e35008927ce90dcd5402317b5969b37a6223871d2",
+   "p1_prompt_sha256": "00b1059174a59f063fa5cb5e35008927ce90dcd5402317b5969b37a6223871d2",
+   "p2_prompt_sha256": "8260898d8887a0b16309cc3d18a2eabf065fb17592fdeffa55f8165a8064dbdc",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "geometry/11_geometry_convex_hull_perimeter/mpi",
+   "problem_type": "geometry",
+   "name": "11_geometry_convex_hull_perimeter",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "6977bc299c961ef9435f61e351369a4c90ca9315a41c46052016117229a352aa",
+   "p1_prompt_sha256": "6977bc299c961ef9435f61e351369a4c90ca9315a41c46052016117229a352aa",
+   "p2_prompt_sha256": "be7b5895d4c34a5556913225234e798da06dd70feb857d9c003c769daf08bb23",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "graph/19_graph_shortest_path/serial",
+   "problem_type": "graph",
+   "name": "19_graph_shortest_path",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "3ca1ddd5cc45c6abd1d0fb140fe73fb8cb8a3b0c1880006045070445adc08dc0",
+   "p1_prompt_sha256": "3ca1ddd5cc45c6abd1d0fb140fe73fb8cb8a3b0c1880006045070445adc08dc0",
+   "p2_prompt_sha256": "f00e55327bd9a87b149611cb7546be0005e7d06c66fdb2a8077fbdcef4925219",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "graph/19_graph_shortest_path/omp",
+   "problem_type": "graph",
+   "name": "19_graph_shortest_path",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "4761c11282c1dbee4a50288ee2640af5fb083903e8eb870f643adef046319c64",
+   "p1_prompt_sha256": "4761c11282c1dbee4a50288ee2640af5fb083903e8eb870f643adef046319c64",
+   "p2_prompt_sha256": "ac0955e7ce023a163e458e52160d92d15ad7ee1bc45b4d99008e52d916f4c0f2",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "graph/19_graph_shortest_path/mpi",
+   "problem_type": "graph",
+   "name": "19_graph_shortest_path",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "d81034484750b99652dc13d946ac7a4434a508254beaae3642c6f587fbfe7193",
+   "p1_prompt_sha256": "d81034484750b99652dc13d946ac7a4434a508254beaae3642c6f587fbfe7193",
+   "p2_prompt_sha256": "cebbfd5a23491a8ce2ad917ca30210b866b2df7805b74ce5c67c31953f7370e4",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/21_histogram_bin_0-100/serial",
+   "problem_type": "histogram",
+   "name": "21_histogram_bin_0-100",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "00b9bcb0254a9da819883992b7fe1736211e85af05fd14026e20851d2e6cdd9f",
+   "p1_prompt_sha256": "00b9bcb0254a9da819883992b7fe1736211e85af05fd14026e20851d2e6cdd9f",
+   "p2_prompt_sha256": "55b178e33af161ebcfd595c9766eed71194b286f62c7174b84b50d33ce9a519f",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/21_histogram_bin_0-100/omp",
+   "problem_type": "histogram",
+   "name": "21_histogram_bin_0-100",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "34a9fc1d8c8d0e5fb142265a52a4a4e586d1d8cfdcfd5490a625ef78b96c556c",
+   "p1_prompt_sha256": "34a9fc1d8c8d0e5fb142265a52a4a4e586d1d8cfdcfd5490a625ef78b96c556c",
+   "p2_prompt_sha256": "f4ff68e3fa1b5b6844264a2a5fa9fcef36a8f47efc123fe82725cf8b1191df73",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/21_histogram_bin_0-100/mpi",
+   "problem_type": "histogram",
+   "name": "21_histogram_bin_0-100",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "359e544c687af838927ac1a8daf77dd6ec20ad2414fa5034dd0f18e130786bbc",
+   "p1_prompt_sha256": "359e544c687af838927ac1a8daf77dd6ec20ad2414fa5034dd0f18e130786bbc",
+   "p2_prompt_sha256": "3a26c84ceacd734e968217858cdc8b04909d6742fe8573d2fcd2f1e6be7c4c35",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/23_histogram_first_letter_counts/serial",
+   "problem_type": "histogram",
+   "name": "23_histogram_first_letter_counts",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "e934ddc1507b448e7b263edba50c7ad4c6f7415561f42d44a24fcade7354ebd4",
+   "p1_prompt_sha256": "e934ddc1507b448e7b263edba50c7ad4c6f7415561f42d44a24fcade7354ebd4",
+   "p2_prompt_sha256": "25a790f24286d142a0fb3f5fcf716cf0120b8010dd7bac95eb1080dbdf4fc7b9",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/23_histogram_first_letter_counts/omp",
+   "problem_type": "histogram",
+   "name": "23_histogram_first_letter_counts",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "493bbd6e6db1e1286ecc83a315129a7f29b04597fffdd65a61e941da09b93eac",
+   "p1_prompt_sha256": "493bbd6e6db1e1286ecc83a315129a7f29b04597fffdd65a61e941da09b93eac",
+   "p2_prompt_sha256": "c455d817d187fc4966f386fb44fd17db47a6f14762de12ce8e6d083eec76fe63",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/23_histogram_first_letter_counts/mpi",
+   "problem_type": "histogram",
+   "name": "23_histogram_first_letter_counts",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "b799a95b2246cfbcfcc86fe529780ea46f3d665075ece3d1d5c1245339de27e5",
+   "p1_prompt_sha256": "b799a95b2246cfbcfcc86fe529780ea46f3d665075ece3d1d5c1245339de27e5",
+   "p2_prompt_sha256": "86fdd9ea0be407970dcefabac8c2768a3856fb054350e832023dc3a033ff1c08",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/24_histogram_count_quartile/serial",
+   "problem_type": "histogram",
+   "name": "24_histogram_count_quartile",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "95349f5b63b99959d5b58bb2420703c7a1d0ceb1ac9b48f2acfbc146cf065d7d",
+   "p1_prompt_sha256": "95349f5b63b99959d5b58bb2420703c7a1d0ceb1ac9b48f2acfbc146cf065d7d",
+   "p2_prompt_sha256": "ee149c9060e849160dface1c3ba44c73a32019013922570c95e1c192e3955d29",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/24_histogram_count_quartile/omp",
+   "problem_type": "histogram",
+   "name": "24_histogram_count_quartile",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "b45daa2377b1d36121775d376ff7f530201d6505bf4d40b191848bbc0e294939",
+   "p1_prompt_sha256": "b45daa2377b1d36121775d376ff7f530201d6505bf4d40b191848bbc0e294939",
+   "p2_prompt_sha256": "e933c3a11c92d0149f241b0118d419b44639d3e1e16ab6f1db9b8869c77d10a1",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "histogram/24_histogram_count_quartile/mpi",
+   "problem_type": "histogram",
+   "name": "24_histogram_count_quartile",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "f1566894b40585fc38f86819cce6f792d571f5a99cfdf1c8f480f65f277de137",
+   "p1_prompt_sha256": "f1566894b40585fc38f86819cce6f792d571f5a99cfdf1c8f480f65f277de137",
+   "p2_prompt_sha256": "c2a29ed9cff027f725f48f68027638a43c5c0beceda62119ccbb74cd5f9d20bb",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "reduce/28_reduce_smallest_odd_number/serial",
+   "problem_type": "reduce",
+   "name": "28_reduce_smallest_odd_number",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "82cabe79463edb690ff03501679f05a314e20332eca656ff1a68ea06138db2ae",
+   "p1_prompt_sha256": "82cabe79463edb690ff03501679f05a314e20332eca656ff1a68ea06138db2ae",
+   "p2_prompt_sha256": "9cbbb9bf8e6a29f8104283a95f31824964f4026f539373a4d48f899f8da3b71c",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "reduce/28_reduce_smallest_odd_number/omp",
+   "problem_type": "reduce",
+   "name": "28_reduce_smallest_odd_number",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "779e6a58d7f4c058f93122160b8c7d827672b8e1c37c695b48e4eaeee3b82b28",
+   "p1_prompt_sha256": "779e6a58d7f4c058f93122160b8c7d827672b8e1c37c695b48e4eaeee3b82b28",
+   "p2_prompt_sha256": "31941747ee76073d6fbbc5f067d9890fa34d91a6a5e4768dfe8a5bc58f05828e",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "reduce/28_reduce_smallest_odd_number/mpi",
+   "problem_type": "reduce",
+   "name": "28_reduce_smallest_odd_number",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "942fcb9901cb70cddb1d99bf4ec2ffbfa77d7ce101d66328513c9881a985f11b",
+   "p1_prompt_sha256": "942fcb9901cb70cddb1d99bf4ec2ffbfa77d7ce101d66328513c9881a985f11b",
+   "p2_prompt_sha256": "a23601462ffa24966cd57c4c472bc238509a88127dffad219143c06a33c04aeb",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "search/38_search_find_the_first_even_number/serial",
+   "problem_type": "search",
+   "name": "38_search_find_the_first_even_number",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "883fa0504815afc131cc7b87b6dded4a3811a806a8b9c171528530c94885deb4",
+   "p1_prompt_sha256": "883fa0504815afc131cc7b87b6dded4a3811a806a8b9c171528530c94885deb4",
+   "p2_prompt_sha256": "54c5200f3b492dd6de6bc06b8d90ff2b89ddbbc70e332656e7c55eb9b62c1e24",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "search/38_search_find_the_first_even_number/omp",
+   "problem_type": "search",
+   "name": "38_search_find_the_first_even_number",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "c4bc56b22046c2d04de3de288e228cf641e2c6135778176bc63ea4d2d602d539",
+   "p1_prompt_sha256": "c4bc56b22046c2d04de3de288e228cf641e2c6135778176bc63ea4d2d602d539",
+   "p2_prompt_sha256": "25d8ab2f1ebd4d991d02dc7e5b5dcd9acef6d38532e7cd2e6fb760e5441dca55",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "search/38_search_find_the_first_even_number/mpi",
+   "problem_type": "search",
+   "name": "38_search_find_the_first_even_number",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "d588810291509c338151e50092831028d622d4f8a5b6b7c8fe42d32ea67fe2b6",
+   "p1_prompt_sha256": "d588810291509c338151e50092831028d622d4f8a5b6b7c8fe42d32ea67fe2b6",
+   "p2_prompt_sha256": "eccec13349993c6a4b3c5744d9d80756bc2fd84f165bab8300f325a0282d9d60",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sort/41_sort_k-th_smallest_element/serial",
+   "problem_type": "sort",
+   "name": "41_sort_k-th_smallest_element",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "bc395506621c33ef5463a7176affd722328b1cef7ecc5e7eca8207d5dfb23093",
+   "p1_prompt_sha256": "bc395506621c33ef5463a7176affd722328b1cef7ecc5e7eca8207d5dfb23093",
+   "p2_prompt_sha256": "eee21dae6750fab39f80ce875341a8ee5bc9b05052b61cdcd15a51b0243ff09c",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sort/41_sort_k-th_smallest_element/omp",
+   "problem_type": "sort",
+   "name": "41_sort_k-th_smallest_element",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "2427e27535f1f452795df574b717f8b206914aa6c665b4d055128c60b705b292",
+   "p1_prompt_sha256": "2427e27535f1f452795df574b717f8b206914aa6c665b4d055128c60b705b292",
+   "p2_prompt_sha256": "f83b4db34323fa8ea8abfab69e3f1aa97115007ffba98fba85711a39e1f12c5c",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sort/41_sort_k-th_smallest_element/mpi",
+   "problem_type": "sort",
+   "name": "41_sort_k-th_smallest_element",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "c8caf480ac9b1ba41a5046db34aa2bb6b70a86a07a575a46245e4aeb958b284f",
+   "p1_prompt_sha256": "c8caf480ac9b1ba41a5046db34aa2bb6b70a86a07a575a46245e4aeb958b284f",
+   "p2_prompt_sha256": "4726aae0044e1758d1aa231e263d9f2a041d78ff8453dcf56a9ab24e852a993e",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sort/42_sort_sorted_ranks/serial",
+   "problem_type": "sort",
+   "name": "42_sort_sorted_ranks",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "7d98e10a4638ed7f5d27aea5e4b4523d47cc17be1e50f7424c18b4b956a4ef36",
+   "p1_prompt_sha256": "7d98e10a4638ed7f5d27aea5e4b4523d47cc17be1e50f7424c18b4b956a4ef36",
+   "p2_prompt_sha256": "5b98df21f69f0776ca223c0522e3e4280260abc9ccb3ec3dc3743a716aeee26f",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sort/42_sort_sorted_ranks/omp",
+   "problem_type": "sort",
+   "name": "42_sort_sorted_ranks",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "0fe877eb19e6d13d5d9d8587602f089ff5f1ae633a3c2dc161ab56bc6d991823",
+   "p1_prompt_sha256": "0fe877eb19e6d13d5d9d8587602f089ff5f1ae633a3c2dc161ab56bc6d991823",
+   "p2_prompt_sha256": "788f805007f3ddf8b163682a20f502b6319e4bcf15890fc73fd3533794f70c7a",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sort/42_sort_sorted_ranks/mpi",
+   "problem_type": "sort",
+   "name": "42_sort_sorted_ranks",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "a8eafb76d463829dd0801f56c03ed7d599718e1169dbe952a4038531c16ccb6c",
+   "p1_prompt_sha256": "a8eafb76d463829dd0801f56c03ed7d599718e1169dbe952a4038531c16ccb6c",
+   "p2_prompt_sha256": "8c0a007299ad16e61555b36435bbda04e88b1ed7a68fc0b37c73a425b5f91964",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT",
+    "BEISPIELKORREKTUR"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/45_sparse_la_sparse_solve/serial",
+   "problem_type": "sparse_la",
+   "name": "45_sparse_la_sparse_solve",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "36c37c0c40df442b37739a6bbf36e2db09ccfca279a8340e8d31fcdf8b8a2da5",
+   "p1_prompt_sha256": "36c37c0c40df442b37739a6bbf36e2db09ccfca279a8340e8d31fcdf8b8a2da5",
+   "p2_prompt_sha256": "6aa76c3ca10daabea546752026c8a4ecccde1b04f6bd6ee2fe4c0b58aea1abcc",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/45_sparse_la_sparse_solve/omp",
+   "problem_type": "sparse_la",
+   "name": "45_sparse_la_sparse_solve",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "54773a78e4283a7607324ecc6eb04b375a0d825bfb15a50b2f60e7e0c8ca3058",
+   "p1_prompt_sha256": "54773a78e4283a7607324ecc6eb04b375a0d825bfb15a50b2f60e7e0c8ca3058",
+   "p2_prompt_sha256": "ef88ce96b8167974a7f4d103f8740fd1e9397d41001605e61b64e42e51783b8b",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/45_sparse_la_sparse_solve/mpi",
+   "problem_type": "sparse_la",
+   "name": "45_sparse_la_sparse_solve",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "76a736609176081965fe2b6dcb860a85d400ab8827d91da2aace0f0c7ccb4fbe",
+   "p1_prompt_sha256": "76a736609176081965fe2b6dcb860a85d400ab8827d91da2aace0f0c7ccb4fbe",
+   "p2_prompt_sha256": "80128894ae6f7d124234f207548f206be20f51571f9070b704f435c5132a6ef4",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/46_sparse_la_spmm/serial",
+   "problem_type": "sparse_la",
+   "name": "46_sparse_la_spmm",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "a293e046d698133747c5f3312838d212f3ae22c3242abaa80282c217be8f55c2",
+   "p1_prompt_sha256": "a293e046d698133747c5f3312838d212f3ae22c3242abaa80282c217be8f55c2",
+   "p2_prompt_sha256": "6f44ff2a11ea36f28f4107bd4ea8de1a1c93e3e4298e7517b3b94d45451b6e25",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/46_sparse_la_spmm/omp",
+   "problem_type": "sparse_la",
+   "name": "46_sparse_la_spmm",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "6538ba4bc8fe38f00abd7c31ed8ed626a6daad371674397044bc7096988eb29a",
+   "p1_prompt_sha256": "6538ba4bc8fe38f00abd7c31ed8ed626a6daad371674397044bc7096988eb29a",
+   "p2_prompt_sha256": "0767f95582d6e84b1027f72e97df2b9244de8815809c0f2f027c681140ebf935",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/46_sparse_la_spmm/mpi",
+   "problem_type": "sparse_la",
+   "name": "46_sparse_la_spmm",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "43aacca6469bc2488cf7ae71656ae6542ddf1766b94c13c5c011577bb26b108c",
+   "p1_prompt_sha256": "43aacca6469bc2488cf7ae71656ae6542ddf1766b94c13c5c011577bb26b108c",
+   "p2_prompt_sha256": "743362a297ec51c85c0f6202b3245a6e75c65a7042cae41c9467014f83a1d0f6",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/47_sparse_la_spmv/serial",
+   "problem_type": "sparse_la",
+   "name": "47_sparse_la_spmv",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "b0b81133b916d2d43fff83617f37ead2f30af629851331c7aa0ea5abf69fc28c",
+   "p1_prompt_sha256": "b0b81133b916d2d43fff83617f37ead2f30af629851331c7aa0ea5abf69fc28c",
+   "p2_prompt_sha256": "3d26c47d6ed0cdbf1061cd91b7657606bc46b2423741d9bf92c5f45a5939873a",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/47_sparse_la_spmv/omp",
+   "problem_type": "sparse_la",
+   "name": "47_sparse_la_spmv",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "23a3eb5725d2c3d349273015db02e934f58d0a3961bd836e24a7ea5a00b8e268",
+   "p1_prompt_sha256": "23a3eb5725d2c3d349273015db02e934f58d0a3961bd836e24a7ea5a00b8e268",
+   "p2_prompt_sha256": "28af0127b7adb9eb42586c354888a00950766316e15d957704bfa2cc51e9ce45",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/47_sparse_la_spmv/mpi",
+   "problem_type": "sparse_la",
+   "name": "47_sparse_la_spmv",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "6fb3a4f53692d00192ec3ff16358814508e0c8e4ae8889892987eddb3d9c6c8a",
+   "p1_prompt_sha256": "6fb3a4f53692d00192ec3ff16358814508e0c8e4ae8889892987eddb3d9c6c8a",
+   "p2_prompt_sha256": "5e9fde7aa3bc35a284ba47d6aaea9daa285d0c17e60eca8239c3d4575672921d",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/48_sparse_la_sparse_axpy/serial",
+   "problem_type": "sparse_la",
+   "name": "48_sparse_la_sparse_axpy",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "6eef09a0da3c81eb246c7ad8660591665731dd1db76bcc3bb2beba577c8b915d",
+   "p1_prompt_sha256": "6eef09a0da3c81eb246c7ad8660591665731dd1db76bcc3bb2beba577c8b915d",
+   "p2_prompt_sha256": "eb09388e5d00e52f5099cf9ad1214c0f137c8560a35938667a3cd92208336327",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/48_sparse_la_sparse_axpy/omp",
+   "problem_type": "sparse_la",
+   "name": "48_sparse_la_sparse_axpy",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "1f03f9a9ed7485f08b6be6deb5133091820ea7312a338a8568303a8725270207",
+   "p1_prompt_sha256": "1f03f9a9ed7485f08b6be6deb5133091820ea7312a338a8568303a8725270207",
+   "p2_prompt_sha256": "241cf36592bb68d8481ca5c472e88e74058ed6cead9a63ee834899dc266fb9ab",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/48_sparse_la_sparse_axpy/mpi",
+   "problem_type": "sparse_la",
+   "name": "48_sparse_la_sparse_axpy",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "810d93da2256b83502c6c8d5be4cce7d0029f5e1328345c733f8200b2ebfddd8",
+   "p1_prompt_sha256": "810d93da2256b83502c6c8d5be4cce7d0029f5e1328345c733f8200b2ebfddd8",
+   "p2_prompt_sha256": "eb5302f7cae07952eed7fffbc2637704d7e3188b1ec2c327be7e2cab05147ba6",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/49_sparse_la_sparse_lu_decomp/serial",
+   "problem_type": "sparse_la",
+   "name": "49_sparse_la_sparse_lu_decomp",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "e5edb019c84f2a1a9118d6cbf08ca976c492e631ca04bb9e48c273a288fcb122",
+   "p1_prompt_sha256": "e5edb019c84f2a1a9118d6cbf08ca976c492e631ca04bb9e48c273a288fcb122",
+   "p2_prompt_sha256": "c32ac1c720ba0e5401c6626cc0277fd6275082343e2466c5a885102ed612c034",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/49_sparse_la_sparse_lu_decomp/omp",
+   "problem_type": "sparse_la",
+   "name": "49_sparse_la_sparse_lu_decomp",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "f0b06c751b93a82d2061423f7562fb4159a0128c44e11eba662e3d12adaaef91",
+   "p1_prompt_sha256": "f0b06c751b93a82d2061423f7562fb4159a0128c44e11eba662e3d12adaaef91",
+   "p2_prompt_sha256": "f59d33bc349bd895b9f55367305d53730b0cf31b34e26078d7c6ec7cc57fe9ab",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "sparse_la/49_sparse_la_sparse_lu_decomp/mpi",
+   "problem_type": "sparse_la",
+   "name": "49_sparse_la_sparse_lu_decomp",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "f5ae105d430dddb223712f9368fa9709c046a8ce1f0e2e0522688f9ecdddb83a",
+   "p1_prompt_sha256": "f5ae105d430dddb223712f9368fa9709c046a8ce1f0e2e0522688f9ecdddb83a",
+   "p2_prompt_sha256": "c03ce7499a3aa24856c5e3305b2b6aad3e67913decc0bf9f05f32291218274e2",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION",
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/50_stencil_xor_kernel/serial",
+   "problem_type": "stencil",
+   "name": "50_stencil_xor_kernel",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "b0ee843d3e5f0e21686f3a453ed9124ffdf2263eb7ffaf8e4b2b60d780465454",
+   "p1_prompt_sha256": "b0ee843d3e5f0e21686f3a453ed9124ffdf2263eb7ffaf8e4b2b60d780465454",
+   "p2_prompt_sha256": "87b828ea363c7477961e5b7666bcf53969b4f4904fec43a1cb262375b46ab6a5",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/50_stencil_xor_kernel/omp",
+   "problem_type": "stencil",
+   "name": "50_stencil_xor_kernel",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "c5e047057d08b26f5aa8af8cb70b6d7ac0ff1292a82259d8d6aa440526a6a002",
+   "p1_prompt_sha256": "c5e047057d08b26f5aa8af8cb70b6d7ac0ff1292a82259d8d6aa440526a6a002",
+   "p2_prompt_sha256": "2f424e5b198f1bafa6f00a8b2e887ed68d13b17c45b0ee0c304b504fcc66e8d9",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/50_stencil_xor_kernel/mpi",
+   "problem_type": "stencil",
+   "name": "50_stencil_xor_kernel",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "af84b79987fe60ad6d0132bbab2cca57f5f3ab183c0e07722aed8ec921fc2f37",
+   "p1_prompt_sha256": "af84b79987fe60ad6d0132bbab2cca57f5f3ab183c0e07722aed8ec921fc2f37",
+   "p2_prompt_sha256": "aa8c029cf6cf11990ec075ca68e41d6520e96c2ff45b5ac7728b6fa0499fc2a2",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/51_stencil_edge_kernel/serial",
+   "problem_type": "stencil",
+   "name": "51_stencil_edge_kernel",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "a7e7cc1311c5c685d999bd480143d8c2ea5e7bc3718dcacad55b8d07941de00f",
+   "p1_prompt_sha256": "a7e7cc1311c5c685d999bd480143d8c2ea5e7bc3718dcacad55b8d07941de00f",
+   "p2_prompt_sha256": "d895125dc1d051bde359e08cfb75e73011f5e6b30bc55a97fe5aa985726de030",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/51_stencil_edge_kernel/omp",
+   "problem_type": "stencil",
+   "name": "51_stencil_edge_kernel",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "fcf8d85fbca2b32e5cf8c8e1abb29c5067391ef7d62a0aea5c21f01052cac87c",
+   "p1_prompt_sha256": "fcf8d85fbca2b32e5cf8c8e1abb29c5067391ef7d62a0aea5c21f01052cac87c",
+   "p2_prompt_sha256": "b31aeb475afa669efff9ceae7ba90f4459b6f921a433055ad0c0513af8fbee74",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/51_stencil_edge_kernel/mpi",
+   "problem_type": "stencil",
+   "name": "51_stencil_edge_kernel",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "81aef077bc3ac2b86bc09c5b610dc4ce4199daae7241069ba1bd73c77602b7c6",
+   "p1_prompt_sha256": "81aef077bc3ac2b86bc09c5b610dc4ce4199daae7241069ba1bd73c77602b7c6",
+   "p2_prompt_sha256": "f3932bc305b2540699363dc695319d77b5c1c1543f77e8c5d80fc7ffe2fa3b8d",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "DOMAENENRESTRIKTION"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/54_stencil_game_of_life/serial",
+   "problem_type": "stencil",
+   "name": "54_stencil_game_of_life",
+   "parallelism_model": "serial",
+   "p0_prompt_sha256": "1a5619f7a08a37cb2ea851200cb697da75866f8ee7f926f65c363ed3a243840a",
+   "p1_prompt_sha256": "1a5619f7a08a37cb2ea851200cb697da75866f8ee7f926f65c363ed3a243840a",
+   "p2_prompt_sha256": "2c094bf5c3203004052e8d8332849cc82d9dbb6898e97df96679195a5f79aaf1",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/54_stencil_game_of_life/omp",
+   "problem_type": "stencil",
+   "name": "54_stencil_game_of_life",
+   "parallelism_model": "omp",
+   "p0_prompt_sha256": "112010f22f6550803f06b351e3a148780ee638de00a4a5ba726f24da6374854a",
+   "p1_prompt_sha256": "112010f22f6550803f06b351e3a148780ee638de00a4a5ba726f24da6374854a",
+   "p2_prompt_sha256": "47affc45e24bbef882902c2c51b49105cd8e93293bc82686d050206cae3f289d",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  },
+  {
+   "prompt_id": "stencil/54_stencil_game_of_life/mpi",
+   "problem_type": "stencil",
+   "name": "54_stencil_game_of_life",
+   "parallelism_model": "mpi",
+   "p0_prompt_sha256": "16649e529adeedeac82c4645af15b6d955792b7895e40c3d51d2f6f42b74a7ee",
+   "p1_prompt_sha256": "16649e529adeedeac82c4645af15b6d955792b7895e40c3d51d2f6f42b74a7ee",
+   "p2_prompt_sha256": "d5553e906d1dd412d6f95dec319fd143c624bf3b4ea77ca454207baf23caf87d",
+   "change_period": "WAVE3_PROMPT_CHANGE",
+   "change_nature": "SEMANTIC",
+   "wave3_change_types": [
+    "KONVENTION_EXPLIZIT_GEMACHT"
+   ],
+   "requires_pilot_002_regeneration": true
+  }
+ ]
+}

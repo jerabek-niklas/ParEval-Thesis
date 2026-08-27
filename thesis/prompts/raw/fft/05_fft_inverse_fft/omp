@@ -2,6 +2,7 @@
 void fft(std::vector<std::complex<double>> &x);
 
 /* Compute the inverse fourier transform of x in-place.
+   The size of x is always a power of two.
    Use OpenMP to compute in parallel.
    Example:
    

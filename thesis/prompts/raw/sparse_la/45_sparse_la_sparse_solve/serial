@@ -5,6 +5,7 @@ struct COOElement {
 
 /* Solve the sparse linear system Ax=b for x.
    A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.
+   A is square and nonsingular, and its COO list is duplicate-free: no two elements share the same (row, column) pair, and every index satisfies 0 <= row < N and 0 <= column < N. Return the unique x with Ax = b.
    Example:
    
    input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]

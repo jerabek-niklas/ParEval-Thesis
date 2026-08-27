@@ -1,5 +1,6 @@
 /* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.
    Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.
+   A cell's neighbors are the up to eight surrounding cells - horizontally, vertically, and diagonally adjacent (the Moore neighborhood); cells outside the grid are not counted.
    input and output are NxN grids of ints in row-major.
    Example:
 

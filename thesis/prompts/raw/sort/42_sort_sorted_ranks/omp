@@ -1,5 +1,6 @@
 /* For each value in the vector x compute its index in the sorted vector.
    Store the results in `ranks`.
+   The ranks are a permutation of 0..x.size()-1; values that compare equal may receive their tied ranks in any order among themselves.
    Use OpenMP to compute in parallel.
    Examples:
 
@@ -7,6 +8,6 @@
    output: [2, 1, 4, 0, 3]
  
    input: [100, 7.6, 16.1, 18, 7.6]
-   output: [4, 0, 1, 2, 3]
+   output: [4, 0, 2, 3, 1]
 */
 void ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {

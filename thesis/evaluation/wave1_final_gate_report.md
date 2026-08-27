@@ -948,6 +948,24 @@ Wave-1 scope — none of them a Wave-1 blocker:
 14. **`pilot_001` historical integrity** — the NaN-reference blind spot in the
     frozen records (§8.4) cannot be closed retroactively.
 
+> **[DOWNSTREAM INTERLOCK NOTE — added by Wave 3 (atomic prompt wave, 2026-08-27), not part of the frozen Wave-1 text above.]**
+> Wave 3 synchronized the generation prompts with the frozen Wave-2A/2B
+> semantics. Gate 6 ("Prompt wave") and gate 13 ("All-60 consistency gate")
+> above are superseded in the following sense: all frozen prompt sentences and
+> example corrections are implemented in `thesis/prompts/raw/**` and
+> regenerated into `generation-prompts-thesis.json` (69 prompt entries across
+> 23 benchmarks; see `thesis/evaluation/wave3_regeneration_set.json`), and
+> `check_prompt_oracle_consistency.py` now reports **60/60 consistent, 0
+> INCONSISTENT, 0 infra errors**. Seven benchmarks whose oracle resolves a
+> semantic convention with **no frozen decision** (`dense_la/00`,
+> `geometry/12/13/14`, `histogram/22`, `scan/34`, `search/37`) received **no**
+> prompt edit; they are registered in
+> `thesis/evaluation/prompt_oracle_interlock.json` with enforcement
+> `disclosure_required` (no automatic exclusion) binding the enhanced stage,
+> the timing stage, and `pilot_002` reporting. Every prompt changed in Wave 3
+> requires regeneration in `pilot_002` (`requires_pilot_002_regeneration:
+> true` for all 69 entries).
+
 ---
 
 ## 15. `git diff --stat`

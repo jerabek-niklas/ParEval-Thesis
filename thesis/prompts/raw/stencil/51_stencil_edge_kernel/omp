@@ -4,6 +4,7 @@ const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};
    the dot product of itself and its neighbors with the edge kernel.
    Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.
    imageIn and imageOut are NxN grayscale images stored in row-major.
+   imageIn and imageOut each hold exactly N*N values, and imageIn holds grayscale pixel values in the range [0, 255].
    Store the output of the computation in imageOut.
    Use OpenMP to compute in parallel.
    Example:

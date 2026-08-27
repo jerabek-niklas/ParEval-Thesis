@@ -109,147 +109,147 @@
     "language": "cpp",
     "name": "05_fft_inverse_fft",
     "parallelism_model": "serial",
-    "prompt": "/* forward declare fft. computes fourier transform in-place */\nvoid fft(std::vector<std::complex<double>> &x);\n\n/* Compute the inverse fourier transform of x in-place.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {"
+    "prompt": "/* forward declare fft. computes fourier transform in-place */\nvoid fft(std::vector<std::complex<double>> &x);\n\n/* Compute the inverse fourier transform of x in-place.\n   The size of x is always a power of two.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "05_fft_inverse_fft",
     "parallelism_model": "omp",
-    "prompt": "/* forward declare fft. computes fourier transform in-place */\nvoid fft(std::vector<std::complex<double>> &x);\n\n/* Compute the inverse fourier transform of x in-place.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {"
+    "prompt": "/* forward declare fft. computes fourier transform in-place */\nvoid fft(std::vector<std::complex<double>> &x);\n\n/* Compute the inverse fourier transform of x in-place.\n   The size of x is always a power of two.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "05_fft_inverse_fft",
     "parallelism_model": "mpi",
-    "prompt": "/* forward declare fft. computes fourier transform in-place */\nvoid fft(std::vector<std::complex<double>> &x);\n\n/* Compute the inverse fourier transform of x in-place.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The final result is stored on rank 0.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {"
+    "prompt": "/* forward declare fft. computes fourier transform in-place */\nvoid fft(std::vector<std::complex<double>> &x);\n\n/* Compute the inverse fourier transform of x in-place.\n   The size of x is always a power of two.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The final result is stored on rank 0.\n   Example:\n   \n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{0.5,0}, {0.125,0.301777}, {0,-0}, {0.125,0.0517767}, {0,-0}, {0.125,-0.0517767}, {0,-0}, {0.125,-0.301777}]\n*/\nvoid ifft(std::vector<std::complex<double>> &x) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "06_fft_dft",
     "parallelism_model": "serial",
-    "prompt": "/* Compute the discrete fourier transform of x. Store the result in output.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8-12i, -10-0i, -8+12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {"
+    "prompt": "/* Compute the discrete fourier transform of x. Store the result in output.\n   The output is the standard unnormalized forward DFT with the negative-exponent convention.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8+12i, -10-0i, -8-12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "06_fft_dft",
     "parallelism_model": "omp",
-    "prompt": "/* Compute the discrete fourier transform of x. Store the result in output.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8-12i, -10-0i, -8+12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {"
+    "prompt": "/* Compute the discrete fourier transform of x. Store the result in output.\n   The output is the standard unnormalized forward DFT with the negative-exponent convention.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8+12i, -10-0i, -8-12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "06_fft_dft",
     "parallelism_model": "mpi",
-    "prompt": "/* Compute the discrete fourier transform of x. Store the result in output.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8-12i, -10-0i, -8+12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {"
+    "prompt": "/* Compute the discrete fourier transform of x. Store the result in output.\n   The output is the standard unnormalized forward DFT with the negative-exponent convention.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Example:\n\n   input: [1, 4, 9, 16]\n   output: [30+0i, -8+12i, -10-0i, -8-12i]\n*/\nvoid dft(std::vector<double> const& x, std::vector<std::complex<double>> &output) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "07_fft_fft_conjugate",
     "parallelism_model": "serial",
-    "prompt": "/* Compute the fourier transform of x in-place. Return the imaginary conjugate of each value.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {"
+    "prompt": "/* Compute the fourier transform of x in-place. The result stored in x is the elementwise complex conjugate of the unnormalized forward fourier transform (negative-exponent convention) of the input.\n   The size of x is always a power of two.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,2.41421}, {0,0}, {1,0.414214}, {0,0}, {1,-0.414214}, {0,0}, {1,-2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "07_fft_fft_conjugate",
     "parallelism_model": "omp",
-    "prompt": "/* Compute the fourier transform of x in-place. Return the imaginary conjugate of each value.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {"
+    "prompt": "/* Compute the fourier transform of x in-place. The result stored in x is the elementwise complex conjugate of the unnormalized forward fourier transform (negative-exponent convention) of the input.\n   The size of x is always a power of two.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,2.41421}, {0,0}, {1,0.414214}, {0,0}, {1,-0.414214}, {0,0}, {1,-2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "07_fft_fft_conjugate",
     "parallelism_model": "mpi",
-    "prompt": "/* Compute the fourier transform of x in-place. Return the imaginary conjugate of each value.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The final result is stored on rank 0.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {"
+    "prompt": "/* Compute the fourier transform of x in-place. The result stored in x is the elementwise complex conjugate of the unnormalized forward fourier transform (negative-exponent convention) of the input.\n   The size of x is always a power of two.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The final result is stored on rank 0.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,2.41421}, {0,0}, {1,0.414214}, {0,0}, {1,-0.414214}, {0,0}, {1,-2.41421}]\n*/\nvoid fftConjugate(std::vector<std::complex<double>> &x) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "08_fft_split_fft",
     "parallelism_model": "serial",
-    "prompt": "/* Compute the fourier transform of x. Store real part of results in r and imaginary in i.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<double> &r, std::vector<double> &i) {"
+    "prompt": "/* Compute the fourier transform of x. Store real part of results in r and imaginary in i.\n   The length of x is a power of two.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<double> &r, std::vector<double> &i) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "08_fft_split_fft",
     "parallelism_model": "omp",
-    "prompt": "/* Compute the fourier transform of x. Store real part of results in r and imaginary in i.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<double> &r, std::vector<double> &i) {"
+    "prompt": "/* Compute the fourier transform of x. Store real part of results in r and imaginary in i.\n   The length of x is a power of two.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<double> &r, std::vector<double> &i) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "08_fft_split_fft",
     "parallelism_model": "mpi",
-    "prompt": "/* Compute the fourier transform of x. Store real part of results in r and imaginary in i.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The final result is stored on rank 0.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<double> &r, std::vector<double> &i) {"
+    "prompt": "/* Compute the fourier transform of x. Store real part of results in r and imaginary in i.\n   The length of x is a power of two.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The final result is stored on rank 0.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: r: [4, 1, 0, 1, 0, 1, 0, 1] i: [0, -2.41421, 0, -0.414214, 0, 0.414214, 0, 2.41421]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<double> &r, std::vector<double> &i) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "09_fft_fft_out_of_place",
     "parallelism_model": "serial",
-    "prompt": "/* Compute the fourier transform of x. Store the result in output.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.42421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<std::complex<double>> &output) {"
+    "prompt": "/* Compute the fourier transform of x. Store the result in output.\n   The size of x is always a power of two.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<std::complex<double>> &output) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "09_fft_fft_out_of_place",
     "parallelism_model": "omp",
-    "prompt": "/* Compute the fourier transform of x. Store the result in output.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.42421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<std::complex<double>> &output) {"
+    "prompt": "/* Compute the fourier transform of x. Store the result in output.\n   The size of x is always a power of two.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<std::complex<double>> &output) {"
   },
   {
     "problem_type": "fft",
     "language": "cpp",
     "name": "09_fft_fft_out_of_place",
     "parallelism_model": "mpi",
-    "prompt": "/* Compute the fourier transform of x. Store the result in output.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.42421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<std::complex<double>> &output) {"
+    "prompt": "/* Compute the fourier transform of x. Store the result in output.\n   The size of x is always a power of two.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Example:\n\n   input: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]\n   output: [{4,0}, {1,-2.41421}, {0,0}, {1,-0.414214}, {0,0}, {1,0.414214}, {0,0}, {1,2.41421}]\n*/\nvoid fft(std::vector<std::complex<double>> const& x, std::vector<std::complex<double>> &output) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "10_geometry_convex_hull",
     "parallelism_model": "serial",
-    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Find the set of points that defined the smallest convex polygon that contains all the points in the vector points. Store the result in `hull`.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]\n*/\nvoid convexHull(std::vector<Point> const& points, std::vector<Point> &hull) {"
+    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Find the set of points that defined the smallest convex polygon that contains all the points in the vector points. Store the result in `hull`.\n   The hull is that of the distinct point set: duplicate input points are irrelevant, and each hull vertex appears exactly once in `hull`, in any order. Points that lie exactly on an edge of the hull but are not corners of it are not part of the result. If there are fewer than three distinct points, `hull` is exactly those distinct points (a single point if all points coincide).\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]\n*/\nvoid convexHull(std::vector<Point> const& points, std::vector<Point> &hull) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "10_geometry_convex_hull",
     "parallelism_model": "omp",
-    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Find the set of points that defined the smallest convex polygon that contains all the points in the vector points. Store the result in `hull`.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]\n*/\nvoid convexHull(std::vector<Point> const& points, std::vector<Point> &hull) {"
+    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Find the set of points that defined the smallest convex polygon that contains all the points in the vector points. Store the result in `hull`.\n   The hull is that of the distinct point set: duplicate input points are irrelevant, and each hull vertex appears exactly once in `hull`, in any order. Points that lie exactly on an edge of the hull but are not corners of it are not part of the result. If there are fewer than three distinct points, `hull` is exactly those distinct points (a single point if all points coincide).\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]\n*/\nvoid convexHull(std::vector<Point> const& points, std::vector<Point> &hull) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "10_geometry_convex_hull",
     "parallelism_model": "mpi",
-    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Find the set of points that defined the smallest convex polygon that contains all the points in the vector points. Store the result in `hull`.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Every rank has a complete copy of points. The final hull is returned on rank 0.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]\n*/\nvoid convexHull(std::vector<Point> const& points, std::vector<Point> &hull) {"
+    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Find the set of points that defined the smallest convex polygon that contains all the points in the vector points. Store the result in `hull`.\n   The hull is that of the distinct point set: duplicate input points are irrelevant, and each hull vertex appears exactly once in `hull`, in any order. Points that lie exactly on an edge of the hull but are not corners of it are not part of the result. If there are fewer than three distinct points, `hull` is exactly those distinct points (a single point if all points coincide).\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Every rank has a complete copy of points. The final hull is returned on rank 0.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: [{0, 3}, {4, 4}, {3, 1}, {0, 0}]\n*/\nvoid convexHull(std::vector<Point> const& points, std::vector<Point> &hull) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "11_geometry_convex_hull_perimeter",
     "parallelism_model": "serial",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   The result depends only on the distinct point set. If the points do not span a polygon - fewer than three distinct points, or all points collinear - return twice the length of the segment that spans them, and 0 if all points coincide or the vector is empty.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "11_geometry_convex_hull_perimeter",
     "parallelism_model": "omp",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   The result depends only on the distinct point set. If the points do not span a polygon - fewer than three distinct points, or all points collinear - return twice the length of the segment that spans them, and 0 if all points coincide or the vector is empty.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "11_geometry_convex_hull_perimeter",
     "parallelism_model": "mpi",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The final result is returned on rank 0.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the perimeter of the smallest convex polygon that contains all the points in the vector points.\n   The result depends only on the distinct point set. If the points do not span a polygon - fewer than three distinct points, or all points collinear - return twice the length of the segment that spans them, and 0 if all points coincide or the vector is empty.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The final result is returned on rank 0.\n   Example:\n\n   input: [{0, 3}, {1, 1}, {2, 2}, {4, 4}, {0, 0}, {1, 2}, {3, 1}, {3, 3}]\n   output: 13.4477\n*/\ndouble convexHullPerimeter(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
@@ -403,21 +403,21 @@
     "language": "cpp",
     "name": "19_graph_shortest_path",
     "parallelism_model": "serial",
-    "prompt": "/* Return the length of the shortest path from source to dest in the undirected graph defined by the adjacency matrix A.\n   A is an NxN adjacency matrix stored in row-major. A is an undirected graph.\n   Example:\n\n\t input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2\n*/\nint shortestPathLength(std::vector<int> const& A, size_t N, int source, int dest) {"
+    "prompt": "/* Return the length of the shortest path from source to dest in the undirected graph defined by the adjacency matrix A.\n   A is an NxN adjacency matrix stored in row-major. A is an undirected graph.\n   A is symmetric with a zero diagonal, and every nonzero entry counts as one unit-length edge; source and dest are valid vertex indices in [0, N). Return 0 if source == dest, and std::numeric_limits<int>::max() if dest is not reachable from source.\n   Example:\n\n\t input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2\n*/\nint shortestPathLength(std::vector<int> const& A, size_t N, int source, int dest) {"
   },
   {
     "problem_type": "graph",
     "language": "cpp",
     "name": "19_graph_shortest_path",
     "parallelism_model": "omp",
-    "prompt": "/* Return the length of the shortest path from source to dest in the undirected graph defined by the adjacency matrix A.\n   A is an NxN adjacency matrix stored in row-major. A is an undirected graph.\n   Use OpenMP to compute in parallel.\n   Example:\n\n\t input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2\n*/\nint shortestPathLength(std::vector<int> const& A, size_t N, int source, int dest) {"
+    "prompt": "/* Return the length of the shortest path from source to dest in the undirected graph defined by the adjacency matrix A.\n   A is an NxN adjacency matrix stored in row-major. A is an undirected graph.\n   A is symmetric with a zero diagonal, and every nonzero entry counts as one unit-length edge; source and dest are valid vertex indices in [0, N). Return 0 if source == dest, and std::numeric_limits<int>::max() if dest is not reachable from source.\n   Use OpenMP to compute in parallel.\n   Example:\n\n\t input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2\n*/\nint shortestPathLength(std::vector<int> const& A, size_t N, int source, int dest) {"
   },
   {
     "problem_type": "graph",
     "language": "cpp",
     "name": "19_graph_shortest_path",
     "parallelism_model": "mpi",
-    "prompt": "/* Return the length of the shortest path from source to dest in the undirected graph defined by the adjacency matrix A.\n   A is an NxN adjacency matrix stored in row-major. A is an undirected graph.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A. The shortest path length is returned on rank 0.\n   Example:\n\n\t input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2\n*/\nint shortestPathLength(std::vector<int> const& A, size_t N, int source, int dest) {"
+    "prompt": "/* Return the length of the shortest path from source to dest in the undirected graph defined by the adjacency matrix A.\n   A is an NxN adjacency matrix stored in row-major. A is an undirected graph.\n   A is symmetric with a zero diagonal, and every nonzero entry counts as one unit-length edge; source and dest are valid vertex indices in [0, N). Return 0 if source == dest, and std::numeric_limits<int>::max() if dest is not reachable from source.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A. The shortest path length is returned on rank 0.\n   Example:\n\n\t input: [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]], source=0, dest=3\n   output: 2\n*/\nint shortestPathLength(std::vector<int> const& A, size_t N, int source, int dest) {"
   },
   {
     "problem_type": "histogram",
@@ -445,21 +445,21 @@
     "language": "cpp",
     "name": "21_histogram_bin_0-100",
     "parallelism_model": "serial",
-    "prompt": "/* Vector x contains values between 0 and 100, inclusive. Count the number of\n   values in [0,10), [10, 20), [20, 30), ... and store the counts in `bins`.\n   Example:\n\n   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n   output: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]\n*/\nvoid binsBy10Count(std::vector<double> const& x, std::array<size_t, 10> &bins) {"
+    "prompt": "/* Vector x contains values between 0 and 100, inclusive. Count the number of\n   values in [0,10), [10, 20), [20, 30), ... and store the counts in `bins`.\n   The upper end is inclusive: a value of exactly 100 belongs in the last bin, bins[9]. `bins` is zero-initialized on entry.\n   Example:\n\n   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n   output: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]\n*/\nvoid binsBy10Count(std::vector<double> const& x, std::array<size_t, 10> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "21_histogram_bin_0-100",
     "parallelism_model": "omp",
-    "prompt": "/* Vector x contains values between 0 and 100, inclusive. Count the number of\n   values in [0,10), [10, 20), [20, 30), ... and store the counts in `bins`.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n   output: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]\n*/\nvoid binsBy10Count(std::vector<double> const& x, std::array<size_t, 10> &bins) {"
+    "prompt": "/* Vector x contains values between 0 and 100, inclusive. Count the number of\n   values in [0,10), [10, 20), [20, 30), ... and store the counts in `bins`.\n   The upper end is inclusive: a value of exactly 100 belongs in the last bin, bins[9]. `bins` is zero-initialized on entry.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n   output: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]\n*/\nvoid binsBy10Count(std::vector<double> const& x, std::array<size_t, 10> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "21_histogram_bin_0-100",
     "parallelism_model": "mpi",
-    "prompt": "/* Vector x contains values between 0 and 100, inclusive. Count the number of\n   values in [0,10), [10, 20), [20, 30), ... and store the counts in `bins`.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The result is stored in bins on rank 0.\n   Example:\n\n   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n   output: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]\n*/\nvoid binsBy10Count(std::vector<double> const& x, std::array<size_t, 10> &bins) {"
+    "prompt": "/* Vector x contains values between 0 and 100, inclusive. Count the number of\n   values in [0,10), [10, 20), [20, 30), ... and store the counts in `bins`.\n   The upper end is inclusive: a value of exactly 100 belongs in the last bin, bins[9]. `bins` is zero-initialized on entry.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. The result is stored in bins on rank 0.\n   Example:\n\n   input: [7, 32, 95, 12, 39, 32, 11, 71, 70, 66]\n   output: [1, 2, 0, 3, 0, 0, 1, 2, 0, 1]\n*/\nvoid binsBy10Count(std::vector<double> const& x, std::array<size_t, 10> &bins) {"
   },
   {
     "problem_type": "histogram",
@@ -487,42 +487,42 @@
     "language": "cpp",
     "name": "23_histogram_first_letter_counts",
     "parallelism_model": "serial",
-    "prompt": "/* For each letter in the alphabet, count the number of strings in the vector s that start with that letter.\n   Assume all strings are in lower case. Store the output in `bins` array.\n   Example:\n\n   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]\n*/\nvoid firstLetterCounts(std::vector<std::string> const& s, std::array<size_t, 26> &bins) {"
+    "prompt": "/* For each letter in the alphabet, count the number of strings in the vector s that start with that letter.\n   Assume all strings are in lower case and non-empty. Store the output in `bins` array.\n   Example:\n\n   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]\n*/\nvoid firstLetterCounts(std::vector<std::string> const& s, std::array<size_t, 26> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "23_histogram_first_letter_counts",
     "parallelism_model": "omp",
-    "prompt": "/* For each letter in the alphabet, count the number of strings in the vector s that start with that letter.\n   Assume all strings are in lower case. Store the output in `bins` array.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]\n*/\nvoid firstLetterCounts(std::vector<std::string> const& s, std::array<size_t, 26> &bins) {"
+    "prompt": "/* For each letter in the alphabet, count the number of strings in the vector s that start with that letter.\n   Assume all strings are in lower case and non-empty. Store the output in `bins` array.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]\n*/\nvoid firstLetterCounts(std::vector<std::string> const& s, std::array<size_t, 26> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "23_histogram_first_letter_counts",
     "parallelism_model": "mpi",
-    "prompt": "/* For each letter in the alphabet, count the number of strings in the vector s that start with that letter.\n   Assume all strings are in lower case. Store the output in `bins` array.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of s. The result is stored in bins on rank 0.\n   Example:\n\n   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]\n*/\nvoid firstLetterCounts(std::vector<std::string> const& s, std::array<size_t, 26> &bins) {"
+    "prompt": "/* For each letter in the alphabet, count the number of strings in the vector s that start with that letter.\n   Assume all strings are in lower case and non-empty. Store the output in `bins` array.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of s. The result is stored in bins on rank 0.\n   Example:\n\n   input: [\"dog\", \"cat\", \"xray\", \"cow\", \"code\", \"type\", \"flower\"]\n   output: [0, 0, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]\n*/\nvoid firstLetterCounts(std::vector<std::string> const& s, std::array<size_t, 26> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "24_histogram_count_quartile",
     "parallelism_model": "serial",
-    "prompt": "/* Count the number of doubles in the vector x that have a fractional part \n   in [0, 0.25), [0.25, 0.5), [0.5, 0.75), and [0.75, 1). Store the counts in `bins`.\n   Examples:\n\n   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]\n*/\nvoid countQuartiles(std::vector<double> const& x, std::array<size_t, 4> &bins) {"
+    "prompt": "/* Count the number of doubles in the vector x that have a fractional part \n   in [0, 0.25), [0.25, 0.5), [0.5, 0.75), and [0.75, 1). Store the counts in `bins`.\n   Assume every element of x is non-negative and strictly smaller than 2147483648 (2^31).\n   Examples:\n\n   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]\n*/\nvoid countQuartiles(std::vector<double> const& x, std::array<size_t, 4> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "24_histogram_count_quartile",
     "parallelism_model": "omp",
-    "prompt": "/* Count the number of doubles in the vector x that have a fractional part \n   in [0, 0.25), [0.25, 0.5), [0.5, 0.75), and [0.75, 1). Store the counts in `bins`.\n   Use OpenMP to compute in parallel.\n   Examples:\n\n   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]\n*/\nvoid countQuartiles(std::vector<double> const& x, std::array<size_t, 4> &bins) {"
+    "prompt": "/* Count the number of doubles in the vector x that have a fractional part \n   in [0, 0.25), [0.25, 0.5), [0.5, 0.75), and [0.75, 1). Store the counts in `bins`.\n   Assume every element of x is non-negative and strictly smaller than 2147483648 (2^31).\n   Use OpenMP to compute in parallel.\n   Examples:\n\n   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]\n*/\nvoid countQuartiles(std::vector<double> const& x, std::array<size_t, 4> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "24_histogram_count_quartile",
     "parallelism_model": "mpi",
-    "prompt": "/* Count the number of doubles in the vector x that have a fractional part \n   in [0, 0.25), [0.25, 0.5), [0.5, 0.75), and [0.75, 1). Store the counts in `bins`.\n   Use MPI to compute in parallel. Assume that MPI has already been initialized.\n   Every rank has a complete copy of x. The result is stored in bins on rank 0.\n   Examples:\n\n   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]\n*/\nvoid countQuartiles(std::vector<double> const& x, std::array<size_t, 4> &bins) {"
+    "prompt": "/* Count the number of doubles in the vector x that have a fractional part \n   in [0, 0.25), [0.25, 0.5), [0.5, 0.75), and [0.75, 1). Store the counts in `bins`.\n   Assume every element of x is non-negative and strictly smaller than 2147483648 (2^31).\n   Use MPI to compute in parallel. Assume that MPI has already been initialized.\n   Every rank has a complete copy of x. The result is stored in bins on rank 0.\n   Examples:\n\n   input: [7.8, 4.2, 9.1, 7.6, 0.27, 1.5, 3.8]\n   output: [2, 1, 2, 2]\n\n   input: [1.9, 0.2, 0.6, 10.1, 7.4]\n   output: [2, 1, 1, 1]\n*/\nvoid countQuartiles(std::vector<double> const& x, std::array<size_t, 4> &bins) {"
   },
   {
     "problem_type": "reduce",
@@ -592,21 +592,21 @@
     "language": "cpp",
     "name": "28_reduce_smallest_odd_number",
     "parallelism_model": "serial",
-    "prompt": "/* Return the value of the smallest odd number in the vector x.\n   Examples:\n\n   input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7\n*/\nint smallestOdd(std::vector<int> const& x) {"
+    "prompt": "/* Return the value of the smallest odd number in the vector x.\n   Every element of x is non-negative. If x contains no odd number - in particular if x is empty - return std::numeric_limits<int>::max().\n   Examples:\n\n   input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7\n*/\nint smallestOdd(std::vector<int> const& x) {"
   },
   {
     "problem_type": "reduce",
     "language": "cpp",
     "name": "28_reduce_smallest_odd_number",
     "parallelism_model": "omp",
-    "prompt": "/* Return the value of the smallest odd number in the vector x.\n   Use OpenMP to compute in parallel.\n   Examples:\n\n   input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7\n*/\nint smallestOdd(std::vector<int> const& x) {"
+    "prompt": "/* Return the value of the smallest odd number in the vector x.\n   Every element of x is non-negative. If x contains no odd number - in particular if x is empty - return std::numeric_limits<int>::max().\n   Use OpenMP to compute in parallel.\n   Examples:\n\n   input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7\n*/\nint smallestOdd(std::vector<int> const& x) {"
   },
   {
     "problem_type": "reduce",
     "language": "cpp",
     "name": "28_reduce_smallest_odd_number",
     "parallelism_model": "mpi",
-    "prompt": "/* Return the value of the smallest odd number in the vector x.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Every rank has a complete copy of x. Return the result on all ranks.\n   Examples:\n\n   input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7\n*/\nint smallestOdd(std::vector<int> const& x) {"
+    "prompt": "/* Return the value of the smallest odd number in the vector x.\n   Every element of x is non-negative. If x contains no odd number - in particular if x is empty - return std::numeric_limits<int>::max().\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Every rank has a complete copy of x. Return the result on all ranks.\n   Examples:\n\n   input: [7, 9, 5, 2, 8, 16, 4, 1]\n   output: 1\n\n   input: [8, 36, 7, 2, 11]\n   output: 7\n*/\nint smallestOdd(std::vector<int> const& x) {"
   },
   {
     "problem_type": "reduce",
@@ -802,21 +802,21 @@
     "language": "cpp",
     "name": "38_search_find_the_first_even_number",
     "parallelism_model": "serial",
-    "prompt": "/* Return the index of the first even number in the vector x.\n   Examples:\n\n   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1\n*/\nsize_t findFirstEven(std::vector<int> const& x) {"
+    "prompt": "/* Return the index of the first even number in the vector x.\n   If x contains no even number, return x.size().\n   Examples:\n\n   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1\n*/\nsize_t findFirstEven(std::vector<int> const& x) {"
   },
   {
     "problem_type": "search",
     "language": "cpp",
     "name": "38_search_find_the_first_even_number",
     "parallelism_model": "omp",
-    "prompt": "/* Return the index of the first even number in the vector x.\n   Use OpenMP to parallelize the search.\n   Examples:\n\n   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1\n*/\nsize_t findFirstEven(std::vector<int> const& x) {"
+    "prompt": "/* Return the index of the first even number in the vector x.\n   If x contains no even number, return x.size().\n   Use OpenMP to parallelize the search.\n   Examples:\n\n   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1\n*/\nsize_t findFirstEven(std::vector<int> const& x) {"
   },
   {
     "problem_type": "search",
     "language": "cpp",
     "name": "38_search_find_the_first_even_number",
     "parallelism_model": "mpi",
-    "prompt": "/* Return the index of the first even number in the vector x.\n   Use MPI to parallelize the search. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Examples:\n\n   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1\n*/\nsize_t findFirstEven(std::vector<int> const& x) {"
+    "prompt": "/* Return the index of the first even number in the vector x.\n   If x contains no even number, return x.size().\n   Use MPI to parallelize the search. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Examples:\n\n   input: [7, 3, 9, 5, 5, 7, 2, 9, 12, 11]\n   output: 6\n\n   input: [3, 8, 9, 9, 3, 4, 8, 6]\n   output: 1\n*/\nsize_t findFirstEven(std::vector<int> const& x) {"
   },
   {
     "problem_type": "search",
@@ -865,42 +865,42 @@
     "language": "cpp",
     "name": "41_sort_k-th_smallest_element",
     "parallelism_model": "serial",
-    "prompt": "/* Find the k-th smallest element of the vector x.\n   Example:\n   \n   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 6\n*/\nint findKthSmallest(std::vector<int> const& x, int k) {"
+    "prompt": "/* Find the k-th smallest element of the vector x.\n   k is 1-indexed (1 <= k <= x.size()) and duplicates are counted separately: the answer is the element at position k of x sorted in ascending order.\n   Example:\n   \n   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 2\n*/\nint findKthSmallest(std::vector<int> const& x, int k) {"
   },
   {
     "problem_type": "sort",
     "language": "cpp",
     "name": "41_sort_k-th_smallest_element",
     "parallelism_model": "omp",
-    "prompt": "/* Find the k-th smallest element of the vector x.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 6\n*/\nint findKthSmallest(std::vector<int> const& x, int k) {"
+    "prompt": "/* Find the k-th smallest element of the vector x.\n   k is 1-indexed (1 <= k <= x.size()) and duplicates are counted separately: the answer is the element at position k of x sorted in ascending order.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 2\n*/\nint findKthSmallest(std::vector<int> const& x, int k) {"
   },
   {
     "problem_type": "sort",
     "language": "cpp",
     "name": "41_sort_k-th_smallest_element",
     "parallelism_model": "mpi",
-    "prompt": "/* Find the k-th smallest element of the vector x.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Example:\n   \n   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 6\n*/\nint findKthSmallest(std::vector<int> const& x, int k) {"
+    "prompt": "/* Find the k-th smallest element of the vector x.\n   k is 1-indexed (1 <= k <= x.size()) and duplicates are counted separately: the answer is the element at position k of x sorted in ascending order.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Example:\n   \n   input: x=[1, 7, 6, 0, 2, 2, 10, 6], k=4\n   output: 2\n*/\nint findKthSmallest(std::vector<int> const& x, int k) {"
   },
   {
     "problem_type": "sort",
     "language": "cpp",
     "name": "42_sort_sorted_ranks",
     "parallelism_model": "serial",
-    "prompt": "/* For each value in the vector x compute its index in the sorted vector.\n   Store the results in `ranks`.\n   Examples:\n\n   input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 1, 2, 3]\n*/\nvoid ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {"
+    "prompt": "/* For each value in the vector x compute its index in the sorted vector.\n   Store the results in `ranks`.\n   The ranks are a permutation of 0..x.size()-1; values that compare equal may receive their tied ranks in any order among themselves.\n   Examples:\n\n   input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 2, 3, 1]\n*/\nvoid ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {"
   },
   {
     "problem_type": "sort",
     "language": "cpp",
     "name": "42_sort_sorted_ranks",
     "parallelism_model": "omp",
-    "prompt": "/* For each value in the vector x compute its index in the sorted vector.\n   Store the results in `ranks`.\n   Use OpenMP to compute in parallel.\n   Examples:\n\n   input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 1, 2, 3]\n*/\nvoid ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {"
+    "prompt": "/* For each value in the vector x compute its index in the sorted vector.\n   Store the results in `ranks`.\n   The ranks are a permutation of 0..x.size()-1; values that compare equal may receive their tied ranks in any order among themselves.\n   Use OpenMP to compute in parallel.\n   Examples:\n\n   input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 2, 3, 1]\n*/\nvoid ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {"
   },
   {
     "problem_type": "sort",
     "language": "cpp",
     "name": "42_sort_sorted_ranks",
     "parallelism_model": "mpi",
-    "prompt": "/* For each value in the vector x compute its index in the sorted vector.\n   Store the results in `ranks`.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every process has a complete copy of x. Store the result in ranks on process 0.\n   Examples:\n\n   input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 1, 2, 3]\n*/\nvoid ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {"
+    "prompt": "/* For each value in the vector x compute its index in the sorted vector.\n   Store the results in `ranks`.\n   The ranks are a permutation of 0..x.size()-1; values that compare equal may receive their tied ranks in any order among themselves.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every process has a complete copy of x. Store the result in ranks on process 0.\n   Examples:\n\n   input: [3.1, 2.8, 9.1, 0.4, 3.14]\n   output: [2, 1, 4, 0, 3]\n \n   input: [100, 7.6, 16.1, 18, 7.6]\n   output: [4, 0, 2, 3, 1]\n*/\nvoid ranks(std::vector<float> const& x, std::vector<size_t> &ranks) {"
   },
   {
     "problem_type": "sort",
@@ -949,147 +949,147 @@
     "language": "cpp",
     "name": "45_sparse_la_sparse_solve",
     "parallelism_model": "serial",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Solve the sparse linear system Ax=b for x.\n   A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.\n   Example:\n   \n   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n   output: x=[3,-2]\n*/\nvoid solveLinearSystem(std::vector<COOElement> const& A, std::vector<double> const& b, std::vector<double> &x, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Solve the sparse linear system Ax=b for x.\n   A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.\n   A is square and nonsingular, and its COO list is duplicate-free: no two elements share the same (row, column) pair, and every index satisfies 0 <= row < N and 0 <= column < N. Return the unique x with Ax = b.\n   Example:\n   \n   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n   output: x=[3,-2]\n*/\nvoid solveLinearSystem(std::vector<COOElement> const& A, std::vector<double> const& b, std::vector<double> &x, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "45_sparse_la_sparse_solve",
     "parallelism_model": "omp",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Solve the sparse linear system Ax=b for x.\n   A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n   output: x=[3,-2]\n*/\nvoid solveLinearSystem(std::vector<COOElement> const& A, std::vector<double> const& b, std::vector<double> &x, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Solve the sparse linear system Ax=b for x.\n   A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.\n   A is square and nonsingular, and its COO list is duplicate-free: no two elements share the same (row, column) pair, and every index satisfies 0 <= row < N and 0 <= column < N. Return the unique x with Ax = b.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n   output: x=[3,-2]\n*/\nvoid solveLinearSystem(std::vector<COOElement> const& A, std::vector<double> const& b, std::vector<double> &x, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "45_sparse_la_sparse_solve",
     "parallelism_model": "mpi",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Solve the sparse linear system Ax=b for x.\n   A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A and b. Store the result in x on rank 0.\n   Example:\n   \n   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n   output: x=[3,-2]\n*/\nvoid solveLinearSystem(std::vector<COOElement> const& A, std::vector<double> const& b, std::vector<double> &x, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Solve the sparse linear system Ax=b for x.\n   A is a sparse NxN matrix in COO format. x and b are dense vectors with N elements.\n   A is square and nonsingular, and its COO list is duplicate-free: no two elements share the same (row, column) pair, and every index satisfies 0 <= row < N and 0 <= column < N. Return the unique x with Ax = b.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A and b. Store the result in x on rank 0.\n   Example:\n   \n   input: A=[{0,0,1}, {0,1,1}, {1,1,-2}] b=[1,4]\n   output: x=[3,-2]\n*/\nvoid solveLinearSystem(std::vector<COOElement> const& A, std::vector<double> const& b, std::vector<double> &x, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "46_sparse_la_spmm",
     "parallelism_model": "serial",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.\n   X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.\n   Example:\n\n   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]\n*/\nvoid spmm(std::vector<COOElement> const& A, std::vector<COOElement> const& X, std::vector<double> &Y, size_t M, size_t K, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.\n   X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.\n   The COO lists are duplicate-free: no two elements of A (and no two elements of X) share the same (row, column) pair, and every index lies within the stated matrix dimensions.\n   Example:\n\n   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]\n*/\nvoid spmm(std::vector<COOElement> const& A, std::vector<COOElement> const& X, std::vector<double> &Y, size_t M, size_t K, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "46_sparse_la_spmm",
     "parallelism_model": "omp",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.\n   X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]\n*/\nvoid spmm(std::vector<COOElement> const& A, std::vector<COOElement> const& X, std::vector<double> &Y, size_t M, size_t K, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.\n   X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.\n   The COO lists are duplicate-free: no two elements of A (and no two elements of X) share the same (row, column) pair, and every index lies within the stated matrix dimensions.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]\n*/\nvoid spmm(std::vector<COOElement> const& A, std::vector<COOElement> const& X, std::vector<double> &Y, size_t M, size_t K, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "46_sparse_la_spmm",
     "parallelism_model": "mpi",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.\n   X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A and X. Store the result in Y on rank 0.\n   Example:\n\n   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]\n*/\nvoid spmm(std::vector<COOElement> const& A, std::vector<COOElement> const& X, std::vector<double> &Y, size_t M, size_t K, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute the matrix multiplication Y=AX. A is a sparse MxK matrix in COO format.\n   X is a sparse KxN matrix in COO format. Y is a dense MxN matrix in row-major.\n   The COO lists are duplicate-free: no two elements of A (and no two elements of X) share the same (row, column) pair, and every index lies within the stated matrix dimensions.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A and X. Store the result in Y on rank 0.\n   Example:\n\n   input: A=[{0,0,-2}, {0,1,1}, {1,1,-1}] X=[{0,1,2}, {1,0,-1}]\n   output: Y=[{-1,-4}, {1,0}]\n*/\nvoid spmm(std::vector<COOElement> const& A, std::vector<COOElement> const& X, std::vector<double> &Y, size_t M, size_t K, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "47_sparse_la_spmv",
     "parallelism_model": "serial",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute y = alpha*A*x + beta*y where alpha and beta are scalars, x and y are vectors,\n   and A is a sparse matrix stored in COO format.\n   A has dimensions MxN, x has N values, and y has M values.\n   Example:\n\n   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]\n*/\nvoid spmv(double alpha, std::vector<COOElement> const& A, std::vector<double> const& x, double beta, std::vector<double> &y, size_t M, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute y = alpha*A*x + beta*y where alpha and beta are scalars, x and y are vectors,\n   and A is a sparse matrix stored in COO format.\n   A has dimensions MxN, x has N values, and y has M values.\n   Every element of A satisfies row < M and column < N, and no two elements share the same (row, column) pair.\n   Example:\n\n   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]\n*/\nvoid spmv(double alpha, std::vector<COOElement> const& A, std::vector<double> const& x, double beta, std::vector<double> &y, size_t M, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "47_sparse_la_spmv",
     "parallelism_model": "omp",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute y = alpha*A*x + beta*y where alpha and beta are scalars, x and y are vectors,\n   and A is a sparse matrix stored in COO format.\n   A has dimensions MxN, x has N values, and y has M values.\n   Use OpenMP to parallelize.\n   Example:\n\n   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]\n*/\nvoid spmv(double alpha, std::vector<COOElement> const& A, std::vector<double> const& x, double beta, std::vector<double> &y, size_t M, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute y = alpha*A*x + beta*y where alpha and beta are scalars, x and y are vectors,\n   and A is a sparse matrix stored in COO format.\n   A has dimensions MxN, x has N values, and y has M values.\n   Every element of A satisfies row < M and column < N, and no two elements share the same (row, column) pair.\n   Use OpenMP to parallelize.\n   Example:\n\n   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]\n*/\nvoid spmv(double alpha, std::vector<COOElement> const& A, std::vector<double> const& x, double beta, std::vector<double> &y, size_t M, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "47_sparse_la_spmv",
     "parallelism_model": "mpi",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute y = alpha*A*x + beta*y where alpha and beta are scalars, x and y are vectors,\n   and A is a sparse matrix stored in COO format.\n   A has dimensions MxN, x has N values, and y has M values.\n   Use MPI to parallelize. Assume MPI has already been initialized.\n   Every rank has a complete copy of A, x, and y. Store the result in y on rank 0.\n   Example:\n\n   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]\n*/\nvoid spmv(double alpha, std::vector<COOElement> const& A, std::vector<double> const& x, double beta, std::vector<double> &y, size_t M, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Compute y = alpha*A*x + beta*y where alpha and beta are scalars, x and y are vectors,\n   and A is a sparse matrix stored in COO format.\n   A has dimensions MxN, x has N values, and y has M values.\n   Every element of A satisfies row < M and column < N, and no two elements share the same (row, column) pair.\n   Use MPI to parallelize. Assume MPI has already been initialized.\n   Every rank has a complete copy of A, x, and y. Store the result in y on rank 0.\n   Example:\n\n   input: alpha=0.5 beta=1.0 A=[{0,1,3}, {1,0,-1}] x=[-4, 2] y=[-1,1]\n   output: y=[2, 3]\n*/\nvoid spmv(double alpha, std::vector<COOElement> const& A, std::vector<double> const& x, double beta, std::vector<double> &y, size_t M, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "48_sparse_la_sparse_axpy",
     "parallelism_model": "serial",
-    "prompt": "struct Element {\n\tsize_t index;\n  double value;\n};\n\n/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/\nvoid sparseAxpy(double alpha, std::vector<Element> const& x, std::vector<Element> const& y, std::vector<double> &z) {"
+    "prompt": "struct Element {\n\tsize_t index;\n  double value;\n};\n\n/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   x and y are sorted by ascending index; within each of them no index appears more than once, and every index is a valid position in z.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/\nvoid sparseAxpy(double alpha, std::vector<Element> const& x, std::vector<Element> const& y, std::vector<double> &z) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "48_sparse_la_sparse_axpy",
     "parallelism_model": "omp",
-    "prompt": "struct Element {\n\tsize_t index;\n  double value;\n};\n\n/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/\nvoid sparseAxpy(double alpha, std::vector<Element> const& x, std::vector<Element> const& y, std::vector<double> &z) {"
+    "prompt": "struct Element {\n\tsize_t index;\n  double value;\n};\n\n/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   x and y are sorted by ascending index; within each of them no index appears more than once, and every index is a valid position in z.\n   Use OpenMP to compute in parallel.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/\nvoid sparseAxpy(double alpha, std::vector<Element> const& x, std::vector<Element> const& y, std::vector<double> &z) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "48_sparse_la_sparse_axpy",
     "parallelism_model": "mpi",
-    "prompt": "struct Element {\n\tsize_t index;\n  double value;\n};\n\n/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x and y. Store the result in z on rank 0.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/\nvoid sparseAxpy(double alpha, std::vector<Element> const& x, std::vector<Element> const& y, std::vector<double> &z) {"
+    "prompt": "struct Element {\n\tsize_t index;\n  double value;\n};\n\n/* Compute z = alpha*x+y where x and y are sparse vectors. Store the result in the dense vector z.\n   x and y are sorted by ascending index; within each of them no index appears more than once, and every index is a valid position in z.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x and y. Store the result in z on rank 0.\n   Example:\n   \n   input: x=[{5, 12}, {8, 3}, {12, -1}], y=[{3, 1}, {5, -2}, {7, 1}, {8, -3}], alpha=1\n   output: z=[0, 0, 0, 1, 0, 10, 0, 1, 0, 0, 0, 0, -1]\n*/\nvoid sparseAxpy(double alpha, std::vector<Element> const& x, std::vector<Element> const& y, std::vector<double> &z) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "49_sparse_la_sparse_lu_decomp",
     "parallelism_model": "serial",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.\n   A is a sparse NxN matrix stored in COO format.\n   Example:\n\n   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]\n*/\nvoid luFactorize(std::vector<COOElement> const& A, std::vector<double> &L, std::vector<double> &U, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.\n   A is a sparse NxN matrix stored in COO format.\n   A's COO list is duplicate-free (no two elements share the same (row, column) pair, all indices in [0, N)), and A is guaranteed to admit a factorization A = L*U with L unit lower triangular and U upper triangular: every leading principal minor of A of order 1..N-1 is non-zero. Return exactly this factorization - no row or column permutation. L and U are dense NxN row-major buffers (entry (i,j) at index i*N+j); L has ones on its diagonal, and every entry outside the respective triangle is 0.\n   Example:\n\n   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]\n*/\nvoid luFactorize(std::vector<COOElement> const& A, std::vector<double> &L, std::vector<double> &U, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "49_sparse_la_sparse_lu_decomp",
     "parallelism_model": "omp",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.\n   A is a sparse NxN matrix stored in COO format.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]\n*/\nvoid luFactorize(std::vector<COOElement> const& A, std::vector<double> &L, std::vector<double> &U, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.\n   A is a sparse NxN matrix stored in COO format.\n   A's COO list is duplicate-free (no two elements share the same (row, column) pair, all indices in [0, N)), and A is guaranteed to admit a factorization A = L*U with L unit lower triangular and U upper triangular: every leading principal minor of A of order 1..N-1 is non-zero. Return exactly this factorization - no row or column permutation. L and U are dense NxN row-major buffers (entry (i,j) at index i*N+j); L has ones on its diagonal, and every entry outside the respective triangle is 0.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]\n*/\nvoid luFactorize(std::vector<COOElement> const& A, std::vector<double> &L, std::vector<double> &U, size_t N) {"
   },
   {
     "problem_type": "sparse_la",
     "language": "cpp",
     "name": "49_sparse_la_sparse_lu_decomp",
     "parallelism_model": "mpi",
-    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.\n   A is a sparse NxN matrix stored in COO format.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A. Store the result in L and U on rank 0.\n   Example:\n\n   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]\n*/\nvoid luFactorize(std::vector<COOElement> const& A, std::vector<double> &L, std::vector<double> &U, size_t N) {"
+    "prompt": "struct COOElement {\n   size_t row, column;\n   double value;\n};\n\n/* Factorize the sparse matrix A into A=LU where L is a lower triangular matrix and U is an upper triangular matrix.\n   A is a sparse NxN matrix stored in COO format.\n   A's COO list is duplicate-free (no two elements share the same (row, column) pair, all indices in [0, N)), and A is guaranteed to admit a factorization A = L*U with L unit lower triangular and U upper triangular: every leading principal minor of A of order 1..N-1 is non-zero. Return exactly this factorization - no row or column permutation. L and U are dense NxN row-major buffers (entry (i,j) at index i*N+j); L has ones on its diagonal, and every entry outside the respective triangle is 0.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of A. Store the result in L and U on rank 0.\n   Example:\n\n   input: A=[{0,0,4}, {0,1,3}, {1,0,6}, {1,1,3}]\n   output: L=[{0,0,1},{1,0,1.5}, {1,1,1}] U=[{0,0,4}, {0,1,3}, {1,1,-1.5}]\n*/\nvoid luFactorize(std::vector<COOElement> const& A, std::vector<double> &L, std::vector<double> &U, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "50_stencil_xor_kernel",
     "parallelism_model": "serial",
-    "prompt": "/* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.\n   Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.\n   input and output are NxN grids of ints in row-major.\n   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]\n*/\nvoid cellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
+    "prompt": "/* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.\n   Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.\n   A cell's neighbors are the up to eight surrounding cells - horizontally, vertically, and diagonally adjacent (the Moore neighborhood); cells outside the grid are not counted.\n   input and output are NxN grids of ints in row-major.\n   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]\n*/\nvoid cellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "50_stencil_xor_kernel",
     "parallelism_model": "omp",
-    "prompt": "/* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.\n   Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.\n   input and output are NxN grids of ints in row-major.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]\n*/\nvoid cellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
+    "prompt": "/* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.\n   Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.\n   A cell's neighbors are the up to eight surrounding cells - horizontally, vertically, and diagonally adjacent (the Moore neighborhood); cells outside the grid are not counted.\n   input and output are NxN grids of ints in row-major.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]\n*/\nvoid cellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "50_stencil_xor_kernel",
     "parallelism_model": "mpi",
-    "prompt": "/* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.\n   Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.\n   input and output are NxN grids of ints in row-major.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of input. The result is stored in output on rank 0.\n   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]\n*/\nvoid cellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
+    "prompt": "/* Set every cell's value to 1 if it has exactly one neighbor that's a 1. Otherwise set it to 0.\n   Note that we only consider neighbors and not input_{i,j} when computing output_{i,j}.\n   A cell's neighbors are the up to eight surrounding cells - horizontally, vertically, and diagonally adjacent (the Moore neighborhood); cells outside the grid are not counted.\n   input and output are NxN grids of ints in row-major.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of input. The result is stored in output on rank 0.\n   Example:\n\n   input: [[0, 1, 1, 0],\n           [1, 0, 0, 0],\n           [0, 0, 0, 0],\n           [0, 1, 0, 0]\n   output: [[0, 0, 1, 1],\n            [1, 0, 0, 1],\n            [0, 0, 1, 0],\n            [1, 0, 1, 0]]\n*/\nvoid cellsXOR(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "51_stencil_edge_kernel",
     "parallelism_model": "serial",
-    "prompt": "const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n/* Convolve the edge kernel with a grayscale image. Each pixel will be replaced with\n   the dot product of itself and its neighbors with the edge kernel.\n   Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.\n   imageIn and imageOut are NxN grayscale images stored in row-major.\n   Store the output of the computation in imageOut.\n   Example:\n\n   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]\n*/\nvoid convolveKernel(std::vector<int> const& imageIn, std::vector<int> &imageOut, size_t N) {"
+    "prompt": "const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n/* Convolve the edge kernel with a grayscale image. Each pixel will be replaced with\n   the dot product of itself and its neighbors with the edge kernel.\n   Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.\n   imageIn and imageOut are NxN grayscale images stored in row-major.\n   imageIn and imageOut each hold exactly N*N values, and imageIn holds grayscale pixel values in the range [0, 255].\n   Store the output of the computation in imageOut.\n   Example:\n\n   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]\n*/\nvoid convolveKernel(std::vector<int> const& imageIn, std::vector<int> &imageOut, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "51_stencil_edge_kernel",
     "parallelism_model": "omp",
-    "prompt": "const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n/* Convolve the edge kernel with a grayscale image. Each pixel will be replaced with\n   the dot product of itself and its neighbors with the edge kernel.\n   Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.\n   imageIn and imageOut are NxN grayscale images stored in row-major.\n   Store the output of the computation in imageOut.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]\n*/\nvoid convolveKernel(std::vector<int> const& imageIn, std::vector<int> &imageOut, size_t N) {"
+    "prompt": "const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n/* Convolve the edge kernel with a grayscale image. Each pixel will be replaced with\n   the dot product of itself and its neighbors with the edge kernel.\n   Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.\n   imageIn and imageOut are NxN grayscale images stored in row-major.\n   imageIn and imageOut each hold exactly N*N values, and imageIn holds grayscale pixel values in the range [0, 255].\n   Store the output of the computation in imageOut.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]\n*/\nvoid convolveKernel(std::vector<int> const& imageIn, std::vector<int> &imageOut, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "51_stencil_edge_kernel",
     "parallelism_model": "mpi",
-    "prompt": "const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n/* Convolve the edge kernel with a grayscale image. Each pixel will be replaced with\n   the dot product of itself and its neighbors with the edge kernel.\n   Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.\n   imageIn and imageOut are NxN grayscale images stored in row-major.\n   Store the output of the computation in imageOut.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of imageIn. The result is stored in imageOut on rank 0.\n   Example:\n\n   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]\n*/\nvoid convolveKernel(std::vector<int> const& imageIn, std::vector<int> &imageOut, size_t N) {"
+    "prompt": "const int edgeKernel[3][3] = {{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}};\n\n/* Convolve the edge kernel with a grayscale image. Each pixel will be replaced with\n   the dot product of itself and its neighbors with the edge kernel.\n   Use a value of 0 for pixels outside the image's boundaries and clip outputs between 0 and 255.\n   imageIn and imageOut are NxN grayscale images stored in row-major.\n   imageIn and imageOut each hold exactly N*N values, and imageIn holds grayscale pixel values in the range [0, 255].\n   Store the output of the computation in imageOut.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of imageIn. The result is stored in imageOut on rank 0.\n   Example:\n\n   input: [[112, 118, 141, 152],\n           [93, 101, 119, 203],\n           [45, 17, 16, 232],\n           [82, 31, 49, 101]]\n   output: [[255, 255, 255, 255],\n            [255, 147, 0, 255],\n            [36, 0, 0, 255],\n            [255, 39, 0, 255]]\n*/\nvoid convolveKernel(std::vector<int> const& imageIn, std::vector<int> &imageOut, size_t N) {"
   },
   {
     "problem_type": "stencil",
@@ -1138,21 +1138,21 @@
     "language": "cpp",
     "name": "54_stencil_game_of_life",
     "parallelism_model": "serial",
-    "prompt": "/* Simulate one generation of Game of Life on `input`. Store the results in `output`.\n   A cell is 1 if it is alive and 0 if it is dead.\n   If a live cell has fewer than 2 live neighbors then it dies.\n   If a live cell has 2 or 3 live neighbors then it lives on.\n   If a live cell has more than 3 live neighbords then it dies.\n   If a cell is dead and has exactly 3 live neighbors then it becomes alive.\n   `input` and `output` are NxN grids stored in row-major.\n   Example:\n\n   input:  [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n*/\nvoid gameOfLife(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
+    "prompt": "/* Simulate one generation of Game of Life on `input`. Store the results in `output`.\n   A cell is 1 if it is alive and 0 if it is dead.\n   If a live cell has fewer than 2 live neighbors then it dies.\n   If a live cell has 2 or 3 live neighbors then it lives on.\n   If a live cell has more than 3 live neighbords then it dies.\n   If a cell is dead and has exactly 3 live neighbors then it becomes alive.\n   Cells outside the grid are dead: they contribute 0 to every neighbor count, and the grid does not wrap around.\n   `input` and `output` are NxN grids stored in row-major.\n   Example:\n\n   input:  [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n*/\nvoid gameOfLife(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "54_stencil_game_of_life",
     "parallelism_model": "omp",
-    "prompt": "/* Simulate one generation of Game of Life on `input`. Store the results in `output`.\n   A cell is 1 if it is alive and 0 if it is dead.\n   If a live cell has fewer than 2 live neighbors then it dies.\n   If a live cell has 2 or 3 live neighbors then it lives on.\n   If a live cell has more than 3 live neighbords then it dies.\n   If a cell is dead and has exactly 3 live neighbors then it becomes alive.\n   `input` and `output` are NxN grids stored in row-major.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input:  [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n*/\nvoid gameOfLife(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
+    "prompt": "/* Simulate one generation of Game of Life on `input`. Store the results in `output`.\n   A cell is 1 if it is alive and 0 if it is dead.\n   If a live cell has fewer than 2 live neighbors then it dies.\n   If a live cell has 2 or 3 live neighbors then it lives on.\n   If a live cell has more than 3 live neighbords then it dies.\n   If a cell is dead and has exactly 3 live neighbors then it becomes alive.\n   Cells outside the grid are dead: they contribute 0 to every neighbor count, and the grid does not wrap around.\n   `input` and `output` are NxN grids stored in row-major.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input:  [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n*/\nvoid gameOfLife(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
   },
   {
     "problem_type": "stencil",
     "language": "cpp",
     "name": "54_stencil_game_of_life",
     "parallelism_model": "mpi",
-    "prompt": "/* Simulate one generation of Game of Life on `input`. Store the results in `output`.\n   A cell is 1 if it is alive and 0 if it is dead.\n   If a live cell has fewer than 2 live neighbors then it dies.\n   If a live cell has 2 or 3 live neighbors then it lives on.\n   If a live cell has more than 3 live neighbords then it dies.\n   If a cell is dead and has exactly 3 live neighbors then it becomes alive.\n   `input` and `output` are NxN grids stored in row-major.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Every rank has a complete copy of input. The result is stored in output on rank 0.\n   Example:\n\n   input:  [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n*/\nvoid gameOfLife(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
+    "prompt": "/* Simulate one generation of Game of Life on `input`. Store the results in `output`.\n   A cell is 1 if it is alive and 0 if it is dead.\n   If a live cell has fewer than 2 live neighbors then it dies.\n   If a live cell has 2 or 3 live neighbors then it lives on.\n   If a live cell has more than 3 live neighbords then it dies.\n   If a cell is dead and has exactly 3 live neighbors then it becomes alive.\n   Cells outside the grid are dead: they contribute 0 to every neighbor count, and the grid does not wrap around.\n   `input` and `output` are NxN grids stored in row-major.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Every rank has a complete copy of input. The result is stored in output on rank 0.\n   Example:\n\n   input:  [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 0, 0, 0],\n            [0, 1, 1, 0, 0],\n            [0, 0, 1, 1, 0],\n            [0, 1, 0, 0, 0]]\n   output: [[0, 0, 0, 0, 0],\n\t\t\t\t\t  [0, 1, 1, 0, 0],\n            [0, 1, 0, 1, 0],\n            [0, 0, 0, 1, 0],\n            [0, 0, 1, 0, 0]]\n*/\nvoid gameOfLife(std::vector<int> const& input, std::vector<int> &output, size_t N) {"
   },
   {
     "problem_type": "transform",

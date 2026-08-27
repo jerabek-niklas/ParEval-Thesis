@@ -4,6 +4,7 @@
    If a live cell has 2 or 3 live neighbors then it lives on.
    If a live cell has more than 3 live neighbords then it dies.
    If a cell is dead and has exactly 3 live neighbors then it becomes alive.
+   Cells outside the grid are dead: they contribute 0 to every neighbor count, and the grid does not wrap around.
    `input` and `output` are NxN grids stored in row-major.
    Example:
 

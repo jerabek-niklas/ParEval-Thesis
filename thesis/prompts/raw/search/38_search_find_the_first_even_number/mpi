@@ -1,4 +1,5 @@
 /* Return the index of the first even number in the vector x.
+   If x contains no even number, return x.size().
    Use MPI to parallelize the search. Assume MPI has already been initialized.
    Every rank has a complete copy of x. Return the result on rank 0.
    Examples:
