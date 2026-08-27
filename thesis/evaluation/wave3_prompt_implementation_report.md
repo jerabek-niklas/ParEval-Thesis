@@ -349,3 +349,207 @@ jeder Vergleich unmöglich wäre.
 ---
 
 *Ende des Wave-3-Reports. Dieser Report ist bewusst unkommittiert.*
+
+---
+
+# POST-WAVE-3 PROVENANCE UPDATE
+
+> **[NACHTRAG — hinzugefügt von der Wave-3-Cleanup-Wave (2026-08-27), NICHT
+> Teil des historischen Wave-3-Reports oberhalb dieser Linie. Der historische
+> Report beschrieb korrekt den unmittelbar post-Wave unkommittierten Zustand
+> ("75 geänderte/neue Pfade, unkommittiert", "kein Commit, kein git add" —
+> damals zutreffend); dieser Nachtrag dokumentiert ausschließlich dessen
+> spätere Persistierung und verfälscht keine historische Aussage.]**
+
+| Feld | Wert |
+|---|---|
+| Ursprünglicher Wave-3-Start-HEAD | `69c1e4783c6fb4d5e421e73bfa28f35127acd551` ("fixes 5") |
+| Persistierender Commit | `730c0afe5fcfee2272fcdb8c12ea3ad58e3f923f` ("fixes 6") |
+| Commit-Parent | `69c1e4783c6fb4d5e421e73bfa28f35127acd551` (== Wave-3-Start-HEAD, keine Zwischencommits) |
+| Commit-Datum | 2026-08-27T21:16:01+02:00 |
+| Working-Tree-/Commit-Beziehung | Der zum Report-Zeitpunkt unkommittierte Arbeitsstand wurde nachträglich als ein einzelner Commit persistiert; Working Tree bei Cleanup-Beginn clean auf `730c0afe`. |
+
+**WAVE3_REPORTED_TREE_MATCHES_COMMITTED_TREE = true.** Verifikation:
+`git diff --name-status 69c1e478..730c0afe` liefert exakt die 75 im Report
+(§9.1) beschriebenen Pfade (69 × `thesis/prompts/raw/**` M; `prompt_oracle_fixtures.json` M;
+`wave1_final_gate_report.md` M; `generation-prompts-thesis.json` M;
+`prompt_oracle_interlock.json`, `wave3_regeneration_set.json`, dieser Report A) —
+keine zusätzlichen, keine fehlenden Pfade. Inhaltlich: der SHA-256 des
+committeten `generation-prompts-thesis.json` ist identisch mit dem im
+historischen Report und im Regeneration-Set festgehaltenen Wert
+`5e73e79ef89f81e42ccbce5e5f0a37d4c7340aff34f2b225091c6933e66c3341`; das
+Regeneration-Set weist unverändert 69 Einträge / 23 Benchmarks aus. Der
+historische Report beschreibt also den unmittelbar post-Wave unkommittierten
+Zustand, und `730c0afe` ist genau dessen spätere Persistierung.
+
+# POST-WAVE-3 CLEANUP / PROVENANCE & CROSS-PILOT GATE
+
+> **[NACHTRAG der Wave-3-Cleanup-Wave (2026-08-27). Der folgende Abschnitt
+> ERSETZT die Cross-Pilot-Einschätzung in §9.13 als aktuellen methodischen
+> Stand (maschinenlesbar: `thesis/evaluation/cross_pilot_comparability.json`).
+> §9.13 bleibt als historischer Text unverändert stehen; seine 198-Zellen-
+> Aussage ist NICHT mehr der aktuelle Gate-Stand.]**
+
+## 6.1 Post-Commit-Provenance
+
+Siehe POST-WAVE-3 PROVENANCE UPDATE oben: finaler Wave-3-Commit `730c0afe`,
+Parent `69c1e478` (= Wave-3-Start-HEAD),
+**WAVE3_REPORTED_TREE_MATCHES_COMMITTED_TREE = true**.
+
+## 6.2 Interlock-Materialisierung
+
+`thesis/evaluation/prompt_oracle_interlock.json` wurde kompatibel erweitert
+(kein Consumer parst die Datei — verifiziert: Referenzen existieren nur in
+Report-Prosa; keine Breaking-Änderung):
+
+- **INTERLOCK_BENCHMARK_COUNT = 7**
+- **INTERLOCK_PROMPT_PAIR_COUNT = 21** (aus dem finalen Artefakt validiert,
+  duplikatfrei)
+- Jeder Eintrag trägt `parallelism_models: ["serial", "omp", "mpi"]`
+  (kanonische Reihenfolge) und eine deterministische `prompt_pairs`-Projektion
+  mit `prompt_id = f"{problem_type}/{name}/{parallelism_model}"` — die
+  eingefrorene Wave-3-Atomaritätsregel materialisiert, nicht neu empirisch
+  untersucht.
+- **enforcement = `disclosure_required`** unverändert: kein automatischer
+  Ausschluss, keine Suite-Verkleinerung, kein Verdict-Override; die
+  Execution-Model-Metadaten dienen nur eindeutiger Adressierbarkeit.
+
+## 6.3 F0-Machbarkeit (historische Evidenzbasis)
+
+Aus den tatsächlichen frozen pilot_001-Iteration-0-Records (Basisrun,
+`run_id == "pilot_001"`; **396 Zellen** = 12 Benchmarks × 3 Execution Models ×
+11 Modelle × 1 Sample — NICHT die 1903 Overview-/Repair-/Analyse-Rows):
+
+- **HISTORICAL_CORRECTNESS_SCHEMA_VERSION = `correctness.v1`** (explizites
+  Feld in allen 396 Records).
+- Strukturierte Felder in jedem Record: `schema_version, run_id, model_id,
+  sample_id, execution_model, created_at_utc, compile{ok, exit_code,
+  timed_out, duration_seconds, stderr}, runs[]{params, argv, exit_code,
+  timed_out, duration_seconds, validation, verdict, stdout, stderr
+  [, mismatches, mismatch_total]}, run_verdicts, verdict`.
+- **PILOT_001_STDOUT_AVAILABLE = true** — pro Run gespeichert; 1129 von 1144
+  Run-Einträgen non-empty (die 15 leeren sind exakt die Crash-/Timeout-Runs).
+- **PILOT_001_STDOUT_TRUNCATED_CELLS = 0** — keine Trunkierungsmarker, max.
+  Länge 389 Zeichen (weit unter jeder Kappungsgrenze); die Treiber-eigene
+  Anzeige von max. 3 MISMATCH-Zeilen ist Ausgabeformat, keine
+  Record-Trunkierung. Nicht aus der heutigen OUTPUT_CAP-Konstante geschlossen.
+- **Explizite Feststellung: Historisches stdout wurde NICHT mit dem heutigen
+  authentifizierten Nonce-Parser als Verdictvergleich re-parst.** pilot_001
+  datiert vor der Nonce-Einführung; die nackte Legacy-Zeile
+  `Validation: PASS` durch den heutigen Parser zu schicken erzeugte
+  `HarnessTransportError` — eine Protokollinkompatibilität der Messapparatur,
+  kein inhaltlicher Verdictbefund. Die F-Analyse ist klassen- und
+  code-/recordstruktur-basiert.
+
+## 6.4 F-Änderungsklassen (F = WAVE1_TRANSPORT_CHANGE, getrennt von A–E)
+
+| ID | Beschreibung | Source | Klassifikation | Erreichbarkeitsfilter / historische Evidenz |
+|---|---|---|---|---|
+| K1 | Authentifizierter Nonce-Transport (parevalEmitValidation, per-Launch-Token, fail-closed Parser) | Wave-1 §2–§5; `harness-markers.hpp`, `run_correctness.py` | **TRANSPORT_ONLY** | Verdictberechnung unverändert; Wave-1-Tests belegen korrekte Nonce-Emission der trusted Driver (§3.3, §4, §12.1: 1125 Checks, real serial/omp/mpi); §8.2: 0 wirksame selbst-deklarierte Marker im vollständigen pilot_001-stdout-Korpus → kein historisches Verdict hing an einer unauthentifizierten Zeile. Kein Reparse nötig oder durchgeführt. |
+| K2 | Non-finite REFERENCE → `BASELINE_INCOMPATIBLE` (aus Denominator entfernt; historisch NaN-blinder stiller Pass) | Wave-1 §3.4, §8.4, §9; `utilities.hpp:363–378, 425–428, 520–523` | **VERDICT_RELEVANT** | Benchmarkfilter: unerreichbar für diskrete Payloads (15/25/35); dense_la/00 in-principle erreichbar (ungepivotete Division `baseline.hpp:16`); scan/30 + transform/55 oracle-seitig unter Correctness-Inputs unerreichbar. Historische NaN-Referenzen strukturell unsichtbar (§8.4). |
+| K3 | Size-Mismatch → expliziter FAIL (historisch `assert` unter `-DNDEBUG` entfallen → stiller Pass möglich) | Wave-1 §8.3, §13; `utilities.hpp:196–204, 401–408` | **VERDICT_RELEVANT** | Nur Container-Payloads (00/30/55); skalare Benchmarks (15/25/35) haben keinen Container im Graded Path. Ein stiller historischer Wrong-Length-Pass hinterlässt keine Record-Spur. |
+| K4 | Non-finite CANDIDATE → erzwungener FAIL (historisch NaN-blinde Toleranz → stiller Pass möglich) | Wave-1 §8.3/§8.4, §12.1; `utilities.hpp:185–214, 430–438, 525–530` | **VERDICT_RELEVANT** | Konstruktiv unerreichbar für 15/25/35 (int/bool/size_t-Skalare, Non-Finite-Branches compile-time tot). Für 00/30/55 erreichbar; §8.4 fand 4 Correctness-Records mit non-finite `got=` (alle sichtbar = bereits FAIL); verdeckte NaN-Pässe sind aus frozen Records nicht bestimmbar. |
+| K5 | Authentisches BI outranked Prozesszustand (timeout/crash/exit) und Modellverdict | Wave-1 §3.4, §12.1; `run_correctness.py:453–490, 639–653` | **VERDICT_RELEVANT** | Setzt einen erreichbaren BI-Zustand voraus; pilot_001 datiert vor dem BI-Vokabular (0 Marker in den Records). Für 15/25/35 unerreichbar (kein BI-Pfad kann feuern; der TEST_SIZE==0-Guard von 35 kann bei Correctness-Größe nicht greifen). |
+| K6 | Repair-Terminalstatus `stopped_baseline_incompatible` | Wave-1 §6 (F3b); `orchestrator.py`, `run_repair.py`, `build_overview.py` | **VERDICT_RELEVANT** (Klassifikationsebene) | Außerhalb der 396-Zellen-Population (Repair-State); nachweislich 0 betroffene pilot_001-Records (0 BI-stop_reasons in 1903 Repair-Rows). |
+| K7 | Legacy-Parser-Robustheitsfix (`driver_wrapper.py`: erstes Token nach Doppelpunkt) | Wave-1 §2.2, §5, §12.3 | **TRANSPORT_ONLY** | Identisches Parse-Ergebnis für alle intendierte Legacy-Ausgabe; reale Upstream-Regression rc=0 (§12.3). |
+
+**NON_FINITE_REACHABLE je Candidate-Subset-Benchmark** (read-only
+Code-Beurteilung, keine Oracle-/Comparator-Änderung):
+dense_la/00 **true** (Oracle: ungepivotete Pivot-Division; Kandidat:
+`vector<double>`-Payload) · graph/15 **false** (skalarer int) · reduce/25
+**false** (skalarer bool) · scan/30 **true** (Kandidatenpfad; Oracle unter
+Correctness-Inputs unerreichbar) · search/35 **false** (skalarer size_t) ·
+transform/55 **true** (Kandidatenpfad; Oracle ohne Arithmetik). Integer-/
+Bool-Pfade wurden entsprechend NICHT zellenweise über historische Records
+untersucht.
+
+## 6.5 Cross-Pilot-Candidate-Subset (Neubewertung der 198-Zellen-Aussage)
+
+Die 6 Benchmarks der bisherigen 198-Zellen-Aussage, deterministisch aus dem
+Wave-3-Report (§9.13 METHOD_UNCHANGED_SET) und den pilot_001-Records
+rekonstruiert: dense_la/00_dense_la_lu_decomp, graph/15_graph_edge_count,
+reduce/25_reduce_xor, scan/30_scan_prefix_sum,
+search/35_search_search_for_last_struct_by_key, transform/55_transform_relu.
+
+Ergebnis der klassenbasierten Prüfung:
+
+- **CANDIDATE_SUBSET_BENCHMARKS = [graph/15_graph_edge_count,
+  reduce/25_reduce_xor, search/35_search_search_for_last_struct_by_key]** —
+  ausschließlich diskrete Skalar-Payloads; K2/K3/K4/K5 konstruktiv
+  unerreichbar, K1/K7 transport-only → alle Zellen methodenstabil per
+  Konstruktion, ohne Einzelrecord-/stdout-Analyse.
+- **CANDIDATE_SUBSET_MODELS** = die 11 pilot_001-Modelle (aus Records):
+  claude_fable_5, claude_opus_5, deepseek_v4_flash, deepseek_v4_pro,
+  gemini_31_pro, gemini_36_flash, openai_gpt55, openai_gpt56_sol,
+  qwen36_35b_a3b, qwen37_max, qwen3_coder_api.
+- **CANDIDATE_SUBSET_EXECUTION_MODELS = ["serial", "omp", "mpi"]**.
+- **CROSS_PILOT_SUBSET_CELLS_TOTAL = 99** (3 × 11 × 3 × 1).
+- Über die ursprünglich vorgeschlagenen 198 Zellen:
+  **TRANSPORT_VERDICT_PRESERVING = 99**, **TRANSPORT_VERDICT_CHANGED = 0**
+  (kein konkreter Wechsel belegt), **TRANSPORT_EFFECT_UNRESOLVED = 99**
+  (die 33er-Blöcke von 00/30/55).
+- **Ausgeschlossen: dense_la/00, scan/30, transform/55** (99 Zellen).
+  Grund: Floating-Point-Payloads; der pilot_001-Comparator war NaN-blind
+  (`std::abs(a−b) > eps` ist für NaN nie true), ein verdeckter NaN-Pass
+  hinterlässt keinerlei Record-Spur; ob eine konkrete historische PASS-Zelle
+  betroffen ist, ist ohne Neumessung nicht bestimmbar. Fehlende Evidenz wurde
+  ausdrücklich NICHT als verdict-preserving interpretiert. (Zulässiger
+  Kurzschluss des Kontrakts, benchmarkweise angewandt: keine vollständige
+  Per-Zellen-Tabelle für die ausgeschlossenen 99 Zellen erforderlich, da die
+  Nichtbestimmbarkeit klassenbasiert feststeht; einzelne FAIL-Zellen dort
+  tragen finite Mismatch-Evidenz und sind plausibel preserving, es wird aber
+  bewusst kein Per-Zellen-Anspruch erhoben.)
+
+## 6.6 Aktualisierte Cross-Pilot-Klassifikation
+
+**PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS.**
+
+Die quantitative Vergleichbarkeit ist **formal zulässig, praktisch/statistisch
+schwach**, ausdrücklich begrenzt durch:
+
+- genau **1 Sample pro Zelle** — keine Innerhalb-Zelle-Varianzschätzung;
+- nur **12/60** Benchmarks in pilot_001, davon nur noch **3** quantitativ
+  vergleichbar (**99 von 396 Zellen**);
+- **doppelte Subset-Selektion** (stratifizierte Pilotauswahl, dann
+  Methodenstabilitätsfilter) und strukturelle Selektion: die verbleibenden
+  Benchmarks sind ausschließlich skalare Diskret-Output-Aufgaben — die
+  einfachste Output-Klasse; Ergebnisse generalisieren nicht auf die Suite;
+- **PILOT_002_REUSES_PILOT_001_GENERATIONS = UNDECIDED**.
+
+Die Klassifikation behauptet NICHT, pilot_001 sei eine starke, präzise oder
+belastbare quantitative Baseline. Die frühere 198-Zellen-Aussage (§9.13) ist
+damit zurückgenommen und ersetzt; der historische Reporttext war zum damaligen
+Kenntnisstand formuliert und bleibt unverändert stehen. **A∪B∪C∪D∪E = 34/60
+bleibt ausschließlich die benchmarkbezogene A–E-Änderungsmenge; F =
+WAVE1_TRANSPORT_CHANGE bleibt eine separate, suite-/zellenbezogene
+Messpipeline-Dimension und wird nicht in die Union gezählt.**
+
+## 6.7 Staleness-Provenance
+
+- **state_commit = `730c0afe5fcfee2272fcdb8c12ea3ad58e3f923f`**
+- Candidate-Subset-Benchmarks: 3; je Benchmark gespeichert: `cpu_cc_sha256`
+  (vorhanden 3/3, Rohbytes), `baseline_hpp_sha256` (3/3, Rohbytes),
+  `prompt_sha256.{serial,omp,mpi}` (9/9, UTF-8 des modellseitigen
+  Promptstrings, Identitäts-Join, nie Arrayposition),
+  `enhanced_spec_keys_sha256` (3/3 verfügbar; kanonisch sortierte
+  benchmarklokale Projektion der `specs.jsonl`-Rohzeilen — Änderungen an
+  Specs ANDERER Benchmarks machen dieses Gate nicht stale; Projektionsumfang
+  10/9/8 Zeilen).
+- **CROSS_PILOT_GATE_STALE = false** — durch tatsächliches erneutes Hashen
+  unmittelbar nach Erzeugung verifiziert (18/18 Fingerprints identisch), kein
+  manuelles Flag; Negativkontrolle: eine manipulierte Artefaktkopie meldet
+  STALE (Exit 1) mit `comparability_re_evaluation_required`.
+- **STALENESS_RECOMPUTABLE = true** — die autoritative Prüfung ist das
+  Neu-Hashen unter den in `thesis/evaluation/check_cross_pilot_gate.py`
+  dokumentierten Regeln (Exit 0 = frisch, 1 = stale, 2 = UNRESOLVED). Ein
+  Hash-Diff erzwingt Re-Evaluation der Vergleichbarkeit und erzeugt NICHT
+  automatisch eine neue Klassifikation; ein nicht mehr adressierbarer
+  Zustand ergibt UNRESOLVED, nie stillschweigend false.
+
+## 6.8 Aktuelles maschinenlesbares Gate
+
+**`thesis/evaluation/cross_pilot_comparability.json` ist der aktuelle
+Cross-Pilot-Gate-Stand** (`supersedes_wave3_report_cross_pilot_claim: true`).
+Spätere Waves dürfen die 198-Zellen-Prosa aus §9.13 NICHT als aktuellen
+Gate-Stand übernehmen; maßgeblich sind ausschließlich dieses Artefakt und
+sein Staleness-Checker.

@@ -5,14 +5,48 @@
   "purpose": "Registry of benchmarks whose grading oracle resolves a semantic convention that the generation prompt does not state, and for which NO frozen decision exists. Wave 3 deliberately made no prompt edit for these (BLOCKED_PENDING_SEMANTIC_DECISION): writing a sentence would have decided the open semantics inside the prompt wave, which the contract forbids.",
   "enforcement": "disclosure_required",
   "enforcement_semantics": "No automatic sample exclusion and no verdict change. Any downstream stage listed in applies_to that reports per-benchmark results for a benchmark in this registry MUST disclose the open decision alongside the result (e.g. a footnote or column), because a fail verdict on the affected input class reflects an unstated grader convention, not a documented contract violation by the model.",
-  "applies_to": ["enhanced_stage", "timing_stage", "pilot_002"],
+  "applies_to": [
+   "enhanced_stage",
+   "timing_stage",
+   "pilot_002"
+  ],
   "resolution_path": "Each entry names its open decision id. Once a decision is frozen and implemented, the prompt edit (if any) runs as a new atomic prompt wave, the entry is removed, and the benchmark joins the regeneration set of that wave.",
-  "wave3_checker_status": "check_prompt_oracle_consistency.py reports all seven benchmarks CONSISTENT on their worked examples; the open decisions concern input classes the worked examples do not exercise (degenerate sizes, boundary conventions, ties, tolerances)."
+  "wave3_checker_status": "check_prompt_oracle_consistency.py reports all seven benchmarks CONSISTENT on their worked examples; the open decisions concern input classes the worked examples do not exercise (degenerate sizes, boundary conventions, ties, tolerances).",
+  "interlock_benchmark_count": 7,
+  "interlock_prompt_pair_count": 21,
+  "execution_model_coverage_rule": "Wave 3 treated the mathematical prompt semantics atomically across serial/omp/mpi (frozen atomicity rule; benchmarks_partially_changed == 0). An open benchmark-level semantic decision therefore covers all three execution models identically; parallelism_models and prompt_pairs materialize this rule machine-readably (canonical order serial, omp, mpi). prompt_id is derived exclusively as problem_type/name/parallelism_model; array positions are never join keys. Added by the Wave-3 cleanup (2026-08-27, post-commit 730c0afe); enforcement is unchanged: disclosure_required - no automatic exclusion, no suite reduction, no verdict override. The execution-model metadata serves addressability only."
  },
  "interlocks": [
   {
    "benchmark": "dense_la/00_dense_la_lu_decomp",
-   "open_decision_ids": ["BL-01"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "dense_la",
+     "name": "00_dense_la_lu_decomp",
+     "parallelism_model": "serial",
+     "prompt_id": "dense_la/00_dense_la_lu_decomp/serial"
+    },
+    {
+     "problem_type": "dense_la",
+     "name": "00_dense_la_lu_decomp",
+     "parallelism_model": "omp",
+     "prompt_id": "dense_la/00_dense_la_lu_decomp/omp"
+    },
+    {
+     "problem_type": "dense_la",
+     "name": "00_dense_la_lu_decomp",
+     "parallelism_model": "mpi",
+     "prompt_id": "dense_la/00_dense_la_lu_decomp/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "BL-01"
+   ],
    "unstated_convention": "The tolerance regime under which the LU factorization is graded is neither stated in the prompt nor frozen: the oracle-correctness audit records the absolute 1e-3 comparison as potentially unattainable for numerically valid alternative elimination orders (BL-01 / consolidated item #71), and the decision is open (QUEUED - FROZEN IMPLEMENTATION TARGET NOT SPECIFIED).",
    "oracle_behavior": "cpu.cc::validate() compares against the reference factorization with an absolute epsilon; a differently-ordered but numerically valid elimination can accumulate error past that boundary and be graded fail.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit.",
@@ -20,7 +54,34 @@
   },
   {
    "benchmark": "geometry/12_geometry_smallest_triangle",
-   "open_decision_ids": ["BL-05"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "geometry",
+     "name": "12_geometry_smallest_triangle",
+     "parallelism_model": "serial",
+     "prompt_id": "geometry/12_geometry_smallest_triangle/serial"
+    },
+    {
+     "problem_type": "geometry",
+     "name": "12_geometry_smallest_triangle",
+     "parallelism_model": "omp",
+     "prompt_id": "geometry/12_geometry_smallest_triangle/omp"
+    },
+    {
+     "problem_type": "geometry",
+     "name": "12_geometry_smallest_triangle",
+     "parallelism_model": "mpi",
+     "prompt_id": "geometry/12_geometry_smallest_triangle/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "BL-05"
+   ],
    "unstated_convention": "Behavior for degenerate inputs (fewer than three points; collinear or duplicate points forming zero-area triangles) is neither stated in the prompt nor frozen.",
    "oracle_behavior": "The oracle returns whatever its own implementation produces on such inputs; the generator's current domains avoid the smallest cases but the convention itself is undecided.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit.",
@@ -28,7 +89,34 @@
   },
   {
    "benchmark": "geometry/13_geometry_closest_pair_2d",
-   "open_decision_ids": ["BL-06"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "geometry",
+     "name": "13_geometry_closest_pair_2d",
+     "parallelism_model": "serial",
+     "prompt_id": "geometry/13_geometry_closest_pair_2d/serial"
+    },
+    {
+     "problem_type": "geometry",
+     "name": "13_geometry_closest_pair_2d",
+     "parallelism_model": "omp",
+     "prompt_id": "geometry/13_geometry_closest_pair_2d/omp"
+    },
+    {
+     "problem_type": "geometry",
+     "name": "13_geometry_closest_pair_2d",
+     "parallelism_model": "mpi",
+     "prompt_id": "geometry/13_geometry_closest_pair_2d/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "BL-06"
+   ],
    "unstated_convention": "Behavior for n < 2 points (no pair exists), including whether the DBL_MAX sentinel is the contractual return, is neither stated in the prompt nor frozen.",
    "oracle_behavior": "The oracle's n < 2 return (DBL_MAX sentinel) is an implementation accident, not a documented contract.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit.",
@@ -36,7 +124,34 @@
   },
   {
    "benchmark": "geometry/14_geometry_closest_pair_1d",
-   "open_decision_ids": ["BL-07"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "geometry",
+     "name": "14_geometry_closest_pair_1d",
+     "parallelism_model": "serial",
+     "prompt_id": "geometry/14_geometry_closest_pair_1d/serial"
+    },
+    {
+     "problem_type": "geometry",
+     "name": "14_geometry_closest_pair_1d",
+     "parallelism_model": "omp",
+     "prompt_id": "geometry/14_geometry_closest_pair_1d/omp"
+    },
+    {
+     "problem_type": "geometry",
+     "name": "14_geometry_closest_pair_1d",
+     "parallelism_model": "mpi",
+     "prompt_id": "geometry/14_geometry_closest_pair_1d/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "BL-07"
+   ],
    "unstated_convention": "Behavior for n < 2 values (no pair exists), including whether the DBL_MAX sentinel is the contractual return, is neither stated in the prompt nor frozen.",
    "oracle_behavior": "The oracle's n < 2 return (DBL_MAX sentinel) is an implementation accident, not a documented contract.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit.",
@@ -44,7 +159,34 @@
   },
   {
    "benchmark": "histogram/22_histogram_count_quadrants",
-   "open_decision_ids": ["AXIS-CONVENTION-OPEN"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "histogram",
+     "name": "22_histogram_count_quadrants",
+     "parallelism_model": "serial",
+     "prompt_id": "histogram/22_histogram_count_quadrants/serial"
+    },
+    {
+     "problem_type": "histogram",
+     "name": "22_histogram_count_quadrants",
+     "parallelism_model": "omp",
+     "prompt_id": "histogram/22_histogram_count_quadrants/omp"
+    },
+    {
+     "problem_type": "histogram",
+     "name": "22_histogram_count_quadrants",
+     "parallelism_model": "mpi",
+     "prompt_id": "histogram/22_histogram_count_quadrants/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "AXIS-CONVENTION-OPEN"
+   ],
    "unstated_convention": "Which quadrant a point lying exactly on an axis (x == 0 or y == 0) belongs to is neither stated in the prompt nor frozen; the decision table's pending_fix records that no decision has been recorded yet.",
    "oracle_behavior": "The oracle assigns axis points by its own comparison operators; a candidate using the opposite boundary convention fails on axis points while agreeing everywhere else.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit (the queued clarification sentence was NOT implemented because no decision is frozen).",
@@ -52,7 +194,35 @@
   },
   {
    "benchmark": "scan/34_scan_largest_contiguous_subarray_sum",
-   "open_decision_ids": ["BL-10", "BL-11"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "scan",
+     "name": "34_scan_largest_contiguous_subarray_sum",
+     "parallelism_model": "serial",
+     "prompt_id": "scan/34_scan_largest_contiguous_subarray_sum/serial"
+    },
+    {
+     "problem_type": "scan",
+     "name": "34_scan_largest_contiguous_subarray_sum",
+     "parallelism_model": "omp",
+     "prompt_id": "scan/34_scan_largest_contiguous_subarray_sum/omp"
+    },
+    {
+     "problem_type": "scan",
+     "name": "34_scan_largest_contiguous_subarray_sum",
+     "parallelism_model": "mpi",
+     "prompt_id": "scan/34_scan_largest_contiguous_subarray_sum/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "BL-10",
+    "BL-11"
+   ],
    "unstated_convention": "Whether the empty subarray is admissible (making the answer at least 0 for all-negative inputs) and what the result is for a size-0 input are neither stated in the prompt nor frozen.",
    "oracle_behavior": "The oracle implements one of the two standard conventions; a candidate implementing the other disagrees exactly on all-negative and empty inputs.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit.",
@@ -60,7 +230,34 @@
   },
   {
    "benchmark": "search/37_search_find_the_closest_number_to_pi",
-   "open_decision_ids": ["TIE-BREAK-OPEN"],
+   "parallelism_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "prompt_pairs": [
+    {
+     "problem_type": "search",
+     "name": "37_search_find_the_closest_number_to_pi",
+     "parallelism_model": "serial",
+     "prompt_id": "search/37_search_find_the_closest_number_to_pi/serial"
+    },
+    {
+     "problem_type": "search",
+     "name": "37_search_find_the_closest_number_to_pi",
+     "parallelism_model": "omp",
+     "prompt_id": "search/37_search_find_the_closest_number_to_pi/omp"
+    },
+    {
+     "problem_type": "search",
+     "name": "37_search_find_the_closest_number_to_pi",
+     "parallelism_model": "mpi",
+     "prompt_id": "search/37_search_find_the_closest_number_to_pi/mpi"
+    }
+   ],
+   "open_decision_ids": [
+    "TIE-BREAK-OPEN"
+   ],
    "unstated_convention": "Which element is returned when two values are equally close to pi (tie-break rule) is neither stated in the prompt nor frozen.",
    "oracle_behavior": "The oracle's scan order fixes a tie-break implicitly; a candidate scanning in another order returns the other, equally-close value and fails.",
    "wave3_action": "BLOCKED_PENDING_SEMANTIC_DECISION - no prompt edit.",

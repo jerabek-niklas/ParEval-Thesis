@@ -966,6 +966,34 @@ Wave-1 scope — none of them a Wave-1 blocker:
 > requires regeneration in `pilot_002` (`requires_pilot_002_regeneration:
 > true` for all 69 entries).
 
+> **[DOWNSTREAM CLEANUP NOTE — added by the Wave-3 cleanup (2026-08-27),
+> post-Wave-1 provenance, not part of the frozen Wave-1 text above. No
+> historical Wave-1 number, verdict, or conclusion is changed by this note.]**
+> The current machine-readable cross-pilot comparison gate is
+> **`thesis/evaluation/cross_pilot_comparability.json`**. It refines and
+> supersedes the earlier Wave-3 cross-pilot assessment (the "198 cells /
+> 6 method-unchanged benchmarks" subset claim) as the current methodical
+> state. Current classification:
+> **PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS** —
+> quantitatively comparable are only the 99 cells of the three
+> discrete-payload benchmarks `graph/15_graph_edge_count`,
+> `reduce/25_reduce_xor`, `search/35_search_search_for_last_struct_by_key`
+> (× 11 models × serial/omp/mpi × 1 sample); `dense_la/00`, `scan/30` and
+> `transform/55` are excluded (`TRANSPORT_EFFECT_UNRESOLVED`: the
+> pilot_001-era NaN-blind comparator can hide non-finite candidate passes
+> that leave no trace in the frozen records). The concrete candidate-subset
+> population (benchmarks, models, execution models) is materialized by name
+> in the artifact, and the candidate-subset state is frozen there via
+> reproducible SHA-256 fingerprints (cpu.cc, baseline.hpp, the three prompt
+> strings, and a benchmark-local enhanced-spec projection, at
+> `state_commit 730c0afe`). Any later relevant change to that stored state
+> triggers `CROSS_PILOT_GATE_STALE = true` (recomputable via
+> `thesis/evaluation/check_cross_pilot_gate.py`; exit 0 fresh / 1 stale /
+> 2 unresolved) and requires a comparability re-evaluation before the gate
+> may be relied on again. This note is purely a pointer for later waves
+> reading the open gates before `pilot_002`; it does not retroactively alter
+> any Wave-1 result.
+
 ---
 
 ## 15. `git diff --stat`

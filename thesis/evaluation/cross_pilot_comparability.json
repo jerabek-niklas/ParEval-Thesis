@@ -1,0 +1,199 @@
+{
+ "generated_by": "Wave 3 cleanup",
+ "date": "2026-08-27",
+ "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
+ "state_commit": "730c0afe5fcfee2272fcdb8c12ea3ad58e3f923f",
+ "pilot_001_population": {
+  "iteration0_cells": 396,
+  "benchmarks": 12,
+  "models": 11,
+  "execution_models": 3,
+  "samples_per_cell": 1,
+  "source": "thesis/results/intermediate/pilot_001/<model>/correctness.jsonl, run_id == pilot_001 (base run only; NOT the 1903 overview/repair/analysis rows)",
+  "historical_schema_version": "correctness.v1",
+  "stdout_available": true,
+  "stdout_truncated_cells": 0
+ },
+ "candidate_subset": {
+  "cells": 99,
+  "benchmarks": [
+   "graph/15_graph_edge_count",
+   "reduce/25_reduce_xor",
+   "search/35_search_search_for_last_struct_by_key"
+  ],
+  "models": [
+   "claude_fable_5",
+   "claude_opus_5",
+   "deepseek_v4_flash",
+   "deepseek_v4_pro",
+   "gemini_31_pro",
+   "gemini_36_flash",
+   "openai_gpt55",
+   "openai_gpt56_sol",
+   "qwen36_35b_a3b",
+   "qwen37_max",
+   "qwen3_coder_api"
+  ],
+  "execution_models": [
+   "serial",
+   "omp",
+   "mpi"
+  ],
+  "samples_per_cell": 1,
+  "verdict_distribution": {
+   "build_failed": 2,
+   "pass": 94,
+   "runtime_error": 1,
+   "validation_failed": 2
+  },
+  "selection_rule": "method-unchanged pilot_001 benchmarks (Wave-2B §34 categories A-E untouched) WHOSE GRADED COMPARISON PAYLOAD IS EXCLUSIVELY DISCRETE (int/bool/size_t scalars): for these, the verdict-relevant Wave-1/1b comparator classes K2/K3/K4/K5 are constructively unreachable (compile-time dead non-finite branches, no container in the graded path, no reachable BI condition) and K1/K7 are transport-only, so every historical verdict is method-stable by construction - no per-cell record analysis required."
+ },
+ "excluded_from_prior_198_cell_proposal": {
+  "benchmarks": [
+   "dense_la/00_dense_la_lu_decomp",
+   "scan/30_scan_prefix_sum",
+   "transform/55_transform_relu"
+  ],
+  "cells": 99,
+  "verdict_distribution": {
+   "build_failed": 1,
+   "pass": 92,
+   "timeout": 1,
+   "validation_failed": 5
+  },
+  "reason": "Floating-point graded payloads (vector<double>). K4: the pilot_001-era comparator was NaN-blind, so a historical 'pass' can hide non-finite candidate values without any trace in the frozen records; whether any given pass cell is affected is not determinable without re-measurement -> TRANSPORT_EFFECT_UNRESOLVED. Additionally for dense_la/00: K2 in-principle reachable (unpivoted pivot division in the oracle; NaN references structurally invisible historically). K3 (silent wrong-length pass under -DNDEBUG) shares the same no-trace problem for container payloads. Missing evidence is NOT interpreted as verdict-preserving."
+ },
+ "transport_effect": {
+  "population": "the 198-cell cross-pilot proposal of the Wave-3 report (6 method-unchanged benchmarks x 11 models x 3 execution models x 1 sample)",
+  "verdict_preserving_cells": 99,
+  "verdict_changed_cells": 0,
+  "unresolved_cells": 99,
+  "counting_rule": "Benchmark-level resolution: all 99 cells of the retained discrete-payload benchmarks are preserving by constructive unreachability; all 99 cells of the excluded FP-payload benchmarks are conservatively counted unresolved (individual fail-side cells there carry finite mismatch evidence and are plausibly preserving, but no per-cell claim is made). No cell shows evidence of a concrete verdict change (verdict_changed_cells = 0 means 'none demonstrated', not 'none possible' - for excluded cells the possibility is exactly why they are unresolved).",
+  "historical_stdout_reparse": "NOT performed: historical pilot_001 stdout predates the nonce and MUST NOT be fed through the authenticated parser as a verdict comparison; the class analysis is code- and record-structure-based."
+ },
+ "reuse_status": "UNDECIDED",
+ "one_sample_per_cell": true,
+ "change_classes": [
+  {
+   "id": "K1",
+   "name": "authenticated nonce transport",
+   "classification": "TRANSPORT_ONLY",
+   "requires_historical_record_filter": false,
+   "note": "Verdict computation unchanged; only emission/authentication/parsing of the Validation/BI lines. Wave-1 tests document correct nonce emission by the trusted drivers (wave1_final_gate_report.md §3.3, §4, §12.1); Wave-1 §8.2 measured 0 effective self-declared markers across the complete pilot_001 stdout corpus, so no historical verdict depended on an unauthenticated line. Historical stdout was NOT re-parsed with the authenticated parser."
+  },
+  {
+   "id": "K2",
+   "name": "non-finite reference -> BASELINE_INCOMPATIBLE",
+   "classification": "VERDICT_RELEVANT",
+   "requires_historical_record_filter": true,
+   "note": "Historically a NaN reference compared NaN-blind (silent pass); today the cell becomes baseline_incompatible and leaves the denominator. Historical NaN references are structurally invisible in the frozen records (Wave-1 §8.4). Reachability filter applied per benchmark: unreachable for discrete graded payloads; for dense_la/00 in-principle reachable (unpivoted division); for scan/30 and transform/55 oracle-side unreachable under the correctness-stage inputs."
+  },
+  {
+   "id": "K3",
+   "name": "size-mismatch FAIL",
+   "classification": "VERDICT_RELEVANT",
+   "requires_historical_record_filter": true,
+   "note": "Historically assert() vanished under -DNDEBUG, allowing a silent wrong-length pass; today explicit SIZE_MISMATCH FAIL. Only applicable to container graded payloads (00/30/55); a silent historical wrong-length pass leaves no record trace, so its historical occurrence is not determinable. Not applicable to the retained scalar benchmarks."
+  },
+  {
+   "id": "K4",
+   "name": "non-finite candidate FAIL",
+   "classification": "VERDICT_RELEVANT",
+   "requires_historical_record_filter": true,
+   "note": "Historically a NaN candidate value passed the NaN-blind tolerance predicate; today forced FAIL. A silent historical NaN pass leaves no record trace; effect on pass cells of FP benchmarks is not determinable from frozen records without re-measurement. Constructively unreachable for the retained benchmarks (int/bool/size_t scalar payloads; non-finite branches are compile-time dead code). Wave-1 §8.4 found 4 correctness records with non-finite got= values in pilot_001 (visible = already-failing cells)."
+  },
+  {
+   "id": "K5",
+   "name": "BASELINE_INCOMPATIBLE outranks process state",
+   "classification": "VERDICT_RELEVANT",
+   "requires_historical_record_filter": true,
+   "note": "Requires an authentic BI marker, which itself requires a reachable BI condition; pilot_001 predates the BI vocabulary entirely (0 markers in the frozen records). Unreachable for the retained benchmarks at the correctness stage (no BI path can fire: non-finite reference impossible for discrete payloads; search/35's TEST_SIZE==0 guard cannot fire at the correctness-stage size)."
+  },
+  {
+   "id": "K6",
+   "name": "repair terminal status stopped_baseline_incompatible",
+   "classification": "VERDICT_RELEVANT",
+   "requires_historical_record_filter": false,
+   "note": "Repair-state vocabulary change downstream of K2; outside the 396 iteration-0 cross-pilot population and measured to affect 0 pilot_001 records (0 BI stop_reasons; pilot_001 predates BI)."
+  },
+  {
+   "id": "K7",
+   "name": "legacy parser token-robustness fix (driver_wrapper.py)",
+   "classification": "TRANSPORT_ONLY",
+   "requires_historical_record_filter": false,
+   "note": "Upstream legacy parser reads the first token after the colon; identical result for all intended legacy-mode driver output (verified by real upstream regression, Wave-1 §12.3)."
+  }
+ ],
+ "non_finite_reachable_by_benchmark": {
+  "dense_la/00_dense_la_lu_decomp": "true (oracle: unguarded pivot division, baseline.hpp:16; candidate: vector<double> payload)",
+  "graph/15_graph_edge_count": "false (scalar int payload; non-finite branches compile-time dead)",
+  "reduce/25_reduce_xor": "false (scalar bool payload)",
+  "scan/30_scan_prefix_sum": "true (candidate: vector<double> payload; oracle-side unreachable under correctness-stage inputs)",
+  "search/35_search_search_for_last_struct_by_key": "false (scalar size_t payload)",
+  "transform/55_transform_relu": "true (candidate: vector<double> payload; oracle performs no arithmetic, cannot create non-finite from finite input)"
+ },
+ "statistical_caveats": [
+  "exactly 1 sample per cell - no within-cell variance estimation is possible",
+  "only 12 of 60 benchmarks were in pilot_001; only 3 of those 12 remain quantitatively comparable",
+  "the retained subset consists exclusively of scalar discrete-output benchmarks - a structural selection toward the simplest output class; results on it do not generalize to the suite",
+  "double selection bias: stratified 12-benchmark pilot selection, then method-stability filtering",
+  "PILOT_002_REUSES_PILOT_001_GENERATIONS = UNDECIDED - attribution sharpness (generation vs grading) depends on that open decision",
+  "the classification asserts FORMAL admissibility of a quantitative comparison on the named 99 cells only; it does NOT assert that pilot_001 is a strong, precise or statistically robust baseline"
+ ],
+ "rationale": "The Wave-3 report's 198-cell quantitative subset claim treated the suite-wide Wave-1/1b transport/comparator delta (F = WAVE1_TRANSPORT_CHANGE, kept separate from the benchmark-level A/B/C/D/E categories) as a caveat. This gate re-examined F class by class against the actual frozen records: K1/K7 are transport-only (with Wave-1 measured evidence that no pilot_001 verdict depended on unauthenticated markers); K2/K3/K4/K5 are verdict-relevant but constructively unreachable for discrete graded payloads. For the three FP-payload benchmarks the NaN-blind history makes hidden verdict changes undetectable in frozen records, so their 99 cells cannot be certified method-stable without re-measurement and are excluded. The quantitative claim is therefore narrowed to the 99 discrete-payload cells; A∪B∪C∪D∪E = 34/60 remains a benchmark-level change set only and F is never folded into it.",
+ "supersedes_wave3_report_cross_pilot_claim": true,
+ "candidate_subset_state": [
+  {
+   "benchmark": "graph/15_graph_edge_count",
+   "cpu_cc_sha256": "0fb956df49ab5e659573482f54d58cab8a656eea699719b7515d3ced0bda2667",
+   "baseline_hpp_sha256": "75dca8bc6fe6eeca156e5491c4c8350b4ea41323470f5dcb441083db0a8318d2",
+   "prompt_sha256": {
+    "serial": "89b04f25168500fd96cdf5ec6e3c56aa42508c5d6dea178587eb1ce0904f001c",
+    "omp": "19d08712aa9cf5e788fa511a3209b590e8f57a95e0d365b60c70ae2b36eb1182",
+    "mpi": "56b097ead0028c9b977e454cc787b03fe33d0972163860bbeccc8cc252725e2c"
+   },
+   "enhanced_spec_keys_sha256": "756dbdaf691af918d98babcc154dd81fb7c93ec0145a21fee6a1d31b07cbcfd2",
+   "enhanced_state_hash_available": true
+  },
+  {
+   "benchmark": "reduce/25_reduce_xor",
+   "cpu_cc_sha256": "a60032184126a2cf9f528811b207e432e286316b9ac0bfde5ca8641604b31aef",
+   "baseline_hpp_sha256": "f2b7cefaa2304208846d028baa227661bcc654589a95147930c01ff40e2fcae2",
+   "prompt_sha256": {
+    "serial": "e6f89cb930b1272f6abd96ac92022af0510b75ef81d0a7c4aff01dde902c0f49",
+    "omp": "149a9c965b2145be3187fa435c81ba73e7e780f47e3dc1ac85576694a3082604",
+    "mpi": "32e0f74de5dad786ce9b070d29fb3270e7d0fd8e8f32f67e33d82ac457b117d7"
+   },
+   "enhanced_spec_keys_sha256": "4e1af7b76e57d0fdad38dee73ebbc8a1e9f37a8f16bd47ed487283e51517ddaa",
+   "enhanced_state_hash_available": true
+  },
+  {
+   "benchmark": "search/35_search_search_for_last_struct_by_key",
+   "cpu_cc_sha256": "b8bed84111027d05cf307d245af7625c1670d2b54890d1a640bb84bf1a1cdae2",
+   "baseline_hpp_sha256": "79953120cb6dac92a3c1f58d4596e1ab5eafe5b1c9884fa3d196792c1fc75123",
+   "prompt_sha256": {
+    "serial": "fd0c33d9d049c23993d630ce96628d05af96c7ac6624f8261126f651780cc198",
+    "omp": "d216b18798231abb2c11760ac52a81a2084a05cd1457eef60940d6bf197f59e9",
+    "mpi": "853236def8beb660d79ee03f0e76d120b2dc5f2bce70ea60828989770fbf19f5"
+   },
+   "enhanced_spec_keys_sha256": "04b36d092c298fedd1d48e8e0024faa4126c4b884d46e8ac685c2585e47e947b",
+   "enhanced_state_hash_available": true
+  }
+ ],
+ "validity": {
+  "stale": false,
+  "staleness_check": "recompute_candidate_subset_state_hashes",
+  "checker": "thesis/evaluation/check_cross_pilot_gate.py (authoritative hash rules in its docstring; exit 0 fresh / 1 stale / 2 unresolved)",
+  "on_hash_difference": "comparability_re_evaluation_required",
+  "on_unreproducible_state": "CROSS_PILOT_GATE_STALE = UNRESOLVED (never silently false)",
+  "invalidated_by_changes_to": [
+   "benchmark_semantics",
+   "oracle_semantics",
+   "validator_semantics",
+   "enhanced_test_semantics",
+   "prompt_semantics"
+  ],
+  "scope": "candidate_subset.benchmarks",
+  "note": "stale=false is only a cached status as of state_commit; the authoritative staleness signal is recomputation of the stored fingerprints under the rules in the checker."
+ }
+}
