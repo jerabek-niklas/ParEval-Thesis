@@ -2,7 +2,7 @@
  "generated_by": "Wave 3 cleanup",
  "date": "2026-08-27",
  "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
- "state_commit": "730c0afe5fcfee2272fcdb8c12ea3ad58e3f923f",
+ "state_commit": "4e0e9159a58ec7c46f64867bc3391f5bc7923462",
  "pilot_001_population": {
   "iteration0_cells": 396,
   "benchmarks": 12,
@@ -180,9 +180,193 @@
    "enhanced_state_hash_available": true
   }
  ],
+ "shared_state": {
+  "hash_rule": "SHA-256 over raw file bytes; no normalization, no git blob SHA. Granularity semantics and the condition canonicalization rules are documented authoritatively in check_cross_pilot_gate.py.",
+  "files": {
+   "drivers/cpp/utilities.hpp": {
+    "sha256": "872fa063612f766a2351f0a8f943b195cc7996aac8d35e7f736fcf20cb1901e8",
+    "granularity": "semantic",
+    "reason": "Shared comparator core used by every candidate-subset validate(): finite/non-finite logic (mismatchIsFinite), scalar/vector comparison helpers (reportAndCompareScalar/reportAndCompare*), mismatch reporting, BI emission helper (mismatchNoteNonFiniteReference), MAX_VALIDATION_ATTEMPTS default, shared harness macros. Essentially all content is shared verdict/comparison semantics."
+   },
+   "drivers/cpp/harness-markers.hpp": {
+    "sha256": "4698dcbdd279b72bdcda670c42856373627887999daa19f0bdf4e9a5d7fae554",
+    "granularity": "semantic",
+    "reason": "Authenticated trusted marker transport: parevalEmitValidation, PAREVAL_BI_NONCE handling, marker formats for Validation/BI lines. Entire file is transport semantics."
+   },
+   "drivers/cpp/enhanced-fill.hpp": {
+    "sha256": "157b998ae296c3af9a22152ee0faf09398011f8338a45fc6df35469d59a333ec",
+    "granularity": "semantic",
+    "reason": "Shared enhanced input semantics: ENHANCED_FILL pattern implementations, runtime-fill mode, ENHANCED_TEST_SIZE machinery. Changes alter enhanced input generation for candidate-subset benchmarks."
+   },
+   "drivers/cpp/models/serial-driver.cc": {
+    "sha256": "e4e5e73ae195ea05cce300be2c982ac8486a1d41065d2f9fe40eca1f14d2d1c4",
+    "granularity": "semantic",
+    "reason": "Shared serial driver main: validation invocation flow and argv contract compiled into every serial correctness binary."
+   },
+   "drivers/cpp/models/omp-driver.cc": {
+    "sha256": "9e35f283e34f7f1f916f0a65e1ae1a1e2759925c90a848872d3213bd01de42f2",
+    "granularity": "semantic",
+    "reason": "Shared OpenMP driver main: thread-count handling (argv[1]), fixed internal NITER, validation invocation flow."
+   },
+   "drivers/cpp/models/mpi-driver.cc": {
+    "sha256": "81166bc9e77c039bc7820cd16243a1764b1e3cae11b9a8d5a6d2b23a72745be6",
+    "granularity": "semantic",
+    "reason": "Shared MPI driver main: rank setup, root-only verdict path, validation invocation flow."
+   },
+   "thesis/evaluation/build_config.py": {
+    "sha256": "a39b982986c40d2264f9f8234cc0a78d4c7142d123a16f474f352a37d3b7bf81",
+    "granularity": "semantic",
+    "reason": "Declared single source of truth for compile and launch: base flags (-std=c++17 -O3), USE_* macros, compiler resolution (g++/mpicxx), -fopenmp, default launch grids (omp threads / mpi ranks 1,2,4,8). Essentially all content is measurement-condition semantics."
+   },
+   "thesis/evaluation/run_correctness.py": {
+    "sha256": "35a9a633da4689a4eb2a627730d0a0b810d4f71ae861515768990a4ade99350b",
+    "granularity": "coarse",
+    "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected."
+   },
+   "thesis/evaluation/framework.py": {
+    "sha256": "1ad10512fd67ada3f7aad658e692d39803e7f6b0bda051cf0e59e72fd27a42e3",
+    "granularity": "coarse",
+    "reason": "Contains run_command (timeout enforcement and timed_out/exit capture feeding the timeout/runtime_error verdicts) and compile-input plumbing (EvaluationContext.include_dirs) plus unrelated operational code."
+   },
+   "thesis/evaluation/run_enhanced_tests.py": {
+    "sha256": "7b17e2ff76a60a38ff28d4f0a14f277cef1e6254f53e55cb3489600629c95b8f",
+    "granularity": "coarse",
+    "reason": "Productive enhanced execution/verdict path (spec grouping, runtime-fill launches, enhanced verdicts) plus substantial runner/CLI/orchestration code."
+   },
+   "thesis/enhanced_tests/specs.py": {
+    "sha256": "59ddf3233fa1fe86efd6ca821a1cd68dd932fe5156060addefdcef1337ebc564",
+    "granularity": "semantic",
+    "reason": "Shared enhanced spec semantics: spec interpretation, build_benchmark_specs, spec_key identity. Changes alter what an enhanced spec means for every benchmark."
+   },
+   "thesis/enhanced_tests/baseline_selftest.py": {
+    "sha256": "a81c82b34b27eb266d66c49b648e6c805cb4f0f07e3f486faf9932a5801d833a",
+    "granularity": "coarse",
+    "reason": "Enhanced baseline gate (selftest deciding oracle evaluability before grading) plus operational code around it."
+   }
+  },
+  "generation_condition": {
+   "sha256": "e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281",
+   "definition": "Identical to the Wave-3 generation-condition comparison: yaml.safe_load(thesis/config/config.yaml); projection {generation_defaults, models} with models keyed by stable model id and every model field EXCEPT price_per_mtok_in/price_per_mtok_out; canonical JSON (sort_keys, separators (',',':'), UTF-8), SHA-256. No secrets (api_key_env is an environment-variable NAME only), no prices, no run_id, no paths, no profiles.",
+   "canonical_fields": [
+    "generation_defaults.system_prompt",
+    "generation_defaults.temperature",
+    "generation_defaults.top_p",
+    "generation_defaults.max_output_tokens",
+    "generation_defaults.api_mode",
+    "generation_defaults.api_mode_overrides",
+    "generation_defaults.retry_attempts",
+    "generation_defaults.sleep_seconds_between_requests",
+    "generation_defaults.timeout_seconds",
+    "models[id].* (all per-model fields incl. provider, provider model name, enabled flag, reasoning/thinking config, api_key_env name; excluding price_per_mtok_in/out)"
+   ],
+   "continuity_note": "This definition reproduces the Wave-3 comparison hash: the stored value equals the Wave-3 PILOT_001/PILOT_002_GENERATION_PARAMS_HASH e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281 as long as the config is unchanged."
+  },
+  "evaluation_condition": {
+   "sha256": "7f53b0903e3d5e2be2ca4de8bd085da00d3cc6e9e350fc03bf390cac66c35e74",
+   "definition": "Canonical projection of the verdict-relevant correctness evaluation condition, rebuilt at check time from the productive sources: build_config.py (compilers, base flags, USE_* macros, launch grids), tools.py (DRIVER_PROBLEM_SIZE define), run_correctness.py (niter/timeout defaults, primary-compiler default), utilities.hpp (MAX_VALIDATION_ATTEMPTS default; no -D override is passed in the build), config.yaml stages.correctness_tests (niter, timeouts, launch_overrides). List order (flags, grids) preserved as produced; dict keys canonically sorted. Deliberately excluded as verdict-invariant/operational: include-directory paths, MISMATCH_REPORT_MAX (diagnostic display cap only), output/cache/report paths, run_id, logging options.",
+   "canonical_fields": [
+    "stage (correctness_tests)",
+    "primary_compiler",
+    "per_execution_model.{serial,omp,mpi}.compiler",
+    "per_execution_model.{serial,omp,mpi}.cxxflags (ordered; -std=c++17, -O3, [-fopenmp], -DUSE_*, -DDRIVER_PROBLEM_SIZE=...)",
+    "per_execution_model.{serial,omp,mpi}.macro",
+    "per_execution_model.{serial,omp,mpi}.model_driver_file",
+    "per_execution_model.{serial,omp,mpi}.launch_params (serial [{}]; omp num_threads 1,2,4,8; mpi num_procs 1,2,4,8)",
+    "per_execution_model.{serial,omp,mpi}.launcher",
+    "ndebug_defined (currently false - NDEBUG is NOT defined in the productive correctness build)",
+    "driver_problem_size ((1<<8))",
+    "niter (1)",
+    "max_validation_attempts (2, utilities.hpp default; no -D override)",
+    "build_timeout_seconds (120.0)",
+    "run_timeout_seconds (120.0)",
+    "launch_overrides (null - config defines none)"
+   ],
+   "projection": {
+    "stage": "correctness_tests",
+    "primary_compiler": "g++",
+    "per_execution_model": {
+     "serial": {
+      "compiler": "g++",
+      "cxxflags": [
+       "-std=c++17",
+       "-O3",
+       "-DUSE_SERIAL",
+       "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+      ],
+      "macro": "USE_SERIAL",
+      "model_driver_file": "models/serial-driver.cc",
+      "launch_params": [
+       {}
+      ],
+      "launcher": "direct; argv[1]=niter"
+     },
+     "omp": {
+      "compiler": "g++",
+      "cxxflags": [
+       "-std=c++17",
+       "-O3",
+       "-fopenmp",
+       "-DUSE_OMP",
+       "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+      ],
+      "macro": "USE_OMP",
+      "model_driver_file": "models/omp-driver.cc",
+      "launch_params": [
+       {
+        "num_threads": 1
+       },
+       {
+        "num_threads": 2
+       },
+       {
+        "num_threads": 4
+       },
+       {
+        "num_threads": 8
+       }
+      ],
+      "launcher": "direct; argv[1]=num_threads; OMP_NUM_THREADS set; driver NITER fixed at 5"
+     },
+     "mpi": {
+      "compiler": "mpicxx",
+      "cxxflags": [
+       "-std=c++17",
+       "-O3",
+       "-DUSE_MPI",
+       "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+      ],
+      "macro": "USE_MPI",
+      "model_driver_file": "models/mpi-driver.cc",
+      "launch_params": [
+       {
+        "num_procs": 1
+       },
+       {
+        "num_procs": 2
+       },
+       {
+        "num_procs": 4
+       },
+       {
+        "num_procs": 8
+       }
+      ],
+      "launcher": "mpirun -np <num_procs>; trailing argv=niter"
+     }
+    },
+    "ndebug_defined": false,
+    "driver_problem_size": "(1<<8)",
+    "niter": 1,
+    "max_validation_attempts": 2,
+    "build_timeout_seconds": 120.0,
+    "run_timeout_seconds": 120.0,
+    "launch_overrides": null
+   }
+  }
+ },
  "validity": {
   "stale": false,
-  "staleness_check": "recompute_candidate_subset_state_hashes",
+  "staleness_check": "recompute_candidate_subset_state_hashes + recompute_shared_state_file_hashes + recompute_generation_condition_hash + recompute_evaluation_condition_hash",
   "checker": "thesis/evaluation/check_cross_pilot_gate.py (authoritative hash rules in its docstring; exit 0 fresh / 1 stale / 2 unresolved)",
   "on_hash_difference": "comparability_re_evaluation_required",
   "on_unreproducible_state": "CROSS_PILOT_GATE_STALE = UNRESOLVED (never silently false)",
@@ -191,9 +375,84 @@
    "oracle_semantics",
    "validator_semantics",
    "enhanced_test_semantics",
-   "prompt_semantics"
+   "prompt_semantics",
+   "generation_condition",
+   "evaluation_condition"
   ],
-  "scope": "candidate_subset.benchmarks",
+  "scope": "candidate_subset.benchmarks + shared_state (shared measurement dependencies, generation condition, evaluation condition)",
   "note": "stale=false is only a cached status as of state_commit; the authoritative staleness signal is recomputation of the stored fingerprints under the rules in the checker."
+ },
+ "staleness_coverage": {
+  "shared_state_coverage_complete": true,
+  "generation_condition_recomputable": true,
+  "evaluation_condition_recomputable": true,
+  "matrix": [
+   {
+    "category": "benchmark_semantics",
+    "covered_by": [
+     "candidate_subset_state[*].cpu_cc_sha256",
+     "candidate_subset_state[*].baseline_hpp_sha256",
+     "shared_state.files (model drivers, build_config.py)"
+    ],
+    "coverage_complete": true,
+    "notes": "benchmark-local sources plus the shared driver mains compiled into every binary"
+   },
+   {
+    "category": "oracle_semantics",
+    "covered_by": [
+     "candidate_subset_state[*].baseline_hpp_sha256",
+     "candidate_subset_state[*].cpu_cc_sha256",
+     "shared_state.files (drivers/cpp/utilities.hpp comparator helpers)"
+    ],
+    "coverage_complete": true,
+    "notes": ""
+   },
+   {
+    "category": "validator_semantics",
+    "covered_by": [
+     "candidate_subset_state[*].cpu_cc_sha256",
+     "shared_state.files (utilities.hpp, harness-markers.hpp, run_correctness.py, framework.py, build_config.py, model drivers)"
+    ],
+    "coverage_complete": true,
+    "notes": "run_correctness.py and framework.py are coarse: a diff there triggers STALE but requires inspecting semantic relevance"
+   },
+   {
+    "category": "enhanced_test_semantics",
+    "covered_by": [
+     "candidate_subset_state[*].enhanced_spec_keys_sha256",
+     "shared_state.files (enhanced-fill.hpp, specs.py, run_enhanced_tests.py, baseline_selftest.py)"
+    ],
+    "coverage_complete": true,
+    "notes": "benchmark-local spec projection plus the shared enhanced harness/runner path"
+   },
+   {
+    "category": "prompt_semantics",
+    "covered_by": [
+     "candidate_subset_state[*].prompt_sha256.{serial,omp,mpi}"
+    ],
+    "coverage_complete": true,
+    "notes": ""
+   },
+   {
+    "category": "generation_condition",
+    "covered_by": [
+     "shared_state.generation_condition.sha256"
+    ],
+    "coverage_complete": true,
+    "notes": "covers the response-relevant condition (system prompt, generation params, model identities/reasoning config); the generation/assembly PIPELINE CODE (provider adapters, extraction/cleaning) is a documented scope boundary outside this category's definition"
+   },
+   {
+    "category": "evaluation_condition",
+    "covered_by": [
+     "shared_state.evaluation_condition.sha256"
+    ],
+    "coverage_complete": true,
+    "notes": "covers launch grids, compilers/flags, NDEBUG state, DRIVER_PROBLEM_SIZE, niter, MAX_VALIDATION_ATTEMPTS, build/run timeouts; environment-level state (container image, compiler binary versions) is a documented scope boundary - it is not addressable as a repo file hash"
+   }
+  ],
+  "known_scope_boundaries": [
+   "generation/assembly pipeline CODE (model response -> candidate source) is not part of the seven categories and is not fingerprinted here",
+   "toolchain/environment versions (container image, g++/mpicxx binaries) are not repo files and are not fingerprinted; the evaluation container is pinned operationally"
+  ]
  }
 }

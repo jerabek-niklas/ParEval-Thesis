@@ -553,3 +553,159 @@ Cross-Pilot-Gate-Stand** (`supersedes_wave3_report_cross_pilot_claim: true`).
 Spätere Waves dürfen die 198-Zellen-Prosa aus §9.13 NICHT als aktuellen
 Gate-Stand übernehmen; maßgeblich sind ausschließlich dieses Artefakt und
 sein Staleness-Checker.
+
+---
+
+# FINAL CROSS-PILOT SHARED/EVALUATION STATE STALENESS UPDATE
+
+> **[NACHTRAG — hinzugefügt von der finalen Gate-Cleanup-Mini-Wave
+> (2026-08-28), NICHT Teil der historischen Texte oberhalb. Diese Mini-Wave
+> hat KEINE neue Cross-Pilot-Analyse durchgeführt: die Ergebnisse
+> 99 retained / 0 demonstrated changed / 99 unresolved, die
+> F-Klassen K1–K7, das Candidate-Subset und die Klassifikation
+> `PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS`
+> sind unverändert. Geändert wurde ausschließlich die spätere
+> Drift-Erkennbarkeit des Gates.]**
+
+## Warum benchmarklokale Hashes allein nicht ausreichten
+
+Die bisherige Stalenessprüfung (Abschnitt 6.7) deckte cpu.cc, baseline.hpp,
+die drei Promptstrings und die benchmarklokale Enhanced-Spec-Projektion ab.
+Das Verdict desselben Kandidatencodes kann sich aber auch ändern, ohne dass
+eine dieser Quellen ein Byte ändert: durch Änderungen an gemeinsamen
+Comparator-/Transport-/Driver-/Enhanced-Dateien, an der
+Modellgenerationsbedingung oder an der Auswertungsbedingung (Launch-Grid,
+Compilerflags, NDEBUG, Problemgröße, Timeouts). Das Gate friert deshalb
+jetzt zusätzlich `shared_state` ein: 12 gemeinsame Dateien (Rohbyte-SHA-256)
+plus `generation_condition_sha256` und `evaluation_condition_sha256` als
+kanonische Projektionen. Jede relevante Änderung — benchmarklokal, shared,
+Generation Condition oder Evaluation Condition — löst mechanisch
+`CROSS_PILOT_GATE_STALE = true` aus.
+
+## Shared-State Dependency Inventory (produktive Pfade, read-only bestimmt)
+
+| Datei | Granularität | Begründung (Kurzform) |
+|---|---|---|
+| drivers/cpp/utilities.hpp | **semantic** | gemeinsamer Comparator-Kern: Finite-/Non-Finite-Logik, Scalar-/Vector-Helfer, Mismatch, BI-Emitter, MAX_VALIDATION_ATTEMPTS-Default |
+| drivers/cpp/harness-markers.hpp | **semantic** | authentifizierter Marker-Transport (parevalEmitValidation, Nonce, BI-/Validation-Format) |
+| drivers/cpp/enhanced-fill.hpp | **semantic** | Enhanced-Input-Semantik (Patterns, Runtime-Fill, ENHANCED_TEST_SIZE) |
+| drivers/cpp/models/serial-driver.cc | **semantic** | gemeinsamer Serial-Driver-Main (Validation-Aufrufpfad, argv-Vertrag) |
+| drivers/cpp/models/omp-driver.cc | **semantic** | gemeinsamer OMP-Driver-Main (argv[1]=Threads, festes NITER, Validation-Pfad) |
+| drivers/cpp/models/mpi-driver.cc | **semantic** | gemeinsamer MPI-Driver-Main (Rank-Setup, Root-Verdict-Pfad) |
+| thesis/evaluation/build_config.py | **semantic** | deklarierte Single Source of Truth für Compile+Launch (Flags, USE_*, Compiler, Default-Grids) |
+| thesis/evaluation/run_correctness.py | **coarse** | echte Verdictsemantik (Parser, BI, Prioritäten) PLUS CLI/Config/Logging/Runnerlogik |
+| thesis/evaluation/framework.py | **coarse** | run_command (Timeout-/Exit-Erfassung → timeout/runtime_error) plus operativer Code |
+| thesis/evaluation/run_enhanced_tests.py | **coarse** | produktiver Enhanced-Ausführungs-/Verdictpfad plus Runner-/CLI-Code |
+| thesis/enhanced_tests/specs.py | **semantic** | Spec-Interpretation, build_benchmark_specs, spec_key-Identität |
+| thesis/enhanced_tests/baseline_selftest.py | **coarse** | Enhanced-Baseline-Gate plus operativer Code |
+
+Semantik der Granularität: Ein **semantic**-Diff ist mit hoher
+Wahrscheinlichkeit methodisch relevant („shared semantic dependency
+changed"). Ein **coarse**-Diff löst ebenfalls STALE aus, bedeutet aber nur
+„Datei geändert; prüfen, ob der Diff die relevante Mess-/Verdictsemantik
+betrifft" — er ist KEIN Beweis einer Semantikänderung. Der Checker-Output
+zeigt die Granularität je Datei an und formuliert entsprechend.
+Bewusst NICHT aufgenommen: Tests, Reports, Dokumentation, rein analytische
+Skripte; `thesis/evaluation/tools.py` (der einzige verdictrelevante Wert,
+`DRIVER_PROBLEM_SIZE`, wird von der Evaluation Condition selbst erfasst —
+eine Änderung dort macht das Gate über `evaluation_condition_sha256` stale).
+
+## Generation Condition
+
+`generation_condition_sha256 = e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281`
+— **identische Felddefinition wie der Wave-3-Generation-Condition-Vergleich**
+(§9.9), empirisch bestätigt: der neu berechnete Hash reproduziert exakt den
+dort dokumentierten Params-Hash. Kanonische Projektion: `generation_defaults`
+(inkl. system_prompt, temperature, top_p, max_output_tokens, api_mode,
+api_mode_overrides, retry_attempts, sleep_seconds_between_requests,
+timeout_seconds) plus alle Modellfelder außer den Preisen, Modelle nach
+stabiler Modell-ID; kanonisches JSON (sort_keys, Separatoren `(",", ":")`,
+UTF-8), SHA-256. **Keine Secrets** (api_key_env ist ein
+Umgebungsvariablen-NAME), keine Preise, keine run_id, keine Pfade, keine
+Profile. Keine komplette config.yaml byteweise gehasht.
+**GENERATION_CONDITION_RECOMPUTABLE = true.**
+
+## Evaluation Condition
+
+`evaluation_condition_sha256 = 7f53b0903e3d5e2be2ca4de8bd085da00d3cc6e9e350fc03bf390cac66c35e74`
+— kanonische Projektion der verdictrelevanten Correctness-
+Auswertungsbedingung, zur Prüfzeit deterministisch aus den produktiven
+Quellen rekonstruiert (build_config.py, tools.py, run_correctness.py,
+utilities.hpp, config.yaml `stages.correctness_tests`). Enthalten:
+
+- **Launch-Grid**: serial direkt (argv[1]=niter); omp Threads **1, 2, 4, 8**
+  (argv[1] + OMP_NUM_THREADS; Driver-internes NITER fest 5); mpi Ranks
+  **1, 2, 4, 8** via `mpirun -np` — keine `launch_overrides` in der Config
+  (null).
+- **niter = 1** (Config), **MAX_VALIDATION_ATTEMPTS = 2** (utilities.hpp-
+  Default, per Regex extrahiert; kein `-D`-Override im Build).
+- **Compiler/Flags**: serial/omp `g++` (produktiver CLI-Default), mpi
+  `mpicxx`; je Modell geordnete Flagliste `-std=c++17 -O3 [-fopenmp]
+  -DUSE_* -DDRIVER_PROBLEM_SIZE=(1<<8)` (Original-Flagreihenfolge erhalten,
+  nur Dict-Keys kanonisch sortiert).
+- **NDEBUG**: `ndebug_defined = false` — im produktiven Correctness-Build
+  wird NDEBUG NICHT definiert (explizit repräsentiert, da die historische
+  Size-Mismatch-Semantik davon abhing).
+- **DRIVER_PROBLEM_SIZE = (1<<8)** (Correctness-Problemgröße; nicht mit der
+  Enhanced-Test-Size vermischt).
+- **build_timeout_seconds = 120.0**, **run_timeout_seconds = 120.0**
+  (Timeouts erzeugen direkt build_failed/timeout/runtime_error).
+- Bewusst ausgeschlossen (verdictinvariant/operativ): Include-Pfade,
+  `MISMATCH_REPORT_MAX` (reiner Anzeige-Cap), run_id, Output-/Cache-/
+  Report-Pfade, Logging.
+
+**EVALUATION_CONDITION_RECOMPUTABLE = true.**
+
+## Coverage-Matrix
+
+Maschinenlesbar im Gate (`staleness_coverage`): benchmark_semantics,
+oracle_semantics, validator_semantics, enhanced_test_semantics,
+prompt_semantics (je: benchmarklokale Hashes + zugeordnete shared Dateien),
+generation_condition (`generation_condition_sha256`), evaluation_condition
+(`evaluation_condition_sha256`) — alle `coverage_complete = true`.
+`validity.invalidated_by_changes_to` enthält jetzt zusätzlich
+`generation_condition` und `evaluation_condition`.
+**SHARED_STATE_COVERAGE_COMPLETE = true**, mit zwei transparent
+dokumentierten Scope-Grenzen (keine verdeckten Lücken): (1) der
+Generation-/Assembly-PIPELINE-CODE (Modellantwort → Kandidatenquelle) ist
+keine der sieben Kategorien und wird nicht gefingerprintet; (2)
+Umgebungszustand (Container-Image, Compiler-Binärversionen) ist kein
+Repo-Dateizustand und wird nicht gehasht (operativ über das gepinnte
+Container-Image adressiert).
+
+## Checker-Erweiterung und Negativkontrollen
+
+[check_cross_pilot_gate.py](thesis/evaluation/check_cross_pilot_gate.py)
+prüft jetzt vier Gruppen (`BENCHMARK_LOCAL_STATE`, `SHARED_STATE` mit
+sichtbarer Granularität, `GENERATION_CONDITION`, `EVALUATION_CONDITION`);
+Exit 0 = frisch, 1 = STALE (jeder reproduzierbare Hash-Diff), 2 =
+UNRESOLVED (nicht mehr adressierbare notwendige Quelle — nie stillschweigend
+false). Ein Hash-Diff verlangt weiterhin nur
+`comparability_re_evaluation_required` und erzeugt keine neue
+Klassifikation, kein neues Subset, keine neuen Zellzahlen. Benötigt PyYAML
+(Repo-venv oder Analyse-Container).
+
+Negativkontrollen (ausschließlich an Scratch-Kopien, kein Produktivzustand
+verändert): benchmarklokal → Exit 1 · shared semantic (utilities.hpp) →
+Exit 1 mit `granularity=semantic` · shared coarse (run_correctness.py) →
+Exit 1 mit `granularity=coarse` und ohne Semantikänderungs-Behauptung
+(Verbots-Substring geprüft) · generation_condition → Exit 1 ·
+evaluation_condition → Exit 1 · nicht mehr adressierbare Quelle → Exit 2.
+Alle 6 bestanden.
+
+## Aktueller Zustand
+
+- **CROSS_PILOT_GATE_STALE = false** (Current-State-Checker Exit 0 auf
+  `state_commit 4e0e9159a58ec7c46f64867bc3391f5bc7923462`; durch
+  tatsächliches Neu-Hashen bestimmt, kein manuelles Flag)
+- **STALENESS_RECOMPUTABLE = true**
+- Eingefrorener Cross-Pilot-Inhalt vor/nach der Erweiterung byte-identisch
+  verifiziert: Candidate-Subset (Benchmarks/Modelle/Execution
+  Models/99 Zellen), Klassifikation, transport_effect-Counts (99/0/99),
+  non_finite_reachable-Tabelle, statistical_caveats, candidate_subset_state.
+- Offene methodische Policy-Frage vor pilot_002 (hier NICHT entschieden):
+  **QUANTITATIVE_99_CELL_SUBSET_VS_QUALITATIVE_PILOT_001 = OPEN** — ob die
+  formal zulässige quantitative 99-Zellen-Auswertung als quantitative
+  Thesis-Evidenz verwendet wird oder pilot_001 ausschließlich qualitativ
+  als Findings-/Debugging-Pilot berichtet wird, ist eine separate
+  Publikationsentscheidung.
