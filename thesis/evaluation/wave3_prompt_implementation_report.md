@@ -709,3 +709,143 @@ Alle 6 bestanden.
   Thesis-Evidenz verwendet wird oder pilot_001 ausschließlich qualitativ
   als Findings-/Debugging-Pilot berichtet wird, ist eine separate
   Publikationsentscheidung.
+
+---
+
+# FINAL PILOT-CONDITION CLOSURE: INVOCATION / ASSEMBLY / ENVIRONMENT
+
+> **[NACHTRAG — hinzugefügt von der finalen Pilot-Condition-Closure-Mini-Wave
+> (2026-08-28), NICHT Teil der historischen Texte oberhalb. KEINE neue
+> Cross-Pilot-Analyse, KEINE neue Candidate-Subset-Auswahl, KEINE
+> Publikationsentscheidung: Klassifikation, 99/0/99, K1–K7, Subset und
+> Caveats sind byte-identisch verifiziert. Geschlossen werden ausschließlich
+> drei Drift-Erkennungs-Lücken: effektive Invocation, Assembly-Semantik,
+> Environment-Zustand.]**
+
+## Invocation-Lücke und Policy
+
+Der `evaluation_condition`-Hash friert den Config-/Default-Zustand ein; der
+reale Runner erlaubt aber runtimewirksame CLI-Overrides. Read-only-Inventur
+aller 6 CLI-Optionen von `run_correctness.py`: **alle sind verdict- oder
+populationsrelevant** — `--primary-compiler` (Default g++, Wahl g++|clang++),
+`--run-timeout` (überschreibt Config 120 s stillschweigend), `--config`
+(gesamte Laufzeitkonfiguration), `--profile`/`--run-id` (Population via
+run_id, inkl. Repair-Iterationspopulationen), `--model-id`
+(Populationsrestriktion); rein kosmetische Flags existieren nicht.
+Konkrete, dokumentierte **Provenance-Lücken**: der effektive
+`--run-timeout`-Wert wird **nirgends** persistiert (weder Manifest noch
+Records — nur `timed_out`-Booleans, nie das geltende Limit); der Manifest
+friert `primary_compiler` nur beim ersten Stage-Kontakt ein (spätere
+abweichende Invocations unsichtbar, kein config_drift); das Compile-argv
+wird nicht pro Record gespeichert; die ambiente Umgebung (PATH-Auflösung von
+g++/mpicxx/mpirun, `OMP_*`/`OMPI_MCA_*`) fließt vollständig und
+unaufgezeichnet in jeden Build/Run.
+
+**Gewählte Policy** (`effective_invocation_policy`, konservativ, ohne
+Runner-Umbau): `mode = must_match_frozen_evaluation_condition` — pilot_002
+muss die eingefrorene Evaluation Condition verwenden; verdictrelevante
+Overrides sind entweder nicht gesetzt oder ihr effektiver Wert muss vor dem
+Run maschinenlesbar materialisiert und gegen das Gate geprüft werden (keine
+stillschweigende Mischung). Erwartete Werte (aus dem produktiven Zustand
+abgeleitet): `primary_compiler = g++`, `run_timeout_seconds = 120.0`;
+Populationsconstraints: kein `--model-id` für den Basisrun, `--config`
+content-adressiert über die eingefrorenen Condition-Hashes, run_id =
+Basisrun (keine `__iterN`-Varianten). Bei Abweichung:
+`PILOT_CONDITION_MATCH = false` → `CROSS_PILOT_GATE_STALE = true` →
+`pilot_002_not_authorized`. **EFFECTIVE_INVOCATION_RUNTIME_CHECK =
+REQUIRED** — der Repo-Checker validiert nur die Reproduzierbarkeit der
+ERWARTETEN Werte und behauptet ausdrücklich nicht, eine künftige
+tatsächliche Invocation geprüft zu haben.
+
+## Assembly-State
+
+Produktionspfad read-only verifiziert: `generations.jsonl` →
+`assemble_sources.assemble_model` → `cleaning.clean_for_assembly`
+(Fence-Extraktion, Prose-Stripping, Signatur-Dedup inkl. NO_INLINE-Variante,
+Include-Relocation, kommentar-/string-bewusste Brace-Balance) →
+`assemble_content` → `generated-code.hpp`; der Repair-Loop nutzt denselben
+Pfad. Gate-Erweiterung `assembly_state`:
+
+- `thesis/assembly/cleaning.py` — SHA-256 `3fadc217…`, **granularity =
+  semantic** (alle 420 Zeilen reine Transformationssemantik, pure Funktion
+  von (prompt_text, raw_text), kein CLI/IO).
+- `thesis/assembly/assemble_sources.py` — SHA-256 `f610284d…`,
+  **granularity = coarse** (Konstruktionskern ~50/335 Zeilen plus
+  CLI/IO/Reporting/Exporter).
+- `assembly_condition_sha256 = a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c`
+  — kanonische Projektion `{stage: assembly, auto_close_single_brace: true}`;
+  per Audit ist `stages.assembly.auto_close_single_brace` die **einzige**
+  Configoption, die `generated-code.hpp`-Bytes verändert (übrige
+  Stage-Optionen unkonsumiert bzw. nur Pfade/Reporting; keine komplette
+  Config byteweise gehasht).
+
+Ein Assembly-Diff löst STALE/Exit 1 aus und verlangt Re-Evaluation — er ist
+kein automatisch bewiesener Vergleichbarkeitsverlust.
+**Assembly-Coverage: complete = true.**
+
+## Environment-Condition und Container-Pinning
+
+Vorhandene Provenance wiederverwendet: Die pilot_001-Toolchain ist
+authoritativ in `thesis/results/intermediate/pilot_001/toolchain-versions.txt`
+aufgezeichnet (containergebackenes `/opt/toolchain-versions.txt`, Image-Build
+2026-07-31); der Manifest selbst trägt `primary_compiler="g++"`, aber
+`primary_compiler_version=null` / `toolchain_versions=null`, weil er
+host-seitig von der Generation-Stage eingefroren wurde. Eingefrorene
+erwartete Werte (aus der Provenance-Datei abgeleitet, nicht hartcodiert):
+Compiler **`g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0`**, MPI **Open MPI**,
+Zeile **`mpirun (Open MPI) 4.1.6`**, Container `pareval-thesis`
+(FROM `ubuntu:24.04`).
+
+**CONTAINER_IMAGE_PINNING = TAG_ONLY** — ehrlich klassifiziert: kein
+`@sha256:`-Digest in irgendeinem Dockerfile/Runbefehl, kein Image-Digest/-ID
+in irgendeinem Provenance-Artefakt; `FROM ubuntu:24.04` und ungepinnte
+apt-Pakete sind KEINE Digest-Reproduzierbarkeit (die Repo-eigene
+Readiness-Review führt dies bereits als Befund R12). Die
+`toolchain-versions.txt` spiegelt Image-BUILD-Zeit, nicht Laufzeit — ein
+neu gebautes Image kann still driften. Deshalb:
+**ENVIRONMENT_RUNTIME_CHECK = REQUIRED**: Vor pilot_002 müssen im
+Ausführungscontainer `g++ --version`, `mpirun --version` und die konkrete
+Image-ID/der Digest erfasst und per Preflight verglichen werden; fehlende
+Runtime-Provenance ist UNRESOLVED und blockiert den Pilot (nie als Match
+interpretiert). **Environment-Coverage: complete = false** (transparent).
+
+## Preflight-Contract und Checker-Erweiterung
+
+Neu: [pilot_preflight.py](thesis/evaluation/pilot_preflight.py) (read-only)
+vergleicht eine materialisierte effektive Invocation (`--invocation`) und
+die tatsächliche Laufzeitumgebung (`--environment`) gegen das Gate:
+`PILOT_CONDITION_MATCH` / `PILOT_ENVIRONMENT_MATCH` = true/false/UNRESOLVED;
+Exit 0 nur bei Repo-Gate frisch UND beiden Matches; Mismatch → Exit 1
+(`pilot_002_not_authorized`, Re-Evaluation, keine Neuklassifikation);
+fehlende Provenance → Exit 2. Im Gate materialisiert als `pilot_preflight`
+mit `required_checks = [cross_pilot_repo_state_fresh,
+effective_invocation_matches, runtime_environment_matches,
+interlock_disclosure_ready]` und `on_failure = pilot_002_not_authorized`.
+
+[check_cross_pilot_gate.py](thesis/evaluation/check_cross_pilot_gate.py)
+prüft jetzt sieben Gruppen (zusätzlich `ASSEMBLY_STATE`,
+`EFFECTIVE_INVOCATION_POLICY` repo-seitig, `ENVIRONMENT_CONDITION`
+repo-seitig) und unterscheidet im Schlussurteil explizit
+**CROSS_PILOT_REPO_STATE_STALE** vom separaten Runtime-Match — keine falsche
+Sicherheit durch Gleichsetzung von CLI-Default und tatsächlicher Invocation.
+`validity.invalidated_by_changes_to` umfasst jetzt zehn Kategorien (neu:
+`assembly_semantics`, `effective_invocation`, `environment_condition`);
+die Coverage-Matrix wurde entsprechend erweitert (assembly complete=true;
+invocation/environment ehrlich complete=false mit dokumentierten
+Runtime-Preflight-Pflichten).
+
+## Negativkontrollen und aktueller Status
+
+Alle nur an Scratch-Kopien/Scratch-JSONs: Assembly-Datei → Exit 1
+(semantic-Wortlaut) · assembly_condition → Exit 1 · Invocation-Timeout
+120→60 → `PILOT_CONDITION_MATCH = false`, Exit 1 · Compiler g++→clang++ →
+false, Exit 1 · MPI-Versions-Mismatch → `PILOT_ENVIRONMENT_MATCH = false`,
+Exit 1 · fehlende Compiler-Provenance → UNRESOLVED, Exit 2 (nie true) ·
+Positivkontrolle (alles passend) → Exit 0. Die sechs bestehenden
+Kontrollen (benchmark-local, shared semantic/coarse, generation/evaluation
+condition, unresolved) weiterhin grün; Comparator-Regression Exit 0.
+
+**Aktueller repo-seitiger Status: CROSS_PILOT_REPO_STATE_STALE = false**
+(Exit 0 auf `state_commit 496c03745919a29b2afacfca13b093857d82a931`),
+STALENESS_RECOMPUTABLE = true. Runtime-Checks (Invocation + Environment)
+bleiben vor pilot_002 verpflichtend offen.

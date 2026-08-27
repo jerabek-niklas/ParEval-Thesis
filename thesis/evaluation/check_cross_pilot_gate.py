@@ -20,6 +20,23 @@ rules used at gate-creation time and compares them. Four groups:
                           correctness evaluation condition (launch grids,
                           compilers/flags, NDEBUG state, DRIVER_PROBLEM_SIZE,
                           niter, MAX_VALIDATION_ATTEMPTS, build/run timeouts)
+  ASSEMBLY_STATE          candidate-source construction semantics: raw-byte
+                          hashes of cleaning.py (semantic) and
+                          assemble_sources.py (coarse) plus the canonical
+                          assembly condition (auto_close_single_brace)
+  EFFECTIVE_INVOCATION_POLICY (repo-side only) the frozen EXPECTED values of
+                          the verdict-relevant CLI overrides
+                          (--primary-compiler, --run-timeout) are still
+                          reproducible from the productive defaults/config.
+                          This NEVER validates an actual future invocation:
+                          EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED via
+                          thesis/evaluation/pilot_preflight.py.
+  ENVIRONMENT_CONDITION   (repo-side only) the stored expected environment
+                          values are still derivable from the frozen
+                          pilot_001 toolchain provenance and the Dockerfile
+                          pinning classification still holds.
+                          ENVIRONMENT_RUNTIME_CHECK = REQUIRED via the pilot
+                          preflight (actual compiler/MPI/container identity).
 
 Benchmark-local hash rules (unchanged since gate creation):
   cpu_cc_sha256        SHA-256 over the RAW BYTES of
@@ -95,6 +112,9 @@ CONFIG_PATH = REPO_ROOT / "thesis" / "config" / "config.yaml"
 UTILITIES_HPP = REPO_ROOT / "drivers" / "cpp" / "utilities.hpp"
 TOOLS_PY = REPO_ROOT / "thesis" / "evaluation" / "tools.py"
 RUN_CORRECTNESS_PY = REPO_ROOT / "thesis" / "evaluation" / "run_correctness.py"
+TOOLCHAIN_PROVENANCE = (REPO_ROOT / "thesis" / "results" / "intermediate" /
+                        "pilot_001" / "toolchain-versions.txt")
+DOCKERFILE = REPO_ROOT / "docker" / "Dockerfile"
 
 PM_CANON = ("serial", "omp", "mpi")
 
@@ -223,6 +243,98 @@ def evaluation_condition_projection():
         "run_timeout_seconds": float(stage.get("run_timeout_seconds", default_run_timeout)),
         "launch_overrides": launch_overrides,
     }
+
+
+# ---------------------------------------------------------------------------
+# assembly condition (candidate-source construction semantics)
+# ---------------------------------------------------------------------------
+
+def assembly_condition_projection():
+    """The only config option that changes generated-code.hpp bytes is
+    stages.assembly.auto_close_single_brace (read with default True by
+    assemble_sources.py; cleaning.clean_for_assembly is a pure function of
+    (prompt_text, raw_text) and reads no config). Other stages.assembly keys
+    are either unconsumed by the assembler or location-/reporting-only and
+    are deliberately excluded."""
+    cfg = _load_yaml_config()
+    stage = (cfg.get("stages") or {}).get("assembly") or {}
+    return {
+        "stage": "assembly",
+        "auto_close_single_brace": bool(stage.get("auto_close_single_brace", True)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# effective invocation (repo-side reconstruction of the EXPECTED values)
+# ---------------------------------------------------------------------------
+
+def expected_invocation_values():
+    """Re-derive the frozen expected values of the verdict-relevant CLI
+    overrides from the current productive state. This validates only that
+    the EXPECTED values are still reproducible - it does NOT validate any
+    future actual invocation (that is the runtime preflight's job)."""
+    primary_compiler = _extract(
+        r'"--primary-compiler",\s*default="([^"]+)"', RUN_CORRECTNESS_PY, str,
+        "primary compiler default")
+    default_run_timeout = _extract(r"^DEFAULT_RUN_TIMEOUT\s*=\s*([0-9.]+)\s*$",
+                                   RUN_CORRECTNESS_PY, float, "DEFAULT_RUN_TIMEOUT")
+    cfg = _load_yaml_config()
+    stage = (cfg.get("stages") or {}).get("correctness_tests") or {}
+    return {
+        "primary_compiler": primary_compiler,
+        "run_timeout_seconds": float(stage.get("run_timeout_seconds", default_run_timeout)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# environment condition (repo-side validation of recorded provenance)
+# ---------------------------------------------------------------------------
+
+def environment_provenance_check(expected):
+    """Repo-side check that the stored expected environment values are still
+    derivable from the frozen pilot_001 toolchain provenance and that the
+    Dockerfile pinning classification still holds. Returns a list of
+    (label, status, detail) with status in {ok, STALE, UNRESOLVED}. The
+    ACTUAL runtime environment can NOT be validated here - that requires the
+    runtime preflight."""
+    results = []
+    if not TOOLCHAIN_PROVENANCE.is_file():
+        results.append(("toolchain provenance file", "UNRESOLVED",
+                        "%s missing" % TOOLCHAIN_PROVENANCE))
+    else:
+        text = TOOLCHAIN_PROVENANCE.read_text(encoding="utf-8", errors="replace")
+        for label, needle in (
+                ("primary_compiler_version", expected.get("primary_compiler_version")),
+                ("mpi_version_line", expected.get("mpi_version_line"))):
+            if not needle:
+                results.append((label, "UNRESOLVED", "no expected value stored"))
+            elif needle in text:
+                results.append((label, "ok", ""))
+            else:
+                results.append((label, "STALE",
+                                "expected %r not found in frozen toolchain provenance" % needle))
+    container = expected.get("container") or {}
+    if not DOCKERFILE.is_file():
+        results.append(("dockerfile", "UNRESOLVED", "%s missing" % DOCKERFILE))
+    else:
+        dtext = DOCKERFILE.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r"^FROM\s+(\S+)", dtext, re.MULTILINE)
+        base = m.group(1) if m else None
+        if base != container.get("base_image"):
+            results.append(("container base image", "STALE",
+                            "Dockerfile FROM %r != stored %r" % (base, container.get("base_image"))))
+        else:
+            results.append(("container base image", "ok", ""))
+        digest_pinned = bool(m and "@sha256:" in m.group(1))
+        stored_pinning = container.get("pinning")
+        current_pinning = "DIGEST_PINNED" if digest_pinned else "TAG_ONLY"
+        if stored_pinning != current_pinning:
+            results.append(("container pinning classification", "STALE",
+                            "stored %r != current %r" % (stored_pinning, current_pinning)))
+        else:
+            results.append(("container pinning classification", "ok",
+                            "[%s]" % current_pinning))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -407,16 +519,117 @@ def main() -> int:
             print("  UNRESOLVED (%s)" % exc)
             unresolved = True
 
+    print("ASSEMBLY_STATE")
+    asm = gate.get("assembly_state") or {}
+    afiles = asm.get("files") or {}
+    if not afiles:
+        print("  UNRESOLVED (gate stores no assembly_state.files)")
+        unresolved = True
+    for rel, entry in afiles.items():
+        old = entry.get("sha256")
+        gran = entry.get("granularity", "coarse")
+        new = sha256_file_bytes(REPO_ROOT / rel)
+        if old is None:
+            print("  %s: stored null - skipped [granularity=%s]" % (rel, gran))
+            continue
+        if new is None:
+            print("  %s: UNRESOLVED (file no longer addressable) [granularity=%s]"
+                  % (rel, gran))
+            unresolved = True
+        elif old != new:
+            if gran == "semantic":
+                print("  %s: STALE [granularity=semantic] assembly transformation "
+                      "semantics dependency changed" % rel)
+            else:
+                print("  %s: STALE [granularity=coarse] coarse assembly dependency "
+                      "changed; inspect whether the diff affects the candidate-source "
+                      "construction (a coarse diff is NOT proof of a semantic change)"
+                      % rel)
+            stale = True
+        else:
+            print("  %s: ok [granularity=%s]" % (rel, gran))
+    acond = asm.get("condition") or {}
+    old = acond.get("sha256")
+    if old is None:
+        print("  assembly_condition: UNRESOLVED (no sha256 stored)")
+        unresolved = True
+    else:
+        try:
+            new = canon_sha256(assembly_condition_projection())
+            if old != new:
+                print("  assembly_condition: STALE (stored %s... != current %s...)"
+                      % (old[:12], new[:12]))
+                stale = True
+            else:
+                print("  assembly_condition: ok")
+        except ConditionUnresolved as exc:
+            print("  assembly_condition: UNRESOLVED (%s)" % exc)
+            unresolved = True
+
+    print("EFFECTIVE_INVOCATION_POLICY")
+    pol = gate.get("effective_invocation_policy") or {}
+    overrides = pol.get("verdict_relevant_cli_overrides") or {}
+    if not overrides:
+        print("  UNRESOLVED (gate stores no verdict_relevant_cli_overrides)")
+        unresolved = True
+    else:
+        try:
+            current = expected_invocation_values()
+            for key in ("primary_compiler", "run_timeout_seconds"):
+                stored_exp = (overrides.get(key) or {}).get("expected")
+                if stored_exp is None:
+                    print("  %s: UNRESOLVED (no expected value stored)" % key)
+                    unresolved = True
+                elif stored_exp != current[key]:
+                    print("  %s: STALE (stored expected %r no longer matches the "
+                          "productive default/config value %r)"
+                          % (key, stored_exp, current[key]))
+                    stale = True
+                else:
+                    print("  %s: ok (expected %r reproducible from repo state)"
+                          % (key, stored_exp))
+        except ConditionUnresolved as exc:
+            print("  UNRESOLVED (%s)" % exc)
+            unresolved = True
+    print("  EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED (this repo-side check"
+          " validates only the frozen EXPECTED values; a future actual CLI"
+          " invocation is NOT validated here - run"
+          " thesis/evaluation/pilot_preflight.py before pilot_002)")
+
+    print("ENVIRONMENT_CONDITION")
+    env = gate.get("environment_condition") or {}
+    expected_env = env.get("expected") or {}
+    if not expected_env:
+        print("  UNRESOLVED (gate stores no environment_condition.expected)")
+        unresolved = True
+    else:
+        for label, status, detail in environment_provenance_check(expected_env):
+            print("  %s: %s%s" % (label, status, (" " + detail if detail else "")))
+            if status == "STALE":
+                stale = True
+            elif status == "UNRESOLVED":
+                unresolved = True
+    print("  ENVIRONMENT_RUNTIME_CHECK = REQUIRED (repo-side provenance only;"
+          " the actual runtime environment - compiler/MPI versions, container"
+          " image digest/ID - must be captured and compared by the pilot"
+          " preflight before pilot_002)")
+
     if stale:
-        print("\nCROSS_PILOT_GATE_STALE = true")
+        print("\nCROSS_PILOT_REPO_STATE_STALE = true")
+        print("CROSS_PILOT_GATE_STALE = true")
         print("-> comparability_re_evaluation_required (a hash diff does not"
               " by itself produce a new comparability classification, a new"
               " candidate subset, or new cell counts)")
         return 1
     if unresolved:
-        print("\nCROSS_PILOT_GATE_STALE = UNRESOLVED")
+        print("\nCROSS_PILOT_REPO_STATE_STALE = UNRESOLVED")
+        print("CROSS_PILOT_GATE_STALE = UNRESOLVED")
         return 2
-    print("\nCROSS_PILOT_GATE_STALE = false")
+    print("\nCROSS_PILOT_REPO_STATE_STALE = false")
+    print("CROSS_PILOT_GATE_STALE = false (repo-state check; the RUNTIME"
+          " condition match - effective invocation and actual environment -"
+          " is determined separately by thesis/evaluation/pilot_preflight.py"
+          " and is REQUIRED before pilot_002)")
     return 0
 
 

@@ -2,7 +2,7 @@
  "generated_by": "Wave 3 cleanup",
  "date": "2026-08-27",
  "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
- "state_commit": "4e0e9159a58ec7c46f64867bc3391f5bc7923462",
+ "state_commit": "496c03745919a29b2afacfca13b093857d82a931",
  "pilot_001_population": {
   "iteration0_cells": 396,
   "benchmarks": 12,
@@ -364,9 +364,87 @@
    }
   }
  },
+ "assembly_state": {
+  "files": {
+   "thesis/assembly/cleaning.py": {
+    "sha256": "3fadc2173e5f0651ce51326ccda4389b6df8e6ecb45af085b1996a49b02b82d7",
+    "granularity": "semantic",
+    "reason": "Pure model-output -> candidate-source transformation semantics (fence extraction, prose stripping, signature dedup incl. NO_INLINE-patched variant, include relocation, comment/string-aware brace balance). No CLI, no IO, no reporting; clean_for_assembly is a pure function of (prompt_text, raw_text). Any byte diff is highly likely methodically relevant."
+   },
+   "thesis/assembly/assemble_sources.py": {
+    "sha256": "f610284d8836ec54f2b204037d5aafe5e3512ae3b3ac07860516d2f2c082fa24",
+    "granularity": "coarse",
+    "reason": "Contains the generated-code.hpp construction core (patch_signature_line, assemble_content, auto-close/brace-check block, ~50 of 335 lines) PLUS substantial CLI/IO/reporting code (argparse, jsonl bookkeeping, driver-path metadata, --export-pareval-json, manifest contact, print summaries). A byte diff requires inspecting whether the candidate-source construction is affected."
+   }
+  },
+  "condition": {
+   "sha256": "a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c",
+   "definition": "Canonical projection of the assembly configuration that can change generated-code.hpp bytes. Verified by read-only audit: stages.assembly.auto_close_single_brace (default True; appends exactly one '}' when the assembled file's brace balance is +1 and the generation was not truncated) is the ONLY config option affecting the assembled candidate source - cleaning.clean_for_assembly reads no config; enabled/output_file_name/feedback_caps are unconsumed by the assembler or reporting-only; outputs.* keys are locations only. Canonical JSON (sort_keys, separators (',',':'), UTF-8), SHA-256. The repair loop reuses assemble_model() unchanged, so the same condition governs iteration assembly.",
+   "canonical_fields": [
+    "stage (assembly)",
+    "auto_close_single_brace (true)"
+   ],
+   "projection": {
+    "stage": "assembly",
+    "auto_close_single_brace": true
+   }
+  },
+  "pipeline_note": "Productive path verified read-only: generations.jsonl -> assemble_sources.assemble_model -> cleaning.clean_for_assembly (extract_code, split_at_signature, relocate_includes, brace_balance) -> assemble_content -> generated-code.hpp (+ assembly.v1 metadata records)."
+ },
+ "effective_invocation_policy": {
+  "mode": "must_match_frozen_evaluation_condition",
+  "rationale": "The evaluation_condition hash freezes the config/default state, but run_correctness.py accepts runtime-effective CLI overrides. A pilot run may therefore execute under a different EFFECTIVE condition while the repo-state checker still reports fresh. pilot_002 must use the frozen evaluation condition: verdict-relevant overrides are either not passed at all, or their effective values must be materialized and checked against this gate BEFORE the run (no silent mixture).",
+  "verdict_relevant_cli_overrides": {
+   "primary_compiler": {
+    "cli_flag": "--primary-compiler",
+    "expected": "g++",
+    "expected_source": "argparse default (run_correctness.py; choices g++|clang++); also frozen per manifest at first stage contact"
+   },
+   "run_timeout_seconds": {
+    "cli_flag": "--run-timeout",
+    "expected": 120.0,
+    "expected_source": "config stages.correctness_tests.run_timeout_seconds = 120 (CLI value would silently take precedence)"
+   }
+  },
+  "population_constraints": {
+   "config": "--config must resolve to a configuration whose generation_condition_sha256 and evaluation_condition_sha256 equal the frozen values (content-addressed; the file path itself is irrelevant)",
+   "model_selection": "no --model-id restriction for the pilot_002 base run: all 11 enabled models of the frozen generation condition",
+   "run_id": "--run-id/--profile must address the pilot_002 BASE run (iteration variants __*__iterN are repair populations, not the cross-pilot base population)"
+  },
+  "documented_provenance_gaps": [
+   "the EFFECTIVE --run-timeout value is persisted nowhere by the runner (not in the run manifest, not in correctness records; records store timed_out/duration but never the limit in force) - therefore the preflight materialization below is the only mechanical control",
+   "the manifest freezes primary_compiler only at first stage contact; later invocations with a different --primary-compiler leave no trace and no config_drift entry",
+   "the compile argv is not stored per record",
+   "ambient environment (PATH resolution of g++/mpicxx/mpirun, OMP_*/OMPI_MCA_* variables) is copied wholesale into every compile/run child and is unrecorded - the runtime preflight environment capture is the compensating control"
+  ],
+  "on_difference": "PILOT_CONDITION_MATCH = false -> CROSS_PILOT_GATE_STALE -> pilot_002_not_authorized",
+  "runtime_check": "REQUIRED - thesis/evaluation/pilot_preflight.py --invocation <effective.json> --environment <runtime.json>; the repo-side checker validates only that the EXPECTED values remain reproducible"
+ },
+ "environment_condition": {
+  "expected": {
+   "primary_compiler": "g++",
+   "primary_compiler_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+   "mpi_implementation": "Open MPI",
+   "mpi_version_line": "mpirun (Open MPI) 4.1.6",
+   "container": {
+    "image": "pareval-thesis",
+    "base_image": "ubuntu:24.04",
+    "pinning": "TAG_ONLY",
+    "image_digest_or_id": null
+   }
+  },
+  "source": "Frozen pilot_001 toolchain provenance thesis/results/intermediate/pilot_001/toolchain-versions.txt (copied at run time from the container-baked /opt/toolchain-versions.txt; image build 2026-07-31) plus docker/Dockerfile (FROM ubuntu:24.04). The pilot_001 run_manifest.json itself carries primary_compiler='g++' but primary_compiler_version=null and toolchain_versions=null because the manifest was frozen host-side by the generation stage - the side file is the authoritative toolchain record.",
+  "container_pinning_classification": "TAG_ONLY - docker/Dockerfile pins no digest (FROM ubuntu:24.04), apt packages float at build time, and no image digest/ID is recorded in any repository provenance artifact. TAG_ONLY is NOT digest-pinned reproducibility; this is stated honestly rather than claiming a pinned image.",
+  "recomputation": "runtime preflight required",
+  "runtime_requirements": [
+   "before pilot_002, capture inside the execution container: first line of `g++ --version`, first line of `mpirun --version`, and the concrete docker image ID or repo digest of the pareval-thesis image actually used",
+   "compare via thesis/evaluation/pilot_preflight.py; a missing captured value is UNRESOLVED and blocks the pilot (missing runtime provenance is never a match)",
+   "persist the captured image ID/digest as run provenance (upgrades the classification toward IMAGE_ID_RECORDED for that run)"
+  ]
+ },
  "validity": {
   "stale": false,
-  "staleness_check": "recompute_candidate_subset_state_hashes + recompute_shared_state_file_hashes + recompute_generation_condition_hash + recompute_evaluation_condition_hash",
+  "staleness_check": "recompute_candidate_subset_state_hashes + recompute_shared_state_file_hashes + recompute_generation_condition_hash + recompute_evaluation_condition_hash + recompute_assembly_state_hashes + recompute_assembly_condition_hash + verify_expected_invocation_values + verify_environment_provenance",
   "checker": "thesis/evaluation/check_cross_pilot_gate.py (authoritative hash rules in its docstring; exit 0 fresh / 1 stale / 2 unresolved)",
   "on_hash_difference": "comparability_re_evaluation_required",
   "on_unreproducible_state": "CROSS_PILOT_GATE_STALE = UNRESOLVED (never silently false)",
@@ -377,9 +455,12 @@
    "enhanced_test_semantics",
    "prompt_semantics",
    "generation_condition",
-   "evaluation_condition"
+   "evaluation_condition",
+   "assembly_semantics",
+   "effective_invocation",
+   "environment_condition"
   ],
-  "scope": "candidate_subset.benchmarks + shared_state (shared measurement dependencies, generation condition, evaluation condition)",
+  "scope": "candidate_subset.benchmarks + shared_state (shared measurement dependencies, generation condition, evaluation condition) + assembly_state + effective_invocation_policy + environment_condition (repo-side; runtime values via pilot_preflight)",
   "note": "stale=false is only a cached status as of state_commit; the authoritative staleness signal is recomputation of the stored fingerprints under the rules in the checker."
  },
  "staleness_coverage": {
@@ -448,11 +529,51 @@
     ],
     "coverage_complete": true,
     "notes": "covers launch grids, compilers/flags, NDEBUG state, DRIVER_PROBLEM_SIZE, niter, MAX_VALIDATION_ATTEMPTS, build/run timeouts; environment-level state (container image, compiler binary versions) is a documented scope boundary - it is not addressable as a repo file hash"
+   },
+   {
+    "category": "assembly_semantics",
+    "covered_by": [
+     "assembly_state.files (cleaning.py semantic, assemble_sources.py coarse)",
+     "assembly_state.condition.sha256 (auto_close_single_brace)"
+    ],
+    "coverage_complete": true,
+    "notes": "cleaning is a pure function of (prompt_text, raw_text); the single content-affecting config option is captured; the repair loop reuses the same assembly path"
+   },
+   {
+    "category": "effective_invocation",
+    "covered_by": [
+     "effective_invocation_policy.verdict_relevant_cli_overrides (frozen expected values)",
+     "pilot_preflight rule (runtime materialization + comparison)",
+     "repo-side checker (expected values reproducible from defaults/config)"
+    ],
+    "coverage_complete": false,
+    "notes": "repo-side coverage of the EXPECTED values is complete, but the ACTUAL invocation is only checkable at runtime (EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED); the runner persists no effective --run-timeout and ambient-environment overrides (PATH, OMP_*/OMPI_MCA_*) are unrecorded - both documented gaps are compensated only by the mandatory preflight"
+   },
+   {
+    "category": "environment_condition",
+    "covered_by": [
+     "environment_condition.expected (from frozen pilot_001 toolchain provenance)",
+     "Dockerfile pinning classification (TAG_ONLY)",
+     "pilot_preflight runtime capture (compiler/MPI versions, image ID/digest)"
+    ],
+    "coverage_complete": false,
+    "notes": "container is TAG_ONLY pinned (no digest recorded anywhere); toolchain-versions.txt reflects image BUILD time, not run time; a rebuilt image can drift silently - therefore ENVIRONMENT_RUNTIME_CHECK = REQUIRED and missing runtime provenance blocks the pilot"
    }
   ],
   "known_scope_boundaries": [
-   "generation/assembly pipeline CODE (model response -> candidate source) is not part of the seven categories and is not fingerprinted here",
-   "toolchain/environment versions (container image, g++/mpicxx binaries) are not repo files and are not fingerprinted; the evaluation container is pinned operationally"
+   "generation pipeline CODE (provider adapters, request/response handling in thesis/generation/**) remains outside the fingerprinted categories; the assembly/cleaning path (model response -> candidate source) is now fingerprinted under assembly_semantics",
+   "toolchain/environment BINARIES are not repo files: expected values are frozen from recorded pilot_001 provenance under environment_condition, the container is honestly classified TAG_ONLY, and a runtime preflight capturing the actual image ID/digest and tool versions is mandatory before pilot_002"
   ]
+ },
+ "pilot_preflight": {
+  "required_checks": [
+   "cross_pilot_repo_state_fresh",
+   "effective_invocation_matches",
+   "runtime_environment_matches",
+   "interlock_disclosure_ready"
+  ],
+  "tool": "thesis/evaluation/pilot_preflight.py",
+  "on_failure": "pilot_002_not_authorized",
+  "note": "This preflight authorizes only the cross-pilot condition; the separately documented open blockers before pilot_002 (open semantic decisions with disclosure interlocks, reuse decision, publication decision, enhanced pattern wave, tool-state gates) remain."
  }
 }
