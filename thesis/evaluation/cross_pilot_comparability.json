@@ -2,7 +2,7 @@
  "generated_by": "Wave 3 cleanup",
  "date": "2026-08-27",
  "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
- "state_commit": "496c03745919a29b2afacfca13b093857d82a931",
+ "state_commit": "5b22343b8b01456ee37b6a009ee26aba5c07a2e9",
  "pilot_001_population": {
   "iteration0_cells": 396,
   "benchmarks": 12,
@@ -392,7 +392,19 @@
   "pipeline_note": "Productive path verified read-only: generations.jsonl -> assemble_sources.assemble_model -> cleaning.clean_for_assembly (extract_code, split_at_signature, relocate_includes, brace_balance) -> assemble_content -> generated-code.hpp (+ assembly.v1 metadata records)."
  },
  "effective_invocation_policy": {
-  "mode": "must_match_frozen_evaluation_condition",
+  "mode": "must_match_frozen_pilot_condition",
+  "invocation_self_declared": true,
+  "preflight_is_declaration_check_not_enforcement": true,
+  "declaration_semantics": "invocation.json is a machine-readable SELF-DECLARATION of the planned EFFECTIVE invocation (values after applying CLI overrides, not raw argv). A passing preflight means only that the declared planned invocation is compatible with this gate; it is NOT proof that the actual later run was started with exactly these arguments. The after-the-fact proof is the post-run manifest verification (see pilot_preflight.post_run_manifest_verification).",
+  "required_invocation_fields": [
+   "config_path",
+   "profile",
+   "effective_run_id",
+   "selected_model_ids",
+   "primary_compiler",
+   "run_timeout_seconds",
+   "model_id_cli_override"
+  ],
   "rationale": "The evaluation_condition hash freezes the config/default state, but run_correctness.py accepts runtime-effective CLI overrides. A pilot run may therefore execute under a different EFFECTIVE condition while the repo-state checker still reports fresh. pilot_002 must use the frozen evaluation condition: verdict-relevant overrides are either not passed at all, or their effective values must be materialized and checked against this gate BEFORE the run (no silent mixture).",
   "verdict_relevant_cli_overrides": {
    "primary_compiler": {
@@ -418,7 +430,17 @@
    "ambient environment (PATH resolution of g++/mpicxx/mpirun, OMP_*/OMPI_MCA_* variables) is copied wholesale into every compile/run child and is unrecorded - the runtime preflight environment capture is the compensating control"
   ],
   "on_difference": "PILOT_CONDITION_MATCH = false -> CROSS_PILOT_GATE_STALE -> pilot_002_not_authorized",
-  "runtime_check": "REQUIRED - thesis/evaluation/pilot_preflight.py --invocation <effective.json> --environment <runtime.json>; the repo-side checker validates only that the EXPECTED values remain reproducible"
+  "runtime_check": "REQUIRED - thesis/evaluation/pilot_preflight.py --invocation <effective.json> --environment <runtime.json>; the repo-side checker validates only that the EXPECTED values remain reproducible",
+  "config_condition": {
+   "generation_condition_must_match": true,
+   "evaluation_condition_must_match": true,
+   "note": "Content-addressed, never path-addressed: the preflight loads the declared config and projects it through the SAME authoritative condition definitions (check_cross_pilot_gate.generation_condition_projection / evaluation_condition_projection with an explicit config path); the resulting hashes must equal the frozen shared_state hashes. A different file with identical relevant content is methodically identical."
+  },
+  "model_population": {
+   "allow_model_id_restriction": false,
+   "source_of_expected_population": "enabled models from the validated (hash-matching) invocation config",
+   "note": "The generation-condition hash already freezes WHICH model population the config defines (enabled, provider, model name, reasoning config). This check adds ONLY the execution question: does the planned base run execute that full population (selected_model_ids == enabled ids, no --model-id restriction)? No second population source of truth."
+  }
  },
  "environment_condition": {
   "expected": {
@@ -441,6 +463,19 @@
    "compare via thesis/evaluation/pilot_preflight.py; a missing captured value is UNRESOLVED and blocks the pilot (missing runtime provenance is never a match)",
    "persist the captured image ID/digest as run provenance (upgrades the classification toward IMAGE_ID_RECORDED for that run)"
   ]
+ },
+ "expected_pilot_002_population": {
+  "selection": null,
+  "prompt_limit": null,
+  "num_samples_per_prompt": null,
+  "status": "NOT_YET_DECIDED",
+  "note": "The pilot_002 target population is an OPEN methodical decision (PILOT_002_POPULATION_DECISION = OPEN, in particular PILOT_002_NUM_SAMPLES_PER_PROMPT = OPEN). The historical pilot_001 values (selection=stratified, prompt_limit=36, num_samples_per_prompt=1) are deliberately NOT copied here: 1 sample per cell is a documented pilot_001 weakness, and a deliberate increase for pilot_002 would be a methodical improvement that this gate must not block. While status == NOT_YET_DECIDED the preflight reports PROFILE_POPULATION_MATCH = UNRESOLVED and PILOT_002_POPULATION_READY = false (NOT a mismatch). A later separate decision sets the three values and status = DECIDED."
+ },
+ "expected_pilot_002_base_run": {
+  "run_id": null,
+  "status": "NOT_YET_CONFIGURED",
+  "forbid_iteration_variants": true,
+  "note": "No pilot_002 base run id is configured yet (the config pilot profile still carries the historical pilot_001 run id, which is deliberately NOT adopted as the expected pilot_002 value). While NOT_YET_CONFIGURED the preflight reports RUN_ID_MATCH = UNRESOLVED and PILOT_002_BASE_RUN_ID_READY = false. Independent of this status, reserved/iteration run ids (pilot_001, smoke_*, full_*, repair_smoke_*, model_check_*, any '__iter'/variant suffix) are always rejected - a repair-iteration population can never be the cross-pilot base run."
  },
  "validity": {
   "stale": false,
@@ -547,7 +582,10 @@
      "repo-side checker (expected values reproducible from defaults/config)"
     ],
     "coverage_complete": false,
-    "notes": "repo-side coverage of the EXPECTED values is complete, but the ACTUAL invocation is only checkable at runtime (EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED); the runner persists no effective --run-timeout and ambient-environment overrides (PATH, OMP_*/OMPI_MCA_*) are unrecorded - both documented gaps are compensated only by the mandatory preflight"
+    "notes": "The POLICY coverage is complete (all six verdict-/population-relevant CLI dimensions of run_correctness.py are declared, checked or explicitly gated: --config/--profile content-addressed via condition hashes, --model-id via the model-population check, --run-id via the base-run-id check, --primary-compiler and --run-timeout via frozen expected values). The concrete future invocation itself remains unknown at repo time: the preflight validates a SELF-DECLARATION (invocation_self_declared = true, not enforcement), and the actual execution must additionally be proven by the post-run manifest verification (REQUIRED_NOT_IMPLEMENTED; the runner persists no effective --run-timeout - documented gap).",
+    "policy_coverage_complete": true,
+    "runtime_declaration_check_required": true,
+    "post_run_execution_verification_required": true
    },
    {
     "category": "environment_condition",
@@ -566,14 +604,31 @@
   ]
  },
  "pilot_preflight": {
-  "required_checks": [
-   "cross_pilot_repo_state_fresh",
-   "effective_invocation_matches",
-   "runtime_environment_matches",
-   "interlock_disclosure_ready"
-  ],
   "tool": "thesis/evaluation/pilot_preflight.py",
+  "tool_checks": [
+   "cross_pilot_repo_state_fresh",
+   "declared_invocation_complete_and_matches",
+   "config_generation_condition_matches",
+   "config_evaluation_condition_matches",
+   "profile_exists",
+   "pilot_002_population_target_check (UNRESOLVED while NOT_YET_DECIDED)",
+   "full_model_population_executed_no_model_id_restriction",
+   "base_run_id_check (UNRESOLVED while NOT_YET_CONFIGURED; reserved/iteration ids always rejected)",
+   "runtime_environment_toolchain_compatible",
+   "runtime_image_identity_captured"
+  ],
+  "external_final_gate_checks": [
+   "interlock_disclosure_ready",
+   "pilot_002_population_decided",
+   "pilot_002_base_run_id_configured",
+   "reuse_decision_ready",
+   "publication_policy_ready"
+  ],
+  "external_note": "pilot_preflight.py does NOT perform the external final-gate checks and never claims to; a passing tool run reports technical_cross_pilot_preflight_passed AND final_pilot_gate_still_required - never 'pilot_002 fully authorized'.",
   "on_failure": "pilot_002_not_authorized",
-  "note": "This preflight authorizes only the cross-pilot condition; the separately documented open blockers before pilot_002 (open semantic decisions with disclosure interlocks, reuse decision, publication decision, enhanced pattern wave, tool-state gates) remain."
+  "post_run_manifest_verification": {
+   "status": "REQUIRED_NOT_IMPLEMENTED",
+   "rationale": "The preflight is a declaration check, not enforcement. After the actual pilot_002, a read-only comparison of the actual run_manifest.json (frozen resolved config, effective primary compiler, run identity, config drift, toolchain/environment provenance, and the effective invocation where materialized) against this gate is a mandatory later step. Known manifest gap to respect there: the effective --run-timeout is currently persisted nowhere by the runner."
+  }
  }
 }

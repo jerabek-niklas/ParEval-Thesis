@@ -849,3 +849,153 @@ condition, unresolved) weiterhin grün; Comparator-Regression Exit 0.
 (Exit 0 auf `state_commit 496c03745919a29b2afacfca13b093857d82a931`),
 STALENESS_RECOMPUTABLE = true. Runtime-Checks (Invocation + Environment)
 bleiben vor pilot_002 verpflichtend offen.
+
+---
+
+# FINAL PILOT PREFLIGHT DECLARATION / POPULATION HARDENING
+
+> **[NACHTRAG — hinzugefügt von der finalen Preflight-Hardening-Mini-Wave
+> (2026-08-28), NICHT Teil der historischen Texte oberhalb. KEINE
+> Cross-Pilot-Neuanalyse: Klassifikation, Candidate Subset,
+> candidate_subset_state und 99/0/99 sind byte-identisch verifiziert. KEINE
+> pilot_002-Populations- oder Run-ID-Entscheidung, keine Config-Änderung.]**
+
+## Ursprünglicher Preflight-Gap
+
+`pilot_preflight.py` prüfte bisher im Wesentlichen nur `primary_compiler`
+und `run_timeout_seconds`, obwohl `--config`, `--profile`, `--model-id` und
+`--run-id` gleichermaßen verdict- bzw. populationsrelevant sind (Inventur
+der vorherigen Mini-Wave: alle 6 CLI-Flags von `run_correctness.py`
+relevant). Zudem war der Preflight nicht als das gekennzeichnet, was er ist:
+eine **Deklarationsprüfung**, keine Laufzeitdurchsetzung.
+
+## Vollständige Invocation-Deklaration (Self-Declaration)
+
+`invocation.json` muss jetzt die vollständige GEPLANTE effektive Invocation
+beschreiben (Werte NACH Anwendung von CLI-Overrides, nicht raw argv):
+`config_path`, `profile`, `effective_run_id`, `selected_model_ids`,
+`primary_compiler`, `run_timeout_seconds`, `model_id_cli_override`.
+Fehlende Pflichtfelder → `PILOT_CONDITION_MATCH = UNRESOLVED`, Exit 2.
+Im Gate und im Tool-Output materialisiert:
+**`INVOCATION_SELF_DECLARED = true`** und
+**`PREFLIGHT_IS_DECLARATION_CHECK_NOT_ENFORCEMENT = true`** — ein
+bestandener Preflight bedeutet nur „die deklarierte geplante Invocation ist
+mit dem Gate kompatibel", NICHT „der spätere tatsächliche Lauf ist bewiesen".
+
+## Content-addressed Config-Prüfung
+
+Der Configpfad ist nicht die methodische Identität. Der Preflight lädt die
+deklarierte Config und projiziert sie durch die **bestehenden**
+autoritativen Definitionen (`generation_condition_projection` /
+`evaluation_condition_projection` aus `check_cross_pilot_gate.py`, minimal
+refaktoriert um einen optionalen expliziten Configpfad — Default-Verhalten
+unverändert, beide eingefrorenen Hashes `e22ce9be…`/`7f53b090…` exakt
+reproduziert, keine zweite Condition-Definition). Abweichung →
+`CONFIG_GENERATION_CONDITION_MATCH = false` bzw.
+`CONFIG_EVALUATION_CONDITION_MATCH = false` → Exit 1.
+
+## pilot_002-Population: eigenständiger offener Sollzustand
+
+Die pilot_001-Population (stratified / 36 / **1 Sample pro Zelle**) wird
+ausdrücklich NICHT als pilot_002-Soll übernommen — 1 Sample/Zelle ist eine
+dokumentierte pilot_001-Schwäche; eine bewusste Erhöhung wäre eine
+methodische Verbesserung und darf vom Preflight nicht blockiert werden.
+Neu im Gate: `expected_pilot_002_population` mit
+`selection/prompt_limit/num_samples_per_prompt = null`,
+**`status = NOT_YET_DECIDED`**. Solange nicht DECIDED:
+`PROFILE_POPULATION_MATCH = UNRESOLVED`, `PILOT_002_POPULATION_READY =
+false` — ausdrücklich KEIN Mismatch gegen pilot_001. Offen:
+**PILOT_002_POPULATION_DECISION = OPEN**, insbesondere
+**PILOT_002_NUM_SAMPLES_PER_PROMPT = OPEN**.
+
+## pilot_002-Basisrun-ID: eigenständig, nicht konfiguriert
+
+Die Config trägt weiterhin `pilot.run_id = pilot_001`; dieser Wert wird
+NICHT als erwartete pilot_002-Run-ID gespeichert. Neu:
+`expected_pilot_002_base_run` mit `run_id = null`,
+**`status = NOT_YET_CONFIGURED`**, `forbid_iteration_variants = true` →
+`RUN_ID_MATCH = UNRESOLVED`, `PILOT_002_BASE_RUN_ID_READY = false`.
+Unabhängig davon werden reservierte/iterative IDs IMMER abgelehnt
+(`pilot_001`, `smoke_*`, `full_*`, `repair_smoke_*`, `model_check_*`,
+jedes `__iter`-/Varianten-Suffix): ein Repair-Iteration-Run kann den
+Basisrun-Preflight nie bestehen.
+
+## Modellpopulation vs. Generation Condition (keine doppelte Source of Truth)
+
+Der Generation-Condition-Hash friert bereits ein, WELCHE Modellpopulation
+die Config definiert (enabled, Provider, Modellname, Reasoning-Config). Der
+separate Modellpopulationscheck prüft ausschließlich, ob die konkrete
+geplante Invocation diese **vollständige** Population AUSFÜHRT:
+`set(selected_model_ids) == set(enabled ids der validierten Config)`;
+`model_id_cli_override != null` → `MODEL_ID_RESTRICTION_PRESENT = true` →
+`MODEL_POPULATION_MATCH = false` → Exit 1 (Targeted Smokes/Debug-Runs sind
+keine Basis-Piloten).
+
+## Interlock-Zuständigkeit und Post-Run-Nachweis
+
+Die frühere Inkonsistenz (`interlock_disclosure_ready` in
+`required_checks`, obwohl das Tool dies nie prüfte) ist behoben:
+`pilot_preflight` unterscheidet jetzt `tool_checks` (10 tool-eigene
+Dimensionen) von `external_final_gate_checks`
+(`interlock_disclosure_ready`, `pilot_002_population_decided`,
+`pilot_002_base_run_id_configured`, `reuse_decision_ready`,
+`publication_policy_ready`) — das Tool behauptet nie, externe Gates geprüft
+zu haben. Ein erfolgreicher Lauf meldet
+`technical_cross_pilot_preflight_passed` UND
+`final_pilot_gate_still_required`, niemals „pilot_002 fully authorized".
+**`POST_RUN_MANIFEST_VERIFICATION = REQUIRED_NOT_IMPLEMENTED`** ist im Gate
+materialisiert: Der nachlaufende read-only Abgleich des tatsächlichen
+pilot_002-`run_manifest.json` (frozen Config, effektiver Compiler,
+Run-Identität, Config-Drift, Toolchain-Provenance) gegen das Gate ist ein
+späterer Pflichtschritt; `run_manifest.py` blieb unverändert (bekannte
+Lücke dort weiterhin dokumentiert: effektiver `--run-timeout` wird nicht
+persistiert). PRE-RUN (geplante Bedingung kompatibel?) und POST-RUN
+(tatsächlich so gelaufen?) sind sprachlich und strukturell getrennt.
+
+## Environment-Wording
+
+`PILOT_ENVIRONMENT_TOOLCHAIN_COMPATIBLE` (Compiler-/MPI-Version passen zur
+aufgezeichneten Toolchain) ist von
+`PILOT_RUNTIME_IMAGE_IDENTITY_CAPTURED` (aktuelle Image-ID/Digest erfasst)
+getrennt; `PILOT_ENVIRONMENT_MATCH` ist explizit definiert als „recorded
+toolchain condition compatible AND required current runtime provenance
+present" — da pilot_001 keinen Digest aufzeichnete, ist eine heutige
+Image-ID ausdrücklich KEIN Beweis historisch identischer Container-Identität
+(das Tool sagt dies wörtlich; Wording-Kontrolle geprüft).
+
+## Coverage-Semantik
+
+Für `effective_invocation` gilt jetzt differenziert:
+**`policy_coverage_complete = true`** (alle sechs CLI-Dimensionen deklariert
+und geprüft bzw. gegated), **`runtime_declaration_check_required = true`**,
+**`post_run_execution_verification_required = true`**;
+`coverage_complete` bleibt ehrlich `false`, solange die konkrete zukünftige
+Invocation unbekannt ist.
+
+## Kontrollen
+
+Alle nur in Scratch (Gate-Kopien, Scratch-Configs, Scratch-JSONs): falsche
+Generation-Config → Exit 1 · falsche Evaluation-Config → Exit 1 ·
+unbekanntes Profil → Exit 1 · Population NOT_YET_DECIDED →
+UNRESOLVED/NOT_READY (Exit 2, kein pilot_001-Fallback, „NOT a mismatch
+against pilot_001" verifiziert) · Modell-Teilmenge → Exit 1 ·
+`model_id_cli_override` → Exit 1 · Run-ID NOT_YET_CONFIGURED →
+UNRESOLVED/NOT_READY · falsche konfigurierte Run-ID (synthetisches Gate) →
+Exit 1 · `pilot_002__repair__iter1` → `REPAIR_ITERATION_RUN = true`, Exit 1
+· Populations-Mismatch bei DECIDED → Exit 1 · fehlendes Pflichtfeld →
+Exit 2 · Environment-Wording-Kontrolle (keine
+historische-Identitäts-Behauptung) → PASS · **synthetische
+Complete-Policy-Positivkontrolle** (hypothetisch entschiedene Population
+num_samples=3 + konfigurierte Run-ID `pilot_002` + passende Scratch-Config
+mit hash-identischen Conditions) → **Exit 0** mit
+`technical_cross_pilot_preflight_passed` + `final_pilot_gate_still_required`
+· die vier früheren Preflight-Kontrollen (Timeout/Compiler/Env-Mismatch,
+Env-Unresolved) auf das vollständige Deklarationsschema gehoben und grün ·
+Gate-Bestandskontrollen (benchmark-local, shared semantic/coarse,
+generation/evaluation condition, unresolved, assembly) grün ·
+Repo-Checker Exit 0 · Comparator-Regression Exit 0.
+
+Der **ehrliche aktuelle Zustand** des echten Gates ist NOT_READY (Exit 2)
+für einen vollständigen Basisrun-Preflight — korrekt, solange Population
+und Basisrun-ID offen sind; das ist kein Testfehler, sondern der
+dokumentierte offene Final-Gate-Zustand.

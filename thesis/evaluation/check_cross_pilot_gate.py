@@ -132,16 +132,21 @@ def canon_sha256(obj):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _load_yaml_config():
+def _load_yaml_config(config_path=None):
+    """Load the productive config (default) or, for the pilot preflight's
+    content-addressed check, an explicitly given config file. The projection
+    field definitions below are identical either way - there is exactly ONE
+    definition of each condition."""
     try:
         import yaml
     except ImportError:
         raise ConditionUnresolved(
             "PyYAML not importable - run with the repo venv "
             "(.venv\\Scripts\\python.exe) or the analysis container")
-    if not CONFIG_PATH.is_file():
-        raise ConditionUnresolved("config file missing: %s" % CONFIG_PATH)
-    with CONFIG_PATH.open(encoding="utf-8") as f:
+    path = Path(config_path) if config_path is not None else CONFIG_PATH
+    if not path.is_file():
+        raise ConditionUnresolved("config file missing: %s" % path)
+    with path.open(encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -159,8 +164,8 @@ def _extract(pattern, path, cast, what):
 # generation condition (Wave-3 field definition, unchanged)
 # ---------------------------------------------------------------------------
 
-def generation_condition_projection():
-    cfg = _load_yaml_config()
+def generation_condition_projection(config_path=None):
+    cfg = _load_yaml_config(config_path)
     gd = cfg.get("generation_defaults")
     models = cfg.get("models")
     if gd is None or models is None:
@@ -176,7 +181,7 @@ def generation_condition_projection():
 # evaluation condition (correctness stage, verdict-relevant parameters only)
 # ---------------------------------------------------------------------------
 
-def evaluation_condition_projection():
+def evaluation_condition_projection(config_path=None):
     sys.path.insert(0, str(REPO_ROOT))
     try:
         from thesis.evaluation.build_config import (
@@ -202,7 +207,7 @@ def evaluation_condition_projection():
         r"^#define MAX_VALIDATION_ATTEMPTS\s+(\d+)\s*$", UTILITIES_HPP, int,
         "MAX_VALIDATION_ATTEMPTS")
 
-    cfg = _load_yaml_config()
+    cfg = _load_yaml_config(config_path)
     stage = (cfg.get("stages") or {}).get("correctness_tests") or {}
     launch_overrides = stage.get("launch_overrides")
 
