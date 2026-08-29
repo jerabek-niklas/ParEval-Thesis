@@ -67,9 +67,11 @@
 // x[i] = values[i % count] — for a size x size matrix with count == size
 // this repeats the given row pattern per matrix row.
 
+#include <cmath>
 #include <complex>
 #include <cstddef>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 #if defined(ENHANCED_TEST_SIZE)
@@ -101,6 +103,61 @@
 //   9 spike_at(k)       random fill, then x[k] = numeric_limits::max()/2
 //                       (complex: spike on the real part)
 //  10 explicit_values   values from the generated header (cyclic)
+
+// E2-A fill-type safety (P0). The pattern VALUE TYPE is the CONTAINER's
+// element type, never the type of the call site's lo/hi literals. Before
+// E2-A the type was deduced from lo/hi, so a site like
+// `ENHANCED_FILL(std::vector<int> x, 0.0, 100.0)` computed
+// numeric_limits<double> extremes and assigned them to int elements — an
+// out-of-range floating->integral conversion, i.e. undefined behaviour.
+// This is a TYPE fix only: extreme_values still means "extrema of the value
+// type" (Option A). It does NOT redefine extreme_values/spike_at in terms of
+// the benchmark or fill domain (EXTREME_PATTERN_SEMANTICS stays open), and it
+// introduces no clipping policy for spec value ranges
+// (VALUE_RANGE_DOMAIN_POLICY stays open).
+//
+// enhancedRangeEndpoint converts a range endpoint (call-site literal, or a
+// spec's ENHANCED_FILL_LO/HI / ENHANCED_FILL_RANGE_LO/HI override) into the
+// container's element type. For integral targets it keeps the semantics the
+// define path already had via the constant-folded (decltype(lo))(LITERAL)
+// cast — TRUNCATE, then SATURATE — and the runtime path already implemented
+// explicitly; a plain static_cast would be undefined for out-of-range values.
+// Floating targets saturate for the same reason (double -> float out of range
+// is undefined too). Both fill paths now funnel through this one helper, so
+// the define and runtime paths cannot drift apart.
+template <typename VType, typename SrcType>
+VType enhancedRangeEndpoint(SrcType value) {
+    if constexpr (std::is_same_v<VType, std::complex<double>>) {
+        return VType(static_cast<double>(value), 0.0);
+    } else if constexpr (std::is_same_v<SrcType, std::complex<double>>) {
+        return static_cast<VType>(value.real());
+    } else if constexpr (std::is_floating_point_v<SrcType>) {
+        const double wide = static_cast<double>(value);
+        if (std::isnan(wide)) {
+            return VType(0);
+        }
+        if constexpr (std::is_integral_v<VType>) {
+            const double truncated = std::trunc(wide);
+            if (truncated <= static_cast<double>(std::numeric_limits<VType>::min())) {
+                return std::numeric_limits<VType>::min();
+            }
+            if (truncated >= static_cast<double>(std::numeric_limits<VType>::max())) {
+                return std::numeric_limits<VType>::max();
+            }
+            return static_cast<VType>(truncated);
+        } else {
+            if (wide <= static_cast<double>(std::numeric_limits<VType>::lowest())) {
+                return std::numeric_limits<VType>::lowest();
+            }
+            if (wide >= static_cast<double>(std::numeric_limits<VType>::max())) {
+                return std::numeric_limits<VType>::max();
+            }
+            return static_cast<VType>(wide);
+        }
+    } else {
+        return static_cast<VType>(value);
+    }
+}
 
 template <typename DType>
 DType enhancedRampValue(DType lo, DType hi, size_t index, size_t n, bool descending) {
@@ -170,8 +227,26 @@ DType enhancedFromDouble(double value) {
     }
 }
 
+// Random fill for the pattern core. fillRand's complex<double> branch is
+// written for DOUBLE endpoints (it initializes `const double real` from
+// max/min), so it is not instantiable with complex endpoints; complex
+// containers are therefore filled through the double endpoints, which is
+// exactly what the pre-E2-A call sites did. fillRand itself is shared with the
+// normal (non-enhanced) correctness runs and stays untouched.
 template <typename T, typename DType>
-void enhancedFillPattern(T &x, DType lo, DType hi, int pattern, size_t param_k) {
+void enhancedFillRandom(T &x, DType lo, DType hi) {
+    if constexpr (std::is_same_v<DType, std::complex<double>>) {
+        fillRand(x, lo.real(), hi.real());
+    } else {
+        fillRand(x, lo, hi);
+    }
+}
+
+// Shared pattern core. BOTH fill paths (compile defines and
+// ENHANCED_RUNTIME_FILL) call exactly this function with endpoints already
+// converted to the container's element type, so the two paths cannot diverge.
+template <typename T, typename DType>
+void enhancedFillPatternTyped(T &x, DType lo, DType hi, int pattern, size_t param_k) {
     const size_t n = x.size();
 
     if (n == 0) {
@@ -179,6 +254,15 @@ void enhancedFillPattern(T &x, DType lo, DType hi, int pattern, size_t param_k) 
     }
 
     const size_t k = param_k % n;  // Python validates; modulo as a backstop
+
+    // fillRand's integral branch computes rand() % (max - min): a degenerate
+    // single-point range would be a modulo by zero, i.e. undefined behaviour.
+    // A range [c, c] admits exactly one value, so fill it directly. This is a
+    // UB guard, not a range policy — no value is clipped or reinterpreted.
+    bool degenerateIntegralRange = false;
+    if constexpr (std::is_integral_v<DType>) {
+        degenerateIntegralRange = (lo == hi);
+    }
 
     switch (pattern) {
         case 1:  // all_zeros
@@ -200,7 +284,11 @@ void enhancedFillPattern(T &x, DType lo, DType hi, int pattern, size_t param_k) 
             for (size_t i = 0; i < n; i += 1) x[i] = enhancedExtremeValue<DType>(i);
             break;
         case 7:  // duplicate_at(k): random, then duplicate neighbor value
-            fillRand(x, lo, hi);
+            if (degenerateIntegralRange) {
+                for (size_t i = 0; i < n; i += 1) x[i] = lo;
+            } else {
+                enhancedFillRandom(x, lo, hi);
+            }
             x[k] = x[(k + 1) % n];
             break;
         case 8:  // sorted_except_one(k): ascending, then one swap
@@ -208,7 +296,11 @@ void enhancedFillPattern(T &x, DType lo, DType hi, int pattern, size_t param_k) 
             std::swap(x[k], x[(k + 1) % n]);
             break;
         case 9:  // spike_at(k): random in original range, one huge outlier
-            fillRand(x, lo, hi);
+            if (degenerateIntegralRange) {
+                for (size_t i = 0; i < n; i += 1) x[i] = lo;
+            } else {
+                enhancedFillRandom(x, lo, hi);
+            }
             x[k] = enhancedSpikeValue<DType>();
             break;
 #if defined(ENHANCED_FILL_PATTERN) && (ENHANCED_FILL_PATTERN == 10)
@@ -220,9 +312,25 @@ void enhancedFillPattern(T &x, DType lo, DType hi, int pattern, size_t param_k) 
             break;
 #endif
         default:  // 0 / unknown: random, identical to fillRand
-            fillRand(x, lo, hi);
+            if (degenerateIntegralRange) {
+                for (size_t i = 0; i < n; i += 1) x[i] = lo;
+            } else {
+                enhancedFillRandom(x, lo, hi);
+            }
             break;
     }
+}
+
+// Define-path entry point. Deduces the pattern value type from the CONTAINER
+// (not from the lo/hi literals) and converts the endpoints into it, then calls
+// the shared core.
+template <typename T, typename SrcType>
+void enhancedFillPattern(T &x, SrcType lo, SrcType hi, int pattern, size_t param_k) {
+    using VType = typename T::value_type;
+    enhancedFillPatternTyped<T, VType>(x,
+                                       enhancedRangeEndpoint<VType>(lo),
+                                       enhancedRangeEndpoint<VType>(hi),
+                                       pattern, param_k);
 }
 
 #if defined(ENHANCED_RUNTIME_FILL) && defined(ENHANCED_FILL_PATTERN)
@@ -286,6 +394,9 @@ inline long enhancedRuntimeParseLong(const char *text, const char *what) {
     return value;
 }
 
+// Superseded by the shared enhancedRangeEndpoint (E2-A) and kept only so the
+// documented conversion contract has one named home; both paths now use
+// enhancedRangeEndpoint, which generalizes this to non-double sources.
 template <typename DType>
 DType enhancedRuntimeRangeValue(double value) {
     // Mirror of the define path's (decltype(lo))(LITERAL) range cast,
@@ -413,16 +524,23 @@ inline const EnhancedRuntimeFillConfig &enhancedRuntimeFillConfig() {
     return config;
 }
 
-template <typename T, typename DType>
-void enhancedRuntimeFill(T &x, DType lo, DType hi) {
+template <typename T, typename SrcType>
+void enhancedRuntimeFill(T &x, SrcType lo_arg, SrcType hi_arg) {
     const EnhancedRuntimeFillConfig &config = enhancedRuntimeFillConfig();
 
+    // E2-A: the value type is the CONTAINER's element type, exactly as in the
+    // define path, and both paths convert their endpoints with the same
+    // enhancedRangeEndpoint helper (truncate-then-saturate for integral
+    // targets). A spec's ENHANCED_FILL_RANGE_LO/HI override replaces the call
+    // site's endpoints before that conversion.
+    using DType = typename T::value_type;
+
+    DType lo = enhancedRangeEndpoint<DType>(lo_arg);
+    DType hi = enhancedRangeEndpoint<DType>(hi_arg);
+
     if (config.has_range) {
-        // conversion equivalent to the define path's constant-folded
-        // (decltype(lo))(LITERAL) cast — saturating for integral DType,
-        // see enhancedRuntimeRangeValue (complex gets a real-only value)
-        lo = enhancedRuntimeRangeValue<DType>(config.lo);
-        hi = enhancedRuntimeRangeValue<DType>(config.hi);
+        lo = enhancedRangeEndpoint<DType>(config.lo);
+        hi = enhancedRangeEndpoint<DType>(config.hi);
     }
 
     if (config.pattern == 10) {
@@ -437,11 +555,12 @@ void enhancedRuntimeFill(T &x, DType lo, DType hi) {
         return;
     }
 
-    // shared body with the define path: identical code, therefore an
+    // shared body with the define path: BOTH call enhancedFillPatternTyped
+    // with endpoints already in the container's element type, therefore an
     // identical rand() call sequence per pattern — the equivalence-critical
     // property (one extra rand() call would shift ALL subsequent inputs;
     // fillRand draws from unseeded, deterministic rand())
-    enhancedFillPattern(x, lo, hi, config.pattern, config.k);
+    enhancedFillPatternTyped<T, DType>(x, lo, hi, config.pattern, config.k);
 }
 
 #define ENHANCED_FILL(x, lo, hi) enhancedRuntimeFill((x), (lo), (hi))

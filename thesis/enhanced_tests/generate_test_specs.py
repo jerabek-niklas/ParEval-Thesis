@@ -38,6 +38,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
+from thesis.enhanced_tests import capabilities
 from thesis.enhanced_tests.specs import (  # noqa: E402
     K_PATTERNS,
     benchmark_shape,
@@ -118,13 +119,38 @@ def load_serial_prompts() -> dict:
     }
 
 
-def _pattern_block(settings: Dict[str, Any]) -> str:
+def effective_patterns_for(benchmark: str, settings: Dict[str, Any]) -> "List[str]":
+    """E2-A: the patterns this benchmark may actually be asked for.
+
+    effective = globally offered INTERSECT benchmark-supported, taken from the
+    ONE capability source (thesis/enhanced_tests/capabilities.py). Offering a
+    pattern the benchmark cannot vary produced specs that only faked diversity
+    and that validate_spec now rejects anyway.
+    """
+    return capabilities.effective_patterns(benchmark, list(settings["offered_patterns"]))
+
+
+def _pattern_block(benchmark: str, settings: Dict[str, Any]) -> str:
+    names = effective_patterns_for(benchmark, settings)
+
+    if not names:
+        return ("- (this benchmark supports no fill pattern at all; vary the "
+                "size only)")
+
     lines = []
-    for name in settings["offered_patterns"]:
+    for name in names:
         doc = PATTERN_DOCS.get(name, name)
         if name == "explicit_values":
             doc = doc % {"max": int(settings["explicit_values_max_size"])}
         lines.append("- " + doc)
+
+    if names == ["random"]:
+        lines.append(
+            "- NOTE: this benchmark builds its input with its own generator, "
+            "so the `pattern` field cannot change the input. Pattern variation "
+            "is NOT available here: use \"random\" for every spec and create "
+            "diversity through `size` alone. Do not propose any other pattern.")
+
     return "\n".join(lines)
 
 
@@ -192,7 +218,7 @@ def build_user_prompt(
         "]"
     ) % {
         "max_size": int(settings["max_spec_size"]),
-        "patterns": ", ".join('"%s"' % p for p in settings["offered_patterns"]),
+        "patterns": ", ".join('"%s"' % p for p in effective_patterns_for(benchmark, settings)),
     }
 
     if ask_count is None:
@@ -236,7 +262,7 @@ explanations outside the array:
 %(schema)s""" % {
         "serial_prompt": serial_prompt.rstrip(),
         "baseline": baseline.rstrip(),
-        "pattern_block": _pattern_block(settings),
+        "pattern_block": _pattern_block(benchmark, settings),
         "shape_block": _shape_block(benchmark, settings),
         "ask": ask,
         "max_size": int(settings["max_spec_size"]),
@@ -340,7 +366,7 @@ def generate_for_benchmark(
                 item,
                 known,
                 max_size=int(settings["max_spec_size"]),
-                allowed_patterns=list(settings["offered_patterns"]),
+                allowed_patterns=effective_patterns_for(benchmark, settings),
                 explicit_values_max_size=int(settings["explicit_values_max_size"]),
             )
 

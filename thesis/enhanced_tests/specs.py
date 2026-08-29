@@ -35,6 +35,11 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# E2-A: benchmark capability enforcement. Validation, LLM generation and the
+# mutation path all go through this ONE module (thesis/enhanced_tests/
+# capabilities.py -> enhanced_policy.json); there is no second table.
+from thesis.enhanced_tests import capabilities
+
 # ---------------------------------------------------------------------------
 # Input shapes (derive_shapes.py -> benchmark_shapes.json)
 #
@@ -371,6 +376,22 @@ def validate_spec(
     if spec.get("source") not in ("static", "llm", "mutation"):
         return False, "invalid source: %r" % (spec.get("source"),)
 
+    # E2-A capability enforcement (single source: capabilities.py). Rejects a
+    # pattern the benchmark cannot actually vary (fake diversity), a pattern
+    # whose frozen oracle would execute undefined behaviour on it, a pattern
+    # whose admissibility depends on an OPEN policy, and a size that is
+    # technically unsafe for this specific benchmark. Benchmarks the policy does
+    # not know are not restricted.
+    capability_reason = capabilities.spec_rejection(benchmark, size, pattern)
+    if capability_reason is not None:
+        return False, capability_reason
+
+    if pattern == "explicit_values":
+        value_reason = capabilities.explicit_values_rejection(
+            benchmark, spec.get("values") or [])
+        if value_reason is not None:
+            return False, value_reason
+
     return True, ""
 
 
@@ -492,6 +513,9 @@ def static_base_specs(benchmark: str, sizes: Optional[List[int]] = None) -> "Lis
     """The LLM-free foundation every parameterizable benchmark gets."""
     base_sizes = sizes if sizes is not None else DEFAULT_SETTINGS["static_base_sizes"]
 
+    # E2-A: drop base sizes that are technically unsafe for THIS benchmark
+    # (e.g. size 0 where the frozen oracle reads out of bounds). This is a
+    # per-benchmark constraint, not a global size-0 policy.
     return [
         {
             "benchmark": benchmark,
@@ -502,6 +526,7 @@ def static_base_specs(benchmark: str, sizes: Optional[List[int]] = None) -> "Lis
             "rationale": "static base set: size %s with default random fill" % size,
         }
         for size in base_sizes
+        if capabilities.size_rejection(benchmark, int(size)) is None
     ]
 
 
@@ -548,8 +573,12 @@ def _mutants_of(spec: dict, max_size: int) -> "List[dict]":
         narrowed["pattern_params"]["value_range"] = [lo + span / 4, hi - span / 4]
         mutants += [shifted, narrowed]
 
+    # E2-A: a pattern swap may only target a pattern the benchmark actually
+    # supports. Without this the mutator manufactured specs that differ only in
+    # an inert or unsafe pattern label (random -> extreme_values on a benchmark
+    # with no fill hook), which validate_spec would then reject anyway.
     swap = PATTERN_SWAPS.get(spec["pattern"])
-    if swap:
+    if swap and capabilities.pattern_rejection(spec["benchmark"], swap) is None:
         mutants.append(clone(pattern=swap))
 
     return mutants

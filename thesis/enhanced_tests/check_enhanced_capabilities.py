@@ -36,6 +36,16 @@ Checks performed (structural only):
  13  every summary count is reproducible from the detail data
  14  verdict_outcome_class UNKNOWN carries verdict_outcome_conditions
 
+E2-A policy checks (only when enhanced_policy.json exists):
+ P1  the enforced policy covers exactly the audited benchmarks
+ P2  supported/unsupported/deferred partition all eleven patterns, disjointly
+ P3  enforced patterns are a subset of the implemented pattern library
+ P4  a benchmark with pattern_effect NONE/NOT_APPLICABLE enforces exactly one
+     pattern, so a differing label can no longer fake diversity
+ P5  no ENFORCED-ACTIVE pattern is audited fill-unsafe, oracle-unsafe or
+     FALSE_FAIL_RISK (such a case must be unsupported or deferred)
+ P6  every deferred case names its open policy reason
+
 Exit codes: 0 = consistent, 1 = contradictions found, 2 = infrastructure error.
 Read-only: this script writes nothing.
 """
@@ -47,6 +57,7 @@ from collections import Counter
 from pathlib import Path
 
 CATALOG = Path(__file__).resolve().parent / "enhanced_capabilities.json"
+POLICY = Path(__file__).resolve().parent / "enhanced_policy.json"
 
 PATTERNS = ("random", "all_zeros", "all_same", "ascending", "descending",
             "alternating", "extreme_values", "duplicate_at",
@@ -314,6 +325,68 @@ def check_catalog(doc, rep):
                                         verdict_counter.get(cls, 0)))
 
 
+DEFERRED_REASONS = ("extreme_semantics_deferred", "false_fail_risk_deferred")
+
+
+def check_policy(catalog, policy, rep):
+    """E2-A: the ENFORCED policy must not contradict the AUDIT catalog."""
+    audit = {b["benchmark"]: b for b in catalog.get("benchmarks") or []}
+    enforced = policy.get("benchmarks") or {}
+
+    # P1
+    if set(enforced) != set(audit):
+        rep.fail("P1-coverage", "<policy>",
+                 "policy covers %d benchmarks, catalog %d"
+                 % (len(enforced), len(audit)))
+
+    for name, entry in enforced.items():
+        supported = set(entry.get("supported_patterns") or [])
+        unsupported = set(entry.get("unsupported_patterns") or {})
+        deferred_map = entry.get("deferred_policy_patterns") or {}
+        deferred = set(deferred_map)
+
+        # P2
+        if supported & unsupported or supported & deferred or unsupported & deferred:
+            rep.fail("P2-partition", name, "pattern states overlap")
+        if supported | unsupported | deferred != set(PATTERNS):
+            rep.fail("P2-partition", name,
+                     "states do not cover all eleven patterns")
+
+        # P3
+        stray = supported - set(PATTERNS)
+        if stray:
+            rep.fail("P3-subset", name, "enforced but not implemented: %s" % sorted(stray))
+
+        bench = audit.get(name)
+        if bench is None:
+            continue
+
+        # P4
+        if bench.get("pattern_effect") in ("NONE", "NOT_APPLICABLE") and len(supported) != 1:
+            rep.fail("P4-fake-diversity", name,
+                     "pattern_effect %s but %d patterns enforced as supported"
+                     % (bench.get("pattern_effect"), len(supported)))
+
+        # P5
+        for pattern in sorted(supported):
+            audited = (bench.get("pattern_audit") or {}).get(pattern) or {}
+            if audited.get("fill_type_safe") is False:
+                rep.fail("P5-active-unsafe", "%s / %s" % (name, pattern),
+                         "enforced active although the audit says fill_type_safe=false")
+            if audited.get("oracle_execution_safe") is False:
+                rep.fail("P5-active-unsafe", "%s / %s" % (name, pattern),
+                         "enforced active although the audit says oracle_execution_safe=false")
+            if audited.get("verdict_outcome_class") == "FALSE_FAIL_RISK":
+                rep.fail("P5-active-unsafe", "%s / %s" % (name, pattern),
+                         "enforced active although the audit says FALSE_FAIL_RISK")
+
+        # P6
+        for pattern, why in deferred_map.items():
+            if why not in DEFERRED_REASONS:
+                rep.fail("P6-deferred-reason", "%s / %s" % (name, pattern),
+                         "deferred without a recognized open-policy reason: %r" % why)
+
+
 def main():
     if not CATALOG.is_file():
         print("ERROR: catalog missing: %s" % CATALOG)
@@ -326,6 +399,13 @@ def main():
 
     rep = Report()
     check_catalog(doc, rep)
+    if POLICY.is_file():
+        try:
+            policy = json.loads(POLICY.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            rep.fail("P0-policy", "<policy>", "not valid JSON: %s" % exc)
+        else:
+            check_policy(doc, policy, rep)
 
     print("checked pattern entries: %d" % rep.checked)
     if rep.ok():
