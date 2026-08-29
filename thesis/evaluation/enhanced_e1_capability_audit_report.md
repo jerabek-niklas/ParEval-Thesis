@@ -11,7 +11,9 @@ produktive Enhanced-/Benchmark-Semantik wurde geändert**; E2
 | Repository / Branch | `jerabek-niklas/ParEval-Thesis` / `thesis-static-analysis` |
 | Start-HEAD | `509f08e63e1ab697bbaef874c0222f2c79e9372a` ("fixes 10"; Parent `5b22343…`) |
 | Working Tree bei Start | clean |
-| Datum | 2026-08-28 |
+| Audit-Basisdatum | 2026-08-28 (Commit-Datum von `509f08e6`, dem vom Audit gelesenen Stand) |
+| Katalog erstmals committet | `591a79092298080131a4d91f71f288628f309c1b` (2026-08-29) |
+| Konsistenz-Normalisierung | 2026-08-29 (§21, HEAD `591a7909`) |
 | Cross-Pilot-Checker vor E1 | Exit 0 (fresh) |
 | Audit-Basis | aktueller Sourcecode aller 60 `drivers/cpp/benchmarks/**/cpu.cc` (+ baseline.hpp), `drivers/cpp/enhanced-fill.hpp`, `thesis/enhanced_tests/{specs.py, generate_test_specs.py, benchmark_shapes.json}`, `thesis/evaluation/run_enhanced_tests.py`, `config stages.enhanced_tests`, `thesis/results/cache/enhanced/specs.jsonl` (read-only), `pilot_readiness_review.md` |
 
@@ -81,7 +83,13 @@ Template-Parameter `DType` wird aus den **lo/hi-Argumenten** deduziert,
 nicht aus dem Container-Elementtyp; Patternwerte entstehen in DType und
 werden per Zuweisung implizit konvertiert.
 
-**5 typunsichere Sites (TYPE_SAFE = false):**
+> **[KORRIGIERT durch die Konsistenz-Normalisierung — die folgende Tabelle
+> vermischte Fill-Konversion mit Oracle-Ausführung und ist durch §21.2/§21.3
+> ersetzt. stencil/54 ist NICHT fill-type-unsafe; die verbindliche Zählung
+> lautet: 0 unsichere Sites, 7 konditionale Sites, 8 definitive
+> Fill-UB-**Patternfälle** auf 4 Benchmarks.]**
+
+**5 typunsichere Sites (TYPE_SAFE = false) — überholt, siehe §21.2:**
 
 | Benchmark | Site | Container | deduzierter DType | Problem |
 |---|---|---|---|---|
@@ -103,7 +111,7 @@ Der Katalog führt beide Achsen pro Pattern getrennt. Suiteweite Muster:
 **BI-only-Klasse** (typesafe, aber Pattern trifft deterministisch Tripwire/
 non-finite-Reference → Kandidat wird nie benotet): extreme_values+spike_at
 auf histogram/20/21/24, scan/33, stencil/51; extreme_values auf
-fft/05/07/08/09 (Butterfly→inf/NaN, **vakuoser Pass**), dense_la/00/02/03/04,
+fft/05/07/08/09 (Butterfly→inf/NaN; die hier ursprünglich behauptete Einstufung *vakuoser Pass* ist **falsch** und wurde in §21.4 zu `NO_VERDICT_BI` korrigiert), dense_la/00/02/03/04,
 sparse_la/46 (+47 teilweise), stencil/52/53 (Interior), reduce/26
 (all_zeros→0·Inf=NaN deterministisch BI). **Oracle-UB-Klasse** (Pattern
 löst UB im Oracle selbst aus): scan/34 (`currSum += x[j]` signed overflow —
@@ -330,3 +338,205 @@ unverändert — nur Audit-Artefakte hinzugefügt, keine Fingerprints
 angefasst). `git status`: nur `thesis/enhanced_tests/enhanced_capabilities.json`
 (neu) und dieser Report (neu); kein produktiver Sourcefile, keine Config,
 keine Specs, keine Results geändert.
+
+
+---
+
+# 21. KONSISTENZ-NORMALISIERUNG DES CAPABILITY-KATALOGS
+
+> **[NACHTRAG der E1 Consistency Correction (2026-08-29, HEAD `591a7909`).
+> Dies ist KEINE neue E1-Semantikanalyse:** es wurde kein Benchmark neu
+> auditiert, keine Patternpolicy entschieden, keine Spec regeneriert und keine
+> produktive Datei angefasst. Normalisiert wurden ausschließlich die
+> **Schichtenzuordnung**, das **Wertevokabular** und die **inneren
+> Widersprüche** der bereits vorhandenen Befunde; alle Summenwerte wurden aus
+> den Detaildaten neu berechnet. Der Katalog bleibt
+> `AUDIT_ONLY_NOT_ENFORCED`.]
+
+## 21.1 Warum eine Normalisierung nötig war
+
+Der ursprüngliche Katalog vermischte zwei Dinge: `TYPE_SAFE` kodierte teils
+die Sicherheit der Fill-Konversion, teils die Sicherheit der späteren
+Oracle-Ausführung; und `baseline_gate_only_risk` trug teils BI-Risiko, teils
+Tolerance-False-Fails, teils reduzierte Trennschärfe. Zusätzlich
+widersprachen einzelne maschinenlesbare Felder dem Detailbefund desselben
+Benchmarks (Referenzfall dense_la/00, §21.6). **219 solcher Widersprüche**
+wurden gefunden und korrigiert (660 geprüft: 60 Benchmarks × 11 Patterns);
+**1.530** Vokabularwerte wurden vereinheitlicht (u.a. String-`"true"` →
+Boolean, verbotenes `"none"` → `false`).
+
+## 21.2 Die vier getrennten Achsen
+
+| Achse | Frage | Wichtig |
+|---|---|---|
+| **FILL_TYPE_SAFE** | Ist das **Erzeugen und Zuweisen** des Patternwerts in den Container C++-sicher? | `false` nur bei Konversions-/Zuweisungs-UB. `INT_MAX` in `vector<int>` mit DType=int ist **true**, auch wenn der Wert domain-invalid ist oder später das Oracle überläuft. |
+| **DOMAIN_VALID** | Liegt der Input in der eingefrorenen Benchmarkdomain? | Unabhängig von Elementtyp-Repräsentierbarkeit. Game of Life erwartet {0,1} → `INT_MAX` ist domain-invalid trotz typkorrektem Fill. |
+| **ORACLE_EXECUTION_SAFE** | Kann das eingefrorene Oracle darauf **ohne C/C++-UB** laufen? | Siehe §21.3. |
+| **VERDICT_OUTCOME_CLASS** | Was passiert mit dem **gezählten** Ergebnis? | INFORMATIVE / REDUCED / VACUOUS_PASS / NO_VERDICT_BI / FALSE_FAIL_RISK / UNKNOWN (§21.4). |
+
+`baseline_gate_only_risk` hat jetzt **nur noch** die enge Bedeutung "fällt in
+den BI-/Gate-Pfad, kein reguläres Kandidatenverdict" — es kodiert nie mehr
+VACUOUS_PASS, REDUCED, FALSE_FAIL_RISK, Oracle-UB oder Fill-UB.
+
+**Korrigierte Fill-Type-Summary (ersetzt §6):** 70 Sites gesamt — **0
+unsichere**, **7 konditionale** (`reduce/28`:63, `scan/31`:59, `sort/42`:127,
+`sort/43`:156, `transform/56`:54, `transform/58`:55, `transform/59`:59), 63
+sichere, 0 unbekannte. Ein Site ist `conditional`, wenn er nur **für
+bestimmte Patterns** unsicher ist; die definitive Fill-UB liegt deshalb auf
+der **Patternebene**: **8 Fill-UB-Patternfälle** auf **4 Benchmarks** —
+`reduce/28`, `scan/31`, `sort/42`, `sort/43`, jeweils für `extreme_values`
+und `spike_at` (DType=double aus den lo/hi-Literalen, Zielcontainer
+`int`/`float` → out-of-range Konversion). Das ist die maßgebliche
+Fill-Safety-Kennzahl; `fill_type_unsafe_sites = 0` bedeutet nur, dass kein
+Site für *alle* Patterns unsicher ist. Weitere 16 Patternfälle sind
+`conditional` (überwiegend `explicit_values`, dessen Sicherheit von den
+konkreten Spec-Werten abhängt — specs.py validiert Magnituden nicht).
+
+**stencil/54 korrekt beschrieben:** `ENHANCED_FILL(input, 0, 2)` auf
+`std::vector<int>` → DType=int, Zuweisung int→int. **FILL_TYPE_SAFE = true**
+(die früher geführte Einstufung als fünfter typunsicherer Site war eine
+Schichtverwechslung). Unter `extreme_values` gilt: **DOMAIN_VALID = false**
+(außerhalb {0,1}) und **ORACLE_EXECUTION_SAFE = false** — das Oracle summiert
+rohe INT_MIN/INT_MAX-Nachbarn in ein `int` (baseline.hpp:27-51) →
+signed-overflow-UB, ungeguardet. Die E2-Maßnahme wurde entsprechend von
+`FIX_FILL_SITE_TYPES` auf **`ORACLE_GUARD_NEEDED`** umgehängt.
+
+## 21.3 IEEE-Non-Finite ist KEIN UB
+
+Strikt getrennt: `double`-Arithmetik, die zu `Inf`/`NaN` überläuft, ist
+**definiertes** Verhalten → `ORACLE_EXECUTION_SAFE = true`; die Folge zeigt
+sich auf der Verdict-Achse (i.d.R. `NO_VERDICT_BI`, weil der Comparator die
+Non-Finite-Referenz meldet). Echtes UB sind nur signed-integer-Overflow,
+Heap-OOB, out-of-range Float→Integral-Konversion und invalide Speicherzugriffe
+→ `ORACLE_EXECUTION_SAFE = false`. Ergebnis suiteweit: **10
+Oracle-UB-Patternfälle** auf 6 Benchmarks (`histogram/20`, `histogram/21`,
+`histogram/24`, `scan/34`, `stencil/54`, `transform/58`) sowie 34
+konditionale; die vollständige, quellenbelegte Liste steht als
+`oracle_hazards` (116 Einträge über 47 Benchmarks, Klassen
+`signed_overflow` 11, `heap_oob` 11, `out_of_range_conversion` 11, `other` 83)
+im Katalog.
+
+## 21.4 NO_VERDICT_BI vs. VACUOUS_PASS vs. REDUCED vs. FALSE_FAIL_RISK
+
+Der **verifizierte Verdictpfad** (Quelle, nicht Reportwortlaut) entscheidet:
+
+* `drivers/cpp/utilities.hpp:423-428` (bzw. `:520-523` skalar): eine
+  non-finite **Referenz** wird übersprungen und der prozessweite
+  authentifizierte Marker emittiert — `validate()` kann trotzdem `true`
+  liefern und der Treiber druckt `Validation: PASS`.
+* `thesis/evaluation/run_enhanced_tests.py:512-514` (`run_binary`): ein
+  authentischer BI-Marker wird **zuerst** klassifiziert — vor Timeout und vor
+  `parse_authenticated_validation`. Dieses `PASS` wird also **nie als Pass
+  gezählt**.
+* `precompute_gates:538-620` fährt zusätzlich eine **Oracle-only-Probe** je
+  Spec; `process_sample:657-670` verbucht jede Spec mit Gate ≠ `pass` als
+  `baseline_incompatible`/`numerically_unstable` — **das Modell läuft dort
+  gar nicht**.
+
+**Konsequenz:** Jedes Pattern, das das Oracle an einem benoteten Index
+non-finite macht, ist **`NO_VERDICT_BI`**, **nicht** `VACUOUS_PASS`. Die
+frühere Formulierung "vakuoser Pass" für fft/dense_la/transform war für die
+Enhanced-Stufe **falsch** und ist durchgehend korrigiert (§6/§7 sind
+entsprechend markiert). Konkret: **fft/05, 06, 07, 08, 09 `extreme_values` =
+NO_VERDICT_BI** (je `baseline_gate_only_risk = true`,
+`oracle_execution_safe = true`, da IEEE). **sort/40 `extreme_values` =
+REDUCED** — alle Magnituden laufen zu `+inf`, die Ordnungsprüfung kollabiert
+auf eine Multiset-/Permutationsprüfung, es entsteht aber weiterhin ein
+echtes, nur schwächeres Verdict (kein vakuoser Pass).
+
+**VACUOUS_PASS wurde auf der Patternachse nirgends vergeben** (0 von 660) —
+mangels Codebeleg. Der einzige gefundene, **code-belegte** gezählte Pass ohne
+Prüfung ist **größengetrieben**: `static_base_sizes` enthält 0
+(specs.py:134); bei `TEST_SIZE = 0` sind die benoteten Container leer,
+`reportAndCompareSelectedWith` akzeptiert `0 == 0`, die Schleife läuft nie,
+es kommt kein BI-Marker, und `run_binary` zählt den `PASS`. Das ist als
+`VACUOUS_PASS`-Zweig in `verdict_outcome_conditions` dort verbucht, wo eine
+Familie es explizit verifiziert hat (dense_la, fft), sonst als
+Size-Policy-`e2_action`; die Vervollständigung über alle 60 Benchmarks ist
+als offene E2-Entscheidung **`SIZE_ZERO_SPEC_POLICY`** materialisiert.
+
+**Verdict-Outcome-Summary (660 Patternfälle):**
+
+| Klasse | Anzahl |
+|---|---:|
+| INFORMATIVE | **330** |
+| REDUCED | **171** |
+| UNKNOWN (mit `verdict_outcome_conditions`) | **105** |
+| NO_VERDICT_BI | **40** |
+| FALSE_FAIL_RISK | **14** |
+| VACUOUS_PASS | **0** |
+
+481 Einträge tragen bedingte Ausprägungen (`verdict_outcome_conditions`),
+etwa k-abhängige `spike_at`-Ausgänge oder value_range-abhängige Hazards;
+bedingte Beobachtungen werden **nicht** zusätzlich als definitive Einzelklasse
+gezählt. **FALSE_FAIL_RISK** betrifft `reduce/26`, `reduce/27` (2×),
+`reduce/28` (3×: all_zeros/all_same/alternating — reine Even-Inputs gegen die
+ungeklärte No-Odd-Konvention), `reduce/29` (2×), `search/37` (all_zeros:
+Voll-Tie), `stencil/54` (4×) und `transform/56`. **17 Fälle** tragen
+zusätzlich `parallel_bias_risk = true` (fft-Spike 5×, reduce 6×, scan 2×,
+sparse_la 2×, stencil/53, search/37) — dort kann die absolute Toleranz gegen
+reassoziierende omp/mpi-Kandidaten härter zuschlagen als gegen serielle, was
+ein gerichteter Bias gegen eine zentrale unabhängige Variable wäre.
+
+## 21.5 Messvaliditäts-Priorität (nicht technische Schwere)
+
+1. **FALSE_FAIL_RISK** (14) — korrekte Implementierungen können falsch
+   gezählt werden, ggf. systematisch stärker bei Parallelvarianten.
+2. **VACUOUS_PASS** (0 auf Patternebene; offener Size-0-Zweig) — schlechte
+   Implementierungen könnten korrekt erscheinen.
+3. **ORACLE_EXECUTION_SAFE = false** (10) — der Harness selbst arbeitet
+   undefiniert; bleiben **harte Pre-pilot_002-Blocker**.
+4. **NO_VERDICT_BI** (40) — Testbudget ohne Modellmessung; verzerrt die Rate
+   nicht, solange BI aus dem Nenner fällt.
+5. **REDUCED** (171) — Verdict entsteht, ist aber schwächer als gedacht.
+
+## 21.6 dense_la/00 — Konsistenzreferenz
+
+Der Deep-Audit beschrieb `all_zeros`, `all_same` (Midpoint von [-10,10] ist
+exakt 0 → identisch zu all_zeros), `alternating` und `extreme_values` als
+deterministisch singulär bzw. BI-dominiert, während die maschinenlesbaren
+Felder noch `baseline_gate_only_risk = false` und unqualifiziertes
+`KEEP_CANDIDATE` trugen. Korrigiert: diese vier sind jetzt
+`domain_valid = false`, `baseline_gate_only_risk = true`,
+`verdict_outcome_class = NO_VERDICT_BI` mit qualifizierter Empfehlung
+(`EXCLUDE_CANDIDATE` bzw. `DOMAIN_POLICY_DECISION_NEEDED`); die
+rangdefizienten Rampen (`ascending`, `descending`, `sorted_except_one`) sowie
+`spike_at`/`explicit_values` stehen auf `UNKNOWN` mit expliziten
+BI-/`numerically_unstable`-/False-Fail-Bedingungen. `INFORMATIVE` +
+`KEEP_CANDIDATE` bleibt nur für `random` und `duplicate_at`.
+
+## 21.7 Schichtkorrigierte E2-Fixliste
+
+Die P0–P5-Struktur aus §18 bleibt bestehen; korrigiert wurde nur die
+**Schichtzuordnung**:
+
+* **P0 Fill-Layer:** `FIX_FILL_SITE_TYPES` gilt jetzt nur noch für die 4
+  echten Fill-UB-Benchmarks (`reduce/28`, `scan/31`, `sort/42`, `sort/43`)
+  plus die `explicit_values`-Magnitudenvalidierung.
+* **P0 Oracle-Layer (neu getrennt):** `ORACLE_GUARD_NEEDED` für
+  `stencil/54`, `scan/34`, `transform/58`, `histogram/20/21/24` sowie die
+  Size-/Struktur-Hazards (`fft/05` non-power-of-two, `graph/19` size 0/1,
+  `dense_la/01` size 0, `search/36/37/39` size 0). **stencil/54 gehört
+  ausdrücklich hierher, nicht unter Fill-Type-Fix.**
+* **P1 Fake Diversity:** unverändert (Capability-Enforcement, R6).
+* **P2 Domain/Pattern Policy:** unverändert offen, jetzt aber pro Patternfall
+  mit getrennten Achsen belegt.
+* Neu sichtbar: die Messvaliditäts-Reihenfolge aus §21.5 als zusätzliche
+  E2-Priorisierungsdimension.
+
+## 21.8 Verifikation der Normalisierung
+
+`python -m json.tool` Exit 0 · **`python thesis/enhanced_tests/check_enhanced_capabilities.py`
+Exit 0** (`ENHANCED_CAPABILITIES_CONSISTENT = true`, 660 geprüfte
+Patterneinträge) · 60 eindeutige IDs · 70 Fill-Sites weiterhin erfasst · alle
+Summenwerte aus den Detaildaten reproduziert · Cross-Pilot-Checker vorher und
+nachher Exit 0 (keine Cross-Pilot-Artefakte angefasst) · offene Policies
+unverändert: **EXTREME_PATTERN_SEMANTICS = OPEN**,
+**VALUE_RANGE_DOMAIN_POLICY = OPEN**, neu explizit
+**SIZE_ZERO_SPEC_POLICY = OPEN**.
+
+Der Checker prüft ausschließlich **Konsistenz** (Enums, Vollständigkeit,
+Schichtentrennung, Reproduzierbarkeit der Summen, verbotene Kombinationen wie
+`NO_VERDICT_BI` + `baseline_gate_only_risk=false` oder unqualifiziertes
+`KEEP_CANDIDATE` bei `VACUOUS_PASS`/`FALSE_FAIL_RISK`/Oracle-UB) — er
+beurteilt keine fachliche Richtigkeit neu.
