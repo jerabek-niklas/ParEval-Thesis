@@ -7,10 +7,12 @@
 
 The catalog is an audit document and stays AUDIT_ONLY_NOT_ENFORCED. Only the
 findings that are UNAMBIGUOUS, POLICY-INDEPENDENT and SOURCE-BACKED become
-enforced policy; everything whose resolution needs one of the open E2-B
-policies is carried over as `deferred_policy` and is NOT silently supported.
+enforced policy. Before E2-B, everything whose resolution needed one of the
+then-open E2-B policies was carried over as `deferred_policy`; E2-B froze all
+eight of them, so no case is deferred any more (see R6-R10 and
+`_meta.frozen_e2b_policies`).
 
-Derivation rules (E2-A, extended by E2-A.1):
+Derivation rules (E2-A, extended by E2-A.1 and E2-B):
 
   R1  no pattern effect
       benchmark pattern_effect in {NONE, NOT_APPLICABLE}
@@ -28,13 +30,16 @@ Derivation rules (E2-A, extended by E2-A.1):
       (signed overflow, heap OOB, out-of-range conversion) on that input. Hard
       pre-pilot_002 blocker, independent of every open policy.
 
-  R3  fill-layer UB in the E1 audit (now type-fixed) but domain still open
+  R3  fill-layer UB in the E1 audit (now type-fixed); domain frozen by E2-B
       pattern with fill_type_safe == false in the catalog
       -> deferred_policy, reason `extreme_semantics_deferred`.
       Rationale: E2-A fixed the CONVERSION (the value type is now the
       container's element type), so the fill no longer executes UB. Whether
-      element-type extrema are an admissible INPUT for that benchmark is
-      EXTREME_PATTERN_SEMANTICS, which stays open. Not silently supported.
+      element-type extrema are an admissible INPUT for that benchmark was
+      EXTREME_PATTERN_SEMANTICS, which E2-B froze as
+      DECLARED_FILL_DOMAIN_EXTREMA. R3 is therefore superseded for every
+      case the catalog re-evaluates (see the precedence note below); it is
+      kept as the rule that governed the pre-E2-B findings.
 
   R4  demonstrated false-fail risk
       pattern with verdict_outcome_class == FALSE_FAIL_RISK
@@ -51,7 +56,9 @@ Derivation rules (E2-A, extended by E2-A.1):
       spec whose explicit values or value_range fall outside them instead of
       clipping: an out-of-range floating->integral (or double->float)
       conversion is undefined behaviour, and clipping would be a
-      VALUE_RANGE_DOMAIN_POLICY decision, which stays open.
+      VALUE_RANGE_DOMAIN_POLICY decision. E2-B froze that policy as
+      SUBSET_OF_DECLARED_BENCHMARK_FILL_DOMAIN (R6); this rule remains the
+      TECHNICAL half and is enforced in addition to it.
       This is a TECHNICAL REPRESENTABILITY statement only ("can the harness
       hold this value / compute this span in this container?"), never a
       statement about which values are semantically meaningful for the task.
@@ -61,8 +68,9 @@ Derivation rules (E2-A, extended by E2-A.1):
       block. Before E2-A.1 the same nine rules also lived in a manual table in
       THIS file; that duplicate was removed so audit truth and productive size
       policy cannot drift apart. These are per-benchmark technical
-      constraints, NOT a global size-0 rule: SIZE_ZERO_SPEC_POLICY stays open
-      and every benchmark without an entry keeps accepting size 0.
+      constraints, NOT a global size-0 rule. E2-B froze SIZE_ZERO_SPEC_POLICY
+      as BENCHMARK_SEMANTICS_DEPENDENT and R7 merges its per-benchmark
+      decision into this constraint; there is still no global size-0 rule.
 
   R6  declared fill domain  (E2-B)
       `fill_domain_capability` is derived from the ONE domain source
@@ -160,9 +168,11 @@ FILL_TYPE_REASON = (
     "the span the current fill arithmetic can compute in it without signed "
     "overflow (integral: hi-lo and span+1 must both fit) or a non-finite "
     "intermediate (floating: hi-lo must stay finite). A spec outside these "
-    "bounds is REJECTED, never clipped - clipping would decide "
-    "VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about "
-    "which values are semantically meaningful for the benchmark."
+    "bounds is REJECTED, never clipped. This is the TECHNICAL bound only; the "
+    "separate question whether a value is a legitimate benchmark input is "
+    "answered by fill_domain_capability, which E2-B froze as "
+    "VALUE_RANGE_DOMAIN_POLICY = SUBSET_OF_DECLARED_BENCHMARK_FILL_DOMAIN. "
+    "Both bounds are enforced; neither replaces the other."
 )
 
 # R8/R9/R10 vocabulary
@@ -442,7 +452,7 @@ def derive(catalog):
     doc = OrderedDict()
     doc["status"] = "ENFORCED"
     doc["_meta"] = OrderedDict([
-        ("generated_by", "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A, E2-A.1)"),
+        ("generated_by", "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A, E2-A.1, E2-B)"),
         ("derivation_version", DERIVATION_VERSION),
         ("derived_from", "thesis/enhanced_tests/enhanced_capabilities.json"),
         ("derived_from_audit_commit", catalog["_meta"].get("normalized_at_commit")),

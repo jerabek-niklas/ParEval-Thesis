@@ -476,8 +476,12 @@ def group_checker_fails_closed():
 # ---------------------------------------------------------------------------
 
 def _main_source(module):
+    return _main_source_of(module, "main")
+
+
+def _main_source_of(module, function_name):
     import inspect
-    source, start = inspect.getsourcelines(module.main)
+    source, start = inspect.getsourcelines(getattr(module, function_name))
     return [(start + i, line) for i, line in enumerate(source)]
 
 
@@ -515,13 +519,22 @@ def group_side_effect_ordering():
         ("output directory creation", ".mkdir("),
         ("--force output deletion", "path.unlink()"),
         ("output file open", "output_path.open("),
-        ("API client creation", "adapter.create_client("),
-        ("adapter loading", "load_adapter("),
+        # E3 factored the provider/client wiring into make_call_llm() so a
+        # partial regeneration reuses it; that call is now what creates the
+        # client, so it is the side effect main() must not reach first.
+        ("API client creation", "make_call_llm("),
     ):
         line = _first_line_containing(gen_lines, needle)
         check("generator: preflight precedes %s" % label,
               line is not None and gen_preflight is not None and gen_preflight < line,
               "preflight=%s %s=%s" % (gen_preflight, label, line))
+
+    # the indirection must not hide the side effect: make_call_llm is where the
+    # adapter is loaded and the client created
+    helper_lines = _main_source_of(gen, "make_call_llm")
+    for needle in ("load_adapter(", "adapter.create_client("):
+        check("make_call_llm is what performs %s" % needle,
+              _first_line_containing(helper_lines, needle) is not None)
 
     # dynamic proof for the generator: a failing preflight must abort before a
     # single byte is written and before the adapter is even loaded

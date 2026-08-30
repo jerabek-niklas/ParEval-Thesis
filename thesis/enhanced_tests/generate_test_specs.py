@@ -400,6 +400,47 @@ def parse_spec_response(raw_text: str) -> "Optional[list]":
     return data if isinstance(data, list) else None
 
 
+def make_call_llm(config: Dict[str, Any], spec_model_id: str, system_prompt: str):
+    """The productive spec-generation client, as one reusable callable.
+
+    Factored out of main() unchanged so a caller that regenerates only PART of
+    the cache (E3) uses exactly the same provider, model, generation defaults,
+    timeout and retry behaviour as a full run. There is no second client path.
+    """
+    models = [m for m in config.get("models", []) if m.get("id") == spec_model_id]
+    if not models:
+        raise SystemExit("spec_model '%s' not found in config models." % spec_model_id)
+    model_config = models[0]
+    adapter = load_adapter(model_config["provider"])
+    api_key = common.get_api_key(model_config, adapter.default_api_key_env)
+    generation_defaults = config.get("generation_defaults", {})
+    client = adapter.create_client(
+        model_config, api_key,
+        common.get_timeout_seconds(model_config, generation_defaults),
+    )
+
+    def call_llm(user_prompt: str) -> "Optional[str]":
+        try:
+            result = adapter.generate(
+                client=client,
+                model_config=model_config,
+                generation_defaults=generation_defaults,
+                system_prompt=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+                retry_attempts=2,
+                sleep_seconds=0.0,
+            )
+        except common.ModelRefusal as refusal:
+            print("  refused: %s" % refusal)
+            return None
+        except Exception as error:  # noqa: BLE001 - logged, benchmark skipped
+            print("  API error: %s" % error)
+            return None
+        return result.raw_text
+
+    return call_llm, model_config
+
+
 def generate_for_benchmark(
     call_llm: "Callable[[str], Optional[str]]",
     benchmark: str,
@@ -408,24 +449,47 @@ def generate_for_benchmark(
     settings: Dict[str, Any],
     known: "set",
     spec_model_id: str,
+    retained_specs: "Optional[List[dict]]" = None,
+    replacement_budget: "Optional[int]" = None,
 ) -> "Tuple[List[dict], List[dict], bool]":
-    """Initial ask + up to REFILL_ROUNDS refills until llm_specs_min valid
-    specs exist. Returns (accepted, discarded_log_entries, under_target).
+    """Initial ask + up to REFILL_ROUNDS refills until the target number of
+    valid specs exists. Returns (accepted, discarded_log_entries, under_target).
 
     call_llm(user_prompt) -> raw response text or None (API failure /
     refusal); injected so tests can drive the quota logic with a fake.
+
+    E3 REPLACEMENT MODE (both optional arguments given):
+
+      retained_specs      specs that STAY in the cache. Their spec_keys seed
+                          the dedupe set, so a replacement can never collide
+                          with a retained spec, and they are shown to the model
+                          as ALREADY ACCEPTED so it does not re-propose them.
+      replacement_budget  how many NEW specs may be produced. The target
+                          replaces llm_specs_min, the ask is sized from it, and
+                          accepting stops once it is reached.
+
+    This is the SAME generation, validation and dedupe logic as a normal run -
+    only the starting dedupe set and the target count differ. There is
+    deliberately no separate E3 generator.
     """
     llm_min = int(settings["llm_specs_min"])
     llm_max = int(settings["llm_specs_max"])
 
+    retained = list(retained_specs or [])
+    target = llm_min if replacement_budget is None else int(replacement_budget)
+    cap = None if replacement_budget is None else int(replacement_budget)
+
     accepted: "List[dict]" = []
     discarded: "List[dict]" = []
-    seen_keys = set()
+    # E3: retained spec_keys are already taken, so a replacement can never
+    # duplicate one of them
+    seen_keys = {spec_key(s) for s in retained}
 
     def run_round(ask_count: "Optional[int]", reasons: "List[str]") -> None:
+        shown = (retained + accepted) or None
         prompt = build_user_prompt(
             benchmark, serial_prompt, baseline, settings,
-            already_accepted=accepted or None,
+            already_accepted=shown,
             rejection_reasons=reasons or None,
             ask_count=ask_count,
         )
@@ -460,6 +524,12 @@ def generate_for_benchmark(
             )
 
             if ok:
+                if cap is not None and len(accepted) >= cap:
+                    discarded.append(
+                        {"benchmark": benchmark,
+                         "reason": "over replacement budget", "spec": item}
+                    )
+                    continue
                 key = spec_key(item)
                 if key in seen_keys:
                     discarded.append(
@@ -471,16 +541,19 @@ def generate_for_benchmark(
             else:
                 discarded.append({"benchmark": benchmark, "reason": reason, "spec": item})
 
-    run_round(ask_count=None, reasons=[])
+    run_round(ask_count=(cap if cap is not None else None), reasons=[])
 
     refills = 0
-    while len(accepted) < llm_min and refills < REFILL_ROUNDS:
+    while len(accepted) < target and refills < REFILL_ROUNDS:
         refills += 1
-        missing = max(llm_max - len(accepted), 1)
+        if cap is not None:
+            missing = max(cap - len(accepted), 1)
+        else:
+            missing = max(llm_max - len(accepted), 1)
         reasons = [d["reason"] for d in discarded if "spec" in d]
         run_round(ask_count=missing, reasons=reasons)
 
-    return accepted, discarded, len(accepted) < llm_min
+    return accepted, discarded, len(accepted) < target
 
 
 def load_existing(output_path: Path, known: "set", settings: Dict[str, Any]) -> "Dict[str, int]":
@@ -550,40 +623,8 @@ def main() -> None:
     if not system_prompt:
         raise SystemExit("stages.enhanced_tests.spec_system_prompt is not set in the config.")
 
-    models = [m for m in config.get("models", []) if m.get("id") == spec_model_id]
-    if not models:
-        raise SystemExit("spec_model '%s' not found in config models." % spec_model_id)
-
-    model_config = models[0]
+    call_llm, model_config = make_call_llm(config, spec_model_id, system_prompt)
     provider = model_config["provider"]
-
-    adapter = load_adapter(provider)
-    api_key = common.get_api_key(model_config, adapter.default_api_key_env)
-    generation_defaults = config.get("generation_defaults", {})
-    client = adapter.create_client(
-        model_config,
-        api_key,
-        common.get_timeout_seconds(model_config, generation_defaults),
-    )
-
-    def call_llm(user_prompt: str) -> "Optional[str]":
-        try:
-            result = adapter.generate(
-                client=client,
-                model_config=model_config,
-                generation_defaults=generation_defaults,
-                system_prompt=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}],
-                retry_attempts=2,
-                sleep_seconds=0.0,
-            )
-        except common.ModelRefusal as refusal:
-            print("  refused: %s" % refusal)
-            return None
-        except Exception as error:  # noqa: BLE001 - logged, benchmark skipped
-            print("  API error: %s" % error)
-            return None
-        return result.raw_text
 
     benchmarks = parameterizable_benchmarks()
     if args.benchmark:

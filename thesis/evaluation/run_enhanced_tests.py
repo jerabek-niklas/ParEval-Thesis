@@ -889,6 +889,38 @@ def main() -> None:
                         continue
 
             if done:
+                # E3 FAIL-CLOSED RESUME BOUNDARY.
+                #
+                # A record is the result of a specific enhanced POLICY and
+                # harness, but resume keys only on (sample_id, spec_key) - and
+                # spec_key deliberately does not encode either. A spec whose
+                # identity stayed the same while its INPUT SEMANTICS changed
+                # (the drifted-but-valid class) would therefore be skipped and
+                # its stale record silently kept as current. Refuse instead:
+                # the run must either continue under the policy it started
+                # with, or start fresh (--force / a new run_id).
+                recorded_policy = None
+                resume_summary = output_path.parent / summary_name
+                if resume_summary.exists():
+                    try:
+                        recorded_policy = (
+                            (json.loads(resume_summary.read_text(encoding="utf-8"))
+                             or {}).get("enhanced_policy_provenance") or {}
+                        ).get("enhanced_policy_sha256")
+                    except ValueError:
+                        recorded_policy = None
+                current_policy = policy_provenance["enhanced_policy_sha256"]
+                if recorded_policy != current_policy:
+                    print(
+                        f"[{model_id}] RESUME REFUSED - existing records were "
+                        f"produced under enhanced policy "
+                        f"{recorded_policy or '<unrecorded>'} but the current "
+                        f"policy is {current_policy}. spec_key does not encode "
+                        "the policy, so resuming would keep results whose input "
+                        "semantics have since changed. Re-run this run_id with "
+                        "--force, or use a fresh run_id."
+                    )
+                    sys.exit(3)
                 print(f"[{model_id}] resume: {len(done)} (sample, spec) rows exist, skipping those")
 
         # A resume over a LEGACY file (pre-grouping records: no groups
