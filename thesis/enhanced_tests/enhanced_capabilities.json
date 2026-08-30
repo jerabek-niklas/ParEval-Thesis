@@ -1259,6 +1259,16 @@
    ],
    "fill_site_vs_pattern_note": "A fill SITE is conditional when only some patterns make it unsafe; the definitive fill-layer UB lives on the PATTERN cases. Read fill_type_unsafe_pattern_cases as the primary fill-safety metric - fill_type_unsafe_sites is 0 because no site is unsafe for every pattern.",
    "counting_note": "verdict_outcome_summary counts one entry per (benchmark, pattern) pair, 60 x 11 = 660. conditional_cases counts entries that carry verdict_outcome_conditions; those are NOT additionally counted as a definitive class beyond their own verdict_outcome_class."
+  },
+  "e2a1_normalization": {
+   "wave": "E2-A.1",
+   "date": "2026-08-30",
+   "scope": "ADDITIVE normalized metadata only - no audit finding, rationale, field or history was removed or rewritten",
+   "added_fields": {
+    "benchmarks[].fill_sites[].container_value_type_normalized": "the fill container's element type as a machine-readable token (double|float|int|long|unsigned long|size_t|complex<double>), parsed from the human-readable container_value_type that stays untouched. THE authoritative technical type source for both explicit_values and value_range validation.",
+    "benchmarks[].enforced_size_safety": "the nine E2-A benchmark-local size rules, migrated verbatim out of derive_enhanced_policy.py::SIZE_CONSTRAINTS so the productive policy has exactly ONE machine-readable size source. No rule was added, widened or generalized."
+   },
+   "still_audit_only": "this file stays AUDIT_ONLY_NOT_ENFORCED; enhanced_policy.json remains the enforced artifact"
   }
  },
  "benchmarks": [
@@ -1287,7 +1297,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the LO/HI arguments (enhanced-fill.hpp:173-174): the two double literals at cpu.cc:63 give DType=double, identical to the container value_type. Every pattern value the harness can produce for DType=double (0, midpoint, ramp, lo/hi, numeric_limits<double>::lowest()/max(), max()/2, enhancedFromDouble<double>(spec)) is by construction representable in a double, so the assignment x[i]=value is a plain double-to-double copy: no narrowing, no float-to-integral conversion, no UB. The ENHANCED_FILL_LO/HI override casts to decltype(lo)=double (enhanced-fill.hpp:174-177), also lossless. NOTE (layer correction): the downstream consequences of large values - singular matrices, NaN pivots, absolute-tolerance blowup - are oracle/domain/verdict matters and are recorded on those axes, not here.",
-     "conversion_notes": "double literals -> DType=double == value_type; extreme_values assigns +-DBL_MAX and spike_at DBL_MAX/2, all representable in double - no conversion, no UB. value_range override casts to decltype(lo)=double (enhanced-fill.hpp:450-453), lossless."
+     "conversion_notes": "double literals -> DType=double == value_type; extreme_values assigns +-DBL_MAX and spike_at DBL_MAX/2, all representable in double - no conversion, no UB. value_range override casts to decltype(lo)=double (enhanced-fill.hpp:450-453), lossless.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate(); timed path reset() uses fillRand(A,-10,10) (cpu.cc:28) which is outside the pattern axis by design",
@@ -1962,7 +1973,13 @@
     "ORACLE_GUARD_NEEDED - baseline.hpp:22-24 returns SILENTLY and FINITELY on a zero pivot, bypassing the BI gate and turning a correct candidate into a MODEL failure; this guard must land before any adapter routes patterns into A. (Layer note: this is an ORACLE hazard, not a fill-site type problem - the driver has no fill site at all, so FIX_FILL_SITE_TYPES would be the wrong filing.)",
     "FURTHER_SEMANTIC_REVIEW - static spec size 0 (static_base_sizes, thesis/config/config.yaml:562) causes size_t underflow of `i < N - 1` (baseline.hpp:17) -> out-of-bounds reads on empty vectors (UB/likely crash); verify whether the spec layer actually emits size 0 for this benchmark and guard if so"
    ],
-   "notes": "shapes JSON entry (fill_sites=0, explicit_values disabled, 'nothing to fill') VERIFIED. Absolute tolerance 1e-4 on a solve whose x components are O(10) is tight but adequate at the default range; ill-conditioned random draws are the known flakiness source and MAX_VALIDATION_ATTEMPTS=2 doubles the exposure. Relayering summary: because pattern_effect is NONE, all four safety axes are NOT_APPLICABLE for every label and the verdict class is the class of the run that actually happens - the benchmark's own random case - for all eleven labels; only the 'random' label is a legitimate spec, the other ten are duplicates. The two real hazards (size-0 out-of-bounds read; silent zero-pivot early return producing a finite wrong reference) are ORACLE-layer findings and are filed as such, not as fill-site or pattern findings. Unlike 00/02/03/04, size 0 here is NOT a vacuous pass but an out-of-bounds read that precedes the comparison."
+   "notes": "shapes JSON entry (fill_sites=0, explicit_values disabled, 'nothing to fill') VERIFIED. Absolute tolerance 1e-4 on a solve whose x components are O(10) is tight but adequate at the default range; ill-conditioned random draws are the known flakiness source and MAX_VALIDATION_ATTEMPTS=2 doubles the exposure. Relayering summary: because pattern_effect is NONE, all four safety axes are NOT_APPLICABLE for every label and the verdict class is the class of the run that actually happens - the benchmark's own random case - for all eleven labels; only the 'random' label is a legitimate spec, the other ten are duplicates. The two real hazards (size-0 out-of-bounds read; silent zero-pivot early return producing a finite wrong reference) are ORACLE-layer findings and are filed as such, not as fill-site or pattern findings. Unlike 00/02/03/04, size 0 here is NOT a vacuous pass but an out-of-bounds read that precedes the comparison.",
+   "enforced_size_safety": {
+    "min_size": 1,
+    "reason": "size 0 makes correctSolveLinearSystem's forward-elimination bound `i < N - 1` underflow on size_t and read an empty vector (heap out-of-bounds, baseline.hpp)",
+    "evidence": "drivers/cpp/benchmarks/dense_la/01_dense_la_solve/baseline.hpp (forward elimination `i < N - 1` on size_t)",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "dense_la/02_dense_la_gemm",
@@ -1989,7 +2006,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from the double literals (enhanced-fill.hpp:173-174) equals the container value_type, so every harness-produced value - including numeric_limits<double>::lowest()/max() for extreme_values and max()/2 for spike_at - is representable and the assignment is a plain double-to-double copy. No narrowing, no float-to-integral conversion, no UB. Downstream overflow of the K-term accumulation is an oracle/verdict matter recorded on those axes.",
-     "conversion_notes": "double->double, lossless; extreme_values +-DBL_MAX representable, no UB."
+     "conversion_notes": "double->double, lossless; extreme_values +-DBL_MAX representable, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 71,
@@ -2003,7 +2021,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to the A site: DType=double from the double literals, assignment is lossless double-to-double for every pattern value. The fact that both sites share pattern, range and k (so A and B receive identical content and spikes land at flat index 0 in BOTH) affects the domain and verdict axes, not the type-safety of either assignment.",
-     "conversion_notes": "double->double, lossless; both sites share pattern and k, so spikes land at flat index 0 in BOTH A and B."
+     "conversion_notes": "double->double, lossless; both sites share pattern and k, so spikes land at flat index 0 in BOTH A and B.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "fillRand(A_ns/B_ns,-1,1) for the nonsquare probe (cpu.cc:110-111); std::fill zeroing of correct/test (cpu.cc:72-73) and probe outputs (cpu.cc:108)",
@@ -2333,7 +2352,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from the double literals (enhanced-fill.hpp:173-174) equals the container value_type, so every harness value - 0, midpoint, ramp, lo/hi, +-DBL_MAX, DBL_MAX/2 - is representable and the assignment is a lossless double-to-double copy with no UB. The overflow of 2*x+y for extreme/spike values happens in the ORACLE, not at the fill site, and is recorded on the oracle/domain/verdict axes.",
-     "conversion_notes": "double->double, lossless, no UB."
+     "conversion_notes": "double->double, lossless, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 66,
@@ -2347,7 +2367,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to the x site: DType=double, lossless assignment for every pattern value. That this site shares pattern and k with the x site (so spikes STACK at the same index) is a domain/verdict consequence, not a fill-type one.",
-     "conversion_notes": "double->double, lossless, no UB; shares pattern/k with the x site."
+     "conversion_notes": "double->double, lossless, no UB; shares pattern/k with the x site.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate() (alpha is a hardcoded scalar, cpu.cc:57)",
@@ -2664,7 +2685,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from the double literals (enhanced-fill.hpp:173-174) equals the container value_type, so every harness value including +-DBL_MAX and DBL_MAX/2 is representable and the assignment is a lossless double-to-double copy: no narrowing, no float-to-integral conversion, no UB. Overflow of the N-term dot product happens in the oracle and is recorded on the oracle/domain/verdict axes.",
-     "conversion_notes": "double->double, lossless, no UB."
+     "conversion_notes": "double->double, lossless, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 70,
@@ -2678,7 +2700,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to the A site: DType=double, lossless assignment for every pattern value. That this site shares pattern and k with the A site (spike lands at A[0][0] and x[0]) and that a spiked x[0] multiplies EVERY row are domain/verdict consequences, not fill-type ones.",
-     "conversion_notes": "double->double, lossless; shares pattern/k with the A site (spike lands at A[0][0] and x[0])."
+     "conversion_notes": "double->double, lossless; shares pattern/k with the A site (spike lands at A[0][0] and x[0]).",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "fillRand(A_ns/x_ns,-10,10) for the nonsquare probe (cpu.cc:105-106)",
@@ -3011,7 +3034,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "VERIFIED at cpu.cc:72: ENHANCED_FILL(real, -1.0, 1.0) deduces DType=double from the literals (enhanced-fill.hpp:173-174) and the container is std::vector<double>, so every pattern writes double into double with no conversion at all. extreme_values (numeric_limits<double>::lowest()/max(), enhanced-fill.hpp:129-131) and spike_at (DBL_MAX/2, enhanced-fill.hpp:154-156) are exactly representable doubles, so even those assignments are well defined. Nothing that happens later in the oracle can make this assignment unsafe.",
-     "conversion_notes": "DType deduced from double literals matches vector<double>::value_type; no conversion. extreme_values/spike_at write +-DBL_MAX / DBL_MAX/2 doubles into doubles - representable, no UB at the fill site (downstream FP overflow is IEEE-defined, not UB)."
+     "conversion_notes": "DType deduced from double literals matches vector<double>::value_type; no conversion. extreme_values/spike_at write +-DBL_MAX / DBL_MAX/2 doubles into doubles - representable, no UB at the fill site (downstream FP overflow is IEEE-defined, not UB).",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 73,
@@ -3025,7 +3049,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to line 72 (double literals -> DType=double -> vector<double>). Note that both sites receive the SAME pattern id and the same k, so a k-pattern hits real[k] and imag[k] together; that is a semantic observation about the assembled complex value, not a type-safety issue at the site.",
-     "conversion_notes": "Same as line 72. Both sites receive the SAME pattern config (same pattern id and k), so e.g. spike_at spikes real[k] AND imag[k], giving one complex element (DBL_MAX/2, DBL_MAX/2)."
+     "conversion_notes": "Same as line 72. Both sites receive the SAME pattern config (same pattern id and k), so e.g. spike_at spikes real[k] AND imag[k], giving one complex element (DBL_MAX/2, DBL_MAX/2).",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "None in validate() beyond the deterministic assembly loop x[j]=complex(real[j],imag[j]) (cpu.cc:77-79), fully derived from the two fill sites. reset() (timing path, not validate) uses fillRand (cpu.cc:31-32).",
@@ -3423,7 +3448,13 @@
     "FURTHER_SEMANTIC_REVIEW - all_same at the call-site range (-1.0, 1.0) has midpoint exactly 0.0, so it is byte-identical to all_zeros; specs.py PATTERN_SWAPS even maps all_zeros->all_same. Consider deduplicating.",
     "LARGE_SIZE_PROBE_NEEDED - powers of two > 4096 look clear in source; runtime probe to confirm"
    ],
-   "notes": "Comparison uses Wave-1 reportAndCompareWith with the verbatim historical predicate (cpu.cc:90-103): size mismatch is rejected (utilities.hpp:401-408), non-finite candidate against a finite reference fails (:430-438), non-finite REFERENCE emits the authenticated BI marker and is skipped (:425-426). MAX_VALIDATION_ATTEMPTS defaults to 2 (utilities.hpp:34-35). benchmark_shapes.json hint (2 fill sites, n+n, explicit_values disabled) VERIFIED against code. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with 'every graded index skipped' is wrong on both counts - the skip is partial (hand-verified at N=8) and, decisively, the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514) and the oracle-only gate stops the spec before the model runs at all (:538-620, :657-670), so the class is NO_VERDICT_BI. The only counted-pass-without-check in this benchmark is TEST_SIZE==0."
+   "notes": "Comparison uses Wave-1 reportAndCompareWith with the verbatim historical predicate (cpu.cc:90-103): size mismatch is rejected (utilities.hpp:401-408), non-finite candidate against a finite reference fails (:430-438), non-finite REFERENCE emits the authenticated BI marker and is skipped (:425-426). MAX_VALIDATION_ATTEMPTS defaults to 2 (utilities.hpp:34-35). benchmark_shapes.json hint (2 fill sites, n+n, explicit_values disabled) VERIFIED against code. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with 'every graded index skipped' is wrong on both counts - the skip is partial (hand-verified at N=8) and, decisively, the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514) and the oracle-only gate stops the spec before the model runs at all (:538-620, :657-670), so the class is NO_VERDICT_BI. The only counted-pass-without-check in this benchmark is TEST_SIZE==0.",
+   "enforced_size_safety": {
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "the iterative Rosetta fft() oracle computes the butterfly partner as b = a + k without bounding b by N, so any N >= 3 that is not a power of two reads and writes past the end (heap out-of-bounds, baseline.hpp). The frozen prompt states the size is always a power of two.",
+    "evidence": "drivers/cpp/benchmarks/fft/05_fft_inverse_fft/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "fft/06_fft_dft",
@@ -3450,7 +3481,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "VERIFIED at cpu.cc:61: ENHANCED_FILL(x, -1.0, 1.0) deduces DType=double from the literals (enhanced-fill.hpp:173-174) and x is std::vector<double>, so every offered pattern - including extreme_values (numeric_limits<double>::lowest()/max()), spike_at (DBL_MAX/2) and explicit_values (enhancedFromDouble<double> is a double->double static_cast, enhanced-fill.hpp:165-171) - assigns a double to a double. There is no narrowing and no float->integral conversion, so the site is unconditionally type-safe for ARBITRARY spec values, not merely conditionally so.",
-     "conversion_notes": "DType=double matches value_type; no conversion, no UB at the site for any offered pattern."
+     "conversion_notes": "DType=double matches value_type; no conversion, no UB at the site for any offered pattern.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none (reset() uses fillRand on the timing path only, cpu.cc:27)",
@@ -3841,7 +3873,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "VERIFIED at cpu.cc:67: DType is deduced from the double literals (enhanced-fill.hpp:173-174) and matches std::vector<double>::value_type, so every offered pattern - extreme_values (+-DBL_MAX), spike_at (DBL_MAX/2), ramps, midpoint, alternating - performs a double->double assignment with no conversion. No pattern can produce narrowing or an out-of-range float->integral conversion at this site, and nothing the oracle does downstream can change that.",
-     "conversion_notes": "double->double, no conversion; no pattern can produce conversion UB here."
+     "conversion_notes": "double->double, no conversion; no pattern can produce conversion UB here.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 68,
@@ -3855,7 +3888,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to line 67 (double literals -> DType=double -> vector<double>). Both sites receive the same pattern id and the same k, so a k-pattern hits real[k] and imag[k] together; that is a semantic observation about the assembled complex sample (cpu.cc:72-74), not a type-safety issue at the site.",
-     "conversion_notes": "Same as line 67; both sites share one pattern config (same pattern and k)."
+     "conversion_notes": "Same as line 67; both sites share one pattern config (same pattern and k).",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "None in validate() beyond the deterministic assembly loop (cpu.cc:72-74); reset() uses fillRand on the timing path (cpu.cc:26-27).",
@@ -4247,7 +4281,13 @@
     "FURTHER_SEMANTIC_REVIEW - all_same at the call-site range (-1.0, 1.0) has midpoint exactly 0.0, so it is byte-identical to all_zeros, and both hide the I12 conjugation because conj(0)==0. Consider deduplicating and preferring a pattern with nonzero imaginary parts.",
     "LARGE_SIZE_PROBE_NEEDED - powers of two > 4096 look clear in source"
    ],
-   "notes": "Oracle carries the frozen I12 fix (conjugation exactly once at top level, baseline.hpp:62-113); N<=1 conjugation is included, so sizes 0/1/2 are all semantically valid. shapes hint (2 sites, explicit_values disabled) VERIFIED against cpu.cc:67-68. Comparison uses reportAndCompareWith with the verbatim historical predicate at the widest tolerance in the family (1e-3, cpu.cc:89-95); size mismatch is rejected (utilities.hpp:401-408), non-finite candidate against a finite reference fails (:430-438), non-finite REFERENCE emits the authenticated BI marker and is skipped (:425-426). Note also that best() calls the ITERATIVE correctFft (baseline.hpp:12-60, cpu.cc:52), which carries the same unbounded b = a + k index pattern as fft/05 - that is the TIMING path only and never reaches validate, but DRIVER_PROBLEM_SIZE must be a power of two for it to be memory-safe. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with 'every graded index skipped' is wrong on both counts - the skip is partial and the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514), so the class is NO_VERDICT_BI."
+   "notes": "Oracle carries the frozen I12 fix (conjugation exactly once at top level, baseline.hpp:62-113); N<=1 conjugation is included, so sizes 0/1/2 are all semantically valid. shapes hint (2 sites, explicit_values disabled) VERIFIED against cpu.cc:67-68. Comparison uses reportAndCompareWith with the verbatim historical predicate at the widest tolerance in the family (1e-3, cpu.cc:89-95); size mismatch is rejected (utilities.hpp:401-408), non-finite candidate against a finite reference fails (:430-438), non-finite REFERENCE emits the authenticated BI marker and is skipped (:425-426). Note also that best() calls the ITERATIVE correctFft (baseline.hpp:12-60, cpu.cc:52), which carries the same unbounded b = a + k index pattern as fft/05 - that is the TIMING path only and never reaches validate, but DRIVER_PROBLEM_SIZE must be a power of two for it to be memory-safe. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with 'every graded index skipped' is wrong on both counts - the skip is partial and the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514), so the class is NO_VERDICT_BI.",
+   "enforced_size_safety": {
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "the recursive oracle floor-halves N at every level, so for a non-power-of-two size it silently computes something that is not the transform and grades correct candidates against a wrong reference. The frozen prompt states the size is always a power of two.",
+    "evidence": "drivers/cpp/benchmarks/fft/07_fft_fft_conjugate/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "fft/08_fft_split_fft",
@@ -4274,7 +4314,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "VERIFIED at cpu.cc:70: DType is deduced from the double literals (enhanced-fill.hpp:173-174) and matches std::vector<double>::value_type, so every offered pattern - extreme_values (+-DBL_MAX), spike_at (DBL_MAX/2), ramps, midpoint, alternating - performs a double->double assignment with no conversion. No narrowing and no out-of-range float->integral conversion is possible at this site, and no downstream oracle or tolerance problem can make the assignment itself unsafe.",
-     "conversion_notes": "double->double; no conversion UB possible for any offered pattern."
+     "conversion_notes": "double->double; no conversion UB possible for any offered pattern.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 71,
@@ -4288,7 +4329,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to line 70 (double literals -> DType=double -> vector<double>). Both sites share one pattern config (same pattern id and k), so a k-pattern hits real[k] and imag[k] together; that is a semantic observation about the assembled complex sample (cpu.cc:75-77), not a type-safety issue at the site.",
-     "conversion_notes": "Same as line 70; shared pattern config across both sites."
+     "conversion_notes": "Same as line 70; shared pattern config across both sites.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "None in validate() beyond the assembly loop (cpu.cc:75-77); reset() uses fillRand on the timing path (cpu.cc:27-28).",
@@ -4686,7 +4728,13 @@
     "FURTHER_SEMANTIC_REVIEW - all_same at the call-site range (-1.0, 1.0) has midpoint exactly 0.0, so it is byte-identical to all_zeros; specs.py PATTERN_SWAPS even maps all_zeros->all_same. Consider deduplicating.",
     "LARGE_SIZE_PROBE_NEEDED - powers of two > 4096 look clear in source"
    ],
-   "notes": "Split-output comparison uses the epsilon overload reportAndCompare(a,b,1e-4) on plain double vectors (cpu.cc:92) - full A1b semantics incl. size-mismatch rejection for candidate-resized testReal/testImag (utilities.hpp:401-408). shapes hint (2 sites, explicit_values disabled) VERIFIED against cpu.cc:70-71. The ITERATIVE correctFft with the OOB-prone b = a + k index pattern exists in this baseline (baseline.hpp:12-64) but is called only from best() at DRIVER_PROBLEM_SIZE (cpu.cc:53), NOT from validate - VERIFIED, so it cannot affect any enhanced-test verdict. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with all indices skipped is wrong on both counts - the skip is partial and the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514), so the class is NO_VERDICT_BI."
+   "notes": "Split-output comparison uses the epsilon overload reportAndCompare(a,b,1e-4) on plain double vectors (cpu.cc:92) - full A1b semantics incl. size-mismatch rejection for candidate-resized testReal/testImag (utilities.hpp:401-408). shapes hint (2 sites, explicit_values disabled) VERIFIED against cpu.cc:70-71. The ITERATIVE correctFft with the OOB-prone b = a + k index pattern exists in this baseline (baseline.hpp:12-64) but is called only from best() at DRIVER_PROBLEM_SIZE (cpu.cc:53), NOT from validate - VERIFIED, so it cannot affect any enhanced-test verdict. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with all indices skipped is wrong on both counts - the skip is partial and the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514), so the class is NO_VERDICT_BI.",
+   "enforced_size_safety": {
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "same floor-halving oracle as fft/07; the frozen prompt states the length of x is a power of two",
+    "evidence": "drivers/cpp/benchmarks/fft/08_fft_split_fft/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "fft/09_fft_fft_out_of_place",
@@ -4713,7 +4761,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "VERIFIED at cpu.cc:68: DType is deduced from the double literals (enhanced-fill.hpp:173-174) and matches std::vector<double>::value_type, so every offered pattern - extreme_values (+-DBL_MAX), spike_at (DBL_MAX/2), ramps, midpoint, alternating - performs a double->double assignment with no conversion. No narrowing and no out-of-range float->integral conversion is possible at this site; the downstream oracle overflow and tolerance problems belong to other axes and do not make this assignment unsafe.",
-     "conversion_notes": "double->double; no conversion UB possible for any offered pattern."
+     "conversion_notes": "double->double; no conversion UB possible for any offered pattern.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 69,
@@ -4727,7 +4776,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to line 68 (double literals -> DType=double -> vector<double>). Both sites share one pattern config (same pattern id and k), so a k-pattern hits real[k] and imag[k] together; that is a semantic observation about the assembled complex sample (cpu.cc:73-75), not a type-safety issue at the site.",
-     "conversion_notes": "Same as line 68; shared pattern config across both sites."
+     "conversion_notes": "Same as line 68; shared pattern config across both sites.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "None in validate() beyond the assembly loop (cpu.cc:73-75); reset() uses fillRand on the timing path (cpu.cc:26-27).",
@@ -5124,7 +5174,13 @@
     "FURTHER_SEMANTIC_REVIEW - all_same at the call-site range (-1.0, 1.0) has midpoint exactly 0.0, so it is byte-identical to all_zeros; specs.py PATTERN_SWAPS even maps all_zeros->all_same. Consider deduplicating.",
     "LARGE_SIZE_PROBE_NEEDED - powers of two > 4096 look clear in source"
    ],
-   "notes": "If a candidate resizes `test`, reportAndCompareWith rejects the length difference before any element access (contract A2, utilities.hpp:401-408) - VERIFIED, and this is the one structural check that even the degenerate patterns still exercise. shapes hint (2 sites, n+n, explicit_values disabled) VERIFIED against cpu.cc:68-69. The iterative correctFft (baseline.hpp:16-61) is used only by best() at DRIVER_PROBLEM_SIZE (cpu.cc:53), not in validate - VERIFIED. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with every graded index skipped is wrong on both counts - the skip is partial and the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514), so the class is NO_VERDICT_BI."
+   "notes": "If a candidate resizes `test`, reportAndCompareWith rejects the length difference before any element access (contract A2, utilities.hpp:401-408) - VERIFIED, and this is the one structural check that even the degenerate patterns still exercise. shapes hint (2 sites, n+n, explicit_values disabled) VERIFIED against cpu.cc:68-69. The iterative correctFft (baseline.hpp:16-61) is used only by best() at DRIVER_PROBLEM_SIZE (cpu.cc:53), not in validate - VERIFIED. DE-CONTRADICTED in this pass: the earlier wording that extreme_values yields a 'vacuous pass' with every graded index skipped is wrong on both counts - the skip is partial and the authenticated BI marker is checked before any pass can be counted (run_enhanced_tests.py:512-514), so the class is NO_VERDICT_BI.",
+   "enforced_size_safety": {
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "same floor-halving oracle as fft/07; the frozen prompt states the size of x is always a power of two",
+    "evidence": "drivers/cpp/benchmarks/fft/09_fft_fft_out_of_place/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "geometry/10_geometry_convex_hull",
@@ -5151,7 +5207,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "DType=double matches vector<double>::value_type; no conversion. extreme_values yields lowest()/max() = +-DBL_MAX (finite, representable); spike_at yields DBL_MAX/2. No pattern can produce UB at this site."
+     "conversion_notes": "DType=double matches vector<double>::value_type; no conversion. extreme_values yields lowest()/max() = +-DBL_MAX (finite, representable); spike_at yields DBL_MAX/2. No pattern can produce UB at this site.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 75,
@@ -5165,7 +5222,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "Identical to the x site. Note both sites receive the SAME global pattern, coupling x and y."
+     "conversion_notes": "Identical to the x site. Note both sites receive the SAME global pattern, coupling x and y.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate() (fillRand appears only in reset(), cpu.cc:30-31, which feeds the perf path)",
@@ -5420,7 +5478,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern."
+     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 80,
@@ -5434,7 +5493,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "Identical to the x site; same global pattern applied to both -> coupled coordinates."
+     "conversion_notes": "Identical to the x site; same global pattern applied to both -> coupled coordinates.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate() (fillRand only in reset(), cpu.cc:34-35, perf path)",
@@ -5696,7 +5756,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern."
+     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 80,
@@ -5710,7 +5771,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "Identical to the x site; same global pattern -> coupled coordinates."
+     "conversion_notes": "Identical to the x site; same global pattern -> coupled coordinates.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate()",
@@ -6006,7 +6068,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern."
+     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 80,
@@ -6020,7 +6083,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and both are double literals, so DType == vector<double>::value_type: every pattern value is stored by a double-to-double assignment with NO conversion. extreme_values writes lowest()/max() (+-DBL_MAX, finite and exactly representable) and spike_at writes DBL_MAX/2, also representable; an ENHANCED_FILL_LO/HI override is cast to decltype(lo)=double, so no override can introduce narrowing or an out-of-range conversion at this site. Every hazard attached to +-DBL_MAX / DBL_MAX/2 in this catalog is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), never a fill-assignment hazard.",
-     "conversion_notes": "Identical to the x site; same global pattern -> coupled coordinates."
+     "conversion_notes": "Identical to the x site; same global pattern -> coupled coordinates.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate()",
@@ -6287,7 +6351,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the double lo/hi arguments (enhanced-fill.hpp:173-174) and equals vector<double>::value_type, so every pattern stores a double into a double with no conversion. This includes explicit_values: enhancedFromDouble<double> (enhanced-fill.hpp:166-172) is an identity static_cast and spec values arrive as JSON numbers that are already doubles, so no spec value can be out of range at this site. The int-container static_cast hazard quoted in the E1 explicit_values note does NOT apply here; the real explicit_values risks (non-finite or huge values) are DOWNSTREAM and are recorded on the domain / sentinel / verdict axes.",
-     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern. Single fill site - unambiguous explicit_values mapping."
+     "conversion_notes": "DType=double == value_type; no conversion, no UB from any pattern. Single fill site - unambiguous explicit_values mapping.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none in validate()",
@@ -8503,7 +8568,13 @@
     "FURTHER_SEMANTIC_REVIEW - edge-test divergence across the family (19's oracle treats any nonzero cell as an edge, baseline.hpp:32, vs ==1 in 15/16/18 and raw summation in 17); also std::random_shuffle (cpu.cc:30) is removed in C++17 - latent toolchain hazard",
     "LARGE_SIZE_PROBE_NEEDED - quadratic memory/generator time only; oracle BFS is iterative and safe"
    ],
-   "notes": "Most constrained graph benchmark: connectivity invariant, source/dest scalars, a live minimum-size requirement (N >= 2), and a result-space sentinel (INT_MAX, baseline.hpp:39) that the Wave 2B exact-comparison fix (cpu.cc:116-130) made gradeable for future disconnected inputs. shapes JSON verified (fill_sites: 0). Per-attempt matrix reset (cpu.cc:97) already fixed the attempt-independence bug (audit issue #77). RELAYERING / DE-CONTRADICTION: E1's size_rationale already described sizes 0 and 1 as UB (size_t underflow OOB writes, mod-by-zero, non-terminating dest loop) while the machine-readable audit still carried an unqualified KEEP_CANDIDATE and baseline_gate_only_risk NOT_APPLICABLE; the verdict class is therefore UNKNOWN with explicit per-size conditions, baseline_gate_only_risk is 'conditional' (only the size-0/1 parameterizations fall into the gate/BI path), and the two UB cases are filed as oracle_hazards with DOMAIN_POLICY_DECISION_NEEDED - NOT as fill-site type problems, since there is no fill site at all. The INT_MAX sentinel cannot be reached by any pattern (sentinel_collision NOT_APPLICABLE); it is latent until a future adapter introduces disconnected pairs. the verdict is an EXACT int scalar comparison (cpu.cc:84 -> reportAndCompareScalar, utilities.hpp:552-553 -> operator==), and mismatchIsFinite (utilities.hpp:174) is compile-time true for integral types, so the non-finite/BASELINE_INCOMPATIBLE route (utilities.hpp:517-523) cannot fire for this benchmark."
+   "notes": "Most constrained graph benchmark: connectivity invariant, source/dest scalars, a live minimum-size requirement (N >= 2), and a result-space sentinel (INT_MAX, baseline.hpp:39) that the Wave 2B exact-comparison fix (cpu.cc:116-130) made gradeable for future disconnected inputs. shapes JSON verified (fill_sites: 0). Per-attempt matrix reset (cpu.cc:97) already fixed the attempt-independence bug (audit issue #77). RELAYERING / DE-CONTRADICTION: E1's size_rationale already described sizes 0 and 1 as UB (size_t underflow OOB writes, mod-by-zero, non-terminating dest loop) while the machine-readable audit still carried an unqualified KEEP_CANDIDATE and baseline_gate_only_risk NOT_APPLICABLE; the verdict class is therefore UNKNOWN with explicit per-size conditions, baseline_gate_only_risk is 'conditional' (only the size-0/1 parameterizations fall into the gate/BI path), and the two UB cases are filed as oracle_hazards with DOMAIN_POLICY_DECISION_NEEDED - NOT as fill-site type problems, since there is no fill site at all. The INT_MAX sentinel cannot be reached by any pattern (sentinel_collision NOT_APPLICABLE); it is latent until a future adapter introduces disconnected pairs. the verdict is an EXACT int scalar comparison (cpu.cc:84 -> reportAndCompareScalar, utilities.hpp:552-553 -> operator==), and mismatchIsFinite (utilities.hpp:174) is compile-time true for integral types, so the non-finite/BASELINE_INCOMPATIBLE route (utilities.hpp:517-523) cannot fire for this benchmark.",
+   "enforced_size_safety": {
+    "min_size": 2,
+    "reason": "size 0 underflows the `i < N-1` spanning-path loop bound; size 1 makes `rand() % (N - 1)` a division by zero and the destination draw non-terminating (cpu.cc)",
+    "evidence": "drivers/cpp/benchmarks/graph/19_graph_shortest_path/cpu.cc (spanning-path loop and `rand() % (N - 1)`)",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "histogram/20_histogram_pixel_histogram",
@@ -8530,7 +8601,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "ASKS ONLY ABOUT THE ASSIGNMENT AT cpu.cc:64. DType is deduced from the int literals 0/255 (enhanced-fill.hpp:173-174) and equals value_type int, so every built-in pattern assigns int->int with no narrowing and no float->int conversion: extreme_values = INT_MIN/INT_MAX (enhanced-fill.hpp:129-136 verified), spike_at = INT_MAX/2 = 1073741823 (enhanced-fill.hpp:153-159), ascending/descending = the integral modulo ramp lo + position % (span+1) which stays inside [0,255] (enhanced-fill.hpp:114-120), alternating = lo/hi. value_range overrides are cast/saturated into int (enhanced-fill.hpp:299-310), also fill-safe. The ONLY conditional case at this site is explicit_values (pattern 10), whose arbitrary spec doubles pass through static_cast<int> in enhancedFromDouble (enhanced-fill.hpp:165-171): a spec value outside the int range is an out-of-range float->int conversion (UB) AT THIS SITE - recorded as pattern_audit.explicit_values.fill_type_safe = \"conditional\". The out-of-[0,255] hazard of extreme_values/spike_at is NOT a fill-site defect: it is a DOWNSTREAM oracle/domain hazard (unchecked bins[image[i]] write, baseline.hpp:15) and is carried by domain_valid / oracle_execution_safe and oracle_hazards.",
-     "conversion_notes": "DType deduced from int literals 0/255 matches value_type int, so extreme_values yields INT_MIN/INT_MAX and spike_at yields INT_MAX/2 computed natively in int - no narrowing UB. Residual caveat: explicit_values (pattern 10) converts arbitrary doubles via static_cast<int> (enhancedFromDouble, enhanced-fill.hpp:164-170), which is UB for values outside int range; that is a values-file content risk, not a site-type mismatch. value_range overrides are cast/saturated to int (enhanced-fill.hpp:299-310)."
+     "conversion_notes": "DType deduced from int literals 0/255 matches value_type int, so extreme_values yields INT_MIN/INT_MAX and spike_at yields INT_MAX/2 computed natively in int - no narrowing UB. Residual caveat: explicit_values (pattern 10) converts arbitrary doubles via static_cast<int> (enhancedFromDouble, enhanced-fill.hpp:164-170), which is UB for values outside int range; that is a values-file content risk, not a site-type mismatch. value_range overrides are cast/saturated to int (enhanced-fill.hpp:299-310).",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none (validate input is 100% ENHANCED_FILL; reset()'s fillRand at cpu.cc:29 is the timing path only)",
@@ -8888,7 +8960,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "ASKS ONLY ABOUT THE ASSIGNMENT AT cpu.cc:62. DType is deduced from the double literals 0.0/100.0 (enhanced-fill.hpp:173-174) and equals value_type double, so EVERY pattern - including extreme_values (lowest()/max() = -/+1.8e308), spike_at (DBL_MAX/2) and explicit_values (identity conversion in enhancedFromDouble, enhanced-fill.hpp:165-171) - assigns a double into a double with no conversion and no narrowing. There is no fill-site UB for any pattern or any value_range at this site. The UB the Wave-2B comment mentions is DOWNSTREAM, in the oracle's static_cast<size_t>(x[i]/10) (baseline.hpp:14), and is recorded on domain_valid / oracle_execution_safe and in oracle_hazards.",
-     "conversion_notes": "DType=double matches value_type double; extreme_values yields -DBL_MAX/+DBL_MAX and spike_at yields DBL_MAX/2 with no conversion, so no UB at the fill site (the UB the Wave-2B comment mentions is in the ORACLE's static_cast<size_t>(x[i]/10) for out-of-domain values, which the tripwire prevents from ever running). explicit_values doubles are identity-converted."
+     "conversion_notes": "DType=double matches value_type double; extreme_values yields -DBL_MAX/+DBL_MAX and spike_at yields DBL_MAX/2 with no conversion, so no UB at the fill site (the UB the Wave-2B comment mentions is in the ORACLE's static_cast<size_t>(x[i]/10) for out-of-domain values, which the tripwire prevents from ever running). explicit_values doubles are identity-converted.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -9243,7 +9316,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "ASKS ONLY ABOUT THE ASSIGNMENT AT cpu.cc:76. DType is deduced from the double literals -1.0/1.0 and equals value_type double, so every pattern assigns a double into a double with no conversion: extreme_values (-/+DBL_MAX) and spike_at (DBL_MAX/2) are exactly representable. The field-wise copy into points[j].x (cpu.cc:82) is a double-to-double member assignment, also safe. No downstream hazard is charged to this axis (and at this benchmark there is none: the oracle is total over finite doubles).",
-     "conversion_notes": "DType=double matches element type; extreme_values (+/-DBL_MAX) and spike_at (DBL_MAX/2) are representable, no conversion, no UB."
+     "conversion_notes": "DType=double matches element type; extreme_values (+/-DBL_MAX) and spike_at (DBL_MAX/2) are representable, no conversion, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 77,
@@ -9257,7 +9331,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to the x site at cpu.cc:76: DType=double into vector<double>, no conversion, no narrowing, safe for every pattern and every value_range. Note (verdict axis, not this one): both sites receive the SAME global pattern and index sequence, so deterministic patterns make y[i] == x[i].",
-     "conversion_notes": "Same as the x site: DType=double, no conversion, no UB."
+     "conversion_notes": "Same as the x site: DType=double, no conversion, no UB.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "The Point AoS itself is built by the copy loop cpu.cc:81-84, but it is a pure re-layout of the two ENHANCED_FILL-controlled vectors - no independent randomness.",
@@ -9836,7 +9911,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "ASKS ONLY ABOUT THE ASSIGNMENT AT cpu.cc:64. DType is deduced from the double literals 0.0/100.0 (enhanced-fill.hpp:173-174) and equals value_type double, so every pattern - extreme_values (-/+DBL_MAX), spike_at (DBL_MAX/2), the floating ramp, alternating and explicit_values (identity conversion, enhanced-fill.hpp:165-171) - assigns a double into a double with no conversion and no narrowing. No value_range can make this site unsafe either. The UB risk lives DOWNSTREAM in the oracle's `(int) val` cast (baseline.hpp:18) for |val| >= 2^31 and is recorded on domain_valid / oracle_execution_safe and in oracle_hazards.",
-     "conversion_notes": "DType=double matches value_type double; extreme_values (+/-DBL_MAX) and spike_at (DBL_MAX/2) are representable with no conversion, so no UB at the FILL site. The UB risk lives in the ORACLE's `(int) val` cast (baseline.hpp:18), which is UB for |val| >= 2^31 - and the tripwire keeps such values from ever reaching it."
+     "conversion_notes": "DType=double matches value_type double; extreme_values (+/-DBL_MAX) and spike_at (DBL_MAX/2) are representable with no conversion, so no UB at the FILL site. The UB risk lives in the ORACLE's `(int) val` cast (baseline.hpp:18), which is UB for |val| >= 2^31 - and the tripwire keeps such values from ever reaching it.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -10458,7 +10534,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the 1.0 / 100.0 double literals (enhanced-fill.hpp:173-174) and equals the container value_type, so the assignment x[i] = val is a double-to-double copy for EVERY pattern, including +/-DBL_MAX (extreme_values, enhanced-fill.hpp:128-138) and DBL_MAX/2 (spike_at, enhanced-fill.hpp:152-162). No narrowing, no out-of-range floating-to-integral conversion, no assignment UB; a define-mode value_range override casts through (decltype(lo)) = double (enhanced-fill.hpp:451-454) and is lossless, and the runtime path passes doubles through unchanged (enhanced-fill.hpp:311-313). Every hazard catalogued for this benchmark is downstream of the fill (domain / oracle magnitude / verdict), not at the fill.",
-     "conversion_notes": "DType deduced from the double literals equals the element type; every pattern value (including +-DBL_MAX extremes and DBL_MAX/2 spike) is representable - no narrowing, no UB. Hazards on this benchmark are all on the DOMAIN axis (overflow/underflow of the PRODUCT), not the type axis."
+     "conversion_notes": "DType deduced from the double literals equals the element type; every pattern value (including +-DBL_MAX extremes and DBL_MAX/2 spike) is representable - no narrowing, no UB. Hazards on this benchmark are all on the DOMAIN axis (overflow/underflow of the PRODUCT), not the type axis.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -10818,7 +10895,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the 0.0 / 100.0 double literals (enhanced-fill.hpp:173-174) and equals the container value_type, so x[i] = val is a double-to-double copy for every pattern, including +/-DBL_MAX and DBL_MAX/2. No narrowing and no out-of-range conversion is possible at this site; define-mode value_range overrides cast through (decltype(lo)) = double (enhanced-fill.hpp:451-454), which is lossless. The catalogued hazards of this benchmark are all grading-side (scale-blind absolute 1e-4 epsilon), never fill-side.",
-     "conversion_notes": "DType=double equals the element type; all pattern values representable, no narrowing, no UB. Hazards are grading-side (absolute epsilon vs extreme magnitudes), not conversion-side."
+     "conversion_notes": "DType=double equals the element type; all pattern values representable, no narrowing, no UB. Hazards are grading-side (absolute epsilon vs extreme magnitudes), not conversion-side.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -11150,7 +11228,8 @@
      "dtype_matches_element": "false",
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "Pattern-dependent AT THE SITE (this is a genuine fill-axis hazard, not a relayered downstream one). DType is deduced from the 0.0 / 100.0 DOUBLE literals (enhanced-fill.hpp:173-174) while the container is std::vector<int> (cpu.cc:54), so every pattern value is produced as a double and converted by the assignment x[i] = val. For values inside [0,100] - random, all_same, both ramps, alternating, duplicate_at, sorted_except_one - the conversion is defined truncation and the site is SAFE (fill_type_safe true per pattern). For extreme_values (+/-DBL_MAX), spike_at (DBL_MAX/2) and any out-of-int-range explicit_values entry it is an out-of-range floating-to-integral conversion = UNDEFINED BEHAVIOUR (observed saturation to INT_MIN/INT_MAX under g++ 13.3 -O3, not guaranteed by the standard). The Wave-2B scan at cpu.cc:76-89 runs AFTER the conversion, so it is a domain gate, not a UB fix. Fix: int literals ENHANCED_FILL(x, 0, 100) -> DType = int; extremes then become INT_MIN/INT_MAX type-safely and define-mode value_range overrides saturate at the (decltype(lo)) cast (enhanced-fill.hpp:451-454) instead of invoking UB.",
-     "conversion_notes": "THE type-unsafe site of the family: DType deduced from the DOUBLE literals, elements are int, so every pattern value is computed as double and converted at x[i] = <double>. In [0,100] that is defined truncation (random/ramps/alternating/all_same=50.0/duplicate/sorted_except_one all fine), but extreme_values (+-DBL_MAX), spike_at (DBL_MAX/2) and any out-of-int-range explicit_values line produce out-of-range double->int conversion = UNDEFINED BEHAVIOR (observed saturation to INT_MIN/INT_MAX, formally UB). The Wave-2B guard fires only AFTER this conversion - it is a domain gate, not a UB fix. Fix: int literals ENHANCED_FILL(x, 0, 100) -> DType=int -> extremes become INT_MIN/INT_MAX type-safely."
+     "conversion_notes": "THE type-unsafe site of the family: DType deduced from the DOUBLE literals, elements are int, so every pattern value is computed as double and converted at x[i] = <double>. In [0,100] that is defined truncation (random/ramps/alternating/all_same=50.0/duplicate/sorted_except_one all fine), but extreme_values (+-DBL_MAX), spike_at (DBL_MAX/2) and any out-of-int-range explicit_values line produce out-of-range double->int conversion = UNDEFINED BEHAVIOR (observed saturation to INT_MIN/INT_MAX, formally UB). The Wave-2B guard fires only AFTER this conversion - it is a domain gate, not a UB fix. Fix: int literals ENHANCED_FILL(x, 0, 100) -> DType=int -> extremes become INT_MIN/INT_MAX type-safely.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -11530,7 +11609,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the 0.0 / 100.0 double literals (enhanced-fill.hpp:173-174) and equals the container value_type, so x[i] = val is a double-to-double copy for every pattern, including +/-DBL_MAX and DBL_MAX/2. No narrowing, no out-of-range conversion, no assignment UB; define-mode value_range overrides cast through (decltype(lo)) = double (enhanced-fill.hpp:451-454), which is lossless. All catalogued hazards for this benchmark are grading-side or coverage-side, never fill-side.",
-     "conversion_notes": "DType=double equals element type; all pattern values representable, no UB."
+     "conversion_notes": "DType=double equals element type; all pattern values representable, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 65,
@@ -11544,7 +11624,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to site x: DType = double = element type, so the assignment is a lossless double-to-double copy for every pattern and every value_range override. The x == y coupling described in the conversion notes is a COVERAGE (verdict-axis) property of the global-pattern design, not a type-safety property of this site.",
-     "conversion_notes": "Same as site x. Both sites receive the SAME global pattern id and range: deterministic patterns (all_zeros/all_same/ascending/descending/alternating/extreme_values, and sorted_except_one with the same k) fill x and y IDENTICALLY, making min(x_i,y_i) = x_i - the pairwise-min semantics degenerate to a plain sum; only the rand()-based patterns (random, duplicate_at, spike_at bases) differentiate x from y via the advancing rand() stream."
+     "conversion_notes": "Same as site x. Both sites receive the SAME global pattern id and range: deterministic patterns (all_zeros/all_same/ascending/descending/alternating/extreme_values, and sorted_except_one with the same k) fill x and y IDENTICALLY, making min(x_i,y_i) = x_i - the pairwise-min semantics degenerate to a plain sum; only the rand()-based patterns (random, duplicate_at, spike_at bases) differentiate x from y via the advancing rand() stream.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -11856,7 +11937,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi arguments (enhanced-fill.hpp:173-174) and here they are double literals, matching vector<double>::value_type. Every pattern value is produced as a double and assigned to a double: extreme_values yields +-DBL_MAX, spike_at yields DBL_MAX/2, all_same the exact midpoint 0.0 - all exactly representable, no narrowing, no conversion UB. explicit_values goes through enhancedFromDouble<double> = static_cast<double>(double), an identity cast, so arbitrary spec doubles are also safe AT THIS SITE. The magnitude consequences of extreme_values / spike_at / large explicit values are downstream (oracle/domain/verdict axes), not fill-site defects.",
-     "conversion_notes": "DType=double matches value_type; extreme_values yields +-DBL_MAX, spike_at yields DBL_MAX/2, both exactly representable in the double container - no narrowing conversion, no UB. explicit_values: static_cast<double>(double) is identity."
+     "conversion_notes": "DType=double matches value_type; extreme_values yields +-DBL_MAX, spike_at yields DBL_MAX/2, both exactly representable in the double container - no narrowing conversion, no UB. explicit_values: static_cast<double>(double) is identity.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -12139,7 +12221,8 @@
      "dtype_matches_element": "false",
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "THE FAMILY'S ONE GENUINELY TYPE-UNSAFE SITE, but the unsafety is pattern-dependent, which is why the axis value is 'conditional' rather than a blanket false (the E1 entry's own conversion_notes already said 'In-range patterns ... are fine', contradicting its blanket false). DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174), and the double literals -100.0/100.0 make DType=double for a vector<float>. UNSAFE patterns - the produced double is outside float's representable range, so the assignment x[i] = <double> is an out-of-range floating conversion and formally UB ([conv.double]; in practice IEEE +-inf): extreme_values(6) (+-DBL_MAX), spike_at(9) (DBL_MAX/2), and explicit_values(10) whenever a spec value exceeds +-FLT_MAX (~3.4e38). SAFE patterns - the produced value is inside float range, so the double->float conversion is well-defined (correctly rounded): random(0), all_zeros(1), all_same(2), ascending(3), descending(4), alternating(5), duplicate_at(7), sorted_except_one(8), and in-range explicit_values. A value_range override does not help: enhancedRuntimeFill casts the override to DType=double (enhanced-fill.hpp:419-425), so the mismatch persists for every override, and an override beyond +-FLT_MAX reintroduces the UB for the ramp/alternating patterns too. FIX: write -100.0f/100.0f (or an explicit float cast) so DType=float; the extrema then become +-FLT_MAX and the spike FLT_MAX/2, all representable. This axis records ONLY the assignment/conversion - the downstream all-BI behaviour of extreme_values is on the verdict axis.",
-     "conversion_notes": "TYPE-UNSAFE SITE: double literals -100.0/100.0 deduce DType=double for a vector<float>. extreme_values computes +-DBL_MAX and spike_at computes DBL_MAX/2, both outside float's representable range; the implicit double->float conversion on assignment x[i]=<double> is formally UB ([conv.double]) - in practice IEEE +-inf. In-range patterns (ramps, alternating, all_same, all_zeros, random) convert double->float losslessly enough and are fine. Fix: use -100.0f/100.0f so DType=float (extrema become +-FLT_MAX, spike FLT_MAX/2 - all representable)."
+     "conversion_notes": "TYPE-UNSAFE SITE: double literals -100.0/100.0 deduce DType=double for a vector<float>. extreme_values computes +-DBL_MAX and spike_at computes DBL_MAX/2, both outside float's representable range; the implicit double->float conversion on assignment x[i]=<double> is formally UB ([conv.double]) - in practice IEEE +-inf. In-range patterns (ramps, alternating, all_same, all_zeros, random) convert double->float losslessly enough and are fine. Fix: use -100.0f/100.0f so DType=float (extrema become +-FLT_MAX, spike FLT_MAX/2 - all representable).",
+     "container_value_type_normalized": "float"
     }
    ],
    "other_input_constructors": "none",
@@ -12397,7 +12480,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the double lo/hi literals and matches vector<double>::value_type, so every pattern's produced value is assigned double-to-double: extreme_values (+-DBL_MAX), spike_at (DBL_MAX/2), the ramps, all_same (exact midpoint 0.0) and explicit_values (identity static_cast via enhancedFromDouble<double>) are all exactly representable - no narrowing, no out-of-range conversion, no assignment UB for ANY of the eleven patterns. The severe extreme_values/spike_at problem on this benchmark is a DOWNSTREAM overflow of the weighted sum in the oracle and is recorded on domain_valid / verdict_outcome_class / oracle_hazards, never here.",
-     "conversion_notes": "DType=double matches value_type; extrema/spike values representable, no conversion, no UB."
+     "conversion_notes": "DType=double matches value_type; extrema/spike values representable, no conversion, no UB.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -12688,7 +12772,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Int literals make DType=int (deduced from lo/hi, enhanced-fill.hpp:173-174), matching vector<int>::value_type, so every pattern's produced value is an int assigned to an int: extreme_values yields INT_MIN/INT_MAX, spike_at yields INT_MAX/2 = 1073741823, all_same the exact midpoint 0, and the ramps a modulo sawtooth - all representable, no narrowing and no conversion UB AT THIS SITE. Per AXIS_FACTS A.1 this stays true even though INT_MIN/INT_MAX are domain-invalid here and would overflow the oracle: those belong to domain_valid / oracle_execution_safe. The one genuinely conditional path is explicit_values, whose enhancedFromDouble<int> performs a raw static_cast<int>(double) (enhanced-fill.hpp:163-171, 214-220) - a spec value outside int range is an out-of-range floating-to-integral conversion, i.e. UB at the assignment itself; that is a spec-validation gap, not a defect of the lo/hi literals.",
-     "conversion_notes": "Int literals deduce DType=int; extreme_values yields INT_MIN/INT_MAX and spike_at yields INT_MAX/2 - all representable in int, no conversion UB at the fill site itself (the arithmetic hazard downstream is what the tripwire guards). Caveat: explicit_values does raw static_cast<int>(double) (enhanced-fill.hpp lines 165-171, 215-219); a spec-authored value outside int's range would be UB at conversion - a spec-validation concern, not intrinsic to this site."
+     "conversion_notes": "Int literals deduce DType=int; extreme_values yields INT_MIN/INT_MAX and spike_at yields INT_MAX/2 - all representable in int, no conversion UB at the fill site itself (the arithmetic hazard downstream is what the tripwire guards). Caveat: explicit_values does raw static_cast<int>(double) (enhanced-fill.hpp lines 165-171, 215-219); a spec-authored value outside int's range would be UB at conversion - a spec-validation concern, not intrinsic to this site.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -12999,7 +13084,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Int literals make DType=int, matching vector<int>::value_type, so every pattern's value is an int stored into an int: INT_MIN, INT_MAX and INT_MAX/2 are all exactly representable and the assignment is never a narrowing or out-of-range conversion. This stays TRUE even for extreme_values, whose values later drive the ORACLE into signed-overflow UB - per AXIS_FACTS A.1 that downstream hazard belongs to oracle_execution_safe/domain_valid and to oracle_hazards, and must not be charged to the fill site (the E1 conversion_notes already said as much). The one conditional path is explicit_values, whose enhancedFromDouble<int> does a raw static_cast<int>(double) (enhanced-fill.hpp:163-171): a spec value outside int range is an out-of-range floating-to-integral conversion, i.e. UB at the assignment - a spec-validation gap, not a defect of the lo/hi literals.",
-     "conversion_notes": "Int literals deduce DType=int; INT_MIN/INT_MAX/INT_MAX/2 all representable - no conversion UB at the site. Same explicit_values caveat as scan/33: raw static_cast<int>(double) is UB for spec values outside int range. The DOWNSTREAM arithmetic UB under extreme_values (see audit) is a domain issue, kept separate from this type axis."
+     "conversion_notes": "Int literals deduce DType=int; INT_MIN/INT_MAX/INT_MAX/2 all representable - no conversion UB at the site. Same explicit_values caveat as scan/33: raw static_cast<int>(double) is UB for spec values outside int range. The DOWNSTREAM arithmetic UB under extreme_values (see audit) is a domain issue, kept separate from this type axis.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -13317,7 +13403,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Both bounds are int literals, so enhancedFillPattern deduces DType=int (enhanced-fill.hpp:173-174) and every pattern value is stored int->int into vector<int>: INT_MIN/INT_MAX (extreme_values), INT_MAX/2 (spike_at), DType(0) (all_zeros) and the modulo ramp are all representable - no narrowing, no float->integral conversion, no assignment UB. A spec value_range does not change this: the define path casts the literals with (decltype(lo))(...) and the runtime path saturates in enhancedRuntimeRangeValue, so DType stays int. The ONLY fill-layer hazard at this site is explicit_values, whose arbitrary spec doubles reach the site through enhancedFromDouble's static_cast (enhanced-fill.hpp:167-174) - recorded as fill_type_safe 'conditional' on that pattern. Domain implausibility of extreme page counts and their effect on the expected answer are recorded on domain_valid / verdict_outcome_class, not here.",
-     "conversion_notes": "Int literals deduce DType=int; extreme_values produces INT_MIN/INT_MAX, spike_at produces INT_MAX/2 - all representable in int, no narrowing, no UB."
+     "conversion_notes": "Int literals deduce DType=int; extreme_values produces INT_MIN/INT_MAX, spike_at produces INT_MAX/2 - all representable in int, no narrowing, no UB.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "Constant title string \"title\" per Book (cpu.cc:86) - not pattern-controlled but semantically inert (oracle never reads .title). The forced pages[k]=72 write (cpu.cc:83) overwrites one pattern element at a random index each attempt. reset() uses fillRandString/fillRand (cpu.cc:28-32) but only for timing, not validate.",
@@ -13637,7 +13724,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Both bounds are int literals, so DType=int is deduced from the arguments (enhanced-fill.hpp:173-174) and every pattern value - INT_MIN/INT_MAX (extreme_values), INT_MAX/2 (spike_at), DType(0), the modulo ramp - is stored int->int into vector<int>: no narrowing, no float->integral conversion, no assignment UB. A spec value_range keeps DType=int (define path casts with (decltype(lo))(...), runtime path saturates in enhancedRuntimeRangeValue). The discrimination collapse that extreme_values causes downstream is a VERDICT-axis property and is recorded there, not here. explicit_values is the only fill-layer hazard at this site.",
-     "conversion_notes": "Int literals deduce DType=int; INT_MIN/INT_MAX (extreme_values) and INT_MAX/2 (spike_at) are representable, no conversion, no UB."
+     "conversion_notes": "Int literals deduce DType=int; INT_MIN/INT_MAX (extreme_values) and INT_MAX/2 (spike_at) are representable, no conversion, no UB.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "Scalar target: rand()-based, not pattern-controlled (cpu.cc:64-69). By design patterns only affect containers; on attempt i==1 target is sampled FROM the patterned input, so the positive-containment case tracks the pattern automatically.",
@@ -13919,7 +14007,13 @@
     "ORACLE_GUARD_NEEDED: static spec size 0 crashes validate() at cpu.cc:66 (rand()%0 SIGFPE + empty-vector indexing) - needs a Wave-2B-style n==0 guard like 35's (cpu.cc:67-76 there), or size 0 must be excluded from this benchmark's spec sizes",
     "FIX_FILL_SITE_TYPES (explicit_values only): spec values reach the int fill site through enhancedFromDouble's static_cast (enhanced-fill.hpp:167-174); magnitudes outside int are an out-of-range float->integral conversion (UB) and specs.py validates neither magnitude nor domain"
    ],
-   "notes": "benchmark_shapes.json (lines 323-331) verified correct: 1 fill site (cpu.cc:63), n elements, explicit_values supported. No pattern can reach a BI verdict at size >= 1 (no guard in this driver; integral scalars have no non-finite path) - every 'conditional' baseline_gate_only_risk here is the pattern-independent size-0 route. The dominant finding is discrimination: the single-valued (all_zeros, all_same), two-valued (alternating) and out-of-target-range (extreme_values) fills leave the true branch to attempt i==1. numTries still hardcoded to 10 (cpu.cc:60), not normalized to MAX_VALIDATION_ATTEMPTS."
+   "notes": "benchmark_shapes.json (lines 323-331) verified correct: 1 fill site (cpu.cc:63), n elements, explicit_values supported. No pattern can reach a BI verdict at size >= 1 (no guard in this driver; integral scalars have no non-finite path) - every 'conditional' baseline_gate_only_risk here is the pattern-independent size-0 route. The dominant finding is discrimination: the single-valued (all_zeros, all_same), two-valued (alternating) and out-of-target-range (extreme_values) fills leave the true branch to attempt i==1. numTries still hardcoded to 10 (cpu.cc:60), not normalized to MAX_VALIDATION_ATTEMPTS.",
+   "enforced_size_safety": {
+    "min_size": 1,
+    "reason": "size 0 evaluates input[rand() % input.size()] on an empty vector: modulo by zero plus an out-of-bounds read (cpu.cc)",
+    "evidence": "drivers/cpp/benchmarks/search/36_search_check_if_array_contains_value/cpu.cc",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "search/37_search_find_the_closest_number_to_pi",
@@ -13946,7 +14040,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Both bounds are double literals, so DType=double is deduced from the arguments (enhanced-fill.hpp:173-174) and matches the container value_type exactly. Every pattern value is a double stored into a double: extreme_values gives lowest()/max() = -/+DBL_MAX (finite, enhanced-fill.hpp:131-132), spike_at DBL_MAX/2, explicit_values goes through enhancedFromDouble<double> which is an identity static_cast. No narrowing, no float->integral conversion, no assignment UB - and no pattern can produce a non-finite value at this site. The tie/sentinel problems that all_zeros creates are DOWNSTREAM (sentinel_collision and verdict axes) and are deliberately NOT charged to this fill site.",
-     "conversion_notes": "Double literals deduce DType=double matching value_type; extreme_values yields +/-DBL_MAX (finite), spike_at DBL_MAX/2 - no conversion, no UB, no non-finite values from any pattern."
+     "conversion_notes": "Double literals deduce DType=double matching value_type; extreme_values yields +/-DBL_MAX (finite), spike_at DBL_MAX/2 - no conversion, no UB, no non-finite values from any pattern.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "Forced sentinel write input[rand()%TEST_SIZE]=10.0 (cpu.cc:58) overwrites one pattern element per attempt at a random index.",
@@ -14223,7 +14318,13 @@
     "DOMAIN_POLICY_DECISION_NEEDED: value_range choices near pi unbind the forced-10.0 sentinel and turn otherwise-informative constant patterns (all_same) into the same tie case",
     "ORACLE_GUARD_NEEDED: static spec size 0 crashes validate() at cpu.cc:58 (rand()%0 SIGFPE) and the frozen oracle reads x[0] on empty input (baseline.hpp:13) - needs an n==0 guard or size-0 exclusion"
    ],
-   "notes": "benchmark_shapes.json (lines 332-340) verified correct: 1 fill site (cpu.cc:57), n elements, explicit_values supported. This is the only benchmark in the search family with a genuine FALSE_FAIL_RISK (all_zeros, and value-dependent explicit_values), and the only one where parallel_bias_risk is true: an OpenMP/MPI min-index reduction resolves the argmin tie by reduction order, while the serial oracle always keeps the first index. No pattern can reach a BI verdict at size >= 1 (the graded value is a size_t index, so the non-finite-reference route is unreachable); every 'conditional' baseline_gate_only_risk here is the pattern-independent size-0 route. numTries=10 (cpu.cc:53), not normalized."
+   "notes": "benchmark_shapes.json (lines 332-340) verified correct: 1 fill site (cpu.cc:57), n elements, explicit_values supported. This is the only benchmark in the search family with a genuine FALSE_FAIL_RISK (all_zeros, and value-dependent explicit_values), and the only one where parallel_bias_risk is true: an OpenMP/MPI min-index reduction resolves the argmin tie by reduction order, while the serial oracle always keeps the first index. No pattern can reach a BI verdict at size >= 1 (the graded value is a size_t index, so the non-finite-reference route is unreachable); every 'conditional' baseline_gate_only_risk here is the pattern-independent size-0 route. numTries=10 (cpu.cc:53), not normalized.",
+   "enforced_size_safety": {
+    "min_size": 1,
+    "reason": "size 0 runs `rand() % TEST_SIZE` (modulo by zero) and the frozen oracle dereferences x[0] before any size check (cpu.cc, baseline.hpp)",
+    "evidence": "drivers/cpp/benchmarks/search/37_search_find_the_closest_number_to_pi/{cpu.cc,baseline.hpp}",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "search/38_search_find_the_first_even_number",
@@ -14250,7 +14351,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Both bounds are int literals, so DType=int is deduced from the arguments (enhanced-fill.hpp:173-174) and every pattern value - INT_MIN/INT_MAX, INT_MAX/2, DType(0), the modulo ramp - is stored int->int into vector<int>: no narrowing, no float->integral conversion, no assignment UB. A spec value_range keeps DType=int (define path casts with (decltype(lo))(...), runtime path saturates in enhancedRuntimeRangeValue). explicit_values is the only fill-layer hazard at this site: its arbitrary spec doubles pass through enhancedFromDouble's static_cast (enhanced-fill.hpp:167-174).",
-     "conversion_notes": "Int literals deduce DType=int; INT_MIN/INT_MAX and INT_MAX/2 representable, no conversion, no UB. Parity (x%2==0) is well-defined for every int including INT_MIN (which is even)."
+     "conversion_notes": "Int literals deduce DType=int; INT_MIN/INT_MAX and INT_MAX/2 representable, no conversion, no UB. Parity (x%2==0) is well-defined for every int including INT_MIN (which is even).",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "Attempt i==1 odd-prefix overwrite of the first min(20,size) elements (cpu.cc:83-86) - a deterministic-structure, random-value harness invariant layered over the pattern.",
@@ -14531,7 +14633,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Both bounds are int literals, so DType=int is deduced from the arguments (enhanced-fill.hpp:173-174) and every pattern value - INT_MIN/INT_MAX, INT_MAX/2, DType(0), the modulo ramp - is stored int->int into vector<int>: no narrowing, no float->integral conversion, no assignment UB. A spec value_range keeps DType=int. The x==y collapse that deterministic patterns cause is a property of applying ONE pattern to TWO sites and is charged to the verdict axis (REDUCED), not to this fill site.",
-     "conversion_notes": "Int literals deduce DType=int; extreme/spike values representable, no conversion, no UB."
+     "conversion_notes": "Int literals deduce DType=int; extreme/spike values representable, no conversion, no UB.",
+     "container_value_type_normalized": "int"
     },
     {
      "line": 72,
@@ -14545,7 +14648,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to the site at line 71: DType=int deduced from int literals, every pattern value assigned int->int with no narrowing and no conversion UB. That this site receives the SAME pattern and range as x (making x == y elementwise for every deterministic pattern) is a discrimination fact recorded on verdict_outcome_class, not a type-safety fact.",
-     "conversion_notes": "Same as site at line 71. Both sites receive the SAME global pattern and the same [lo,hi], so every deterministic pattern (all_zeros, all_same, ascending, descending, alternating, extreme_values, sorted_except_one with same k) makes x == y elementwise."
+     "conversion_notes": "Same as site at line 71. Both sites receive the SAME global pattern and the same [lo,hi], so every deterministic pattern (all_zeros, all_same, ascending, descending, alternating, extreme_values, sorted_except_one with same k) makes x == y elementwise.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "Scalar val = rand()%200-100 (cpu.cc:73), not pattern-controlled (by design); i==1 plants val in both vectors at random indices (cpu.cc:75-76).",
@@ -14866,7 +14970,13 @@
     "FURTHER_SEMANTIC_REVIEW: deterministic patterns make x==y so the XOR-true branch is never tested under them; a one-sided planting attempt (val into exactly one vector) would restore it - a harness invariant change, not new pattern semantics",
     "NO_PATTERN_SUPPORT_RECOMMENDED (explicit_values only): keep explicit_values disabled as shapes already records - both sites would receive the same list, forcing x==y and structurally-false outcomes; validate_spec:337-341 already rejects such specs, so no run is produced today"
    ],
-   "notes": "benchmark_shapes.json (lines 350-359) verified correct: 2 fill sites (cpu.cc:71-72), n+n elements, explicit_values disabled with the stated same-list-to-every-site rationale confirmed against the code. No pattern can reach a BI verdict at size >= 1 (boolean scalar comparison has no non-finite path); every 'conditional' baseline_gate_only_risk here is the pattern-independent size-0 route. The dominant finding is discrimination: seven of the nine runnable patterns are deterministic and therefore produce x == y, and even the three random-based ones lose the true branch at n=1024 because a 1024-element draw over 200 values covers the range almost completely. numTries=10 (cpu.cc:66), not normalized."
+   "notes": "benchmark_shapes.json (lines 350-359) verified correct: 2 fill sites (cpu.cc:71-72), n+n elements, explicit_values disabled with the stated same-list-to-every-site rationale confirmed against the code. No pattern can reach a BI verdict at size >= 1 (boolean scalar comparison has no non-finite path); every 'conditional' baseline_gate_only_risk here is the pattern-independent size-0 route. The dominant finding is discrimination: seven of the nine runnable patterns are deterministic and therefore produce x == y, and even the three random-based ones lose the true branch at n=1024 because a 1024-element draw over 200 values covers the range almost completely. numTries=10 (cpu.cc:66), not normalized.",
+   "enforced_size_safety": {
+    "min_size": 1,
+    "reason": "size 0 evaluates x[rand() % x.size()] and y[rand() % y.size()] on empty vectors: modulo by zero plus out-of-bounds reads (cpu.cc)",
+    "evidence": "drivers/cpp/benchmarks/search/39_search_xor_contains/cpu.cc",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0."
+   }
   },
   {
    "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
@@ -14893,7 +15003,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo argument (enhanced-fill.hpp:451-458, decltype(lo)) and equals the container value_type double, so every pattern value is assigned double->double: extreme_values gives +-DBL_MAX (finite), spike_at DBL_MAX/2, ramps/alternating stay inside [-100,100]. No narrowing and no out-of-range conversion at this site.",
-     "conversion_notes": "DType=double equals value_type; extreme_values gives +-DBL_MAX (finite), spike_at gives DBL_MAX/2 - no narrowing, no UB."
+     "conversion_notes": "DType=double equals value_type; extreme_values gives +-DBL_MAX (finite), spike_at gives DBL_MAX/2 - no narrowing, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 122,
@@ -14907,7 +15018,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Identical to the real-part site: DType=double == value_type, so the assignment is exact for every offered pattern. The same pattern id and param_k apply to both sites in one run, which is a semantics observation, not a type-safety one.",
-     "conversion_notes": "Identical to the real-part site; same pattern and same param_k apply to both sites in one run."
+     "conversion_notes": "Identical to the real-part site; same pattern and same param_k apply to both sites in one run.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none (reset() uses fillRand for the timing path only, cpu.cc:80-81; validate() input is fully ENHANCED_FILL-built)",
@@ -15215,7 +15327,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Int-literal site: DType deduced from lo is int and equals the container value_type, so every pattern value is an int->int assignment - extreme_values writes INT_MIN/INT_MAX, spike_at INT_MAX/2, ramps write lo + (position % (span+1)). No conversion and no narrowing occurs at this site. The only conditional case is explicit_values, whose spec doubles pass through static_cast<int> in enhancedFromDouble; that is recorded on the explicit_values pattern entry, not as a defect of the site itself.",
-     "conversion_notes": "Int-literal site: DType=int, extreme_values gives INT_MIN/INT_MAX, spike_at gives INT_MAX/2 - no conversion, no UB in the harness or the oracle (pure sort + index)."
+     "conversion_notes": "Int-literal site: DType=int, extreme_values gives INT_MIN/INT_MAX, spike_at gives INT_MAX/2 - no conversion, no UB in the harness or the oracle (pure sort + index).",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "k is drawn by a raw rand() % x.size() + 1 (cpu.cc:84) — a scalar domain parameter, not pattern-controllable and not intended to be",
@@ -15540,7 +15653,8 @@
      "dtype_matches_element": "false",
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "Pattern-dependent at this one site, which is why the site value is conditional rather than a flat false: DType is deduced as double from the -100.0/100.0 literals (enhanced-fill.hpp:451-458, decltype(lo)) while the container is vector<float>. For the eight in-range patterns (random, all_zeros, all_same, ascending, descending, alternating, duplicate_at, sorted_except_one) every produced value lies in [-100,100] and the double->float conversion is well defined (a rounding, nothing more). For extreme_values (+-DBL_MAX) and spike_at (DBL_MAX/2), and for any explicit_values entry beyond +-FLT_MAX, the value is outside the float range and the conversion is UNDEFINED BEHAVIOR (practically saturating to +-inf on IEEE targets). This judgement is about the ASSIGNMENT at cpu.cc:127 only; the downstream consequences are recorded on the pattern-level axes.",
-     "conversion_notes": "DType deduced double from the double literals but the container is vector<float>: extreme_values computes +-DBL_MAX and spike_at computes DBL_MAX/2 in double, then assigns to float - out-of-range double->float conversion is UNDEFINED BEHAVIOR (practically saturates to +-inf on IEEE targets). explicit_values (cyclic doubles) is likewise unclamped: any spec value beyond +-FLT_MAX reproduces the UB. All in-range patterns (ramp/alternating/mid/random over [-100,100]) are safe. Fix: use -100.0f/100.0f literals to deduce DType=float (extrema then +-FLT_MAX, spike FLT_MAX/2 - finite in float)."
+     "conversion_notes": "DType deduced double from the double literals but the container is vector<float>: extreme_values computes +-DBL_MAX and spike_at computes DBL_MAX/2 in double, then assigns to float - out-of-range double->float conversion is UNDEFINED BEHAVIOR (practically saturates to +-inf on IEEE targets). explicit_values (cyclic doubles) is likewise unclamped: any spec value beyond +-FLT_MAX reproduces the UB. All in-range patterns (ramp/alternating/mid/random over [-100,100]) are safe. Fix: use -100.0f/100.0f literals to deduce DType=float (extrema then +-FLT_MAX, spike FLT_MAX/2 - finite in float).",
+     "container_value_type_normalized": "float"
     }
    ],
    "other_input_constructors": "none",
@@ -15867,7 +15981,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from lo is int and equals the container value_type, so every pattern value is an int->int assignment: extremes INT_MIN/INT_MAX, spike INT_MAX/2, ramp lo + (position % (span+1)). No conversion happens at this site.",
-     "conversion_notes": "Int site: extremes INT_MIN/INT_MAX, spike INT_MAX/2 - type-safe; the key comparator (a.startTime < b.startTime) does no arithmetic, so the oracle is safe."
+     "conversion_notes": "Int site: extremes INT_MIN/INT_MAX, spike INT_MAX/2 - type-safe; the key comparator (a.startTime < b.startTime) does no arithmetic, so the oracle is safe.",
+     "container_value_type_normalized": "int"
     },
     {
      "line": 155,
@@ -15881,7 +15996,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "Int->int assignment exactly as the startTime site; nothing is converted. That all_zeros writes 0 here, below the frozen duration >= 1 domain, is a DOMAIN judgement and is recorded on the pattern entries, not as a fill-type defect.",
-     "conversion_notes": "Int site, type-safe. duration is pure payload (never used by the sort key), so even domain-invalid values (0, negatives, INT_MIN) cannot break grading - only the frozen duration>=1 domain."
+     "conversion_notes": "Int site, type-safe. duration is pure payload (never used by the sort key), so even domain-invalid values (0, negatives, INT_MIN) cannot break grading - only the frozen duration>=1 domain.",
+     "container_value_type_normalized": "int"
     },
     {
      "line": 156,
@@ -15895,7 +16011,8 @@
      "dtype_matches_element": "false",
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "Pattern-dependent at this site. DType is deduced as double from the -1.0/1.0 literals (enhanced-fill.hpp:451-458) while the container is vector<float>. The eight in-range patterns produce values inside [-1,1], so the double->float assignment is a defined rounding. extreme_values (+-DBL_MAX) and spike_at (DBL_MAX/2) are outside the float range, so the assignment is an out-of-range double->float conversion = UNDEFINED BEHAVIOR (practically +-inf). This rationale covers the ASSIGNMENT only; the downstream consequence (a non-finite reference value in the multiset comparison, which emits BASELINE_INCOMPATIBLE) is a verdict/gate-layer hazard and is recorded in oracle_hazards and in the pattern-level baseline_gate_only_risk. Fix: -1.0f/1.0f literals.",
-     "conversion_notes": "DType=double on a vector<float>: extreme_values computes +-DBL_MAX and spike_at DBL_MAX/2 in double, assigned to float - out-of-range double->float conversion = UNDEFINED BEHAVIOR (practically +-inf). Fix: -1.0f/1.0f literals (DType=float; extremes +-FLT_MAX, spike FLT_MAX/2, finite)."
+     "conversion_notes": "DType=double on a vector<float>: extreme_values computes +-DBL_MAX and spike_at DBL_MAX/2 in double, assigned to float - out-of-range double->float conversion = UNDEFINED BEHAVIOR (practically +-inf). Fix: -1.0f/1.0f literals (DType=float; extremes +-FLT_MAX, spike FLT_MAX/2, finite).",
+     "container_value_type_normalized": "float"
     }
    ],
    "other_input_constructors": "none",
@@ -16746,7 +16863,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion. extreme_values assigns +-DBL_MAX, spike_at DBL_MAX/2 - representable, no UB."
+     "conversion_notes": "double->double, no conversion. extreme_values assigns +-DBL_MAX, spike_at DBL_MAX/2 - representable, no UB.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 186,
@@ -16760,7 +16878,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion."
+     "conversion_notes": "double->double, no conversion.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "pareval_harness::drawUniqueCoordinates for all four index arrays (cpu.cc:181-184, 259-262) - structural, deliberately not pattern-fillable (comment cpu.cc:176-180: index-pattern policy queued to the enhanced wave); fillRand for the nonsquare probe's nsA_values/nsX_values (cpu.cc:263-264).",
@@ -17057,7 +17176,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion."
+     "conversion_notes": "double->double, no conversion.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 166,
@@ -17071,7 +17191,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion."
+     "conversion_notes": "double->double, no conversion.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 167,
@@ -17085,7 +17206,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion. Copied into `test` (cpu.cc:176) so candidate and oracle start from the identical y."
+     "conversion_notes": "double->double, no conversion. Copied into `test` (cpu.cc:176) so candidate and oracle start from the identical y.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "rand()-drawn scalars alpha/beta (cpu.cc:161-162); drawUniqueCoordinates for rows/columns (cpu.cc:163-164) - structural, deliberately not pattern-fillable (comment cpu.cc:156-160).",
@@ -17375,7 +17497,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion."
+     "conversion_notes": "double->double, no conversion.",
+     "container_value_type_normalized": "double"
     },
     {
      "line": 160,
@@ -17389,7 +17512,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the (-1.0, 1.0) DOUBLE literals at the call site (enhanced-fill.hpp:173-174), and the container is std::vector<double>: every value any of the eleven patterns can produce - including extreme_values' +-DBL_MAX (enhanced-fill.hpp:128-141) and spike_at's DBL_MAX/2 (enhanced-fill.hpp:152-162) - is exactly representable and is stored double->double. The fill ASSIGNMENT is therefore UB-free for all patterns. A spec value_range is cast to decltype(lo)=double (enhanced-fill.hpp:450-454), so it cannot introduce a narrowing or out-of-range float->int conversion either. Every huge-magnitude consequence of these patterns is DOWNSTREAM (domain_valid / oracle_execution_safe / verdict axes), not a fill-site defect.",
-     "conversion_notes": "double->double, no conversion."
+     "conversion_notes": "double->double, no conversion.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "rand()-drawn scalar alpha (cpu.cc:156); drawUniqueIndices for xIndices/yIndices (cpu.cc:157-158) - structural, deliberately not pattern-fillable (comment cpu.cc:149-155).",
@@ -17956,7 +18080,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174), here int/int, and the container value_type is int, so every pattern value is produced and assigned int->int with no conversion at all. INT_MIN/INT_MAX (extreme_values) and INT_MAX/2 (spike_at) are representable in the target; explicit_values is the only site-level caveat (spec doubles are static_cast to int by enhancedFromDouble, enhanced-fill.hpp:165-171) and is carried as fill_type_safe='conditional' on that pattern only. No downstream consideration enters this judgement.",
-     "conversion_notes": "int->int, no conversion. extreme_values = INT_MIN/INT_MAX and spike = INT_MAX/2 are representable, and the oracle only COUNTS ==1 neighbors (count <= 8, baseline.hpp:27-36), so no downstream overflow either. Caveat: integral fillRand is hi-EXCLUSIVE (rand() % (max-min) + min, utilities.hpp:160), so random-based patterns (0/7/9 background) draw {0,1}, while alternating writes lo/hi literally ({0,2}, enhanced-fill.hpp:197) and the integral ramp is modulo-inclusive ({0,1,2}, enhanced-fill.hpp:114-119)."
+     "conversion_notes": "int->int, no conversion. extreme_values = INT_MIN/INT_MAX and spike = INT_MAX/2 are representable, and the oracle only COUNTS ==1 neighbors (count <= 8, baseline.hpp:27-36), so no downstream overflow either. Caveat: integral fillRand is hi-EXCLUSIVE (rand() % (max-min) + min, utilities.hpp:160), so random-based patterns (0/7/9 background) draw {0,1}, while alternating writes lo/hi literally ({0,2}, enhanced-fill.hpp:197) and the integral ramp is modulo-inclusive ({0,1,2}, enhanced-fill.hpp:114-119).",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none (std::fill zeroing at cpu.cc:70-71 targets output buffers only)",
@@ -18218,7 +18343,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from the int lo/hi arguments equals the container value_type, so every produced value is assigned int->int with no conversion. INT_MIN/INT_MAX and INT_MAX/2 are representable in the target. The oracle's overflow exposure and the [0,255] guard are downstream facts and are recorded on oracle_execution_safe / domain_valid / the verdict axis, not here. explicit_values is the only site-level caveat (static_cast of arbitrary spec doubles) and is carried as fill_type_safe='conditional' on that pattern.",
-     "conversion_notes": "int->int, no conversion UB. The oracle's int sum with coefficient 8 would overflow (UB) on INT_MIN/INT_MAX pixels, but the Wave-2B guard (cpu.cc:86-98) rejects out-of-[0,255] input before correctConvolveKernel runs, so no UB is reachable from any offered pattern - they become BASELINE_INCOMPATIBLE instead. Integral fillRand is hi-exclusive: random draws are [0,254], while alternating/ramp include 255."
+     "conversion_notes": "int->int, no conversion UB. The oracle's int sum with coefficient 8 would overflow (UB) on INT_MIN/INT_MAX pixels, but the Wave-2B guard (cpu.cc:86-98) rejects out-of-[0,255] input before correctConvolveKernel runs, so no UB is reachable from any offered pattern - they become BASELINE_INCOMPATIBLE instead. Integral fillRand is hi-exclusive: random draws are [0,254], while alternating/ramp include 255.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -18453,7 +18579,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from the double lo/hi arguments equals the container value_type: every pattern value, including +-DBL_MAX (extreme_values), DBL_MAX/2 (spike_at) and any spec double (explicit_values via enhancedFromDouble), is assigned double->double with no conversion and no representability question. The IEEE overflow that +-DBL_MAX later causes happens inside the ORACLE and is recorded on oracle_execution_safe / the verdict axis, not here.",
-     "conversion_notes": "double->double, no conversion. extreme_values (+-DBL_MAX) overflows to +-inf inside the ORACLE's 3-term sum - IEEE-defined (not UB), but it produces non-finite reference values (see audits)."
+     "conversion_notes": "double->double, no conversion. extreme_values (+-DBL_MAX) overflows to +-inf inside the ORACLE's 3-term sum - IEEE-defined (not UB), but it produces non-finite reference values (see audits).",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -18708,7 +18835,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType deduced from the double lo/hi arguments equals the container value_type, so every pattern value - +-DBL_MAX, DBL_MAX/2, arbitrary spec doubles - is assigned double->double with no conversion and no representability question. The subsequent IEEE overflow in the oracle's 5-term sum is a downstream, DEFINED event and is recorded on the verdict axis and in oracle_hazards, never here.",
-     "conversion_notes": "double->double, no conversion. extreme_values (+-DBL_MAX) overflows to +-inf in the oracle's 5-term sums - IEEE-defined, produces non-finite references (see audits)."
+     "conversion_notes": "double->double, no conversion. extreme_values (+-DBL_MAX) overflows to +-inf in the oracle's 5-term sums - IEEE-defined, produces non-finite references (see audits).",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -18979,7 +19107,8 @@
      "dtype_matches_element": "true",
      "fill_type_safe": true,
      "fill_type_safe_rationale": "CORRECTED from the previous type_safe=false, which encoded a DOWNSTREAM oracle hazard at the fill layer. DType is deduced from the int lo/hi arguments and equals the container value_type, so every pattern value - including INT_MIN/INT_MAX from extreme_values and INT_MAX/2 from spike_at - is produced and assigned int->int with no conversion and full representability: the fill assignment itself has no UB. The real defect (the unguarded oracle summing raw INT_MIN/INT_MAX neighbours, signed-overflow UB) now lives on oracle_execution_safe for extreme_values and in oracle_hazards, and the E2 action is ORACLE_GUARD_NEEDED, not FIX_FILL_SITE_TYPES. explicit_values keeps a genuine fill-layer caveat (static_cast of arbitrary spec doubles into int) and is carried as fill_type_safe='conditional' on that pattern only.",
-     "conversion_notes": "The fill ASSIGNMENT is int->int (no conversion UB) for every offered pattern. Downstream (recorded on the oracle axis, not here): the UNGUARDED oracle sums raw neighbor values into int (baseline.hpp:27-51), so extreme_values' INT_MIN/INT_MAX cells overflow - e.g. the two vertical neighbors share the extreme pattern's index parity for even N (and same-sign pairs exist for odd N via the diagonals), so sum += INT_MIN twice is signed-overflow UB. Unlike sibling 51 there is no in-domain scan in cpu.cc. Random-based patterns draw {0,1} (hi-exclusive fillRand, utilities.hpp:160); alternating/ramp inject the value 2 (defined, see domain)."
+     "conversion_notes": "The fill ASSIGNMENT is int->int (no conversion UB) for every offered pattern. Downstream (recorded on the oracle axis, not here): the UNGUARDED oracle sums raw neighbor values into int (baseline.hpp:27-51), so extreme_values' INT_MIN/INT_MAX cells overflow - e.g. the two vertical neighbors share the extreme pattern's index parity for even N (and same-sign pairs exist for odd N via the diagonals), so sum += INT_MIN twice is signed-overflow UB. Unlike sibling 51 there is no in-domain scan in cpu.cc. Random-based patterns draw {0,1} (hi-exclusive fillRand, utilities.hpp:160); alternating/ramp inject the value 2 (defined, see domain).",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -19240,7 +19369,8 @@
      "dtype_matches_element": true,
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS (enhanced-fill.hpp:173-174) and here equals the container value_type, so every pattern value is assigned double->double with no conversion at all: extreme_values writes +-DBL_MAX (enhanced-fill.hpp:129-133), spike_at writes DBL_MAX/2 (enhanced-fill.hpp:153-156), all exactly representable. explicit_values goes through enhancedFromDouble<double> (enhanced-fill.hpp:165-171), which is the identity for a double target, so even arbitrary spec values are fill-safe here; whether such a value is USEFUL is a domain/oracle question and is judged on those axes, not on this one.",
-     "conversion_notes": "DType=double matches value_type; extreme_values yields +-DBL_MAX and spike_at DBL_MAX/2, all representable as double; no narrowing or out-of-range conversion possible at this site."
+     "conversion_notes": "DType=double matches value_type; extreme_values yields +-DBL_MAX and spike_at DBL_MAX/2, all representable as double; no narrowing or out-of-range conversion possible at this site.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -19474,7 +19604,8 @@
      "dtype_matches_element": true,
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "DType is deduced from the lo/hi ARGUMENTS 1 and 100 (enhanced-fill.hpp:173-174), i.e. DType=int, so patterns 0-9 assign int to int with no conversion whatsoever: INT_MIN/INT_MAX (extreme_values, enhanced-fill.hpp:134-135) and INT_MAX/2 (spike_at, enhanced-fill.hpp:153-156) are all int-representable and the site is unconditionally safe for them. The site is 'conditional' only because of pattern 10: explicit_values converts arbitrary spec doubles with static_cast<int> inside enhancedFromDouble (enhanced-fill.hpp:165-171), which is UB for a value outside the int range, and specs.py:328-367 validates the count and numeric type of the values but never their magnitude. Nothing downstream of the assignment - the odd/even semantics or the negative-domain question - is charged to this axis.",
-     "conversion_notes": "DType=int matches value_type; extreme_values yields INT_MIN/INT_MAX, spike_at INT_MAX/2 - all int-representable, assignment is int=int, no conversion UB at the site. (explicit_values is the exception: values arrive as double and are static_cast to int, enhanced-fill.hpp:165-171 - an out-of-int-range explicit value would be UB; specs.py:328-367 validates count/type but not magnitude.)"
+     "conversion_notes": "DType=int matches value_type; extreme_values yields INT_MIN/INT_MAX, spike_at INT_MAX/2 - all int-representable, assignment is int=int, no conversion UB at the site. (explicit_values is the exception: values arrive as double and are static_cast to int, enhanced-fill.hpp:165-171 - an out-of-int-range explicit value would be UB; specs.py:328-367 validates count/type but not magnitude.)",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -19720,7 +19851,8 @@
      "dtype_matches_element": true,
      "fill_type_safe": true,
      "fill_type_safe_rationale": "DType is deduced from the double lo/hi arguments (enhanced-fill.hpp:173-174) and equals the container value_type, so every pattern - including all_zeros writing 0.0, all_same writing the exact midpoint 0.0, extreme_values writing +-DBL_MAX and explicit_values writing arbitrary spec doubles through the identity enhancedFromDouble<double> - is a plain double-to-double assignment with no conversion. Writing 0.0 is perfectly type-safe; that it is the singular point of 1-1/x is a DOMAIN/oracle-output matter and is recorded on those axes and in oracle_hazards, not here.",
-     "conversion_notes": "DType=double matches value_type; no conversion hazard at this site for any pattern."
+     "conversion_notes": "DType=double matches value_type; no conversion hazard at this site for any pattern.",
+     "container_value_type_normalized": "double"
     }
    ],
    "other_input_constructors": "none",
@@ -20009,7 +20141,8 @@
      "dtype_matches_element": true,
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "DType is deduced from the int lo/hi arguments (enhanced-fill.hpp:173-174), so patterns 0-9 assign int to int: INT_MIN, INT_MAX and INT_MAX/2 are all int-representable and the ASSIGNMENT is unconditionally safe - the signed-overflow problem those values cause is created later, by the oracle's x[i]*x[i], and is recorded on oracle_execution_safe and in oracle_hazards, never here. The site is 'conditional' solely because pattern 10 converts arbitrary spec doubles with static_cast<int> (enhanced-fill.hpp:165-171), which is UB outside the int range and is magnitude-unvalidated (specs.py:328-367).",
-     "conversion_notes": "DType=int matches value_type; INT_MIN/INT_MAX/INT_MAX/2 all int-representable, so no conversion UB AT THE FILL SITE. The UB risk is downstream in compute (see extreme_values/spike_at audits). explicit_values caveat as for 56: double->int static_cast (enhanced-fill.hpp:165-171) is UB for out-of-int-range values; specs.py does not bound magnitudes."
+     "conversion_notes": "DType=int matches value_type; INT_MIN/INT_MAX/INT_MAX/2 all int-representable, so no conversion UB AT THE FILL SITE. The UB risk is downstream in compute (see extreme_values/spike_at audits). explicit_values caveat as for 56: double->int static_cast (enhanced-fill.hpp:165-171) is UB for out-of-int-range values; specs.py does not bound magnitudes.",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none",
@@ -20282,7 +20415,8 @@
      "dtype_matches_element": true,
      "fill_type_safe": "conditional",
      "fill_type_safe_rationale": "DType is deduced from the int lo/hi arguments (enhanced-fill.hpp:173-174), so patterns 0-9 assign int to int with no conversion at all - INT_MIN/INT_MAX (extreme_values) and INT_MAX/2 (spike_at) are int-representable and the site is unconditionally safe for them, and because the predicate is total there is no downstream hazard to relayer either. The site is 'conditional' only for pattern 10: explicit_values converts arbitrary spec doubles with static_cast<int> (enhanced-fill.hpp:165-171), UB outside the int range, magnitude-unvalidated (specs.py:328-367).",
-     "conversion_notes": "DType=int matches value_type; no conversion UB at the site. Same explicit_values double->int cast caveat as 56/58 (out-of-int-range explicit values would be UB; not magnitude-validated in specs.py)."
+     "conversion_notes": "DType=int matches value_type; no conversion UB at the site. Same explicit_values double->int cast caveat as 56/58 (out-of-int-range explicit values would be UB; not magnitude-validated in specs.py).",
+     "container_value_type_normalized": "int"
     }
    ],
    "other_input_constructors": "none (mask containers are outputs)",

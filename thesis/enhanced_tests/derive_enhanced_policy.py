@@ -10,7 +10,7 @@ findings that are UNAMBIGUOUS, POLICY-INDEPENDENT and SOURCE-BACKED become
 enforced policy; everything whose resolution needs one of the open E2-B
 policies is carried over as `deferred_policy` and is NOT silently supported.
 
-Derivation rules (E2-A):
+Derivation rules (E2-A, extended by E2-A.1):
 
   R1  no pattern effect
       benchmark pattern_effect in {NONE, NOT_APPLICABLE}
@@ -43,25 +43,35 @@ Derivation rules (E2-A):
       fix needs the tolerance/domain policy (E2-B), so the case is parked, not
       declared permanently unsupported.
 
-  R4b explicit_values representability
-      For a benchmark whose fill container element type cannot represent every
-      double a spec may carry (int and float containers), the policy records
-      `explicit_values_bounds`. validate_spec REJECTS a spec whose values fall
-      outside them instead of clipping: an out-of-range floating->integral (or
-      double->float) conversion is undefined behaviour, and clipping would be a
+  R4b explicit_values / value_range technical representability  (E2-A.1)
+      `fill_type_capability` is derived from the ONE normalized type source
+      `fill_sites[].container_value_type_normalized`. It carries the technical
+      bounds of the benchmark's fill containers and the largest span the
+      current fill arithmetic can compute in them. validate_spec REJECTS a
+      spec whose explicit values or value_range fall outside them instead of
+      clipping: an out-of-range floating->integral (or double->float)
+      conversion is undefined behaviour, and clipping would be a
       VALUE_RANGE_DOMAIN_POLICY decision, which stays open.
+      This is a TECHNICAL REPRESENTABILITY statement only ("can the harness
+      hold this value / compute this span in this container?"), never a
+      statement about which values are semantically meaningful for the task.
 
-  R5  benchmark-specific size safety
-      taken from the size-triggered hazards recorded in the catalog's
-      oracle_hazards plus the frozen prompt domain; expressed per benchmark as
-      min_size and/or a size predicate. These are per-benchmark technical
+  R5  benchmark-specific size safety  (E2-A.1: single source)
+      taken VERBATIM from the catalog's normalized `enforced_size_safety`
+      block. Before E2-A.1 the same nine rules also lived in a manual table in
+      THIS file; that duplicate was removed so audit truth and productive size
+      policy cannot drift apart. These are per-benchmark technical
       constraints, NOT a global size-0 rule: SIZE_ZERO_SPEC_POLICY stays open
-      and every other benchmark keeps accepting size 0.
+      and every benchmark without an entry keeps accepting size 0.
 
 Precedence: R2 (unsupported) wins over R3/R4 (deferred), which win over
 supported. R1 applies to the whole benchmark.
 
 Run with --check to verify the committed policy still matches the catalog.
+`policy_matches_derivation()` is the same check as an importable function; it
+is what the runtime preflight (capabilities.policy_preflight) calls, so there
+is no subprocess duplicate of this logic.
+
 Read-only apart from writing enhanced_policy.json (and nothing at all under
 --check).
 """
@@ -78,73 +88,95 @@ POLICY = HERE / "enhanced_policy.json"
 
 CANONICAL_PATTERN = "random"
 
-# R5: benchmark-specific size constraints. Every entry names the concrete
-# technical hazard it avoids; nothing here generalizes to other benchmarks.
-SIZE_CONSTRAINTS = {
-    "dense_la/01_dense_la_solve": {
-        "min_size": 1,
-        "reason": "size 0 makes correctSolveLinearSystem's forward-elimination "
-                  "bound `i < N - 1` underflow on size_t and read an empty "
-                  "vector (heap out-of-bounds, baseline.hpp)",
-    },
-    "graph/19_graph_shortest_path": {
-        "min_size": 2,
-        "reason": "size 0 underflows the `i < N-1` spanning-path loop bound; "
-                  "size 1 makes `rand() % (N - 1)` a division by zero and the "
-                  "destination draw non-terminating (cpu.cc)",
-    },
-    "search/36_search_check_if_array_contains_value": {
-        "min_size": 1,
-        "reason": "size 0 evaluates input[rand() % input.size()] on an empty "
-                  "vector: modulo by zero plus an out-of-bounds read (cpu.cc)",
-    },
-    "search/37_search_find_the_closest_number_to_pi": {
-        "min_size": 1,
-        "reason": "size 0 runs `rand() % TEST_SIZE` (modulo by zero) and the "
-                  "frozen oracle dereferences x[0] before any size check "
-                  "(cpu.cc, baseline.hpp)",
-    },
-    "search/39_search_xor_contains": {
-        "min_size": 1,
-        "reason": "size 0 evaluates x[rand() % x.size()] and y[rand() % y.size()] "
-                  "on empty vectors: modulo by zero plus out-of-bounds reads "
-                  "(cpu.cc)",
-    },
-    "fft/05_fft_inverse_fft": {
-        "size_predicate": "power_of_two_or_below_two",
-        "reason": "the iterative Rosetta fft() oracle computes the butterfly "
-                  "partner as b = a + k without bounding b by N, so any N >= 3 "
-                  "that is not a power of two reads and writes past the end "
-                  "(heap out-of-bounds, baseline.hpp). The frozen prompt states "
-                  "the size is always a power of two.",
-    },
-    "fft/07_fft_fft_conjugate": {
-        "size_predicate": "power_of_two_or_below_two",
-        "reason": "the recursive oracle floor-halves N at every level, so for a "
-                  "non-power-of-two size it silently computes something that is "
-                  "not the transform and grades correct candidates against a "
-                  "wrong reference. The frozen prompt states the size is always "
-                  "a power of two.",
-    },
-    "fft/08_fft_split_fft": {
-        "size_predicate": "power_of_two_or_below_two",
-        "reason": "same floor-halving oracle as fft/07; the frozen prompt states "
-                  "the length of x is a power of two",
-    },
-    "fft/09_fft_fft_out_of_place": {
-        "size_predicate": "power_of_two_or_below_two",
-        "reason": "same floor-halving oracle as fft/07; the frozen prompt states "
-                  "the size of x is always a power of two",
-    },
-}
+# Bumped whenever the derivation RULES change, so a policy produced by an older
+# derivation is detectable even if the catalog is unchanged.
+DERIVATION_VERSION = "e2a1.1"
+
+# Technical limits of the fill container element types the suite actually uses.
+# (lowest, max, is_integral). This table describes the C++ TYPES, not any
+# benchmark domain.
+TYPE_LIMITS = OrderedDict([
+    ("int", (-2147483648.0, 2147483647.0, True)),
+    ("long", (-9223372036854775808.0, 9223372036854775807.0, True)),
+    ("unsigned long", (0.0, 18446744073709551615.0, True)),
+    ("size_t", (0.0, 18446744073709551615.0, True)),
+    ("float", (-3.4028234663852886e38, 3.4028234663852886e38, False)),
+    ("double", (-1.7976931348623157e308, 1.7976931348623157e308, False)),
+    ("complex<double>", (-1.7976931348623157e308, 1.7976931348623157e308, False)),
+])
+
+FILL_TYPE_REASON = (
+    "technical representability of the benchmark's ENHANCED_FILL containers "
+    "(derived from fill_sites[].container_value_type_normalized). value_min / "
+    "value_max bound the values the container can hold; max_finite_span bounds "
+    "the span the current fill arithmetic can compute in it without signed "
+    "overflow (integral: hi-lo and span+1 must both fit) or a non-finite "
+    "intermediate (floating: hi-lo must stay finite). A spec outside these "
+    "bounds is REJECTED, never clipped - clipping would decide "
+    "VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about "
+    "which values are semantically meaningful for the benchmark."
+)
+
+NO_HOOK_REASON = (
+    "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there "
+    "is no container to represent a fill value in and every fill parameter is "
+    "inert"
+)
 
 
 def load_catalog():
     return json.loads(CATALOG.read_text(encoding="utf-8"))
 
 
+def _fill_type_capability(bench):
+    """R4b: ONE technical type description per benchmark, from the ONE
+    normalized type field in the catalog."""
+    types = []
+    for site in bench.get("fill_sites") or []:
+        vtype = site.get("container_value_type_normalized")
+        if vtype is None:
+            raise ValueError(
+                "%s: fill site is missing container_value_type_normalized - the "
+                "catalog has not been normalized (E2-A.1)" % bench["benchmark"])
+        if vtype not in TYPE_LIMITS:
+            raise ValueError(
+                "%s: unknown normalized fill type %r (known: %s)"
+                % (bench["benchmark"], vtype, ", ".join(TYPE_LIMITS)))
+        if vtype not in types:
+            types.append(vtype)
+
+    entry = OrderedDict()
+    entry["element_types"] = sorted(types)
+
+    if not types:
+        entry["has_fill_hook"] = False
+        entry["reason"] = NO_HOOK_REASON
+        return entry
+
+    entry["has_fill_hook"] = True
+    value_min = max(TYPE_LIMITS[t][0] for t in types)
+    value_max = min(TYPE_LIMITS[t][1] for t in types)
+    spans = []
+    all_integral = True
+    for t in types:
+        low, high, integral = TYPE_LIMITS[t]
+        if integral:
+            # hi - lo must fit in the type AND span + 1 must fit (the ramp uses
+            # `position % (span + 1)`), so the largest admissible span is max-1.
+            spans.append(high - 1.0)
+        else:
+            # hi - lo must stay finite in the type
+            spans.append(high)
+            all_integral = False
+    entry["value_min"] = value_min
+    entry["value_max"] = value_max
+    entry["max_finite_span"] = min(spans)
+    entry["all_integral"] = all_integral
+    entry["reason"] = FILL_TYPE_REASON
+    return entry
+
+
 def derive(catalog):
-    offered = list(catalog["_meta"]["pipeline_findings"].get("offered_patterns_note", []))
     benchmarks = OrderedDict()
 
     for bench in catalog["benchmarks"]:
@@ -185,36 +217,18 @@ def derive(catalog):
                 supported.remove("explicit_values")
                 unsupported["explicit_values"] = "no_single_canonical_fill_site"
 
-        # R4b: representable range of the benchmark's fill containers. Only
-        # recorded where it actually constrains anything (int/float elements).
-        bounds = None
-        for site in bench.get("fill_sites") or []:
-            vtype = (site.get("container_value_type") or "").strip().lower()
-            site_bounds = None
-            if vtype.startswith("int") and "int" in vtype:
-                site_bounds = (-2147483648.0, 2147483647.0)
-            elif vtype.startswith("float"):
-                site_bounds = (-3.4028234663852886e38, 3.4028234663852886e38)
-            if site_bounds is not None:
-                bounds = site_bounds if bounds is None else (
-                    max(bounds[0], site_bounds[0]), min(bounds[1], site_bounds[1]))
-
         entry = OrderedDict()
         entry["pattern_effect"] = effect
-        if bounds is not None:
-            entry["explicit_values_bounds"] = OrderedDict([
-                ("min", bounds[0]), ("max", bounds[1]),
-                ("reason", "the benchmark's ENHANCED_FILL container cannot "
-                           "represent values outside this range; converting one "
-                           "would be undefined behaviour, and clipping would be a "
-                           "VALUE_RANGE_DOMAIN_POLICY decision (still open), so "
-                           "such a spec is rejected"),
-            ])
+        entry["fill_type_capability"] = _fill_type_capability(bench)
         entry["supported_patterns"] = sorted(supported)
         entry["unsupported_patterns"] = OrderedDict(sorted(unsupported.items()))
         entry["deferred_policy_patterns"] = OrderedDict(sorted(deferred.items()))
-        if name in SIZE_CONSTRAINTS:
-            entry["size_constraint"] = OrderedDict(sorted(SIZE_CONSTRAINTS[name].items()))
+
+        # R5: verbatim from the catalog's normalized block - no second table
+        size_safety = bench.get("enforced_size_safety")
+        if size_safety:
+            entry["size_constraint"] = OrderedDict(sorted(size_safety.items()))
+
         if effect == "PARTIAL":
             entry["pattern_coverage"] = "partial"
             entry["pattern_coverage_note"] = (
@@ -226,7 +240,8 @@ def derive(catalog):
     doc = OrderedDict()
     doc["status"] = "ENFORCED"
     doc["_meta"] = OrderedDict([
-        ("generated_by", "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A)"),
+        ("generated_by", "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A, E2-A.1)"),
+        ("derivation_version", DERIVATION_VERSION),
         ("derived_from", "thesis/enhanced_tests/enhanced_capabilities.json"),
         ("derived_from_audit_commit", catalog["_meta"].get("normalized_at_commit")),
         ("relationship_to_audit", (
@@ -236,13 +251,21 @@ def derive(catalog):
             "thesis/enhanced_tests/capabilities.py. Only unambiguous, "
             "policy-independent, source-backed audit findings become policy; "
             "everything else is carried as deferred_policy.")),
+        ("single_source_of_truth", OrderedDict([
+            ("size_safety", "benchmarks[].enforced_size_safety in the catalog "
+                            "(E2-A.1 removed the duplicate manual table in "
+                            "derive_enhanced_policy.py)"),
+            ("fill_types", "benchmarks[].fill_sites[].container_value_type_normalized "
+                           "in the catalog; both explicit_values and value_range "
+                           "validation read the derived fill_type_capability"),
+        ])),
         ("rules", OrderedDict([
             ("R1", "pattern_effect NONE/NOT_APPLICABLE -> only 'random' supported (no_pattern_effect)"),
             ("R2", "oracle_execution_safe == false -> unsupported (unsafe_pattern_for_benchmark)"),
             ("R3", "fill_type_safe == false in the audit -> deferred (extreme_semantics_deferred); E2-A fixed the conversion, the domain question is EXTREME_PATTERN_SEMANTICS"),
             ("R4", "verdict_outcome_class == FALSE_FAIL_RISK -> deferred (false_fail_risk_deferred)"),
-            ("R4b", "explicit_values values outside the fill container's representable range are REJECTED, never clipped"),
-            ("R5", "benchmark-specific size constraints for technically unambiguous size hazards; NOT a global size-0 rule"),
+            ("R4b", "fill_type_capability: explicit values and value_range endpoints/spans outside the fill containers' TECHNICAL representability are REJECTED, never clipped"),
+            ("R5", "benchmark-specific size constraints verbatim from the catalog's enforced_size_safety; NOT a global size-0 rule"),
         ])),
         ("open_policies_not_decided_here", [
             "EXTREME_PATTERN_SEMANTICS", "VALUE_RANGE_DOMAIN_POLICY",
@@ -256,30 +279,52 @@ def derive(catalog):
     return doc
 
 
+def derived_document():
+    """The policy the current catalog implies, as plain JSON-comparable data."""
+    return json.loads(json.dumps(derive(load_catalog())))
+
+
+def policy_matches_derivation():
+    """(matches, differing_benchmark_names_or_reason).
+
+    The importable twin of --check: the runtime preflight calls THIS, so the
+    exactness rule exists exactly once.
+    """
+    if not POLICY.is_file():
+        return False, ["<missing enhanced_policy.json>"]
+    try:
+        current = json.loads(POLICY.read_text(encoding="utf-8"))
+    except ValueError as error:
+        return False, ["<enhanced_policy.json is not valid JSON: %s>" % error]
+    derived = derived_document()
+    if current == derived:
+        return True, []
+    cur_b = current.get("benchmarks") or {}
+    new_b = derived["benchmarks"]
+    differing = [n for n in sorted(set(cur_b) | set(new_b))
+                 if cur_b.get(n) != new_b.get(n)]
+    if not differing:
+        differing = ["<metadata/header differs; benchmark entries are equal>"]
+    return False, differing
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true",
                     help="verify the committed policy matches the catalog; write nothing")
     args = ap.parse_args()
 
-    derived = derive(load_catalog())
-
     if args.check:
-        if not POLICY.is_file():
-            print("MISSING: %s" % POLICY)
-            return 1
-        current = json.loads(POLICY.read_text(encoding="utf-8"))
-        if current == json.loads(json.dumps(derived)):
+        matches, differing = policy_matches_derivation()
+        if matches:
             print("CHECK: enhanced_policy.json matches the derivation.")
             return 0
         print("CHECK FAILED: enhanced_policy.json differs from the derivation.")
-        cur_b = current.get("benchmarks", {})
-        new_b = derived["benchmarks"]
-        for name in sorted(set(cur_b) | set(new_b)):
-            if cur_b.get(name) != new_b.get(name):
-                print("  differs: %s" % name)
+        for name in differing:
+            print("  differs: %s" % name)
         return 1
 
+    derived = derive(load_catalog())
     POLICY.write_text(
         json.dumps(derived, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     n_sup = sum(len(v["supported_patterns"]) for v in derived["benchmarks"].values())

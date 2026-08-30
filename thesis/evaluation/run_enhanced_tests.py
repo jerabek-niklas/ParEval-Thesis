@@ -122,6 +122,7 @@ from thesis.evaluation.run_correctness import (  # noqa: E402
     parse_authenticated_validation,
     parse_mismatch_output,
 )
+from thesis.enhanced_tests import capabilities  # noqa: E402
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     build_wrapper,
     compile_and_run,
@@ -765,6 +766,33 @@ def main() -> None:
     execution_models = list(settings["execution_models"])
     launch_settings = dict(settings["enhanced_launch"])
 
+    # E2-A.1 FAIL-CLOSED CAPABILITY-POLICY PREFLIGHT.
+    #
+    # Deliberately the FIRST thing after the config is read: it runs before the
+    # environment gate, before the run manifest is frozen, before --force
+    # deletes any output, before the gate cache is populated and before a
+    # single build or record is written. A missing, malformed, non-ENFORCED,
+    # incomplete or stale policy therefore costs an exit code and nothing else
+    # - never a half-written run whose specs were validated against a policy
+    # that no longer matches the audit catalog.
+    try:
+        policy_provenance = capabilities.policy_preflight()
+    except capabilities.EnhancedPolicyError as error:
+        print(
+            "ENHANCED CAPABILITY POLICY PREFLIGHT FAILED - aborting before any "
+            "record, manifest, cache or build artifact is written.\n%s" % error
+        )
+        sys.exit(2)
+    print(
+        "Enhanced capability policy: %s | %d benchmarks | sha256 %s | derived "
+        "from %s (sha256 %s)"
+        % (policy_provenance["enhanced_policy_status"],
+           policy_provenance["enhanced_policy_benchmark_count"],
+           policy_provenance["enhanced_policy_sha256"][:16],
+           policy_provenance["derived_from"],
+           policy_provenance["derived_from_sha256"][:16])
+    )
+
     cli_jobs = parse_jobs_arg(args.jobs) if args.jobs else None
     jobs = resolve_jobs(settings, cli_jobs)
 
@@ -800,7 +828,7 @@ def main() -> None:
 
     ensure_run_manifest(
         config, run_id, stage="enhanced_tests", profile=args.profile,
-        primary_compiler="g++",
+        primary_compiler="g++", enhanced_policy=policy_provenance,
     )
 
     llm_specs = load_llm_specs(Path(args.specs))
@@ -1056,6 +1084,10 @@ def main() -> None:
                 "run_timeout_seconds": run_timeout,
                 "specs_file": str(args.specs),
             },
+            # E2-A.1: which capability policy actually governed this run.
+            # Content-addressed (sha256 over the policy and audit-catalog
+            # bytes), never mtime, file name or git commit.
+            "enhanced_policy_provenance": dict(policy_provenance),
         }
         common.write_json(output_path.parent / summary_name, summary)
 

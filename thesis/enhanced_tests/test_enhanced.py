@@ -531,10 +531,18 @@ def test_runtime_range_equivalence():
 
     # both paths fill a size_t vector (the sparse_la index-site shape), an
     # int vector and a double vector under a range that is OUT OF RANGE for
-    # the integral types — GCC constant-folds the define path's literal
+    # the integral types — GCC constant-folded the define path's literal
     # cast with truncate-then-saturate semantics, and the runtime path must
     # reproduce that exactly (review finding 2026-08-08: a plain
-    # static_cast wraps via cvttsd2si instead)
+    # static_cast wraps via cvttsd2si instead).
+    #
+    # E2-A.1: the define path no longer casts the override to the call site's
+    # literal type at all — it hands a double to the one shared endpoint
+    # helper — and a range whose SPAN an element type cannot express is
+    # refused by validate_spec and, defensively, by the harness itself. The
+    # group therefore checks two parities: identical values for a saturating
+    # but computable range, and identical CONTROLLED FAILURE for one that is
+    # not computable.
     probe_text = (
         "#include <vector>\n"
         "#include <cstdlib>\n"
@@ -564,6 +572,12 @@ def test_runtime_range_equivalence():
         probe.write_text(probe_text, encoding="utf-8")
 
         def build_and_run(defines, env_extra):
+            """(returncode, stdout, stderr) or None when the build fails.
+
+            E2-A.1 returns the FULL result, not just stdout-on-success: the
+            two paths must agree on the failure semantics of a refused range,
+            not only on the values of an accepted one.
+            """
             binary = Path(tmp) / "probe.out"
             build = subprocess.run(
                 ["g++", "-std=c++17", "-O2", "-I", str(drivers),
@@ -577,36 +591,51 @@ def test_runtime_range_equivalence():
             env.update(env_extra)
             run = subprocess.run([str(binary)], capture_output=True,
                                  text=True, timeout=30, env=env)
-            return run.stdout if run.returncode == 0 else None
+            return run.returncode, run.stdout, run.stderr
 
-        # ascending with a range far outside int/size_t: [-10, 3e9]
-        define_out = build_and_run(
-            ["-DENHANCED_FILL_PATTERN=3",
-             "-DENHANCED_FILL_LO=(-10.0)", "-DENHANCED_FILL_HI=(3000000000.0)"],
-            {},
-        )
-        runtime_out = build_and_run(
-            ["-DENHANCED_RUNTIME_FILL"],
-            {"ENHANCED_FILL_PATTERN": "3",
-             "ENHANCED_FILL_RANGE_LO": "-10", "ENHANCED_FILL_RANGE_HI": "3000000000"},
-        )
-        check("ascending, out-of-range bounds: outputs byte-identical",
-              define_out is not None and define_out == runtime_out)
+        def both_paths(pattern, lo, hi):
+            define_result = build_and_run(
+                ["-DENHANCED_FILL_PATTERN=%d" % pattern,
+                 "-DENHANCED_FILL_LO=(%s)" % lo, "-DENHANCED_FILL_HI=(%s)" % hi],
+                {},
+            )
+            runtime_result = build_and_run(
+                ["-DENHANCED_RUNTIME_FILL"],
+                {"ENHANCED_FILL_PATTERN": str(pattern),
+                 "ENHANCED_FILL_RANGE_LO": lo, "ENHANCED_FILL_RANGE_HI": hi},
+            )
+            return define_result, runtime_result
 
-        # random (pattern 0) with the same hostile range: exercises the
-        # fillRand rand() stream with converted lo/hi on all three types
-        define_rand = build_and_run(
-            ["-DENHANCED_FILL_PATTERN=0",
-             "-DENHANCED_FILL_LO=(-10.0)", "-DENHANCED_FILL_HI=(3000000000.0)"],
-            {},
-        )
-        runtime_rand = build_and_run(
-            ["-DENHANCED_RUNTIME_FILL"],
-            {"ENHANCED_FILL_PATTERN": "0",
-             "ENHANCED_FILL_RANGE_LO": "-10", "ENHANCED_FILL_RANGE_HI": "3000000000"},
-        )
-        check("random, out-of-range bounds: outputs byte-identical",
-              define_rand is not None and define_rand == runtime_rand)
+        # A range that SATURATES on the integral sites but whose span the fill
+        # arithmetic can still compute there (int: 10 .. INT_MAX, size_t:
+        # 10 .. 3e9). This is what validate_spec accepts, and it is exactly
+        # the case the define path used to constant-fold with
+        # truncate-then-saturate: both paths must now produce the same values
+        # through the one shared endpoint helper.
+        for label, pattern in (("ascending", 3), ("random", 0)):
+            define_result, runtime_result = both_paths(pattern, "10.0", "3000000000.0")
+            check("%s, saturating bounds: both paths succeed" % label,
+                  define_result is not None and runtime_result is not None
+                  and define_result[0] == 0 and runtime_result[0] == 0)
+            check("%s, saturating bounds: outputs byte-identical" % label,
+                  define_result is not None and runtime_result is not None
+                  and define_result[1] == runtime_result[1])
+
+        # E2-A.1 failure-semantics parity: [-10, 3e9] leaves the int site with
+        # a span of 2147483657, which int cannot express. validate_spec rejects
+        # such a spec, so the harness never sees it; if it did anyway, BOTH
+        # paths must fail in the SAME controlled way instead of one of them
+        # executing undefined behaviour.
+        define_bad, runtime_bad = both_paths(3, "-10.0", "3000000000.0")
+        check("refused range: both paths reachable (built)",
+              define_bad is not None and runtime_bad is not None)
+        if define_bad is not None and runtime_bad is not None:
+            check("refused range: identical exit status in both paths",
+                  define_bad[0] == runtime_bad[0] and define_bad[0] != 0)
+            check("refused range: controlled abort with a diagnostic, both paths",
+                  "ENHANCED_FILL:" in define_bad[2] and "ENHANCED_FILL:" in runtime_bad[2])
+            check("refused range: no output was produced in either path",
+                  define_bad[1] == "" and runtime_bad[1] == "")
 
         # no range at all: call-site lo/hi, both paths
         define_plain = build_and_run(["-DENHANCED_FILL_PATTERN=5"], {})

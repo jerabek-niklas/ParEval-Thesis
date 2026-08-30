@@ -203,6 +203,7 @@ def ensure_run_manifest(
     profile: "Optional[str]" = None,
     primary_compiler: str = "g++",
     prompt_selection: "Optional[Dict[str, Any]]" = None,
+    enhanced_policy: "Optional[Dict[str, Any]]" = None,
 ) -> "Dict[str, Any]":
     """Create the manifest on first contact with a run directory; on later
     contacts detect and RECORD config drift (never overwrite the frozen
@@ -215,7 +216,15 @@ def ensure_run_manifest(
     enhanced_specs pins the gitignored spec file ({path, sha256,
     spec_count}) with resolved_config semantics: written once at
     creation, later contacts only COMPARE and record deviations in
-    config_drift ("spec file changed after run start") — never an abort."""
+    config_drift ("spec file changed after run start") — never an abort.
+
+    enhanced_policy (optional, from capabilities.policy_preflight, E2-A.1)
+    records WHICH enforced capability policy governed the run: content
+    hashes of the policy artifact and of the audit catalog it was derived
+    from, plus status, benchmark count and derivation version. Stored at
+    creation and backfilled ONCE into a manifest that lacks it — the same
+    additive enrichment prompt_selection uses; the frozen fields stay
+    untouched. Stages that do not pass one are unaffected."""
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     path = manifest_path(config, run_id)
 
@@ -248,6 +257,8 @@ def ensure_run_manifest(
         }
         if prompt_selection is not None:
             manifest["prompt_selection"] = _jsonable(prompt_selection)
+        if enhanced_policy is not None:
+            manifest["enhanced_policy"] = _jsonable(enhanced_policy)
         _write_manifest(path, manifest)
         print(f"[{stage}] run manifest frozen: {path}")
         return manifest
@@ -256,6 +267,10 @@ def ensure_run_manifest(
 
     if prompt_selection is not None and "prompt_selection" not in existing:
         existing["prompt_selection"] = _jsonable(prompt_selection)
+        enriched = True
+
+    if enhanced_policy is not None and "enhanced_policy" not in existing:
+        existing["enhanced_policy"] = _jsonable(enhanced_policy)
         enriched = True
 
     # legacy manifests (pre enhanced_specs) get the pin backfilled ONCE

@@ -1,17 +1,22 @@
 {
  "status": "ENFORCED",
  "_meta": {
-  "generated_by": "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A)",
+  "generated_by": "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A, E2-A.1)",
+  "derivation_version": "e2a1.1",
   "derived_from": "thesis/enhanced_tests/enhanced_capabilities.json",
   "derived_from_audit_commit": "591a79092298080131a4d91f71f288628f309c1b",
   "relationship_to_audit": "The capability CATALOG is audit metadata and stays AUDIT_ONLY_NOT_ENFORCED. THIS file is the productive policy that validation, LLM spec generation and mutation all enforce through thesis/enhanced_tests/capabilities.py. Only unambiguous, policy-independent, source-backed audit findings become policy; everything else is carried as deferred_policy.",
+  "single_source_of_truth": {
+   "size_safety": "benchmarks[].enforced_size_safety in the catalog (E2-A.1 removed the duplicate manual table in derive_enhanced_policy.py)",
+   "fill_types": "benchmarks[].fill_sites[].container_value_type_normalized in the catalog; both explicit_values and value_range validation read the derived fill_type_capability"
+  },
   "rules": {
    "R1": "pattern_effect NONE/NOT_APPLICABLE -> only 'random' supported (no_pattern_effect)",
    "R2": "oracle_execution_safe == false -> unsupported (unsafe_pattern_for_benchmark)",
    "R3": "fill_type_safe == false in the audit -> deferred (extreme_semantics_deferred); E2-A fixed the conversion, the domain question is EXTREME_PATTERN_SEMANTICS",
    "R4": "verdict_outcome_class == FALSE_FAIL_RISK -> deferred (false_fail_risk_deferred)",
-   "R4b": "explicit_values values outside the fill container's representable range are REJECTED, never clipped",
-   "R5": "benchmark-specific size constraints for technically unambiguous size hazards; NOT a global size-0 rule"
+   "R4b": "fill_type_capability: explicit values and value_range endpoints/spans outside the fill containers' TECHNICAL representability are REJECTED, never clipped",
+   "R5": "benchmark-specific size constraints verbatim from the catalog's enforced_size_safety; NOT a global size-0 rule"
   },
   "open_policies_not_decided_here": [
    "EXTREME_PATTERN_SEMANTICS",
@@ -28,6 +33,17 @@
  "benchmarks": {
   "dense_la/00_dense_la_lu_decomp": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -46,6 +62,11 @@
   },
   "dense_la/01_dense_la_solve": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -63,12 +84,25 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/dense_la/01_dense_la_solve/baseline.hpp (forward elimination `i < N - 1` on size_t)",
     "min_size": 1,
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "size 0 makes correctSolveLinearSystem's forward-elimination bound `i < N - 1` underflow on size_t and read an empty vector (heap out-of-bounds, baseline.hpp)"
    }
   },
   "dense_la/02_dense_la_gemm": {
    "pattern_effect": "PARTIAL",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -90,6 +124,17 @@
   },
   "dense_la/03_dense_la_axpy": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -109,6 +154,17 @@
   },
   "dense_la/04_dense_la_gemv": {
    "pattern_effect": "PARTIAL",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -130,6 +186,17 @@
   },
   "fft/05_fft_inverse_fft": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -147,12 +214,25 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/fft/05_fft_inverse_fft/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "the iterative Rosetta fft() oracle computes the butterfly partner as b = a + k without bounding b by N, so any N >= 3 that is not a power of two reads and writes past the end (heap out-of-bounds, baseline.hpp). The frozen prompt states the size is always a power of two.",
     "size_predicate": "power_of_two_or_below_two"
    }
   },
   "fft/06_fft_dft": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -171,6 +251,17 @@
   },
   "fft/07_fft_fft_conjugate": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -188,12 +279,25 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/fft/07_fft_fft_conjugate/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "the recursive oracle floor-halves N at every level, so for a non-power-of-two size it silently computes something that is not the transform and grades correct candidates against a wrong reference. The frozen prompt states the size is always a power of two.",
     "size_predicate": "power_of_two_or_below_two"
    }
   },
   "fft/08_fft_split_fft": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -211,12 +315,25 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/fft/08_fft_split_fft/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "same floor-halving oracle as fft/07; the frozen prompt states the length of x is a power of two",
     "size_predicate": "power_of_two_or_below_two"
    }
   },
   "fft/09_fft_fft_out_of_place": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -234,12 +351,25 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/fft/09_fft_fft_out_of_place/baseline.hpp + frozen prompt domain",
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "same floor-halving oracle as fft/07; the frozen prompt states the size of x is always a power of two",
     "size_predicate": "power_of_two_or_below_two"
    }
   },
   "geometry/10_geometry_convex_hull": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -259,6 +389,17 @@
   },
   "geometry/11_geometry_convex_hull_perimeter": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -278,6 +419,17 @@
   },
   "geometry/12_geometry_smallest_triangle": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -297,6 +449,17 @@
   },
   "geometry/13_geometry_closest_pair_2d": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -316,6 +479,17 @@
   },
   "geometry/14_geometry_closest_pair_1d": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -334,6 +508,11 @@
   },
   "graph/15_graph_edge_count": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -353,6 +532,11 @@
   },
   "graph/16_graph_largest_component": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -372,6 +556,11 @@
   },
   "graph/17_graph_highest_degree": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -391,6 +580,11 @@
   },
   "graph/18_graph_count_components": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -410,6 +604,11 @@
   },
   "graph/19_graph_shortest_path": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -427,16 +626,24 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/graph/19_graph_shortest_path/cpu.cc (spanning-path loop and `rand() % (N - 1)`)",
     "min_size": 2,
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "size 0 underflows the `i < N-1` spanning-path loop bound; size 1 makes `rand() % (N - 1)` a division by zero and the destination draw non-terminating (cpu.cc)"
    }
   },
   "histogram/20_histogram_pixel_histogram": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -457,6 +664,17 @@
   },
   "histogram/21_histogram_bin_0-100": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -476,6 +694,17 @@
   },
   "histogram/22_histogram_count_quadrants": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -495,6 +724,11 @@
   },
   "histogram/23_histogram_first_letter_counts": {
    "pattern_effect": "NOT_APPLICABLE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -514,6 +748,17 @@
   },
   "histogram/24_histogram_count_quartile": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -533,6 +778,11 @@
   },
   "reduce/25_reduce_xor": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -552,6 +802,17 @@
   },
   "reduce/26_reduce_product_of_inverses": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -571,6 +832,17 @@
   },
   "reduce/27_reduce_average": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -590,10 +862,16 @@
   },
   "reduce/28_reduce_smallest_odd_number": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "ascending",
@@ -614,6 +892,17 @@
   },
   "reduce/29_reduce_sum_of_min_of_pairs": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -634,6 +923,17 @@
   },
   "scan/30_scan_prefix_sum": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -652,10 +952,16 @@
   },
   "scan/31_scan_scan_with_min_function": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -3.4028234663852886e+38,
-    "max": 3.4028234663852886e+38,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "float"
+    ],
+    "has_fill_hook": true,
+    "value_min": -3.4028234663852886e+38,
+    "value_max": 3.4028234663852886e+38,
+    "max_finite_span": 3.4028234663852886e+38,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -676,6 +982,17 @@
   },
   "scan/32_scan_sum_of_prefix_sum_array": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -694,10 +1011,16 @@
   },
   "scan/33_scan_reverse_prefix_sum": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -717,10 +1040,16 @@
   },
   "scan/34_scan_largest_contiguous_subarray_sum": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -741,10 +1070,16 @@
   },
   "search/35_search_search_for_last_struct_by_key": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -764,10 +1099,16 @@
   },
   "search/36_search_check_if_array_contains_value": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -785,12 +1126,25 @@
    "unsupported_patterns": {},
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/search/36_search_check_if_array_contains_value/cpu.cc",
     "min_size": 1,
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "size 0 evaluates input[rand() % input.size()] on an empty vector: modulo by zero plus an out-of-bounds read (cpu.cc)"
    }
   },
   "search/37_search_find_the_closest_number_to_pi": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "alternating",
@@ -808,16 +1162,24 @@
     "all_zeros": "false_fail_risk_deferred"
    },
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/search/37_search_find_the_closest_number_to_pi/{cpu.cc,baseline.hpp}",
     "min_size": 1,
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "size 0 runs `rand() % TEST_SIZE` (modulo by zero) and the frozen oracle dereferences x[0] before any size check (cpu.cc, baseline.hpp)"
    }
   },
   "search/38_search_find_the_first_even_number": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -837,10 +1199,16 @@
   },
   "search/39_search_xor_contains": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -859,12 +1227,25 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
+    "evidence": "drivers/cpp/benchmarks/search/39_search_xor_contains/cpu.cc",
     "min_size": 1,
+    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
     "reason": "size 0 evaluates x[rand() % x.size()] and y[rand() % y.size()] on empty vectors: modulo by zero plus out-of-bounds reads (cpu.cc)"
    }
   },
   "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -884,10 +1265,16 @@
   },
   "sort/41_sort_k-th_smallest_element": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -907,10 +1294,16 @@
   },
   "sort/42_sort_sorted_ranks": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -3.4028234663852886e+38,
-    "max": 3.4028234663852886e+38,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "float"
+    ],
+    "has_fill_hook": true,
+    "value_min": -3.4028234663852886e+38,
+    "value_max": 3.4028234663852886e+38,
+    "max_finite_span": 3.4028234663852886e+38,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -931,10 +1324,17 @@
   },
   "sort/43_sort_sort_an_array_of_structs_by_key": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "float",
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -956,6 +1356,11 @@
   },
   "sort/44_sort_sort_non-zero_elements": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -975,6 +1380,11 @@
   },
   "sparse_la/45_sparse_la_sparse_solve": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -994,6 +1404,17 @@
   },
   "sparse_la/46_sparse_la_spmm": {
    "pattern_effect": "PARTIAL",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1015,6 +1436,17 @@
   },
   "sparse_la/47_sparse_la_spmv": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1034,6 +1466,17 @@
   },
   "sparse_la/48_sparse_la_sparse_axpy": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1053,6 +1496,11 @@
   },
   "sparse_la/49_sparse_la_sparse_lu_decomp": {
    "pattern_effect": "NONE",
+   "fill_type_capability": {
+    "element_types": [],
+    "has_fill_hook": false,
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
    "supported_patterns": [
     "random"
    ],
@@ -1072,10 +1520,16 @@
   },
   "stencil/50_stencil_xor_kernel": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -1095,10 +1549,16 @@
   },
   "stencil/51_stencil_edge_kernel": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -1118,6 +1578,17 @@
   },
   "stencil/52_stencil_1d_jacobi_3-point_stencil": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1136,6 +1607,17 @@
   },
   "stencil/53_stencil_2d_jacobi_5-point_stencil": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1154,10 +1636,16 @@
   },
   "stencil/54_stencil_game_of_life": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -1179,6 +1667,17 @@
   },
   "transform/55_transform_relu": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1197,10 +1696,16 @@
   },
   "transform/56_transform_negate_odds": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -1221,6 +1726,17 @@
   },
   "transform/57_transform_inverse_offset": {
    "pattern_effect": "EFFECTIVE",
+   "fill_type_capability": {
+    "element_types": [
+     "double"
+    ],
+    "has_fill_hook": true,
+    "value_min": -1.7976931348623157e+308,
+    "value_max": 1.7976931348623157e+308,
+    "max_finite_span": 1.7976931348623157e+308,
+    "all_integral": false,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1239,10 +1755,16 @@
   },
   "transform/58_transform_squaring": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",
@@ -1263,10 +1785,16 @@
   },
   "transform/59_transform_map_function": {
    "pattern_effect": "EFFECTIVE",
-   "explicit_values_bounds": {
-    "min": -2147483648.0,
-    "max": 2147483647.0,
-    "reason": "the benchmark's ENHANCED_FILL container cannot represent values outside this range; converting one would be undefined behaviour, and clipping would be a VALUE_RANGE_DOMAIN_POLICY decision (still open), so such a spec is rejected"
+   "fill_type_capability": {
+    "element_types": [
+     "int"
+    ],
+    "has_fill_hook": true,
+    "value_min": -2147483648.0,
+    "value_max": 2147483647.0,
+    "max_finite_span": 2147483646.0,
+    "all_integral": true,
+    "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
    "supported_patterns": [
     "all_same",

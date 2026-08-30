@@ -115,8 +115,17 @@ PATTERNS = {
     "explicit_values": 10,
 }
 
-# patterns taking a position parameter k (pattern_params["k"])
-K_PATTERNS = ("duplicate_at", "sorted_except_one", "spike_at")
+# E2-A.1: the pattern-parameter relevance table in capabilities.py is the ONE
+# canonical statement of which fill parameters a pattern reads. K_PATTERNS is
+# derived from it instead of being a second list that could drift.
+K_PATTERNS = capabilities.K_PATTERNS
+
+if set(PATTERNS) != set(capabilities.PATTERN_PARAM_RELEVANCE):
+    raise RuntimeError(
+        "the implemented pattern library (specs.PATTERNS) and the canonical "
+        "pattern-parameter relevance table (capabilities.PATTERN_PARAM_RELEVANCE) "
+        "disagree: %s vs %s"
+        % (sorted(PATTERNS), sorted(capabilities.PATTERN_PARAM_RELEVANCE)))
 
 MUTATION_SEED = 20260709  # fixed: mutations must be reproducible
 
@@ -317,8 +326,17 @@ def validate_spec(
             not isinstance(value_range, (list, tuple))
             or len(value_range) != 2
             or not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in value_range)
-            or not value_range[0] <= value_range[1]
         ):
+            return False, "value_range must be [lo, hi] numbers, got %r" % (
+                value_range,
+            )
+        # E2-A.1: NaN/+-Inf are rejected EXPLICITLY and before the ordering
+        # comparison. Relying on `lo <= hi` caught NaN only by accident (every
+        # comparison with NaN is false) and accepted +/-Inf outright.
+        non_finite = capabilities.non_finite_range_reason(value_range)
+        if non_finite is not None:
+            return False, non_finite
+        if not value_range[0] <= value_range[1]:
             return False, "value_range must be [lo, hi] numbers with lo <= hi, got %r" % (
                 value_range,
             )
@@ -386,11 +404,27 @@ def validate_spec(
     if capability_reason is not None:
         return False, capability_reason
 
-    if pattern == "explicit_values":
-        value_reason = capabilities.explicit_values_rejection(
-            benchmark, spec.get("values") or [])
-        if value_reason is not None:
-            return False, value_reason
+    # E2-A.1 parameter-level fake diversity: a parameter the pattern (or the
+    # benchmark, when it has no fill hook at all) never reads cannot change the
+    # input, so it must not be able to create a second spec identity. Rejected
+    # rather than normalized away - normalizing would silently equate two
+    # DIFFERENT stored specs and reinterpret their historical spec_keys.
+    parameter_reason = capabilities.parameter_rejection(
+        benchmark, pattern, params, bool(spec.get("values")))
+    if parameter_reason is not None:
+        return False, parameter_reason
+
+    # E2-A.1 technical range safety: representable endpoints AND a span the
+    # current fill arithmetic can compute. Purely technical - no statement
+    # about which values are meaningful for the benchmark.
+    range_reason = capabilities.value_range_rejection(benchmark, pattern, value_range)
+    if range_reason is not None:
+        return False, range_reason
+
+    value_reason = capabilities.explicit_values_rejection(
+        benchmark, spec.get("values") or [])
+    if value_reason is not None:
+        return False, value_reason
 
     return True, ""
 
@@ -538,6 +572,17 @@ def _mutants_of(spec: dict, max_size: int) -> "List[dict]":
     if spec.get("pattern") == "explicit_values":
         return []
 
+    # E2-A.1: a seed that already carries an irrelevant, unknown or inert fill
+    # parameter is itself invalid; mutating it would turn one historical
+    # fake-diversity spec into a family of new ones. The seed is NOT silently
+    # normalized (that would equate two different stored specs) - it simply
+    # produces no offspring.
+    if capabilities.parameter_rejection(
+        spec["benchmark"], spec["pattern"],
+        spec.get("pattern_params") or {}, bool(spec.get("values")),
+    ) is not None:
+        return []
+
     mutants = []
     parent_source = spec.get("parent_source") or spec.get("source")
 
@@ -564,14 +609,20 @@ def _mutants_of(spec: dict, max_size: int) -> "List[dict]":
             mutants.append(mutant)
 
     value_range = (spec.get("pattern_params") or {}).get("value_range")
-    if value_range:
+    if value_range and capabilities.pattern_uses(spec["pattern"], "value_range"):
         lo, hi = float(value_range[0]), float(value_range[1])
         span = hi - lo
-        shifted = clone()
-        shifted["pattern_params"]["value_range"] = [lo + span, hi + span]
-        narrowed = clone()
-        narrowed["pattern_params"]["value_range"] = [lo + span / 4, hi - span / 4]
-        mutants += [shifted, narrowed]
+        for bounds in ([lo + span, hi + span], [lo + span / 4, hi - span / 4]):
+            # E2-A.1: a shifted/narrowed range must itself be technically safe.
+            # Without this the mutator could push a valid range past the fill
+            # container's representable bounds or its safe span.
+            if capabilities.value_range_rejection(
+                spec["benchmark"], spec["pattern"], bounds
+            ) is not None:
+                continue
+            mutant = clone()
+            mutant["pattern_params"]["value_range"] = bounds
+            mutants.append(mutant)
 
     # E2-A: a pattern swap may only target a pattern the benchmark actually
     # supports. Without this the mutator manufactured specs that differ only in
@@ -579,7 +630,16 @@ def _mutants_of(spec: dict, max_size: int) -> "List[dict]":
     # with no fill hook), which validate_spec would then reject anyway.
     swap = PATTERN_SWAPS.get(spec["pattern"])
     if swap and capabilities.pattern_rejection(spec["benchmark"], swap) is None:
-        mutants.append(clone(pattern=swap))
+        swapped = clone(pattern=swap)
+        # E2-A.1: the swap inherits the seed's parameters, which the TARGET
+        # pattern may not read (random -> extreme_values carries a value_range
+        # extreme_values ignores). Such a mutant would be pure parameter-level
+        # fake diversity, so it is dropped instead of emitted.
+        if capabilities.parameter_rejection(
+            swapped["benchmark"], swap, swapped.get("pattern_params") or {},
+            bool(swapped.get("values")),
+        ) is None:
+            mutants.append(swapped)
 
     return mutants
 

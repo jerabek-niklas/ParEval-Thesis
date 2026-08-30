@@ -46,6 +46,23 @@ E2-A policy checks (only when enhanced_policy.json exists):
      FALSE_FAIL_RISK (such a case must be unsupported or deferred)
  P6  every deferred case names its open policy reason
 
+E2-A.1 policy checks (the policy is now MANDATORY, never skipped):
+ P0  the enforced policy exists, is valid JSON and passes the fail-closed
+     structural gate in capabilities.py (a missing policy is a FAILURE, not a
+     skipped section: before E2-A.1 this checker went green without one while
+     the pipeline silently enforced nothing)
+ P7  the policy status is ENFORCED
+ P8  the policy is EXACTLY what the current audit catalog derives - this is
+     what catches a stale size rule, a hand-edited entry or an outdated
+     derivation version
+ P9  fill_type_capability agrees with the catalog fill sites: has_fill_hook iff
+     the benchmark has fill sites, and the element types are exactly the
+     normalized container types
+ P10 every enforced size_constraint is byte-equal to the catalog
+     enforced_size_safety block it must come from (single source of truth)
+ P11 the canonical pattern-parameter relevance table covers exactly the
+     implemented pattern library
+
 Exit codes: 0 = consistent, 1 = contradictions found, 2 = infrastructure error.
 Read-only: this script writes nothing.
 """
@@ -55,6 +72,10 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 CATALOG = Path(__file__).resolve().parent / "enhanced_capabilities.json"
 POLICY = Path(__file__).resolve().parent / "enhanced_policy.json"
@@ -328,6 +349,77 @@ def check_catalog(doc, rep):
 DEFERRED_REASONS = ("extreme_semantics_deferred", "false_fail_risk_deferred")
 
 
+def check_policy_e2a1(catalog, policy, rep):
+    """E2-A.1: policy integrity, single-source and derivation exactness."""
+    from thesis.enhanced_tests import capabilities
+    from thesis.enhanced_tests import derive_enhanced_policy as derivation
+
+    # P7
+    if policy.get("status") != capabilities.REQUIRED_POLICY_STATUS:
+        rep.fail("P7-policy-status", "<policy>",
+                 "status is %r, expected %r"
+                 % (policy.get("status"), capabilities.REQUIRED_POLICY_STATUS))
+
+    # P0: the same fail-closed structural gate the productive code uses
+    capabilities.reset_policy_cache()
+    try:
+        capabilities.load_policy()
+    except capabilities.EnhancedPolicyError as error:
+        rep.fail("P0-policy", "<policy>", str(error))
+
+    # P8: exactness. A stale size rule, a hand edit or an old derivation all
+    # surface here.
+    matches, differing = derivation.policy_matches_derivation()
+    if not matches:
+        rep.fail("P8-derivation-exact", "<policy>",
+                 "policy is not what the catalog derives; differing: %s"
+                 % ", ".join(differing[:6]))
+
+    audit = {b["benchmark"]: b for b in catalog.get("benchmarks") or []}
+    for name, entry in (policy.get("benchmarks") or {}).items():
+        bench = audit.get(name)
+        if bench is None:
+            continue
+
+        # P9
+        capability = entry.get("fill_type_capability")
+        if not isinstance(capability, dict):
+            rep.fail("P9-range-type", name, "fill_type_capability is missing")
+            continue
+        sites = bench.get("fill_sites") or []
+        expected_types = sorted({
+            (site.get("container_value_type_normalized") or "?") for site in sites})
+        if bool(capability.get("has_fill_hook")) != bool(sites):
+            rep.fail("P9-range-type", name,
+                     "has_fill_hook=%r but the catalog records %d fill site(s)"
+                     % (capability.get("has_fill_hook"), len(sites)))
+        if sorted(capability.get("element_types") or []) != expected_types:
+            rep.fail("P9-range-type", name,
+                     "element_types %s do not match the catalog fill sites %s"
+                     % (sorted(capability.get("element_types") or []), expected_types))
+        if sites:
+            for field in ("value_min", "value_max", "max_finite_span"):
+                if not isinstance(capability.get(field), (int, float)):
+                    rep.fail("P9-range-type", name,
+                             "fill_type_capability.%s is missing" % field)
+
+        # P10
+        enforced_size = entry.get("size_constraint")
+        catalog_size = bench.get("enforced_size_safety")
+        if (enforced_size or None) != (
+                dict(sorted(catalog_size.items())) if catalog_size else None):
+            rep.fail("P10-size-source", name,
+                     "the enforced size_constraint is not the catalog "
+                     "enforced_size_safety block (two sources of truth)")
+
+    # P11
+    if set(capabilities.PATTERN_PARAM_RELEVANCE) != set(PATTERNS):
+        rep.fail("P11-param-table", "<capabilities>",
+                 "the pattern-parameter relevance table covers %s, the "
+                 "implemented library %s"
+                 % (sorted(capabilities.PATTERN_PARAM_RELEVANCE), sorted(PATTERNS)))
+
+
 def check_policy(catalog, policy, rep):
     """E2-A: the ENFORCED policy must not contradict the AUDIT catalog."""
     audit = {b["benchmark"]: b for b in catalog.get("benchmarks") or []}
@@ -399,13 +491,23 @@ def main():
 
     rep = Report()
     check_catalog(doc, rep)
-    if POLICY.is_file():
+
+    # E2-A.1: the enforced policy is MANDATORY. Before this wave a missing
+    # policy simply skipped every P-check and the checker exited 0 - a green
+    # result that said nothing about the pipeline actually enforcing anything.
+    if not POLICY.is_file():
+        rep.fail("P0-policy", "<policy>",
+                 "the enforced capability policy %s does not exist; derive it "
+                 "with `python thesis/enhanced_tests/derive_enhanced_policy.py`"
+                 % POLICY)
+    else:
         try:
             policy = json.loads(POLICY.read_text(encoding="utf-8"))
         except ValueError as exc:
             rep.fail("P0-policy", "<policy>", "not valid JSON: %s" % exc)
         else:
             check_policy(doc, policy, rep)
+            check_policy_e2a1(doc, policy, rep)
 
     print("checked pattern entries: %d" % rep.checked)
     if rep.ok():

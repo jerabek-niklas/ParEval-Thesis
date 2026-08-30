@@ -142,7 +142,7 @@ def _pattern_block(benchmark: str, settings: Dict[str, Any]) -> str:
         doc = PATTERN_DOCS.get(name, name)
         if name == "explicit_values":
             doc = doc % {"max": int(settings["explicit_values_max_size"])}
-        lines.append("- " + doc)
+        lines.append("- " + doc + _accepted_params_note(benchmark, name))
 
     if names == ["random"]:
         lines.append(
@@ -152,6 +152,62 @@ def _pattern_block(benchmark: str, settings: Dict[str, Any]) -> str:
             "diversity through `size` alone. Do not propose any other pattern.")
 
     return "\n".join(lines)
+
+
+def _accepted_params_note(benchmark: str, pattern: str) -> str:
+    """E2-A.1: which fill parameters THIS pattern accepts here.
+
+    Read from the ONE canonical relevance table, so the prompt can never ask
+    for a parameter the validator then rejects as irrelevant.
+    """
+    if not capabilities.has_fill_hook(benchmark):
+        return "  [accepts NO pattern_params and no values]"
+    accepted = [
+        name for name in ("value_range", "k")
+        if capabilities.pattern_uses(pattern, name)
+    ]
+    if capabilities.pattern_uses(pattern, "values"):
+        accepted.append("values")
+    if not accepted:
+        return "  [accepts NO pattern_params and no values]"
+    return "  [accepts only: %s]" % ", ".join(accepted)
+
+
+def _parameter_rules_block(benchmark: str, settings: Dict[str, Any]) -> str:
+    """The hard parameter rules the validator enforces, stated up front.
+
+    Every rule here is read from capabilities.py, the same source validate_spec
+    uses, so the generator can never be asked for a spec that is rejected for a
+    parameter reason.
+    """
+    if not capabilities.has_fill_hook(benchmark):
+        return (
+            "- This benchmark has NO fill hook: `pattern_params` MUST be "
+            "omitted or empty and `values` MUST NOT be given. A value_range or "
+            "k here would not change the input at all.")
+
+    capability = capabilities.fill_type_capability(benchmark)
+    rules = [
+        "- `pattern_params` may only contain the keys \"value_range\" and "
+        "\"k\". Any other key is rejected.",
+        "- \"k\" is ONLY allowed for: %s. Any other pattern is rejected if it "
+        "carries k." % ", ".join(capabilities.K_PATTERNS),
+        "- \"values\" is ONLY allowed for the explicit_values pattern.",
+        "- \"value_range\" is ONLY allowed for patterns that actually read it "
+        "(marked above); for all_zeros, extreme_values and explicit_values it "
+        "is rejected.",
+        "- value_range endpoints must be FINITE numbers (no NaN, no Infinity) "
+        "with lo <= hi.",
+        "- explicit values must be FINITE numbers.",
+    ]
+    rules.append(
+        "- this benchmark fills %s container(s), so every value_range endpoint "
+        "and every explicit value must lie in [%.6g, %.6g], and hi - lo must "
+        "not exceed %.6g."
+        % ("/".join(capability.get("element_types") or []),
+           float(capability["value_min"]), float(capability["value_max"]),
+           float(capability["max_finite_span"])))
+    return "\n".join(rules)
 
 
 def _shape_block(benchmark: str, settings: Dict[str, Any]) -> str:
@@ -210,7 +266,7 @@ def build_user_prompt(
         "  {\n"
         '    "size": <int, 0..%(max_size)d>,\n'
         '    "pattern": <one of: %(patterns)s>,\n'
-        '    "pattern_params": {"value_range": [<lo>, <hi>], "k": <int>},  // as required\n'
+        '    "pattern_params": {},    // ONLY the keys the chosen pattern accepts (see PARAMETER RULES)\n'
         '    "values": [<numbers>],   // explicit_values pattern only\n'
         '    "rationale": "<one sentence: which edge case / branch this targets>"\n'
         "  },\n"
@@ -246,7 +302,9 @@ REFERENCE IMPLEMENTATION (the test oracle — read it carefully):
 INPUT MODEL: the test harness creates the input container(s) with a given
 `size` and fills them with a `pattern`:
 %(pattern_block)s
-An optional value_range [lo, hi] overrides the fill bounds.
+
+PARAMETER RULES (enforced — a spec breaking one of these is discarded):
+%(parameter_rules_block)s
 
 INPUT SHAPE OF THIS BENCHMARK: %(shape_block)s
 
@@ -263,6 +321,7 @@ explanations outside the array:
         "serial_prompt": serial_prompt.rstrip(),
         "baseline": baseline.rstrip(),
         "pattern_block": _pattern_block(benchmark, settings),
+        "parameter_rules_block": _parameter_rules_block(benchmark, settings),
         "shape_block": _shape_block(benchmark, settings),
         "ask": ask,
         "max_size": int(settings["max_spec_size"]),
@@ -436,6 +495,22 @@ def main() -> None:
     config = load_config(Path(args.config).resolve())
     stage = (config.get("stages") or {}).get("enhanced_tests") or {}
     settings = stage_settings(config)
+
+    # E2-A.1 FAIL-CLOSED PREFLIGHT. Runs before the output file is opened or
+    # truncated, before any spec is written and before a single model call, so
+    # a missing/stale/incoherent capability policy costs nothing but an exit
+    # code. Everything below this point either persists data or spends money.
+    try:
+        policy_provenance = capabilities.policy_preflight(
+            expected_benchmarks=[b for b, _ in parameterizable_benchmarks()])
+    except capabilities.EnhancedPolicyError as error:
+        raise SystemExit(
+            "ENHANCED CAPABILITY POLICY PREFLIGHT FAILED - nothing was written "
+            "and no model was called.\n%s" % error)
+    print("Enhanced capability policy: %s (%s benchmarks, sha256 %s)"
+          % (policy_provenance["enhanced_policy_status"],
+             policy_provenance["enhanced_policy_benchmark_count"],
+             policy_provenance["enhanced_policy_sha256"][:16]))
 
     spec_model_id = stage.get("spec_model")
     if not spec_model_id:

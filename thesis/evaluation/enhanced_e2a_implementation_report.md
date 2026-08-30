@@ -19,6 +19,40 @@ fake-diversity enforcement. E2-A implements only fixes whose correctness does
 | E1-Consistency-Checker **vor** Änderung | `python thesis/enhanced_tests/check_enhanced_capabilities.py` → **Exit 0**, `ENHANCED_CAPABILITIES_CONSISTENT = true`, 660 Einträge |
 | Cross-Pilot **vor** Änderung | `python thesis/evaluation/check_cross_pilot_gate.py` → **Exit 0**, `CROSS_PILOT_REPO_STATE_STALE = false` |
 
+> ## Nachtrag E2-A.1 (2026-08-30) — Geltungsbereich der Sanitizer-Aussage
+>
+> Dieser Report bleibt unveraendert als Dokument des Standes **fixes 13**
+> (`3374aaf7218fbc007e6b75f1c0105b7753d585b0`). Ein anschliessender read-only
+> Audit hat eine **Restluecke** gefunden, die E2-A nicht abgedeckt hat und die
+> hier deshalb nicht behauptet, aber auch nicht ausgeschlossen wurde:
+>
+> * **E2-A initial finding:** die DType-Deduktion war der UB-Verursacher; nach
+>   dem Typfix waren `extreme_values` und `spike_at` sanitizerfrei.
+> * **E2-A.1 correction:** die Aussage „**0 runtime errors** in beiden Pfaden"
+>   in §6 und die Zeile „UBSan+ASan Fill-Layer … 0 Fehler" in §14 gelten
+>   **ausschliesslich fuer die damals gemessene Probe** — DType-Fix,
+>   `extreme_values`/`spike_at`, Call-Site-Ranges. Sie gelten **nicht** fuer
+>   beliebige `value_range`-Specs: mit `[INT_MIN, INT_MAX]`, `[-FLT_MAX,
+>   FLT_MAX]`, `[-DBL_MAX, DBL_MAX]` oder `[-1e300, 1e300]` konnte der
+>   Fill-Layer weiterhin signed overflow, Modulo-/Division-by-zero, eine FPE
+>   oder deterministische NaN/Inf erzeugen, und der Define-Pfad konnte ueber
+>   `(decltype(lo))(ENHANCED_FILL_LO)` sogar **vor** dem sicheren
+>   Endpoint-Helper eine out-of-range Floating->Integral-Konversion ausfuehren.
+>
+> Diese Luecke wird in **E2-A.1** geschlossen (technische
+> Repraesentierbarkeits- und Span-Pruefung in `validate_spec`, defensive
+> widened-unsigned Arithmetik plus kontrollierter Abbruch im Header, Entfernung
+> des Define-Pre-Casts). Details, Sanitizer-Matrix und die neu berechnete
+> Spec-Partition stehen in
+> `thesis/evaluation/enhanced_e2a1_implementation_report.md`.
+>
+> Ebenfalls nur fuer den Stand fixes 13 gueltig: die Zeile
+> „Compile-Grouping-Regression | `run_enhanced_tests.py` **unveraendert**".
+> E2-A.1 aendert diese Datei — ausschliesslich um den Fail-Closed-Policy-
+> Preflight vor jeden persistenten Side Effect zu setzen und die
+> Policy-Provenance in Manifest/Summary zu schreiben. Die Compile-Gruppierung
+> selbst (ein Compile pro sample x size, Runtime-Fill) ist unberuehrt.
+
 ## 2. Scope
 
 Implementiert: (1) Fill-Type-Sicherheit, (2) Oracle-/Harness-Sicherheit über
@@ -102,6 +136,10 @@ wurde **nicht** auf lo/hi-/Domain-Extrema umdefiniert.
 `enhanced-fill.hpp:200: runtime error: -1.79769e+308 is outside the range of
 representable values of type 'int'` und `:212: ... 8.98847e+307 ...`. Neu:
 **0 runtime errors** in beiden Pfaden.
+*(E2-A.1-Korrektur: diese Aussage gilt fuer den gemessenen Probenumfang —
+DType-Fix, `extreme_values`/`spike_at`, Call-Site-Ranges. Sie ist **keine**
+Aussage ueber beliebige `value_range`-Specs; siehe Nachtrag oben und den
+E2-A.1-Report.)*
 
 ## 7. Input-Drift-Audit (gemessene Container-Werte, nicht Specs)
 
@@ -278,12 +316,12 @@ Risiko gegen omp/mpi-Kandidaten für E2-B hervorgehoben.
 | `test_cleaning.py` | 13/13 |
 | DType-Blast-Radius-Probe (24 Shapes × 10 Patterns, alt vs. neu) | 20/20 unveränderte Shapes **bit-identisch** |
 | Define/Runtime-Parität | 240 Vergleiche, 0 Abweichungen |
-| UBSan+ASan Fill-Layer (`extreme_values`, `spike_at`, beide Pfade) | 0 Fehler (alt: 2 dokumentierte `runtime error`) |
+| UBSan+ASan Fill-Layer (`extreme_values`, `spike_at`, beide Pfade) | 0 Fehler (alt: 2 dokumentierte `runtime error`) — **Geltungsbereich: genau diese Probe**, nicht beliebige `value_range` (E2-A.1-Nachtrag) |
 | UBSan+ASan+float-cast-overflow, **echte Driver** (reduce/28, scan/31, sort/42, alle aktiven Patterns) | 21/21 clean |
 | P0-Unerreichbarkeit über Validation/Generator/Mutation (10 oracle + 8 fill) | 0 Leaks |
 | Spec-Partition-Konsistenz | 65+7+4+407 = 483 ✓ |
 | No-Enhanced-Regression | Testgroup „no defines: ENHANCED_FILL is exactly fillRand" grün; plain-Pfad-Probe unverändert |
-| Compile-Grouping-Regression | `run_enhanced_tests.py` **unverändert** (git diff = 0) ⇒ ein Compile pro sample×size, Runtime-Fill-Parität erhalten |
+| Compile-Grouping-Regression | `run_enhanced_tests.py` **unverändert** (git diff = 0) ⇒ ein Compile pro sample×size, Runtime-Fill-Parität erhalten — *E2-A.1 ändert die Datei für den Policy-Preflight/die Provenance, die Gruppierung selbst bleibt* |
 
 ## 15. Cross-Pilot-Staleness und Impact (keine Neuklassifikation)
 

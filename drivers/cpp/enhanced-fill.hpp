@@ -70,9 +70,25 @@
 #include <cmath>
 #include <complex>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <limits>
 #include <type_traits>
 #include <utility>
+
+// E2-A.1: controlled failure for a fill configuration the harness cannot
+// execute without undefined behaviour. Only reachable when a spec bypassed
+// thesis/enhanced_tests/specs.py::validate_spec (which rejects every such
+// range upstream) or when the header is exercised directly by a safety probe:
+// the harness stops with a diagnostic instead of executing UB. Defined
+// unconditionally, but every caller lives in a template that stays
+// uninstantiated without the ENHANCED_* defines, so a normal correctness build
+// gets no codegen from it.
+[[noreturn]] inline void enhancedFillAbort(const char *what, const char *detail) {
+    std::fprintf(stderr, "ENHANCED_FILL: %s%s%s\n",
+                 what, detail ? ": " : "", detail ? detail : "");
+    std::abort();
+}
 
 #if defined(ENHANCED_TEST_SIZE)
 #define ENHANCED_TEST_SIZE_DEFAULT(dflt) (ENHANCED_TEST_SIZE)
@@ -159,6 +175,37 @@ VType enhancedRangeEndpoint(SrcType value) {
     }
 }
 
+// E2-A.1 technical range safety, C++ side. Answers ONE question: can the fill
+// arithmetic compute with this range in this element type?
+//   integral  hi - lo must be representable in DType and span + 1 as well
+//             (the ramp computes position % (span + 1)), so span < max(DType)
+//   floating  hi - lo must stay finite
+// This mirrors, in the harness, the rule
+// thesis/enhanced_tests/capabilities.py::value_range_rejection enforces in
+// Python. It is a REPRESENTABILITY statement, not a benchmark domain policy:
+// VALUE_RANGE_DOMAIN_POLICY stays open and nothing here clips or reinterprets
+// a value.
+template <typename DType>
+bool enhancedRangeSpanIsSafe(DType lo, DType hi) {
+    if constexpr (std::is_integral_v<DType>) {
+        using U = std::make_unsigned_t<DType>;
+        if (hi < lo) {
+            return false;
+        }
+        const U span = static_cast<U>(static_cast<U>(hi) - static_cast<U>(lo));
+        return span < static_cast<U>(std::numeric_limits<DType>::max());
+    } else if constexpr (std::is_floating_point_v<DType>) {
+        if (!(hi >= lo)) {
+            return false;
+        }
+        return std::isfinite(static_cast<DType>(hi - lo));
+    } else {
+        // complex<double>: filled through its double endpoints, whose span is
+        // checked by the same rule one level down
+        return true;
+    }
+}
+
 template <typename DType>
 DType enhancedRampValue(DType lo, DType hi, size_t index, size_t n, bool descending) {
     const size_t position = descending ? (n - 1 - index) : index;
@@ -169,11 +216,22 @@ DType enhancedRampValue(DType lo, DType hi, size_t index, size_t n, bool descend
         }
         return lo + (hi - lo) * (static_cast<DType>(position) / static_cast<DType>(n - 1));
     } else if constexpr (std::is_integral_v<DType>) {
-        const DType span = (hi > lo) ? static_cast<DType>(hi - lo) : DType(0);
-        if (span == DType(0)) {
+        // E2-A.1: span and offset are computed in the UNSIGNED counterpart of
+        // DType, so hi - lo and lo + step can never be a signed overflow.
+        // For every range the validator admits, the result is bit-identical to
+        // the previous lo + position % (span + 1) computed in DType: the
+        // modulo still happens in size_t and step <= span, so lo + step <= hi.
+        using U = std::make_unsigned_t<DType>;
+        if (!(hi > lo)) {
             return lo;
         }
-        return static_cast<DType>(lo + static_cast<DType>(position % static_cast<size_t>(span + 1)));
+        const U span = static_cast<U>(static_cast<U>(hi) - static_cast<U>(lo));
+        const size_t modulus = static_cast<size_t>(span) + 1u;
+        if (modulus == 0u) {
+            return lo;  // defensive: unreachable, the span guard rejects it
+        }
+        const U step = static_cast<U>(position % modulus);
+        return static_cast<DType>(static_cast<U>(static_cast<U>(lo) + step));
     } else if constexpr (std::is_same_v<DType, std::complex<double>>) {
         const double ramp = (n <= 1)
             ? lo.real()
@@ -201,6 +259,14 @@ template <typename DType>
 DType enhancedMidValue(DType lo, DType hi) {
     if constexpr (std::is_same_v<DType, std::complex<double>>) {
         return DType((lo.real() + hi.real()) / 2.0, (lo.imag() + hi.imag()) / 2.0);
+    } else if constexpr (std::is_integral_v<DType>) {
+        // E2-A.1: same widened-unsigned treatment as the ramp. For hi >= lo
+        // (the only ordering the validator admits) span/2 == (hi - lo) / 2,
+        // so the midpoint is bit-identical to the previous computation.
+        using U = std::make_unsigned_t<DType>;
+        const U span = static_cast<U>(static_cast<U>(hi) - static_cast<U>(lo));
+        return static_cast<DType>(
+            static_cast<U>(static_cast<U>(lo) + static_cast<U>(span / U(2))));
     } else {
         return static_cast<DType>(lo + (hi - lo) / 2);
     }
@@ -254,6 +320,25 @@ void enhancedFillPatternTyped(T &x, DType lo, DType hi, int pattern, size_t para
     }
 
     const size_t k = param_k % n;  // Python validates; modulo as a backstop
+
+    // E2-A.1: the patterns that READ the range (everything except all_zeros,
+    // extreme_values and explicit_values, which ignore lo/hi entirely - see
+    // capabilities.PATTERN_PARAM_RELEVANCE) must not run on a range whose span
+    // the element type cannot express: the integral fillRand branch would
+    // compute rand() % (max - min) on an overflowed difference, and the
+    // float/double ramps would produce a deterministic Inf/NaN. validate_spec
+    // rejects such a spec upstream; if one reaches the harness anyway, stop
+    // with a diagnostic rather than execute undefined behaviour.
+    const bool patternReadsRange = !(pattern == 1 || pattern == 6 || pattern == 10);
+    if (patternReadsRange && !enhancedRangeSpanIsSafe<DType>(lo, hi)) {
+        enhancedFillAbort(
+            "value_range span is not representable in the fill container "
+            "element type (integral: hi-lo and span+1 must fit; floating: hi-lo "
+            "must stay finite). Such a spec is rejected by "
+            "thesis/enhanced_tests/specs.py::validate_spec and must never reach "
+            "the harness; refusing to execute undefined behaviour",
+            nullptr);
+    }
 
     // fillRand's integral branch computes rand() % (max - min): a degenerate
     // single-point range would be a modulo by zero, i.e. undefined behaviour.
@@ -567,9 +652,21 @@ void enhancedRuntimeFill(T &x, SrcType lo_arg, SrcType hi_arg) {
 
 #elif defined(ENHANCED_FILL_PATTERN)
 #if defined(ENHANCED_FILL_LO) && defined(ENHANCED_FILL_HI)
+// E2-A.1: the range override is carried to enhancedRangeEndpoint as a DOUBLE,
+// never pre-cast to the call site literal type. The old
+// (decltype(lo))(ENHANCED_FILL_LO) performed the floating->integral conversion
+// ITSELF at every call site whose literals are integral (e.g.
+// ENHANCED_FILL(v, 0, 100) on a vector<int>), so an out-of-range spec value was
+// undefined behaviour BEFORE the safe endpoint helper ever saw it. double is
+// the type spec_defines() emits and the widest source the helper handles, so
+// both paths now perform exactly one conversion, in one place. For every range
+// the validator admits this is value-identical to the old pre-cast: no fill
+// site in the suite pairs integral call-site literals with a floating
+// container, and for integral containers truncate-then-saturate reproduces the
+// constant-folded cast exactly.
 #define ENHANCED_FILL(x, lo, hi) \
-    enhancedFillPattern((x), (decltype(lo))(ENHANCED_FILL_LO), \
-                        (decltype(lo))(ENHANCED_FILL_HI), (ENHANCED_FILL_PATTERN), \
+    enhancedFillPattern((x), (double)(ENHANCED_FILL_LO), \
+                        (double)(ENHANCED_FILL_HI), (ENHANCED_FILL_PATTERN), \
                         (size_t)(ENHANCED_FILL_PARAM_K))
 #else
 #define ENHANCED_FILL(x, lo, hi) \
