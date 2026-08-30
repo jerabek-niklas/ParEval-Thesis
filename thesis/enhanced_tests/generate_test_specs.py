@@ -187,6 +187,7 @@ def _parameter_rules_block(benchmark: str, settings: Dict[str, Any]) -> str:
             "k here would not change the input at all.")
 
     capability = capabilities.fill_type_capability(benchmark)
+    domain = capabilities.fill_domain_capability(benchmark)
     rules = [
         "- `pattern_params` may only contain the keys \"value_range\" and "
         "\"k\". Any other key is rejected.",
@@ -194,19 +195,48 @@ def _parameter_rules_block(benchmark: str, settings: Dict[str, Any]) -> str:
         "carries k." % ", ".join(capabilities.K_PATTERNS),
         "- \"values\" is ONLY allowed for the explicit_values pattern.",
         "- \"value_range\" is ONLY allowed for patterns that actually read it "
-        "(marked above); for all_zeros, extreme_values and explicit_values it "
-        "is rejected.",
+        "(marked above); for all_zeros and explicit_values it is rejected.",
         "- value_range endpoints must be FINITE numbers (no NaN, no Infinity) "
         "with lo <= hi.",
         "- explicit values must be FINITE numbers.",
     ]
+
+    # E2-B: the DOMAIN the benchmark declares, read from the same capability
+    # source validate_spec enforces, so the model is never asked for a range
+    # the validator then discards.
+    if domain.get("global_value_range_supported"):
+        rules.append(
+            "- allowed value_range: [%.6g, %.6g] - this is the benchmark's own "
+            "declared input domain and every value_range AND every explicit "
+            "value must lie inside it. A range outside it is discarded, never "
+            "clipped."
+            % (float(domain["domain_lo"]), float(domain["domain_hi"])))
+        rules.append(
+            "- a degenerate value_range (lo == hi) is only accepted for "
+            "\"all_same\": every other pattern would produce the same constant "
+            "array under it.")
+    else:
+        roles = "; ".join(
+            "%s in [%.6g, %.6g]" % (d.get("semantic_role"), d.get("lo"), d.get("hi"))
+            for d in domain.get("site_domains") or [])
+        rules.append(
+            "- value_range not available for this benchmark: it fills several "
+            "inputs with different declared domains (%s), so a single range "
+            "would be ambiguous. Do NOT propose a value_range. Vary size and "
+            "pattern instead." % roles)
+
     rules.append(
-        "- this benchmark fills %s container(s), so every value_range endpoint "
-        "and every explicit value must lie in [%.6g, %.6g], and hi - lo must "
-        "not exceed %.6g."
+        "- technical limit of the fill container(s) (%s): every value must be "
+        "representable in [%.6g, %.6g] and hi - lo must not exceed %.6g."
         % ("/".join(capability.get("element_types") or []),
            float(capability["value_min"]), float(capability["value_max"]),
            float(capability["max_finite_span"])))
+
+    size_zero = capabilities.size_zero_policy(benchmark)
+    if size_zero.get("policy") == "DISALLOWED":
+        rules.append(
+            "- size 0 is NOT a valid test size for this benchmark (%s). Use "
+            "size >= 1." % (size_zero.get("reason") or "")[:180])
     return "\n".join(rules)
 
 

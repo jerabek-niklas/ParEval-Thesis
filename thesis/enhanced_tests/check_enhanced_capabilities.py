@@ -63,6 +63,18 @@ E2-A.1 policy checks (the policy is now MANDATORY, never skipped):
  P11 the canonical pattern-parameter relevance table covers exactly the
      implemented pattern library
 
+E2-B policy checks:
+ P12 every benchmark carries a decided size-zero policy (ALLOWED / DISALLOWED /
+     NOT_APPLICABLE) with a reason and evidence - no UNKNOWN survives into E3
+ P13 every fill site carries a declared_fill_domain with lo <= hi that is a
+     subset of its own call-site range
+ P14 every E2-A unsafe/deferred pattern case has an E2-B re-evaluation, and a
+     case re-evaluated NO_LONGER_REACHABLE really is unsupported in the policy
+ P15 no pattern is left deferred: the eight E2-B policies are frozen
+ P16 extreme_values is unsupported everywhere (it is byte-identical to
+     alternating under domain extrema)
+ P17 every benchmark without a fill hook carries an explicit adapter decision
+
 Exit codes: 0 = consistent, 1 = contradictions found, 2 = infrastructure error.
 Read-only: this script writes nothing.
 """
@@ -349,6 +361,10 @@ def check_catalog(doc, rep):
 DEFERRED_REASONS = ("extreme_semantics_deferred", "false_fail_risk_deferred")
 
 
+E2B_STATUSES = ("RESOLVED_BY_DOMAIN_POLICY", "RESOLVED_BY_FROZEN_PROMPT",
+                "NO_LONGER_REACHABLE")
+
+
 def check_policy_e2a1(catalog, policy, rep):
     """E2-A.1: policy integrity, single-source and derivation exactness."""
     from thesis.enhanced_tests import capabilities
@@ -403,14 +419,95 @@ def check_policy_e2a1(catalog, policy, rep):
                     rep.fail("P9-range-type", name,
                              "fill_type_capability.%s is missing" % field)
 
-        # P10
-        enforced_size = entry.get("size_constraint")
-        catalog_size = bench.get("enforced_size_safety")
-        if (enforced_size or None) != (
-                dict(sorted(catalog_size.items())) if catalog_size else None):
+        # P10: the enforced constraint merges the TECHNICAL minimum
+        # (enforced_size_safety) with the SEMANTIC size-zero decision
+        # (e2b_size_zero). Both provenances must be present and must match the
+        # catalog exactly - there is still no second source of truth.
+        enforced_size = entry.get("size_constraint") or {}
+        catalog_size = bench.get("enforced_size_safety") or {}
+        catalog_zero = bench.get("e2b_size_zero") or {}
+        technical_min = catalog_size.get("min_size")
+        semantic_min = 1 if catalog_zero.get("policy") == "DISALLOWED" else None
+        expected_min = None
+        for candidate in (technical_min, semantic_min):
+            if candidate is not None:
+                expected_min = candidate if expected_min is None else max(
+                    expected_min, candidate)
+        if enforced_size.get("min_size") != expected_min:
             rep.fail("P10-size-source", name,
-                     "the enforced size_constraint is not the catalog "
-                     "enforced_size_safety block (two sources of truth)")
+                     "enforced min_size %r is not the merge of the catalog's "
+                     "technical %r and size-zero %r"
+                     % (enforced_size.get("min_size"), technical_min, semantic_min))
+        if enforced_size.get("size_predicate") != catalog_size.get("size_predicate"):
+            rep.fail("P10-size-source", name,
+                     "enforced size_predicate is not the catalog's")
+        if enforced_size and enforced_size.get("technical_min_size") != technical_min:
+            rep.fail("P10-size-source", name,
+                     "the technical provenance was lost in the merge")
+        if enforced_size and enforced_size.get("size_zero_policy") != catalog_zero.get("policy"):
+            rep.fail("P10-size-source", name,
+                     "the size-zero provenance was lost in the merge")
+
+        # P12
+        if catalog_zero.get("policy") not in ("ALLOWED", "DISALLOWED", "NOT_APPLICABLE"):
+            rep.fail("P12-size-zero", name,
+                     "size-zero policy is %r, not one of "
+                     "ALLOWED/DISALLOWED/NOT_APPLICABLE" % catalog_zero.get("policy"))
+        elif not catalog_zero.get("reason") or not catalog_zero.get("evidence"):
+            rep.fail("P12-size-zero", name,
+                     "size-zero policy carries no reason/evidence")
+
+        # P13
+        for site in bench.get("fill_sites") or []:
+            declared = site.get("declared_fill_domain")
+            if not isinstance(declared, dict):
+                rep.fail("P13-domain", "%s:%s" % (name, site.get("line")),
+                         "fill site has no declared_fill_domain")
+                continue
+            lo, hi = float(declared["lo"]), float(declared["hi"])
+            call_lo, call_hi = float(declared["call_site_lo"]), float(declared["call_site_hi"])
+            if lo > hi:
+                rep.fail("P13-domain", "%s:%s" % (name, site.get("line")),
+                         "declared domain is inverted")
+            if lo < call_lo or hi > call_hi:
+                rep.fail("P13-domain", "%s:%s" % (name, site.get("line")),
+                         "declared domain [%g, %g] is not a subset of the "
+                         "call-site range [%g, %g]" % (lo, hi, call_lo, call_hi))
+
+        # P15
+        if entry.get("deferred_policy_patterns"):
+            rep.fail("P15-no-deferred", name,
+                     "patterns are still deferred after the E2-B freeze: %s"
+                     % sorted(entry["deferred_policy_patterns"]))
+
+        # P16
+        if "extreme_values" in (entry.get("supported_patterns") or []):
+            rep.fail("P16-extreme-duplicate", name,
+                     "extreme_values is enforced active although it is "
+                     "byte-identical to alternating under domain extrema")
+
+        # P17
+        has_hook = bool(bench.get("fill_sites"))
+        if not has_hook and not bench.get("e2b_adapter_policy"):
+            rep.fail("P17-adapter", name,
+                     "benchmark has no fill hook but no explicit adapter decision")
+
+        # P14
+        for pattern, audited in (bench.get("pattern_audit") or {}).items():
+            needs = (audited.get("oracle_execution_safe") is False
+                     or audited.get("fill_type_safe") is False
+                     or audited.get("verdict_outcome_class") == "FALSE_FAIL_RISK")
+            status = (audited.get("e2b_reevaluation") or {}).get("status")
+            if needs and status is None and pattern in (
+                    entry.get("supported_patterns") or []):
+                rep.fail("P14-reevaluation", "%s / %s" % (name, pattern),
+                         "active although the audit flags it and E2-B did not "
+                         "re-evaluate it")
+            if status == "NO_LONGER_REACHABLE" and pattern in (
+                    entry.get("supported_patterns") or []):
+                rep.fail("P14-reevaluation", "%s / %s" % (name, pattern),
+                         "re-evaluated NO_LONGER_REACHABLE but the policy still "
+                         "enforces it as supported")
 
     # P11
     if set(capabilities.PATTERN_PARAM_RELEVANCE) != set(PATTERNS):
@@ -462,6 +559,11 @@ def check_policy(catalog, policy, rep):
         # P5
         for pattern in sorted(supported):
             audited = (bench.get("pattern_audit") or {}).get(pattern) or {}
+            # E2-B: a finding made under the pre-E2-B out-of-domain semantics no
+            # longer describes the enforced input. The re-evaluation carries its
+            # own reason and is checked by P14.
+            if (audited.get("e2b_reevaluation") or {}).get("status") in E2B_STATUSES:
+                continue
             if audited.get("fill_type_safe") is False:
                 rep.fail("P5-active-unsafe", "%s / %s" % (name, pattern),
                          "enforced active although the audit says fill_type_safe=false")

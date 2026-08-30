@@ -421,10 +421,24 @@ def validate_spec(
     if range_reason is not None:
         return False, range_reason
 
-    value_reason = capabilities.explicit_values_rejection(
-        benchmark, spec.get("values") or [])
+    # E2-B domain safety: technical representability is not enough - the range
+    # must also be a subset of the benchmark's DECLARED legitimate fill domain,
+    # and a benchmark whose fill sites declare different domains supports no
+    # global value_range at all.
+    domain_reason = capabilities.value_range_domain_rejection(
+        benchmark, pattern, value_range)
+    if domain_reason is not None:
+        return False, domain_reason
+
+    values = spec.get("values") or []
+    value_reason = capabilities.explicit_values_rejection(benchmark, values)
     if value_reason is not None:
         return False, value_reason
+
+    value_domain_reason = capabilities.explicit_values_domain_rejection(
+        benchmark, values)
+    if value_domain_reason is not None:
+        return False, value_domain_reason
 
     return True, ""
 
@@ -617,6 +631,13 @@ def _mutants_of(spec: dict, max_size: int) -> "List[dict]":
             # Without this the mutator could push a valid range past the fill
             # container's representable bounds or its safe span.
             if capabilities.value_range_rejection(
+                spec["benchmark"], spec["pattern"], bounds
+            ) is not None:
+                continue
+            # E2-B: and inside the declared benchmark domain. A mutant that
+            # would leave the domain is NOT generated - it is never clamped
+            # back, which would silently rewrite the mutation.
+            if capabilities.value_range_domain_rejection(
                 spec["benchmark"], spec["pattern"], bounds
             ) is not None:
                 continue

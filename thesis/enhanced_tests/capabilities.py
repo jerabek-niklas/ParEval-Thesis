@@ -54,6 +54,35 @@ E2-A.1 added three things:
       "is this value meaningful for the benchmark". Out-of-range specs are
       rejected, never clipped, saturated or wrapped.
 
+E2-B froze the remaining methodological policies and added a second, strictly
+separate question on top of E2-A.1's technical one:
+
+  DECLARED FILL DOMAIN
+      E2-A.1 asks "can the container hold this value and can the arithmetic
+      compute with it" (`fill_type_capability`). E2-B asks "is this a
+      legitimate input for THIS benchmark" (`fill_domain_capability`), answered
+      from the domain each fill site declares at its call site - narrowed only
+      where the frozen prompt states a narrower state space. A value_range and
+      every explicit value must be a SUBSET of that domain. Where the sites of
+      one benchmark declare DIFFERENT domains (sort/43: startTime / duration /
+      value) a single global value_range has no unambiguous meaning and is
+      refused outright rather than reconciled by an invented common domain.
+      Both questions must be answered yes; neither replaces the other, and
+      neither clips, saturates or wraps anything.
+
+  DOMAIN-BOUNDED EXTREMES
+      `extreme_values` and `spike_at` no longer use numeric_limits. The harness
+      alternates between the EFFECTIVE endpoints and spikes at the effective
+      `hi`. A consequence is that `extreme_values` became byte-identical to
+      `alternating`, so the derivation marks it unsupported everywhere - two
+      labels for one input is the fake-diversity defect, not a capability.
+
+  DEGENERATE RANGES
+      With `lo == hi` every range-reading pattern produces the same constant
+      array, and the structural perturbations of duplicate_at /
+      sorted_except_one / spike_at are provably no-ops. Only `all_same`, whose
+      name describes that input honestly, may carry a degenerate range.
+
 Python 3.8 compatible.
 """
 
@@ -128,9 +157,10 @@ PATTERN_PARAM_RELEVANCE = OrderedDict([
         (PARAM_VALUES, (False, "values are only read by pattern id 10")),
     ])),
     ("extreme_values", OrderedDict([
-        (PARAM_VALUE_RANGE, (False, "case 6 -> enhancedExtremeValue<DType>(i): "
-                                    "numeric_limits of the element type; lo/hi "
-                                    "are never read")),
+        (PARAM_VALUE_RANGE, (True, "case 6 -> enhancedExtremeValue<DType>(lo, hi, i): "
+                                   "E2-B alternates the effective domain "
+                                   "endpoints (before E2-B: numeric_limits, "
+                                   "which read neither)")),
         (PARAM_K, (False, "case 6 never reads param_k")),
         (PARAM_VALUES, (False, "values are only read by pattern id 10")),
     ])),
@@ -199,6 +229,14 @@ REASON_NON_FINITE_RANGE = "non_finite_value_range"
 REASON_NON_FINITE_VALUE = "non_finite_explicit_value"
 REASON_RANGE_NOT_REPRESENTABLE = "range_not_representable_for_benchmark"
 REASON_UNSAFE_SPAN = "unsafe_value_range_span"
+# E2-B
+REASON_RANGE_OUTSIDE_DOMAIN = "value_range_outside_declared_domain"
+REASON_RANGE_UNSUPPORTED = "value_range_not_supported_for_benchmark"
+REASON_VALUE_OUTSIDE_DOMAIN = "explicit_value_outside_declared_domain"
+REASON_DEGENERATE_RANGE = "degenerate_range_not_canonical"
+
+# the one pattern whose name honestly describes a constant array
+CANONICAL_DEGENERATE_PATTERN = "all_same"
 
 _POLICY_CACHE = None  # type: Optional[Dict[str, Any]]
 _POLICY_BYTES = None  # type: Optional[bytes]
@@ -253,6 +291,28 @@ def _validate_policy_document(policy: Any, path: Path) -> None:
                 "%s: %s: the pattern partition does not cover all %d patterns "
                 "(missing %s)" % (path, name, len(expected_patterns),
                                   sorted(expected_patterns - (sup | uns | dfr))))
+
+        domain = entry.get("fill_domain_capability")
+        if not isinstance(domain, dict):
+            raise EnhancedPolicyError(
+                "%s: %s: fill_domain_capability is missing" % (path, name))
+        if domain.get("global_value_range_supported"):
+            for field in ("domain_lo", "domain_hi"):
+                value = domain.get(field)
+                if not isinstance(value, (int, float)) or isinstance(value, bool):
+                    raise EnhancedPolicyError(
+                        "%s: %s: fill_domain_capability.%s must be a number"
+                        % (path, name, field))
+            if float(domain["domain_lo"]) > float(domain["domain_hi"]):
+                raise EnhancedPolicyError(
+                    "%s: %s: declared domain is inverted" % (path, name))
+
+        size_zero = entry.get("size_zero_policy")
+        if not isinstance(size_zero, dict) or size_zero.get("policy") not in (
+                "ALLOWED", "DISALLOWED", "NOT_APPLICABLE"):
+            raise EnhancedPolicyError(
+                "%s: %s: size_zero_policy is missing or not one of "
+                "ALLOWED/DISALLOWED/NOT_APPLICABLE" % (path, name))
 
         capability = entry.get("fill_type_capability")
         if not isinstance(capability, dict):
@@ -379,6 +439,34 @@ def has_fill_hook(benchmark: str) -> bool:
 
 def fill_type_capability(benchmark: str) -> Dict[str, Any]:
     return dict(benchmark_policy(benchmark).get("fill_type_capability") or {})
+
+
+def fill_domain_capability(benchmark: str) -> Dict[str, Any]:
+    """E2-B: the benchmark's DECLARED legitimate fill domain (semantic), as
+    opposed to fill_type_capability (technical representability)."""
+    return dict(benchmark_policy(benchmark).get("fill_domain_capability") or {})
+
+
+def global_value_range_supported(benchmark: str) -> bool:
+    return bool(fill_domain_capability(benchmark).get("global_value_range_supported"))
+
+
+def declared_domain(benchmark: str):
+    """(lo, hi) of the benchmark's global declared domain, or None when it has
+    no fill hook or its sites declare different domains."""
+    capability = fill_domain_capability(benchmark)
+    if not capability.get("global_value_range_supported"):
+        return None
+    return float(capability["domain_lo"]), float(capability["domain_hi"])
+
+
+def size_zero_policy(benchmark: str) -> Dict[str, Any]:
+    return dict(benchmark_policy(benchmark).get("size_zero_policy") or {})
+
+
+def adapter_policy(benchmark: str) -> Optional[Dict[str, Any]]:
+    entry = benchmark_policy(benchmark).get("adapter_policy")
+    return dict(entry) if entry else None
 
 
 def pattern_status(benchmark: str, pattern: str) -> Tuple[str, str]:
@@ -601,6 +689,80 @@ def value_range_rejection(
     return None
 
 
+def value_range_domain_rejection(
+    benchmark: str, pattern: str, value_range: Any
+) -> Optional[str]:
+    """E2-B: is this range a LEGITIMATE input for this benchmark?
+
+    Strictly separate from value_range_rejection, which asks only whether the
+    harness can represent and compute with it. A range is admissible iff the
+    benchmark has one unambiguous declared domain and the range is a subset of
+    it. Out-of-domain ranges are REJECTED, never clipped, saturated or wrapped.
+    """
+    if value_range is None:
+        return None
+    if not pattern_uses(pattern, PARAM_VALUE_RANGE):
+        return None  # inert here; parameter_rejection reports that separately
+    if not has_fill_hook(benchmark):
+        return None  # inert here; parameter_rejection reports that separately
+
+    capability = fill_domain_capability(benchmark)
+    if not capability.get("global_value_range_supported"):
+        roles = "; ".join(
+            "%s [%g, %g]" % (d.get("semantic_role"), d.get("lo"), d.get("hi"))
+            for d in capability.get("site_domains") or [])
+        return ("%s: %s fills several inputs with DIFFERENT declared domains "
+                "(%s), so one global value_range has no unambiguous meaning. "
+                "E2-B refuses to invent a common domain; pattern and size "
+                "variation stay available."
+                % (REASON_RANGE_UNSUPPORTED, benchmark, roles))
+
+    lo = float(value_range[0])
+    hi = float(value_range[1])
+    domain_lo = float(capability["domain_lo"])
+    domain_hi = float(capability["domain_hi"])
+    if lo < domain_lo or hi > domain_hi:
+        return ("%s: value_range [%g, %g] is not a subset of %s's declared fill "
+                "domain [%g, %g]; the spec is rejected, not clipped"
+                % (REASON_RANGE_OUTSIDE_DOMAIN, lo, hi, benchmark,
+                   domain_lo, domain_hi))
+
+    if lo == hi and pattern != CANONICAL_DEGENERATE_PATTERN:
+        return ("%s: a degenerate value_range [%g, %g] makes every "
+                "range-reading pattern produce the SAME constant array, and the "
+                "structural perturbation of %s is provably a no-op on it. Only "
+                "%r may carry a degenerate range, so the label describes the "
+                "input honestly."
+                % (REASON_DEGENERATE_RANGE, lo, hi, pattern,
+                   CANONICAL_DEGENERATE_PATTERN))
+    return None
+
+
+def explicit_values_domain_rejection(benchmark: str, values) -> Optional[str]:
+    """E2-B: every explicit value must lie in the declared fill domain.
+
+    An explicit value is a direct input, so it is exactly as domain-bound as a
+    value_range endpoint. For a benchmark whose sites declare different domains
+    the intersection would be an invented common domain, so the shape gate
+    (`no_single_canonical_fill_site`) already keeps explicit_values out there.
+    """
+    if not values or not has_fill_hook(benchmark):
+        return None
+    capability = fill_domain_capability(benchmark)
+    if not capability.get("global_value_range_supported"):
+        return None
+    domain_lo = float(capability["domain_lo"])
+    domain_hi = float(capability["domain_hi"])
+    for value in values:
+        number = float(value)
+        if number < domain_lo or number > domain_hi:
+            return ("%s: explicit value %r is outside %s's declared fill domain "
+                    "[%g, %g]; the spec is rejected, not clipped"
+                    % (REASON_VALUE_OUTSIDE_DOMAIN, value, benchmark,
+                       domain_lo, domain_hi))
+    return None
+
+
 def explicit_values_rejection(benchmark: str, values) -> Optional[str]:
     """None when every explicit value is finite and representable in the
     benchmark's fill container, else a reason.
@@ -662,7 +824,14 @@ def full_spec_rejection(spec: Dict[str, Any]) -> Optional[str]:
     reason = value_range_rejection(benchmark, pattern, params.get(PARAM_VALUE_RANGE))
     if reason is not None:
         return reason
-    return explicit_values_rejection(benchmark, values)
+    reason = value_range_domain_rejection(
+        benchmark, pattern, params.get(PARAM_VALUE_RANGE))
+    if reason is not None:
+        return reason
+    reason = explicit_values_rejection(benchmark, values)
+    if reason is not None:
+        return reason
+    return explicit_values_domain_rejection(benchmark, values)
 
 
 # ---------------------------------------------------------------------------
@@ -757,4 +926,24 @@ def policy_summary() -> Dict[str, Any]:
         "benchmarks_with_fill_hook": sum(
             1 for e in policy.values()
             if (e.get("fill_type_capability") or {}).get("has_fill_hook")),
+        "range_enabled_benchmarks": sorted(
+            n for n, e in policy.items()
+            if (e.get("fill_domain_capability") or {}).get(
+                "global_value_range_supported")),
+        "range_disabled_benchmarks": sorted(
+            n for n, e in policy.items()
+            if (e.get("fill_domain_capability") or {}).get("has_fill_hook")
+            and not (e.get("fill_domain_capability") or {}).get(
+                "global_value_range_supported")),
+        "size_zero_allowed": sorted(
+            n for n, e in policy.items()
+            if (e.get("size_zero_policy") or {}).get("policy") == "ALLOWED"),
+        "size_zero_disallowed": sorted(
+            n for n, e in policy.items()
+            if (e.get("size_zero_policy") or {}).get("policy") == "DISALLOWED"),
+        "size_zero_not_applicable": sorted(
+            n for n, e in policy.items()
+            if (e.get("size_zero_policy") or {}).get("policy") == "NOT_APPLICABLE"),
+        "adapter_disabled_benchmarks": sorted(
+            n for n, e in policy.items() if e.get("adapter_policy")),
     }

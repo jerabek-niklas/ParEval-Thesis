@@ -85,11 +85,13 @@ def rejected(spec_dict):
 def group_range_safety():
     print("value_range technical safety")
 
+    # E2-B: the fixtures use each benchmark's own DECLARED domain, so a
+    # technically safe range is also a legitimate one. (Before E2-B any
+    # representable range was accepted regardless of the benchmark.)
     safe = [
         ("int [0,100]", INT_BENCH, [0.0, 100.0]),
-        ("int [5,5]", INT_BENCH, [5.0, 5.0]),
         ("float [-100,100]", FLOAT_BENCH, [-100.0, 100.0]),
-        ("double [-100,100]", DOUBLE_BENCH, [-100.0, 100.0]),
+        ("double [-10,10]", DOUBLE_BENCH, [-10.0, 10.0]),
     ]
     range_patterns = [p for p in capabilities.RANGE_PATTERNS]
     for label, bench, bounds in safe:
@@ -102,6 +104,24 @@ def group_range_safety():
             ok, why = validate_spec(spec(bench, pattern, params=params),
                                     {bench})
             check("%s accepted for %s" % (label, pattern), ok, why)
+
+    # the degenerate single-point range stays TECHNICALLY safe (the [c,c] guard
+    # from E2-A.1 is untouched); E2-B additionally restricts WHICH label may
+    # carry it, because every range-reading pattern collapses to the same
+    # constant array.
+    check("int [5,5] is still technically safe for every range pattern",
+          all(capabilities.value_range_rejection(INT_BENCH, pattern, [5.0, 5.0]) is None
+              for pattern in range_patterns))
+    ok, why = validate_spec(
+        spec(INT_BENCH, "all_same", params={"value_range": [5.0, 5.0]}), {INT_BENCH})
+    check("int [5,5] accepted for the canonical all_same", ok, why)
+    for pattern in ("random", "ascending", "spike_at"):
+        params = {"value_range": [5.0, 5.0]}
+        if pattern in capabilities.K_PATTERNS:
+            params["k"] = 1
+        bad, why = rejected(spec(INT_BENCH, pattern, params=params))
+        check("int [5,5] rejected for %s (not the canonical label)" % pattern,
+              bad and capabilities.REASON_DEGENERATE_RANGE in why, why)
 
     unsafe = [
         ("int [INT_MIN, INT_MAX] span overflows", INT_BENCH,
@@ -121,15 +141,15 @@ def group_range_safety():
         bad, why = rejected(spec(bench, "ascending", params={"value_range": bounds}))
         check(label + " rejected", bad and reason in why, why)
 
-    # the largest span that IS admissible must still be accepted, so the guard
-    # is a real boundary and not a blanket ban on large ranges
-    ok, why = validate_spec(
-        spec(INT_BENCH, "ascending", params={"value_range": [0.0, INT_MAX - 1]}),
-        {INT_BENCH})
-    check("int span at exactly the safe maximum accepted", ok, why)
-    bad, _ = rejected(
-        spec(INT_BENCH, "ascending", params={"value_range": [0.0, INT_MAX]}))
-    check("int span one above the safe maximum rejected", bad)
+    # The TECHNICAL boundary is checked at the technical layer: since E2-B the
+    # benchmark's declared domain rejects such a range first, so going through
+    # validate_spec would no longer test the span rule at all.
+    check("int span at exactly the technical maximum is technically safe",
+          capabilities.value_range_rejection(
+              INT_BENCH, "ascending", [0.0, INT_MAX - 1]) is None)
+    check("int span one above the technical maximum is technically unsafe",
+          capabilities.value_range_rejection(
+              INT_BENCH, "ascending", [0.0, INT_MAX]) is not None)
 
     # endpoints outside the container, even with a tiny span
     bad, why = rejected(
@@ -207,9 +227,17 @@ def group_parameter_relevance():
           bad and capabilities.REASON_IRRELEVANT_PARAM in why, why)
 
     bad, why = rejected(
-        spec(DOUBLE_BENCH, "extreme_values", params={"value_range": [0.0, 1.0]}))
-    check("C extreme_values + value_range rejected",
+        spec("reduce/27_reduce_average", "explicit_values", size=3,
+             params={"value_range": [0.0, 1.0]}, values=[1.0, 2.0, 3.0]))
+    check("C explicit_values + value_range rejected",
           bad and capabilities.REASON_IRRELEVANT_PARAM in why, why)
+
+    # E2-B moved extreme_values OUT of the irrelevant-parameter class: it now
+    # reads the range, and is unsupported for a different reason entirely.
+    bad, why = rejected(
+        spec(DOUBLE_BENCH, "extreme_values", params={"value_range": [0.0, 1.0]}))
+    check("C2 extreme_values rejected as an alternating duplicate",
+          bad and "duplicate_of_alternating_under_domain_extrema" in why, why)
 
     bad, why = rejected(
         spec("reduce/27_reduce_average", "explicit_values", size=3,
@@ -248,9 +276,11 @@ def group_parameter_relevance():
             expected = (
                 (param == "k" and pattern in capabilities.K_PATTERNS)
                 or (param == "values" and pattern == "explicit_values")
+                # E2-B: extreme_values now READS the range (it alternates the
+                # effective domain endpoints), so only all_zeros and
+                # explicit_values ignore it.
                 or (param == "value_range"
-                    and pattern not in ("all_zeros", "extreme_values",
-                                        "explicit_values"))
+                    and pattern not in ("all_zeros", "explicit_values"))
             )
             if used != expected:
                 mismatched.append((pattern, param, used))
@@ -296,7 +326,7 @@ def group_fake_diversity():
     # a pattern swap must not inherit a parameter the target ignores
     swapped = _mutants_of(
         spec(DOUBLE_BENCH, "random", size=8,
-             params={"value_range": [-1.0, 1.0]}), 4096)
+             params={"value_range": [-1.0, 1.0]}), 4096)  # inside [-10,10]
     check("random -> extreme_values swap carrying a value_range is dropped",
           all(m["pattern"] != "extreme_values" for m in swapped),
           str([m["pattern"] for m in swapped]))

@@ -58,7 +58,11 @@ NO_EFFECT = "graph/15_graph_edge_count"          # pattern_effect NONE
 NOT_APPLICABLE = "histogram/23_histogram_first_letter_counts"
 EFFECTIVE = "stencil/50_stencil_xor_kernel"      # pattern_effect EFFECTIVE
 PARTIAL = "dense_la/02_dense_la_gemm"            # pattern_effect PARTIAL
-ORACLE_UNSAFE = "stencil/54_stencil_game_of_life"  # extreme_values unsafe
+# E2-B: stencil/54 declares a NARROWER domain ([0,1], the prompt's cell states)
+# than its call site ([0,2]), so the patterns that assign the call-site hi are
+# unsupported there. It replaces the former "oracle-unsafe" fixture: after the
+# domain freeze there is no active oracle-unsafe pattern left anywhere.
+DOMAIN_RESTRICTED = "stencil/54_stencil_game_of_life"
 FILL_DEFERRED = "reduce/28_reduce_smallest_odd_number"
 SIZE_MIN = "graph/19_graph_shortest_path"        # min_size 2
 SIZE_POW2 = "fft/05_fft_inverse_fft"             # power of two or <= 1
@@ -100,13 +104,16 @@ def group_validation():
     check("string benchmark rejects numeric pattern",
           not ok and "no_pattern_effect" in why, why)
 
-    ok, why = validate_spec(spec(ORACLE_UNSAFE, "extreme_values"), {ORACLE_UNSAFE})
-    check("oracle-unsafe pattern rejected",
-          not ok and "unsafe_pattern_for_benchmark" in why, why)
+    ok, why = validate_spec(spec(DOMAIN_RESTRICTED, "ascending"), {DOMAIN_RESTRICTED})
+    check("pattern reaching a value outside the declared domain rejected",
+          not ok and "reaches_value_outside_declared_fill_domain" in why, why)
+
+    ok, _ = validate_spec(spec(DOMAIN_RESTRICTED, "random"), {DOMAIN_RESTRICTED})
+    check("the same benchmark keeps the patterns that stay in domain", ok)
 
     ok, why = validate_spec(spec(FILL_DEFERRED, "extreme_values"), {FILL_DEFERRED})
-    check("policy-deferred pattern rejected as deferred",
-          not ok and "deferred_policy_pattern" in why, why)
+    check("extreme_values rejected as an alternating duplicate (E2-B)",
+          not ok and "duplicate_of_alternating_under_domain_extrema" in why, why)
 
     ok, _ = validate_spec(spec(EFFECTIVE, "ascending"), {EFFECTIVE})
     check("supported pattern on an EFFECTIVE benchmark accepted", ok)
@@ -123,14 +130,20 @@ def group_validation():
     ok, why = validate_spec(spec(SIZE_POW2, "random", size=7), {SIZE_POW2})
     check("non-power-of-two size rejected for the fft oracle",
           not ok and "invalid_size_for_benchmark" in why, why)
-    for good in (0, 1, 8, 4096):
+    for good in (1, 8, 4096):
         ok, why = validate_spec(spec(SIZE_POW2, "random", size=good), {SIZE_POW2})
         check("power-of-two size %d accepted" % good, ok, why)
 
-    # size 0 stays legal where no benchmark-specific hazard was proven:
-    # SIZE_ZERO_SPEC_POLICY is still open and must not be decided here.
+    # E2-B: size 0 is now a per-benchmark SEMANTIC decision. fft states in its
+    # frozen prompt that the size is always a power of two, and 0 is not one.
+    ok, why = validate_spec(spec(SIZE_POW2, "random", size=0), {SIZE_POW2})
+    check("size 0 rejected where the frozen prompt excludes it",
+          not ok and "invalid_size_for_benchmark" in why, why)
+
+    # ... and still accepted where the benchmark semantics define an empty
+    # input. There is deliberately NO global size-0 rule.
     ok, _ = validate_spec(spec(EFFECTIVE, "random", size=0), {EFFECTIVE})
-    check("size 0 still accepted where no hazard is documented (policy open)", ok)
+    check("size 0 still accepted where the benchmark defines an empty input", ok)
 
 
 def group_generation():
@@ -153,10 +166,11 @@ def group_generation():
     check("PARTIAL benchmark is not blanket-disabled", len(eff_partial) >= 5,
           str(eff_partial))
 
-    check("oracle-unsafe pattern is never offered",
-          "extreme_values" not in gen.effective_patterns_for(ORACLE_UNSAFE, settings))
-    check("deferred pattern is never offered",
-          "extreme_values" not in gen.effective_patterns_for(FILL_DEFERRED, settings))
+    check("a domain-restricted pattern is never offered",
+          "ascending" not in gen.effective_patterns_for(DOMAIN_RESTRICTED, settings))
+    check("extreme_values is never offered anywhere",
+          all("extreme_values" not in gen.effective_patterns_for(b, settings)
+              for b in sorted(ALL_BENCHMARKS)))
 
     block = gen._pattern_block(NO_EFFECT, settings)
     check("prompt states pattern variation is unavailable",
@@ -226,10 +240,17 @@ def group_single_source():
           getattr(gen, "capabilities", None) is capabilities)
     summary = capabilities.policy_summary()
     check("policy summary reports all 60 benchmarks", summary["benchmarks"] == 60)
-    check("unsafe cases are enforced as unsupported",
-          summary["reason_distribution"].get("unsafe_pattern_for_benchmark", 0) > 0)
-    check("deferred cases are reported separately",
-          summary["deferred_policy_pattern_cases"] > 0)
+    check("no oracle-unsafe pattern is active after the E2-B domain freeze",
+          summary["reason_distribution"].get("unsafe_pattern_for_benchmark", 0) == 0)
+    check("no pattern is left deferred after the E2-B freeze",
+          summary["deferred_policy_pattern_cases"] == 0)
+    check("the E2-B domain reasons are enforced",
+          summary["reason_distribution"].get(
+              "duplicate_of_alternating_under_domain_extrema", 0) > 0
+          and summary["reason_distribution"].get(
+              "constant_outside_declared_fill_domain", 0) > 0
+          and summary["reason_distribution"].get(
+              "reaches_value_outside_declared_fill_domain", 0) > 0)
 
 
 def main():

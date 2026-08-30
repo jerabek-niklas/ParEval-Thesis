@@ -113,13 +113,34 @@
 //   3 ascending         linear ramp lo -> hi
 //   4 descending        linear ramp hi -> lo
 //   5 alternating       lo, hi, lo, hi, ...
-//   6 extreme_values    numeric_limits lowest/max alternating
+//   6 extreme_values    E2-B: alternates the EFFECTIVE domain endpoints
+//                       lo, hi (before E2-B: numeric_limits lowest/max)
 //   7 duplicate_at(k)   random fill, then x[k] = x[(k+1) % n]
 //   8 sorted_except_one(k) ascending ramp, then swap(x[k], x[(k+1) % n])
-//   9 spike_at(k)       random fill, then x[k] = numeric_limits::max()/2
-//                       (complex: spike on the real part)
+//   9 spike_at(k)       E2-B: random fill, then x[k] = the effective domain
+//                       upper extreme hi (before E2-B: numeric_limits::max()/2)
 //  10 explicit_values   values from the generated header (cyclic)
 
+// E2-B extreme semantics (EXTREME_PATTERN_SEMANTICS =
+// DECLARED_FILL_DOMAIN_EXTREMA, SPIKE_AT_SEMANTICS =
+// DECLARED_DOMAIN_UPPER_EXTREME). Enhanced tests exist to probe MODEL BEHAVIOUR
+// on unusual but semantically legitimate inputs, not to probe whether the
+// harness survives C++ numeric_limits. Every fill site in the suite declares a
+// narrow domain at its call site ([-1,1], [0,100], [0,255], [0,2], ...), so
+// numeric_limits extrema were out-of-domain inputs that mostly measured oracle
+// overflow. `extreme_values` therefore alternates the EFFECTIVE endpoints (the
+// call site's, or the spec's validated value_range) and `spike_at` places the
+// effective `hi` at index k. Both are per fill SITE, so a benchmark whose sites
+// declare different domains gets each site's own endpoints, never one global
+// numeric_limits value.
+//
+// Note for the policy layer: alternating the effective endpoints is exactly
+// what pattern 5 (alternating) already does, so under this semantics
+// `extreme_values` produces a byte-identical input. The enforced policy marks
+// it unsupported for that reason (duplicate_of_alternating_under_domain_extrema);
+// the implementation stays here so define/runtime parity and the historical
+// input of an already-recorded extreme_values spec remain provable.
+//
 // E2-A fill-type safety (P0). The pattern VALUE TYPE is the CONTAINER's
 // element type, never the type of the call site's lo/hi literals. Before
 // E2-A the type was deduced from lo/hi, so a site like
@@ -240,19 +261,12 @@ DType enhancedRampValue(DType lo, DType hi, size_t index, size_t n, bool descend
     }
 }
 
+// E2-B: the extrema of the DECLARED FILL DOMAIN, not of the C++ type. lo/hi
+// are the effective endpoints the caller already converted into DType, so this
+// is per fill site by construction.
 template <typename DType>
-DType enhancedExtremeValue(size_t index) {
-    if constexpr (std::is_floating_point_v<DType>) {
-        return (index % 2 == 0) ? std::numeric_limits<DType>::lowest()
-                                : std::numeric_limits<DType>::max();
-    } else if constexpr (std::is_integral_v<DType>) {
-        return (index % 2 == 0) ? std::numeric_limits<DType>::min()
-                                : std::numeric_limits<DType>::max();
-    } else if constexpr (std::is_same_v<DType, std::complex<double>>) {
-        const double v = (index % 2 == 0) ? std::numeric_limits<double>::lowest()
-                                          : std::numeric_limits<double>::max();
-        return DType(v, v);
-    }
+DType enhancedExtremeValue(DType lo, DType hi, size_t index) {
+    return (index % 2 == 0) ? lo : hi;
 }
 
 template <typename DType>
@@ -272,16 +286,14 @@ DType enhancedMidValue(DType lo, DType hi) {
     }
 }
 
+// E2-B: the UPPER extreme of the declared fill domain. For an integral site
+// this is provably outside the random base: fillRand's integral branch computes
+// rand() % (hi - lo) + lo, which is hi-EXCLUSIVE, so x[k] = hi is a
+// deterministic structural difference against the same random base. For a
+// floating site hi is reachable only when rand() == RAND_MAX.
 template <typename DType>
-DType enhancedSpikeValue() {
-    // half of max: an extreme but arithmetic-surviving magnitude
-    if constexpr (std::is_floating_point_v<DType>) {
-        return std::numeric_limits<DType>::max() / 2;
-    } else if constexpr (std::is_integral_v<DType>) {
-        return std::numeric_limits<DType>::max() / 2;
-    } else if constexpr (std::is_same_v<DType, std::complex<double>>) {
-        return DType(std::numeric_limits<double>::max() / 2, 0.0);  // real-part spike
-    }
+DType enhancedSpikeValue(DType hi) {
+    return hi;
 }
 
 template <typename DType>
@@ -321,15 +333,16 @@ void enhancedFillPatternTyped(T &x, DType lo, DType hi, int pattern, size_t para
 
     const size_t k = param_k % n;  // Python validates; modulo as a backstop
 
-    // E2-A.1: the patterns that READ the range (everything except all_zeros,
-    // extreme_values and explicit_values, which ignore lo/hi entirely - see
-    // capabilities.PATTERN_PARAM_RELEVANCE) must not run on a range whose span
+    // E2-A.1: the patterns that READ the range (everything except all_zeros
+    // and explicit_values, which ignore lo/hi entirely - see
+    // capabilities.PATTERN_PARAM_RELEVANCE; E2-B moved extreme_values INTO this
+    // set because it now uses the domain endpoints) must not run on a span
     // the element type cannot express: the integral fillRand branch would
     // compute rand() % (max - min) on an overflowed difference, and the
     // float/double ramps would produce a deterministic Inf/NaN. validate_spec
     // rejects such a spec upstream; if one reaches the harness anyway, stop
     // with a diagnostic rather than execute undefined behaviour.
-    const bool patternReadsRange = !(pattern == 1 || pattern == 6 || pattern == 10);
+    const bool patternReadsRange = !(pattern == 1 || pattern == 10);
     if (patternReadsRange && !enhancedRangeSpanIsSafe<DType>(lo, hi)) {
         enhancedFillAbort(
             "value_range span is not representable in the fill container "
@@ -365,8 +378,8 @@ void enhancedFillPatternTyped(T &x, DType lo, DType hi, int pattern, size_t para
         case 5:  // alternating
             for (size_t i = 0; i < n; i += 1) x[i] = (i % 2 == 0) ? lo : hi;
             break;
-        case 6:  // extreme_values
-            for (size_t i = 0; i < n; i += 1) x[i] = enhancedExtremeValue<DType>(i);
+        case 6:  // extreme_values: alternates the effective domain endpoints
+            for (size_t i = 0; i < n; i += 1) x[i] = enhancedExtremeValue<DType>(lo, hi, i);
             break;
         case 7:  // duplicate_at(k): random, then duplicate neighbor value
             if (degenerateIntegralRange) {
@@ -386,7 +399,7 @@ void enhancedFillPatternTyped(T &x, DType lo, DType hi, int pattern, size_t para
             } else {
                 enhancedFillRandom(x, lo, hi);
             }
-            x[k] = enhancedSpikeValue<DType>();
+            x[k] = enhancedSpikeValue<DType>(hi);
             break;
 #if defined(ENHANCED_FILL_PATTERN) && (ENHANCED_FILL_PATTERN == 10)
         case 10:  // explicit_values: cyclic fill from the generated header

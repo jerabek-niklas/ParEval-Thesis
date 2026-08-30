@@ -2,13 +2,15 @@
  "status": "ENFORCED",
  "_meta": {
   "generated_by": "thesis/enhanced_tests/derive_enhanced_policy.py (E2-A, E2-A.1)",
-  "derivation_version": "e2a1.1",
+  "derivation_version": "e2b.1",
   "derived_from": "thesis/enhanced_tests/enhanced_capabilities.json",
   "derived_from_audit_commit": "591a79092298080131a4d91f71f288628f309c1b",
   "relationship_to_audit": "The capability CATALOG is audit metadata and stays AUDIT_ONLY_NOT_ENFORCED. THIS file is the productive policy that validation, LLM spec generation and mutation all enforce through thesis/enhanced_tests/capabilities.py. Only unambiguous, policy-independent, source-backed audit findings become policy; everything else is carried as deferred_policy.",
   "single_source_of_truth": {
    "size_safety": "benchmarks[].enforced_size_safety in the catalog (E2-A.1 removed the duplicate manual table in derive_enhanced_policy.py)",
-   "fill_types": "benchmarks[].fill_sites[].container_value_type_normalized in the catalog; both explicit_values and value_range validation read the derived fill_type_capability"
+   "fill_types": "benchmarks[].fill_sites[].container_value_type_normalized in the catalog; both explicit_values and value_range validation read the derived fill_type_capability",
+   "fill_domains": "benchmarks[].fill_sites[].declared_fill_domain in the catalog; both explicit_values and value_range domain validation read the derived fill_domain_capability",
+   "size_zero": "benchmarks[].e2b_size_zero in the catalog; merged with enforced_size_safety into the single enforced size_constraint"
   },
   "rules": {
    "R1": "pattern_effect NONE/NOT_APPLICABLE -> only 'random' supported (no_pattern_effect)",
@@ -16,18 +18,25 @@
    "R3": "fill_type_safe == false in the audit -> deferred (extreme_semantics_deferred); E2-A fixed the conversion, the domain question is EXTREME_PATTERN_SEMANTICS",
    "R4": "verdict_outcome_class == FALSE_FAIL_RISK -> deferred (false_fail_risk_deferred)",
    "R4b": "fill_type_capability: explicit values and value_range endpoints/spans outside the fill containers' TECHNICAL representability are REJECTED, never clipped",
-   "R5": "benchmark-specific size constraints verbatim from the catalog's enforced_size_safety; NOT a global size-0 rule"
+   "R5": "benchmark-specific size constraints verbatim from the catalog's enforced_size_safety; NOT a global size-0 rule",
+   "R6": "fill_domain_capability: a value_range must be a SUBSET of the declared fill domain; benchmarks whose sites declare different domains support no global value_range",
+   "R7": "the catalog's per-benchmark e2b_size_zero decision, materialized as a benchmark-local min_size >= 1 where DISALLOWED",
+   "R8": "extreme_values is byte-identical to alternating under domain extrema -> unsupported everywhere (duplicate_of_alternating_under_domain_extrema)",
+   "R9": "all_zeros writes the constant 0 -> unsupported where 0 is outside a site's declared domain",
+   "R10": "alternating/ascending/descending/sorted_except_one/spike_at assign the call-site hi -> unsupported where the declared domain is narrower than the call site"
   },
-  "open_policies_not_decided_here": [
-   "EXTREME_PATTERN_SEMANTICS",
-   "VALUE_RANGE_DOMAIN_POLICY",
-   "SIZE_ZERO_SPEC_POLICY",
-   "TOLERANCE_POLICY",
-   "GRAPH_ADAPTER_VOCABULARY",
-   "SPARSE_ADAPTER_POLICY",
-   "SORT44_ADAPTER_POLICY",
-   "LARGE_SIZE_POLICY"
-  ],
+  "frozen_e2b_policies": {
+   "EXTREME_PATTERN_SEMANTICS": "DECLARED_FILL_DOMAIN_EXTREMA",
+   "SPIKE_AT_SEMANTICS": "DECLARED_DOMAIN_UPPER_EXTREME",
+   "VALUE_RANGE_DOMAIN_POLICY": "SUBSET_OF_DECLARED_BENCHMARK_FILL_DOMAIN",
+   "SIZE_ZERO_SPEC_POLICY": "BENCHMARK_SEMANTICS_DEPENDENT",
+   "TOLERANCE_POLICY": "KEEP_FROZEN_COMPARATOR_AND_CONSTRAIN_ENHANCED_INPUTS",
+   "GRAPH_ADAPTER_VOCABULARY": "NO_NEW_ADAPTER_FOR_PILOT_002",
+   "SPARSE_ADAPTER_POLICY": "NO_NEW_ADAPTER_FOR_PILOT_002",
+   "SORT44_ADAPTER_POLICY": "NO_NEW_ADAPTER_FOR_PILOT_002",
+   "LARGE_SIZE_POLICY": "KEEP_MAX_SPEC_SIZE_4096_FOR_PILOT_002"
+  },
+  "open_policies_not_decided_here": [],
   "canonical_pattern_for_no_effect_benchmarks": "random"
  },
  "benchmarks": {
@@ -44,6 +53,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 63,
+      "container_expr": "A",
+      "element_type": "double",
+      "semantic_role": "input values (container `A`)",
+      "lo": -10.0,
+      "hi": 10.0,
+      "call_site_lo": -10.0,
+      "call_site_hi": 10.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/00_dense_la_lu_decomp cpu.cc:63 ENHANCED_FILL(A, -10.0, 10.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -10.0,
+    "domain_hi": 10.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: in-place factorization of an NxN matrix; baseline.hpp correctLuFactorize does no division at N=0 (catalog size_rationale)",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -52,12 +89,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "dense_la/01_dense_la_solve": {
@@ -66,6 +104,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "enforced_size_safety.min_size = 1 (E2-A), baseline.hpp `i < N - 1` size_t underflow",
+    "policy": "NOT_APPLICABLE",
+    "reason": "size 0 is already excluded by the benchmark-local technical constraint min_size 1 (heap OOB in the forward elimination), so the semantic question never arises"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "NO_HOOK_NO_ADAPTER",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -84,10 +140,11 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/dense_la/01_dense_la_solve/baseline.hpp (forward elimination `i < N - 1` on size_t)",
     "min_size": 1,
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "size 0 makes correctSolveLinearSystem's forward-elimination bound `i < N - 1` underflow on size_t and read an empty vector (heap out-of-bounds, baseline.hpp)"
+    "reason": "technical (E2-A): size 0 makes correctSolveLinearSystem's forward-elimination bound `i < N - 1` underflow on size_t and read an empty vector (heap out-of-bounds, baseline.hpp)",
+    "technical_min_size": 1,
+    "size_zero_policy": "NOT_APPLICABLE",
+    "evidence": "drivers/cpp/benchmarks/dense_la/01_dense_la_solve/baseline.hpp (forward elimination `i < N - 1` on size_t) || enforced_size_safety.min_size = 1 (E2-A), baseline.hpp `i < N - 1` size_t underflow"
    }
   },
   "dense_la/02_dense_la_gemm": {
@@ -103,6 +160,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 70,
+      "container_expr": "A",
+      "element_type": "double",
+      "semantic_role": "input values (container `A`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/02_dense_la_gemm cpu.cc:70 ENHANCED_FILL(A, -1.0, 1.0)"
+     },
+     {
+      "line": 71,
+      "container_expr": "B",
+      "element_type": "double",
+      "semantic_role": "input values (container `B`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/02_dense_la_gemm cpu.cc:71 ENHANCED_FILL(B, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: C is an MxN output matrix; cpu.cc guards the nonsquare probe off below TEST_SIZE 4",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -110,13 +207,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "pattern_coverage": "partial",
@@ -135,6 +232,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 65,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/03_dense_la_axpy cpu.cc:65 ENHANCED_FILL(x, -1.0, 1.0)"
+     },
+     {
+      "line": 66,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/03_dense_la_axpy cpu.cc:66 ENHANCED_FILL(y, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: z = alpha*x+y elementwise; catalog size_rationale states size 0 is safe (empty compare passes)",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -142,13 +279,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -165,6 +302,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 69,
+      "container_expr": "A",
+      "element_type": "double",
+      "semantic_role": "input values (container `A`)",
+      "lo": -10.0,
+      "hi": 10.0,
+      "call_site_lo": -10.0,
+      "call_site_hi": 10.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/04_dense_la_gemv cpu.cc:69 ENHANCED_FILL(A, -10.0, 10.0)"
+     },
+     {
+      "line": 70,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -10.0,
+      "hi": 10.0,
+      "call_site_lo": -10.0,
+      "call_site_hi": 10.0,
+      "narrower_than_call_site": false,
+      "evidence": "dense_la/04_dense_la_gemv cpu.cc:70 ENHANCED_FILL(x, -10.0, 10.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -10.0,
+    "domain_hi": 10.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: y is an M-element output vector; cpu.cc guards the nonsquare probe off below TEST_SIZE 2",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -172,13 +349,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "pattern_coverage": "partial",
@@ -197,6 +374,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 72,
+      "container_expr": "real",
+      "element_type": "double",
+      "semantic_role": "input values (container `real`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/05_fft_inverse_fft cpu.cc:72 ENHANCED_FILL(real, -1.0, 1.0)"
+     },
+     {
+      "line": 73,
+      "container_expr": "imag",
+      "element_type": "double",
+      "semantic_role": "input values (container `imag`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/05_fft_inverse_fft cpu.cc:73 ENHANCED_FILL(imag, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 05_fft_inverse_fft",
+    "policy": "DISALLOWED",
+    "reason": "the frozen prompt states `The size of x is always a power of two`; 0 is not a power of two, so size 0 presents the model with an input its own contract excludes"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -204,20 +421,22 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/fft/05_fft_inverse_fft/baseline.hpp + frozen prompt domain",
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "the iterative Rosetta fft() oracle computes the butterfly partner as b = a + k without bounding b by N, so any N >= 3 that is not a power of two reads and writes past the end (heap out-of-bounds, baseline.hpp). The frozen prompt states the size is always a power of two.",
-    "size_predicate": "power_of_two_or_below_two"
+    "min_size": 1,
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "technical (E2-A): the iterative Rosetta fft() oracle computes the butterfly partner as b = a + k without bounding b by N, so any N >= 3 that is not a power of two reads and writes past the end (heap out-of-bounds, baseline.hpp). The frozen prompt states the size is always a power of two. || size-zero policy (E2-B): the frozen prompt states `The size of x is always a power of two`; 0 is not a power of two, so size 0 presents the model with an input its own contract excludes",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "drivers/cpp/benchmarks/fft/05_fft_inverse_fft/baseline.hpp + frozen prompt domain || prompt 05_fft_inverse_fft"
    }
   },
   "fft/06_fft_dft": {
@@ -233,6 +452,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 61,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/06_fft_dft cpu.cc:61 ENHANCED_FILL(x, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 06_fft_dft states no power-of-two precondition; output is a container",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -241,12 +488,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "fft/07_fft_fft_conjugate": {
@@ -262,6 +510,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 67,
+      "container_expr": "real",
+      "element_type": "double",
+      "semantic_role": "input values (container `real`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/07_fft_fft_conjugate cpu.cc:67 ENHANCED_FILL(real, -1.0, 1.0)"
+     },
+     {
+      "line": 68,
+      "container_expr": "imag",
+      "element_type": "double",
+      "semantic_role": "input values (container `imag`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/07_fft_fft_conjugate cpu.cc:68 ENHANCED_FILL(imag, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 07_fft_fft_conjugate",
+    "policy": "DISALLOWED",
+    "reason": "the frozen prompt states `The size of x is always a power of two`; 0 is not a power of two"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -269,20 +557,22 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/fft/07_fft_fft_conjugate/baseline.hpp + frozen prompt domain",
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "the recursive oracle floor-halves N at every level, so for a non-power-of-two size it silently computes something that is not the transform and grades correct candidates against a wrong reference. The frozen prompt states the size is always a power of two.",
-    "size_predicate": "power_of_two_or_below_two"
+    "min_size": 1,
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "technical (E2-A): the recursive oracle floor-halves N at every level, so for a non-power-of-two size it silently computes something that is not the transform and grades correct candidates against a wrong reference. The frozen prompt states the size is always a power of two. || size-zero policy (E2-B): the frozen prompt states `The size of x is always a power of two`; 0 is not a power of two",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "drivers/cpp/benchmarks/fft/07_fft_fft_conjugate/baseline.hpp + frozen prompt domain || prompt 07_fft_fft_conjugate"
    }
   },
   "fft/08_fft_split_fft": {
@@ -298,6 +588,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 70,
+      "container_expr": "real",
+      "element_type": "double",
+      "semantic_role": "input values (container `real`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/08_fft_split_fft cpu.cc:70 ENHANCED_FILL(real, -1.0, 1.0)"
+     },
+     {
+      "line": 71,
+      "container_expr": "imag",
+      "element_type": "double",
+      "semantic_role": "input values (container `imag`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/08_fft_split_fft cpu.cc:71 ENHANCED_FILL(imag, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 08_fft_split_fft",
+    "policy": "DISALLOWED",
+    "reason": "the frozen prompt states `The length of x is a power of two`; 0 is not a power of two"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -305,20 +635,22 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/fft/08_fft_split_fft/baseline.hpp + frozen prompt domain",
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "same floor-halving oracle as fft/07; the frozen prompt states the length of x is a power of two",
-    "size_predicate": "power_of_two_or_below_two"
+    "min_size": 1,
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "technical (E2-A): same floor-halving oracle as fft/07; the frozen prompt states the length of x is a power of two || size-zero policy (E2-B): the frozen prompt states `The length of x is a power of two`; 0 is not a power of two",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "drivers/cpp/benchmarks/fft/08_fft_split_fft/baseline.hpp + frozen prompt domain || prompt 08_fft_split_fft"
    }
   },
   "fft/09_fft_fft_out_of_place": {
@@ -334,6 +666,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 68,
+      "container_expr": "real",
+      "element_type": "double",
+      "semantic_role": "input values (container `real`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/09_fft_fft_out_of_place cpu.cc:68 ENHANCED_FILL(real, -1.0, 1.0)"
+     },
+     {
+      "line": 69,
+      "container_expr": "imag",
+      "element_type": "double",
+      "semantic_role": "input values (container `imag`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "fft/09_fft_fft_out_of_place cpu.cc:69 ENHANCED_FILL(imag, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 09_fft_fft_out_of_place",
+    "policy": "DISALLOWED",
+    "reason": "the frozen prompt states `The size of x is always a power of two`; 0 is not a power of two"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -341,20 +713,22 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/fft/09_fft_fft_out_of_place/baseline.hpp + frozen prompt domain",
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "same floor-halving oracle as fft/07; the frozen prompt states the size of x is always a power of two",
-    "size_predicate": "power_of_two_or_below_two"
+    "min_size": 1,
+    "size_predicate": "power_of_two_or_below_two",
+    "reason": "technical (E2-A): same floor-halving oracle as fft/07; the frozen prompt states the size of x is always a power of two || size-zero policy (E2-B): the frozen prompt states `The size of x is always a power of two`; 0 is not a power of two",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "drivers/cpp/benchmarks/fft/09_fft_fft_out_of_place/baseline.hpp + frozen prompt domain || prompt 09_fft_fft_out_of_place"
    }
   },
   "geometry/10_geometry_convex_hull": {
@@ -370,6 +744,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 74,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/10_geometry_convex_hull cpu.cc:74 ENHANCED_FILL(x, -1000.0, 1000.0)"
+     },
+     {
+      "line": 75,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/10_geometry_convex_hull cpu.cc:75 ENHANCED_FILL(y, -1000.0, 1000.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1000.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 10_geometry_convex_hull",
+    "policy": "ALLOWED",
+    "reason": "the frozen prompt pins the degenerate case: `If there are fewer than three distinct points, hull is exactly those distinct points` - for an empty input that is the empty hull"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -377,13 +791,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -400,6 +814,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 79,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/11_geometry_convex_hull_perimeter cpu.cc:79 ENHANCED_FILL(x, -1000.0, 1000.0)"
+     },
+     {
+      "line": 80,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/11_geometry_convex_hull_perimeter cpu.cc:80 ENHANCED_FILL(y, -1000.0, 1000.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1000.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 11_geometry_convex_hull_perimeter",
+    "policy": "ALLOWED",
+    "reason": "the frozen prompt pins the empty case explicitly: `... and 0 if all points coincide or the vector is empty`"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -407,13 +861,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -430,6 +884,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 79,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/12_geometry_smallest_triangle cpu.cc:79 ENHANCED_FILL(x, -1000.0, 1000.0)"
+     },
+     {
+      "line": 80,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/12_geometry_smallest_triangle cpu.cc:80 ENHANCED_FILL(y, -1000.0, 1000.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1000.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp correctSmallestArea early return; prompt 12_geometry_smallest_triangle",
+    "policy": "DISALLOWED",
+    "reason": "the oracle returns 0 through a special-case early return `if (points.size() < 3) return 0;` that the frozen prompt does not state; the prompt only defines the area of the smallest triangle formed by any 3 points, which does not exist for 0 points, so a candidate cannot derive the required answer"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -437,15 +931,22 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
-   "deferred_policy_patterns": {}
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): the oracle returns 0 through a special-case early return `if (points.size() < 3) return 0;` that the frozen prompt does not state; the prompt only defines the area of the smallest triangle formed by any 3 points, which does not exist for 0 points, so a candidate cannot derive the required answer",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "baseline.hpp correctSmallestArea early return; prompt 12_geometry_smallest_triangle"
+   }
   },
   "geometry/13_geometry_closest_pair_2d": {
    "pattern_effect": "EFFECTIVE",
@@ -460,6 +961,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 79,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/13_geometry_closest_pair_2d cpu.cc:79 ENHANCED_FILL(x, -1000.0, 1000.0)"
+     },
+     {
+      "line": 80,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/13_geometry_closest_pair_2d cpu.cc:80 ENHANCED_FILL(y, -1000.0, 1000.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1000.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp correctClosestPair early return; prompt 13_geometry_closest_pair_2d",
+    "policy": "DISALLOWED",
+    "reason": "the oracle returns 0 through a special-case early return `if (points.size() < 2) return 0;` that the frozen prompt does not state; `the distance between the closest two points` has no value for 0 points"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -467,15 +1008,22 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
-   "deferred_policy_patterns": {}
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): the oracle returns 0 through a special-case early return `if (points.size() < 2) return 0;` that the frozen prompt does not state; `the distance between the closest two points` has no value for 0 points",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "baseline.hpp correctClosestPair early return; prompt 13_geometry_closest_pair_2d"
+   }
   },
   "geometry/14_geometry_closest_pair_1d": {
    "pattern_effect": "EFFECTIVE",
@@ -490,6 +1038,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 64,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1000.0,
+      "hi": 1000.0,
+      "call_site_lo": -1000.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "geometry/14_geometry_closest_pair_1d cpu.cc:64 ENHANCED_FILL(x, -1000.0, 1000.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1000.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp correctClosestPair early return; prompt 14_geometry_closest_pair_1d",
+    "policy": "DISALLOWED",
+    "reason": "the oracle returns 0 through a special-case early return `if (x.size() < 2) return 0;` that the frozen prompt does not state"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -498,13 +1074,21 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {}
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): the oracle returns 0 through a special-case early return `if (x.size() < 2) return 0;` that the frozen prompt does not state",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "baseline.hpp correctClosestPair early return; prompt 14_geometry_closest_pair_1d"
+   }
   },
   "graph/15_graph_edge_count": {
    "pattern_effect": "NONE",
@@ -512,6 +1096,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: count the edges of the graph defined by an NxN matrix; baseline.hpp counts into a zero-initialized accumulator, N=0 -> 0",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "GRAPH_ADAPTER_VOCABULARY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -537,6 +1139,24 @@
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
    },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp accumulates component sizes into a zero-initialized maximum; N=0 -> 0 with no special case (catalog size_rationale)",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "GRAPH_ADAPTER_VOCABULARY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
+   },
    "supported_patterns": [
     "random"
    ],
@@ -560,6 +1180,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp `int maxDegree = 0;` with loops that do not execute at N=0 -> 0, no special case",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "GRAPH_ADAPTER_VOCABULARY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -585,6 +1223,24 @@
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
    },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp counts components into a zero-initialized accumulator; N=0 -> 0 (catalog size_rationale)",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "GRAPH_ADAPTER_VOCABULARY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
+   },
    "supported_patterns": [
     "random"
    ],
@@ -609,6 +1265,24 @@
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
    },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "enforced_size_safety.min_size = 2 (E2-A)",
+    "policy": "NOT_APPLICABLE",
+    "reason": "size 0 is already excluded by the benchmark-local technical constraint min_size 2 (size_t underflow at N=0, modulo-by-zero at N=1)"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "GRAPH_ADAPTER_VOCABULARY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
+   },
    "supported_patterns": [
     "random"
    ],
@@ -626,10 +1300,11 @@
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/graph/19_graph_shortest_path/cpu.cc (spanning-path loop and `rand() % (N - 1)`)",
     "min_size": 2,
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "size 0 underflows the `i < N-1` spanning-path loop bound; size 1 makes `rand() % (N - 1)` a division by zero and the destination draw non-terminating (cpu.cc)"
+    "reason": "technical (E2-A): size 0 underflows the `i < N-1` spanning-path loop bound; size 1 makes `rand() % (N - 1)` a division by zero and the destination draw non-terminating (cpu.cc)",
+    "technical_min_size": 2,
+    "size_zero_policy": "NOT_APPLICABLE",
+    "evidence": "drivers/cpp/benchmarks/graph/19_graph_shortest_path/cpu.cc (spanning-path loop and `rand() % (N - 1)`) || enforced_size_safety.min_size = 2 (E2-A)"
    }
   },
   "histogram/20_histogram_pixel_histogram": {
@@ -645,6 +1320,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 64,
+      "container_expr": "image",
+      "element_type": "int",
+      "semantic_role": "input values (container `image`)",
+      "lo": 0.0,
+      "hi": 255.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 255.0,
+      "narrower_than_call_site": false,
+      "evidence": "histogram/20_histogram_pixel_histogram cpu.cc:64 ENHANCED_FILL(image, 0, 255)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 255.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: counts into a fixed 256-bin output array; empty image -> all bins 0",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -654,11 +1357,11 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
    "unsupported_patterns": {
-    "extreme_values": "unsafe_pattern_for_benchmark",
-    "spike_at": "unsafe_pattern_for_benchmark"
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -675,6 +1378,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 62,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "histogram/21_histogram_bin_0-100 cpu.cc:62 ENHANCED_FILL(x, 0.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt states `bins is zero-initialized on entry`; empty x -> all bins 0",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -684,11 +1415,11 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
    "unsupported_patterns": {
-    "extreme_values": "unsafe_pattern_for_benchmark",
-    "spike_at": "unsafe_pattern_for_benchmark"
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -705,6 +1436,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 76,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "histogram/22_histogram_count_quadrants cpu.cc:76 ENHANCED_FILL(x, -1.0, 1.0)"
+     },
+     {
+      "line": 77,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "histogram/22_histogram_count_quadrants cpu.cc:77 ENHANCED_FILL(y, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: counts into a fixed 4-bin output array; empty point list -> all bins 0",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -712,13 +1483,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -728,6 +1499,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: counts into a fixed 26-bin output array; an empty string vector -> all bins 0 (the per-string precondition is vacuous)",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "NO_HOOK_NO_ADAPTER",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -759,6 +1548,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 64,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "histogram/24_histogram_count_quartile cpu.cc:64 ENHANCED_FILL(x, 0.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: counts into a fixed 4-bin output array; empty x -> all bins 0",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -768,11 +1585,11 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
    "unsupported_patterns": {
-    "extreme_values": "unsafe_pattern_for_benchmark",
-    "spike_at": "unsafe_pattern_for_benchmark"
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -782,6 +1599,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: `the logical XOR reduction of the vector of bools x`; the XOR identity is false and baseline.hpp reaches it through its ordinary fold (catalog size_rationale)",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "NO_HOOK_NO_ADAPTER",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -813,9 +1648,36 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 125,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": 1.0,
+      "hi": 100.0,
+      "call_site_lo": 1.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "reduce/26_reduce_product_of_inverses cpu.cc:125 ENHANCED_FILL(x, 1.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 1.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp `std::reduce(data.begin(), data.end(), 1.0, std::multiplies())` - the empty-product identity 1.0 falls out of the ordinary fold, no special case",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
-    "all_zeros",
     "alternating",
     "ascending",
     "descending",
@@ -825,10 +1687,11 @@
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "extreme_values": "false_fail_risk_deferred"
-   }
+   "unsupported_patterns": {
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {}
   },
   "reduce/27_reduce_average": {
    "pattern_effect": "EFFECTIVE",
@@ -843,6 +1706,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 63,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "reduce/27_reduce_average cpu.cc:63 ENHANCED_FILL(x, 0.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp correctAverage division by x.size(); catalog size_rationale",
+    "policy": "DISALLOWED",
+    "reason": "the oracle divides by x.size(), so size 0 yields 0.0/0 = NaN; the non-finite reference is converted into an authenticated BASELINE_INCOMPATIBLE marker and the trial is never graded - size 0 produces no correctness verdict at all"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -852,12 +1743,19 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "extreme_values": "false_fail_risk_deferred",
-    "spike_at": "false_fail_risk_deferred"
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): the oracle divides by x.size(), so size 0 yields 0.0/0 = NaN; the non-finite reference is converted into an authenticated BASELINE_INCOMPATIBLE marker and the trial is never graded - size 0 produces no correctness verdict at all",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "baseline.hpp correctAverage division by x.size(); catalog size_rationale"
    }
   },
   "reduce/28_reduce_smallest_odd_number": {
@@ -873,22 +1771,50 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 63,
+      "container_expr": "x",
+      "element_type": "int",
+      "semantic_role": "input values (container `x`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "reduce/28_reduce_smallest_odd_number cpu.cc:63 ENHANCED_FILL(x, 0.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 28_reduce_smallest_odd_number",
+    "policy": "ALLOWED",
+    "reason": "the frozen prompt pins the empty case explicitly: `If x contains no odd number - in particular if x is empty - return std::numeric_limits<int>::max()`"
+   },
    "supported_patterns": [
+    "all_same",
+    "all_zeros",
+    "alternating",
     "ascending",
     "descending",
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "all_same": "false_fail_risk_deferred",
-    "all_zeros": "false_fail_risk_deferred",
-    "alternating": "false_fail_risk_deferred",
-    "extreme_values": "extreme_semantics_deferred",
-    "spike_at": "extreme_semantics_deferred"
-   }
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {}
   },
   "reduce/29_reduce_sum_of_min_of_pairs": {
    "pattern_effect": "EFFECTIVE",
@@ -903,6 +1829,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 64,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "reduce/29_reduce_sum_of_min_of_pairs cpu.cc:64 ENHANCED_FILL(x, 0.0, 100.0)"
+     },
+     {
+      "line": 65,
+      "container_expr": "y",
+      "element_type": "double",
+      "semantic_role": "input values (container `y`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "reduce/29_reduce_sum_of_min_of_pairs cpu.cc:65 ENHANCED_FILL(y, 0.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: a sum over all indices; empty sum is 0.0 and baseline.hpp reaches it through its ordinary fold (catalog size_rationale)",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -911,15 +1877,14 @@
     "descending",
     "duplicate_at",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
-   "deferred_policy_patterns": {
-    "extreme_values": "false_fail_risk_deferred",
-    "spike_at": "false_fail_risk_deferred"
-   }
+   "deferred_policy_patterns": {}
   },
   "scan/30_scan_prefix_sum": {
    "pattern_effect": "EFFECTIVE",
@@ -934,6 +1899,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 57,
+      "container_expr": "input",
+      "element_type": "double",
+      "semantic_role": "input values (container `input`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "scan/30_scan_prefix_sum cpu.cc:57 ENHANCED_FILL(input, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: prefix sum into an output container",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -942,12 +1935,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "scan/31_scan_scan_with_min_function": {
@@ -963,6 +1957,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 59,
+      "container_expr": "input",
+      "element_type": "float",
+      "semantic_role": "input values (container `input`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "scan/31_scan_scan_with_min_function cpu.cc:59 ENHANCED_FILL(input, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: in-place replacement of each element",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -972,13 +1994,13 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "extreme_values": "extreme_semantics_deferred",
-    "spike_at": "extreme_semantics_deferred"
-   }
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {}
   },
   "scan/32_scan_sum_of_prefix_sum_array": {
    "pattern_effect": "EFFECTIVE",
@@ -993,6 +2015,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 58,
+      "container_expr": "input",
+      "element_type": "double",
+      "semantic_role": "input values (container `input`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "scan/32_scan_sum_of_prefix_sum_array cpu.cc:58 ENHANCED_FILL(input, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: `return its sum`; the empty sum is 0.0 through the ordinary accumulate",
+    "policy": "ALLOWED",
+    "reason": "the result is a count/sum/reduction whose empty-collection identity is forced by the definition the prompt states, and the oracle reaches it through its ordinary zero-initialized accumulator, not through a special case"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1001,12 +2051,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "scan/33_scan_reverse_prefix_sum": {
@@ -1022,6 +2073,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 62,
+      "container_expr": "x",
+      "element_type": "int",
+      "semantic_role": "input values (container `x`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "scan/33_scan_reverse_prefix_sum cpu.cc:62 ENHANCED_FILL(x, -100, 100)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: reverse prefix sum into an output container",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1030,12 +2109,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "scan/34_scan_largest_contiguous_subarray_sum": {
@@ -1051,6 +2131,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 61,
+      "container_expr": "x",
+      "element_type": "int",
+      "semantic_role": "input values (container `x`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "scan/34_scan_largest_contiguous_subarray_sum cpu.cc:61 ENHANCED_FILL(x, -100, 100)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "baseline.hpp correctMaximumSubarray initializer; prompt 34_scan_largest_contiguous_subarray_sum",
+    "policy": "DISALLOWED",
+    "reason": "the oracle initializes `int largestSum = std::numeric_limits<int>::lowest();` and its loops do not execute at size 0, so it LEAKS INT_MIN as the answer; the frozen prompt states no empty case and the natural reading (no subarray, or the empty subarray with sum 0) contradicts the oracle - a correct candidate would be failed"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1064,9 +2172,16 @@
     "spike_at"
    ],
    "unsupported_patterns": {
-    "extreme_values": "unsafe_pattern_for_benchmark"
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
-   "deferred_policy_patterns": {}
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): the oracle initializes `int largestSum = std::numeric_limits<int>::lowest();` and its loops do not execute at size 0, so it LEAKS INT_MIN as the answer; the frozen prompt states no empty case and the natural reading (no subarray, or the empty subarray with sum 0) contradicts the oracle - a correct candidate would be failed",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "baseline.hpp correctMaximumSubarray initializer; prompt 34_scan_largest_contiguous_subarray_sum"
+   }
   },
   "search/35_search_search_for_last_struct_by_key": {
    "pattern_effect": "EFFECTIVE",
@@ -1081,21 +2196,57 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 82,
+      "container_expr": "pages (std::vector<int>, local to validate)",
+      "element_type": "int",
+      "semantic_role": "input values (container `pages (std::vector<int>, local to validate)`)",
+      "lo": 1.0,
+      "hi": 1000.0,
+      "call_site_lo": 1.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "search/35_search_search_for_last_struct_by_key cpu.cc:82 ENHANCED_FILL(pages (std::vector<int>, local to validate), 1, 1000)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 1.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "cpu.cc:67-76 size-0 guard",
+    "policy": "DISALLOWED",
+    "reason": "cpu.cc validate() intercepts TEST_SIZE == 0 with an explicit guard that emits the BASELINE_INCOMPATIBLE marker and returns without grading; the source itself records `the frozen minimum size of this benchmark is n >= 1`"
+   },
    "supported_patterns": [
     "all_same",
-    "all_zeros",
     "alternating",
     "ascending",
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {}
+   "unsupported_patterns": {
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): cpu.cc validate() intercepts TEST_SIZE == 0 with an explicit guard that emits the BASELINE_INCOMPATIBLE marker and returns without grading; the source itself records `the frozen minimum size of this benchmark is n >= 1`",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "cpu.cc:67-76 size-0 guard"
+   }
   },
   "search/36_search_check_if_array_contains_value": {
    "pattern_effect": "EFFECTIVE",
@@ -1110,6 +2261,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 63,
+      "container_expr": "input (std::vector<int>, local to validate)",
+      "element_type": "int",
+      "semantic_role": "input values (container `input (std::vector<int>, local to validate)`)",
+      "lo": -50.0,
+      "hi": 50.0,
+      "call_site_lo": -50.0,
+      "call_site_hi": 50.0,
+      "narrower_than_call_site": false,
+      "evidence": "search/36_search_check_if_array_contains_value cpu.cc:63 ENHANCED_FILL(input (std::vector<int>, local to validate), -50, 50)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -50.0,
+    "domain_hi": 50.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "enforced_size_safety.min_size = 1 (E2-A)",
+    "policy": "NOT_APPLICABLE",
+    "reason": "size 0 is already excluded by the benchmark-local technical constraint min_size 1 (modulo-by-zero plus OOB read in validate())"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1118,18 +2297,20 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/search/36_search_check_if_array_contains_value/cpu.cc",
     "min_size": 1,
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "size 0 evaluates input[rand() % input.size()] on an empty vector: modulo by zero plus an out-of-bounds read (cpu.cc)"
+    "reason": "technical (E2-A): size 0 evaluates input[rand() % input.size()] on an empty vector: modulo by zero plus an out-of-bounds read (cpu.cc)",
+    "technical_min_size": 1,
+    "size_zero_policy": "NOT_APPLICABLE",
+    "evidence": "drivers/cpp/benchmarks/search/36_search_check_if_array_contains_value/cpu.cc || enforced_size_safety.min_size = 1 (E2-A)"
    }
   },
   "search/37_search_find_the_closest_number_to_pi": {
@@ -1145,6 +2326,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 57,
+      "container_expr": "input (std::vector<double>, local to validate)",
+      "element_type": "double",
+      "semantic_role": "input values (container `input (std::vector<double>, local to validate)`)",
+      "lo": 100.0,
+      "hi": 1000.0,
+      "call_site_lo": 100.0,
+      "call_site_hi": 1000.0,
+      "narrower_than_call_site": false,
+      "evidence": "search/37_search_find_the_closest_number_to_pi cpu.cc:57 ENHANCED_FILL(input (std::vector<double>, local to validate), 100.0, 1000.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 100.0,
+    "domain_hi": 1000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "enforced_size_safety.min_size = 1 (E2-A)",
+    "policy": "NOT_APPLICABLE",
+    "reason": "size 0 is already excluded by the benchmark-local technical constraint min_size 1 (modulo-by-zero in validate(), x[0] read in the oracle)"
+   },
    "supported_patterns": [
     "all_same",
     "alternating",
@@ -1152,20 +2361,21 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "all_zeros": "false_fail_risk_deferred"
+   "unsupported_patterns": {
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
+   "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/search/37_search_find_the_closest_number_to_pi/{cpu.cc,baseline.hpp}",
     "min_size": 1,
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "size 0 runs `rand() % TEST_SIZE` (modulo by zero) and the frozen oracle dereferences x[0] before any size check (cpu.cc, baseline.hpp)"
+    "reason": "technical (E2-A): size 0 runs `rand() % TEST_SIZE` (modulo by zero) and the frozen oracle dereferences x[0] before any size check (cpu.cc, baseline.hpp)",
+    "technical_min_size": 1,
+    "size_zero_policy": "NOT_APPLICABLE",
+    "evidence": "drivers/cpp/benchmarks/search/37_search_find_the_closest_number_to_pi/{cpu.cc,baseline.hpp} || enforced_size_safety.min_size = 1 (E2-A)"
    }
   },
   "search/38_search_find_the_first_even_number": {
@@ -1181,20 +2391,49 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 77,
+      "container_expr": "x (std::vector<int>, local to validate)",
+      "element_type": "int",
+      "semantic_role": "input values (container `x (std::vector<int>, local to validate)`)",
+      "lo": 1.0,
+      "hi": 100.0,
+      "call_site_lo": 1.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "search/38_search_find_the_first_even_number cpu.cc:77 ENHANCED_FILL(x (std::vector<int>, local to validate), 1, 100)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 1.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt 38_search_find_the_first_even_number; baseline.hpp returns x.size()",
+    "policy": "ALLOWED",
+    "reason": "the frozen prompt pins the no-hit case: `If x contains no even number, return x.size()` - for an empty vector that is 0, exactly what baseline.hpp returns"
+   },
    "supported_patterns": [
     "all_same",
-    "all_zeros",
     "alternating",
     "ascending",
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "search/39_search_xor_contains": {
@@ -1210,6 +2449,46 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 71,
+      "container_expr": "x (std::vector<int>, local to validate)",
+      "element_type": "int",
+      "semantic_role": "input values (container `x (std::vector<int>, local to validate)`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "search/39_search_xor_contains cpu.cc:71 ENHANCED_FILL(x (std::vector<int>, local to validate), -100, 100)"
+     },
+     {
+      "line": 72,
+      "container_expr": "y (std::vector<int>, local to validate)",
+      "element_type": "int",
+      "semantic_role": "input values (container `y (std::vector<int>, local to validate)`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "search/39_search_xor_contains cpu.cc:72 ENHANCED_FILL(y (std::vector<int>, local to validate), -100, 100)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "enforced_size_safety.min_size = 1 (E2-A)",
+    "policy": "NOT_APPLICABLE",
+    "reason": "size 0 is already excluded by the benchmark-local technical constraint min_size 1 (modulo-by-zero on both empty vectors)"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1217,20 +2496,21 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "size_constraint": {
-    "evidence": "drivers/cpp/benchmarks/search/39_search_xor_contains/cpu.cc",
     "min_size": 1,
-    "policy_dependency": "none - benchmark-local technical constraint proven from the frozen oracle/driver source (and, for fft, the frozen prompt domain). This is NOT the open SIZE_ZERO_SPEC_POLICY: every benchmark without an entry keeps accepting size 0.",
-    "reason": "size 0 evaluates x[rand() % x.size()] and y[rand() % y.size()] on empty vectors: modulo by zero plus out-of-bounds reads (cpu.cc)"
+    "reason": "technical (E2-A): size 0 evaluates x[rand() % x.size()] and y[rand() % y.size()] on empty vectors: modulo by zero plus out-of-bounds reads (cpu.cc)",
+    "technical_min_size": 1,
+    "size_zero_policy": "NOT_APPLICABLE",
+    "evidence": "drivers/cpp/benchmarks/search/39_search_xor_contains/cpu.cc || enforced_size_safety.min_size = 1 (E2-A)"
    }
   },
   "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude": {
@@ -1246,6 +2526,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 121,
+      "container_expr": "real",
+      "element_type": "double",
+      "semantic_role": "input values (container `real`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude cpu.cc:121 ENHANCED_FILL(real, -100.0, 100.0)"
+     },
+     {
+      "line": 122,
+      "container_expr": "imag",
+      "element_type": "double",
+      "semantic_role": "input values (container `imag`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude cpu.cc:122 ENHANCED_FILL(imag, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: in-place sort",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1253,13 +2573,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -1276,6 +2596,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 78,
+      "container_expr": "x",
+      "element_type": "int",
+      "semantic_role": "input values (container `x`)",
+      "lo": 0.0,
+      "hi": 10000.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 10000.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/41_sort_k-th_smallest_element cpu.cc:78 ENHANCED_FILL(x, 0, 10000)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 10000.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "cpu.cc:64-73 size-0 guard; prompt 41_sort_k-th_smallest_element `1 <= k <= x.size()`",
+    "policy": "DISALLOWED",
+    "reason": "cpu.cc validate() intercepts an empty x with an explicit guard that emits the BASELINE_INCOMPATIBLE marker and never grades; the source states `n = 0 lies outside the frozen mathematical domain (1 <= k <= n requires n >= 1)`, which the prompt also states"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1284,13 +2632,21 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {}
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {},
+   "size_constraint": {
+    "min_size": 1,
+    "reason": "size-zero policy (E2-B): cpu.cc validate() intercepts an empty x with an explicit guard that emits the BASELINE_INCOMPATIBLE marker and never grades; the source states `n = 0 lies outside the frozen mathematical domain (1 <= k <= n requires n >= 1)`, which the prompt also states",
+    "technical_min_size": null,
+    "size_zero_policy": "DISALLOWED",
+    "evidence": "cpu.cc:64-73 size-0 guard; prompt 41_sort_k-th_smallest_element `1 <= k <= x.size()`"
+   }
   },
   "sort/42_sort_sorted_ranks": {
    "pattern_effect": "EFFECTIVE",
@@ -1305,6 +2661,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 127,
+      "container_expr": "x",
+      "element_type": "float",
+      "semantic_role": "input values (container `x`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/42_sort_sorted_ranks cpu.cc:127 ENHANCED_FILL(x, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: ranks into an output container; catalog size_rationale states size 0 degenerates gracefully",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1314,13 +2698,13 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "extreme_values": "extreme_semantics_deferred",
-    "spike_at": "extreme_semantics_deferred"
-   }
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {}
   },
   "sort/43_sort_sort_an_array_of_structs_by_key": {
    "pattern_effect": "EFFECTIVE",
@@ -1336,23 +2720,72 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 154,
+      "container_expr": "startTime",
+      "element_type": "int",
+      "semantic_role": "input values (container `startTime`)",
+      "lo": 0.0,
+      "hi": 100.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/43_sort_sort_an_array_of_structs_by_key cpu.cc:154 ENHANCED_FILL(startTime, 0, 100)"
+     },
+     {
+      "line": 155,
+      "container_expr": "duration",
+      "element_type": "int",
+      "semantic_role": "input values (container `duration`)",
+      "lo": 1.0,
+      "hi": 10.0,
+      "call_site_lo": 1.0,
+      "call_site_hi": 10.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/43_sort_sort_an_array_of_structs_by_key cpu.cc:155 ENHANCED_FILL(duration, 1, 10)"
+     },
+     {
+      "line": 156,
+      "container_expr": "value",
+      "element_type": "float",
+      "semantic_role": "Result.value (float payload, not the sort key)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sort/43_sort_sort_an_array_of_structs_by_key cpu.cc:156 ENHANCED_FILL(value, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": false,
+    "reason": "the fill sites of this benchmark declare DIFFERENT legitimate domains for semantically different inputs, so one global value_range would have no unambiguous meaning. E2-B refuses to invent a common domain: value_range is not supported for this benchmark. Pattern and size variation are unaffected.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: in-place sort of a struct vector",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
-    "all_zeros",
     "alternating",
     "ascending",
     "descending",
     "duplicate_at",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
-   "deferred_policy_patterns": {
-    "extreme_values": "extreme_semantics_deferred",
-    "spike_at": "extreme_semantics_deferred"
-   }
+   "deferred_policy_patterns": {}
   },
   "sort/44_sort_sort_non-zero_elements": {
    "pattern_effect": "NONE",
@@ -1360,6 +2793,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: in-place sort; catalog size_rationale states size 0 degenerates gracefully",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "SORT44_ADAPTER_POLICY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -1384,6 +2835,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: x is an N-element output vector; every extent derives from TEST_SIZE (catalog size_rationale)",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "SPARSE_ADAPTER_POLICY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -1415,6 +2884,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 185,
+      "container_expr": "X_values",
+      "element_type": "double",
+      "semantic_role": "input values (container `X_values`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/46_sparse_la_spmm cpu.cc:185 ENHANCED_FILL(X_values, -1.0, 1.0)"
+     },
+     {
+      "line": 186,
+      "container_expr": "A_values",
+      "element_type": "double",
+      "semantic_role": "input values (container `A_values`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/46_sparse_la_spmm cpu.cc:186 ENHANCED_FILL(A_values, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: Y is a dense MxN output matrix; all extents derive from TEST_SIZE",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1422,13 +2931,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {},
    "pattern_coverage": "partial",
@@ -1447,6 +2956,58 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 165,
+      "container_expr": "values",
+      "element_type": "double",
+      "semantic_role": "input values (container `values`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/47_sparse_la_spmv cpu.cc:165 ENHANCED_FILL(values, -1.0, 1.0)"
+     },
+     {
+      "line": 166,
+      "container_expr": "x",
+      "element_type": "double",
+      "semantic_role": "input values (container `x`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/47_sparse_la_spmv cpu.cc:166 ENHANCED_FILL(x, -1.0, 1.0)"
+     },
+     {
+      "line": 167,
+      "container_expr": "correct (initial y vector, in/out)",
+      "element_type": "double",
+      "semantic_role": "input values (container `correct (initial y vector, in/out)`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/47_sparse_la_spmv cpu.cc:167 ENHANCED_FILL(correct (initial y vector, in/out), -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: y is an M-element output vector; all extents derive from TEST_SIZE",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1454,13 +3015,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -1477,6 +3038,46 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 159,
+      "container_expr": "xValues",
+      "element_type": "double",
+      "semantic_role": "input values (container `xValues`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/48_sparse_la_sparse_axpy cpu.cc:159 ENHANCED_FILL(xValues, -1.0, 1.0)"
+     },
+     {
+      "line": 160,
+      "container_expr": "yValues",
+      "element_type": "double",
+      "semantic_role": "input values (container `yValues`)",
+      "lo": -1.0,
+      "hi": 1.0,
+      "call_site_lo": -1.0,
+      "call_site_hi": 1.0,
+      "narrower_than_call_site": false,
+      "evidence": "sparse_la/48_sparse_la_sparse_axpy cpu.cc:160 ENHANCED_FILL(yValues, -1.0, 1.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -1.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: z is a dense output vector; all extents derive from TEST_SIZE",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1484,13 +3085,13 @@
     "ascending",
     "descending",
     "duplicate_at",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
    "unsupported_patterns": {
-    "explicit_values": "no_single_canonical_fill_site"
+    "explicit_values": "no_single_canonical_fill_site",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -1500,6 +3101,24 @@
     "element_types": [],
     "has_fill_hook": false,
     "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "fill_domain_capability": {
+    "has_fill_hook": false,
+    "global_value_range_supported": false,
+    "site_domains": [],
+    "reason": "the benchmark has no reachable ENHANCED_FILL hook in validate(), so there is no container to represent a fill value in and every fill parameter is inert"
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: L and U are outputs; the leading-principal-minor precondition is vacuous at N=0",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
+   "adapter_policy": {
+    "decision": "NO_NEW_ADAPTER_FOR_PILOT_002",
+    "evidence": "fill_sites = [] in this catalog; the input is built by the frozen generator in cpu.cc",
+    "pattern_variation": "unavailable",
+    "policy_field": "SPARSE_ADAPTER_POLICY",
+    "reason": "this benchmark has no reachable ENHANCED_FILL hook; E2-B decides DELIBERATELY not to invent a pattern vocabulary (graph topology, sparsity structure, zero structure) for pilot_002. Honest capability limitation instead of fabricated diversity. Size variation is unaffected."
    },
    "supported_patterns": [
     "random"
@@ -1531,6 +3150,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 69,
+      "container_expr": "input",
+      "element_type": "int",
+      "semantic_role": "input values (container `input`)",
+      "lo": 0.0,
+      "hi": 2.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 2.0,
+      "narrower_than_call_site": false,
+      "evidence": "stencil/50_stencil_xor_kernel cpu.cc:69 ENHANCED_FILL(input, 0, 2)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 2.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: output is an NxN grid; catalog size_rationale states size 0 is safe",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1539,12 +3186,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "stencil/51_stencil_edge_kernel": {
@@ -1560,6 +3208,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 73,
+      "container_expr": "input",
+      "element_type": "int",
+      "semantic_role": "input values (container `input`)",
+      "lo": 0.0,
+      "hi": 255.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 255.0,
+      "narrower_than_call_site": false,
+      "evidence": "stencil/51_stencil_edge_kernel cpu.cc:73 ENHANCED_FILL(input, 0, 255)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 255.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: imageOut is an NxN image",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1568,12 +3244,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "stencil/52_stencil_1d_jacobi_3-point_stencil": {
@@ -1589,6 +3266,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 62,
+      "container_expr": "input",
+      "element_type": "double",
+      "semantic_role": "input values (container `input`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "stencil/52_stencil_1d_jacobi_3-point_stencil cpu.cc:62 ENHANCED_FILL(input, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: output container; catalog size_rationale states the oracle's size()-1 underflow is unreachable at size 0",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1597,12 +3302,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "stencil/53_stencil_2d_jacobi_5-point_stencil": {
@@ -1618,6 +3324,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 65,
+      "container_expr": "input",
+      "element_type": "double",
+      "semantic_role": "input values (container `input`)",
+      "lo": -100.0,
+      "hi": 100.0,
+      "call_site_lo": -100.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "stencil/53_stencil_2d_jacobi_5-point_stencil cpu.cc:65 ENHANCED_FILL(input, -100.0, 100.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -100.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: output is an NxN grid",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1626,12 +3360,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "stencil/54_stencil_game_of_life": {
@@ -1647,23 +3382,50 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 75,
+      "container_expr": "input",
+      "element_type": "int",
+      "semantic_role": "input values (container `input`)",
+      "lo": 0.0,
+      "hi": 1.0,
+      "call_site_lo": 0.0,
+      "call_site_hi": 2.0,
+      "narrower_than_call_site": true,
+      "evidence": "prompt 54_stencil_game_of_life; baseline.hpp correctGameOfLife raw neighbour accumulation"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 0.0,
+    "domain_hi": 1.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": true
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: output is an NxN grid",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
-    "alternating",
     "duplicate_at",
     "explicit_values",
     "random"
    ],
    "unsupported_patterns": {
-    "extreme_values": "unsafe_pattern_for_benchmark"
+    "alternating": "reaches_value_outside_declared_fill_domain",
+    "ascending": "reaches_value_outside_declared_fill_domain",
+    "descending": "reaches_value_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema",
+    "sorted_except_one": "reaches_value_outside_declared_fill_domain",
+    "spike_at": "reaches_value_outside_declared_fill_domain"
    },
-   "deferred_policy_patterns": {
-    "ascending": "false_fail_risk_deferred",
-    "descending": "false_fail_risk_deferred",
-    "sorted_except_one": "false_fail_risk_deferred",
-    "spike_at": "false_fail_risk_deferred"
-   }
+   "deferred_policy_patterns": {}
   },
   "transform/55_transform_relu": {
    "pattern_effect": "EFFECTIVE",
@@ -1678,6 +3440,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 56,
+      "container_expr": "input",
+      "element_type": "double",
+      "semantic_role": "input values (container `input`)",
+      "lo": -50.0,
+      "hi": 50.0,
+      "call_site_lo": -50.0,
+      "call_site_hi": 50.0,
+      "narrower_than_call_site": false,
+      "evidence": "transform/55_transform_relu cpu.cc:56 ENHANCED_FILL(input, -50.0, 50.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -50.0,
+    "domain_hi": 50.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: elementwise in-place transform",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1686,12 +3476,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "transform/56_transform_negate_odds": {
@@ -1707,9 +3498,36 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 54,
+      "container_expr": "input",
+      "element_type": "int",
+      "semantic_role": "input values (container `input`)",
+      "lo": 1.0,
+      "hi": 100.0,
+      "call_site_lo": 1.0,
+      "call_site_hi": 100.0,
+      "narrower_than_call_site": false,
+      "evidence": "transform/56_transform_negate_odds cpu.cc:54 ENHANCED_FILL(input, 1, 100)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 1.0,
+    "domain_hi": 100.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: elementwise in-place transform",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
-    "all_zeros",
     "alternating",
     "ascending",
     "descending",
@@ -1719,10 +3537,11 @@
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
-   "deferred_policy_patterns": {
-    "extreme_values": "false_fail_risk_deferred"
-   }
+   "unsupported_patterns": {
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
+   "deferred_policy_patterns": {}
   },
   "transform/57_transform_inverse_offset": {
    "pattern_effect": "EFFECTIVE",
@@ -1737,6 +3556,34 @@
     "all_integral": false,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 55,
+      "container_expr": "input",
+      "element_type": "double",
+      "semantic_role": "input values (container `input`)",
+      "lo": -50.0,
+      "hi": 50.0,
+      "call_site_lo": -50.0,
+      "call_site_hi": 50.0,
+      "narrower_than_call_site": false,
+      "evidence": "transform/57_transform_inverse_offset cpu.cc:55 ENHANCED_FILL(input, -50.0, 50.0)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -50.0,
+    "domain_hi": 50.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: elementwise in-place transform",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1745,12 +3592,13 @@
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   },
   "transform/58_transform_squaring": {
@@ -1766,6 +3614,34 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 55,
+      "container_expr": "input",
+      "element_type": "int",
+      "semantic_role": "input values (container `input`)",
+      "lo": -50.0,
+      "hi": 50.0,
+      "call_site_lo": -50.0,
+      "call_site_hi": 50.0,
+      "narrower_than_call_site": false,
+      "evidence": "transform/58_transform_squaring cpu.cc:55 ENHANCED_FILL(input, -50, 50)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": -50.0,
+    "domain_hi": 50.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": true,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: elementwise in-place transform",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
     "all_zeros",
@@ -1775,11 +3651,11 @@
     "duplicate_at",
     "explicit_values",
     "random",
-    "sorted_except_one"
+    "sorted_except_one",
+    "spike_at"
    ],
    "unsupported_patterns": {
-    "extreme_values": "unsafe_pattern_for_benchmark",
-    "spike_at": "unsafe_pattern_for_benchmark"
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
    },
    "deferred_policy_patterns": {}
   },
@@ -1796,20 +3672,49 @@
     "all_integral": true,
     "reason": "technical representability of the benchmark's ENHANCED_FILL containers (derived from fill_sites[].container_value_type_normalized). value_min / value_max bound the values the container can hold; max_finite_span bounds the span the current fill arithmetic can compute in it without signed overflow (integral: hi-lo and span+1 must both fit) or a non-finite intermediate (floating: hi-lo must stay finite). A spec outside these bounds is REJECTED, never clipped - clipping would decide VALUE_RANGE_DOMAIN_POLICY, which stays open. This says nothing about which values are semantically meaningful for the benchmark."
    },
+   "fill_domain_capability": {
+    "has_fill_hook": true,
+    "site_domains": [
+     {
+      "line": 59,
+      "container_expr": "input",
+      "element_type": "int",
+      "semantic_role": "input values (container `input`)",
+      "lo": 1.0,
+      "hi": 1025.0,
+      "call_site_lo": 1.0,
+      "call_site_hi": 1025.0,
+      "narrower_than_call_site": false,
+      "evidence": "transform/59_transform_map_function cpu.cc:59 ENHANCED_FILL(input, 1, 1025)"
+     }
+    ],
+    "global_value_range_supported": true,
+    "domain_lo": 1.0,
+    "domain_hi": 1025.0,
+    "reason": "every pattern-relevant fill site of this benchmark declares the SAME legitimate domain, so a single global value_range has an unambiguous meaning and is allowed as a SUBSET of it. Endpoints outside it are rejected, never clipped: clipping would be a different policy than the one E2-B froze.",
+    "zero_in_every_site_domain": false,
+    "any_site_narrower_than_call_site": false
+   },
+   "size_zero_policy": {
+    "evidence": "prompt: mask is an output container sized from x",
+    "policy": "ALLOWED",
+    "reason": "the result is an output container that is simply empty at size 0 - there is no scalar convention for a candidate to guess, and the oracle's loops do not execute"
+   },
    "supported_patterns": [
     "all_same",
-    "all_zeros",
     "alternating",
     "ascending",
     "descending",
     "duplicate_at",
     "explicit_values",
-    "extreme_values",
     "random",
     "sorted_except_one",
     "spike_at"
    ],
-   "unsupported_patterns": {},
+   "unsupported_patterns": {
+    "all_zeros": "constant_outside_declared_fill_domain",
+    "extreme_values": "duplicate_of_alternating_under_domain_extrema"
+   },
    "deferred_policy_patterns": {}
   }
  }
