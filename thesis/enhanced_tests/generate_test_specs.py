@@ -451,9 +451,22 @@ def generate_for_benchmark(
     spec_model_id: str,
     retained_specs: "Optional[List[dict]]" = None,
     replacement_budget: "Optional[int]" = None,
-) -> "Tuple[List[dict], List[dict], bool]":
+) -> "Tuple[List[dict], List[dict], bool, Dict[str, Any]]":
     """Initial ask + up to REFILL_ROUNDS refills until the target number of
-    valid specs exists. Returns (accepted, discarded_log_entries, under_target).
+    valid specs exists. Returns
+    (accepted, discarded_log_entries, under_target, outcome).
+
+    E3.1 OUTCOME. `outcome["reason"]` says WHY the run ended, so a caller can
+    never label a provider failure a capability limit:
+
+        TARGET_MET                 the target was reached
+        API_FAILURE                at least one round got no response at all
+                                   (adapter failure or refusal)
+        PARSE_OR_REFILL_EXHAUSTED  responses arrived but could not be parsed
+        CAPABILITY_LIMITED         responses arrived and parsed, every refill
+                                   round ran, and everything not accepted was
+                                   rejected by validation or as a duplicate -
+                                   i.e. the valid space really is exhausted
 
     call_llm(user_prompt) -> raw response text or None (API failure /
     refusal); injected so tests can drive the quota logic with a fake.
@@ -484,6 +497,8 @@ def generate_for_benchmark(
     # E3: retained spec_keys are already taken, so a replacement can never
     # duplicate one of them
     seen_keys = {spec_key(s) for s in retained}
+    telemetry = {"rounds": 0, "api_failures": 0, "parse_failures": 0,
+                 "proposals": 0}
 
     def run_round(ask_count: "Optional[int]", reasons: "List[str]") -> None:
         shown = (retained + accepted) or None
@@ -494,18 +509,24 @@ def generate_for_benchmark(
             ask_count=ask_count,
         )
 
+        telemetry["rounds"] += 1
         raw = None
         for _attempt in range(PARSE_RETRIES + 1):
             raw_text = call_llm(prompt)
             if raw_text is None:
-                return  # API failure/refusal: no retries here, adapter did its own
+                # API failure/refusal: no retries here, adapter did its own
+                telemetry["api_failures"] += 1
+                return
             raw = parse_spec_response(raw_text)
             if raw is not None:
                 break
 
         if raw is None:
+            telemetry["parse_failures"] += 1
             discarded.append({"benchmark": benchmark, "reason": "no valid JSON array"})
             return
+
+        telemetry["proposals"] += len(raw)
 
         for item in raw:
             if isinstance(item, dict):
@@ -553,7 +574,29 @@ def generate_for_benchmark(
         reasons = [d["reason"] for d in discarded if "spec" in d]
         run_round(ask_count=missing, reasons=reasons)
 
-    return accepted, discarded, len(accepted) < target
+    under_target = len(accepted) < target
+    if not under_target:
+        reason = "TARGET_MET"
+    elif telemetry["api_failures"]:
+        reason = "API_FAILURE"
+    elif telemetry["parse_failures"] or telemetry["proposals"] == 0:
+        reason = "PARSE_OR_REFILL_EXHAUSTED"
+    else:
+        # every round produced parseable proposals and every refill ran, yet the
+        # target was not reached: what came back was rejected by validation or
+        # was a duplicate, so the admissible space really is exhausted
+        reason = "CAPABILITY_LIMITED"
+    outcome = {
+        "reason": reason,
+        "accepted": len(accepted),
+        "target": target,
+        "under_target": under_target,
+        "rounds": telemetry["rounds"],
+        "api_failures": telemetry["api_failures"],
+        "parse_failures": telemetry["parse_failures"],
+        "proposals_seen": telemetry["proposals"],
+    }
+    return accepted, discarded, under_target, outcome
 
 
 def load_existing(output_path: Path, known: "set", settings: Dict[str, Any]) -> "Dict[str, int]":
@@ -681,7 +724,7 @@ def main() -> None:
                 )
                 baseline = baseline[:max_baseline]
 
-            accepted, discarded, is_under = generate_for_benchmark(
+            accepted, discarded, is_under, _outcome = generate_for_benchmark(
                 call_llm, benchmark, serial_prompts[name], baseline,
                 settings, known, spec_model_id,
             )

@@ -177,7 +177,7 @@ def test_refill_rounds():
                 ' {"size": 2, "pattern": "ascending", "rationale": "dup"},'
                 ' {"size": 4, "pattern": "all_zeros", "rationale": "d"}]')
 
-    accepted, discarded, under = generate_for_benchmark(
+    accepted, discarded, under, outcome = generate_for_benchmark(
         fake_llm, BENCH, "sig", "baseline", settings, KNOWN, "spec_model_x"
     )
     check("refill happened (2 calls)", len(calls) == 2)
@@ -191,7 +191,7 @@ def test_refill_rounds():
     def always_empty(prompt):
         return "[]"
 
-    accepted2, _discarded2, under2 = generate_for_benchmark(
+    accepted2, _discarded2, under2, _outcome2 = generate_for_benchmark(
         always_empty, BENCH, "sig", "baseline", settings, KNOWN, "m"
     )
     check("under_target after max refills", under2 and len(accepted2) == 0)

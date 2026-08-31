@@ -196,6 +196,14 @@ def enhanced_specs_info(config: "Dict[str, Any]") -> "Optional[Dict[str, Any]]":
             "spec_count": spec_count}
 
 
+class EnhancedExecutionConditionMismatch(RuntimeError):
+    """The run manifest belongs to a different enhanced execution condition.
+
+    Fail-closed: raised BEFORE any record is written or skipped, so a run can
+    never mix two conditions under one manifest.
+    """
+
+
 def ensure_run_manifest(
     config: "Dict[str, Any]",
     run_id: str,
@@ -204,6 +212,7 @@ def ensure_run_manifest(
     primary_compiler: str = "g++",
     prompt_selection: "Optional[Dict[str, Any]]" = None,
     enhanced_policy: "Optional[Dict[str, Any]]" = None,
+    enhanced_execution: "Optional[Dict[str, Any]]" = None,
 ) -> "Dict[str, Any]":
     """Create the manifest on first contact with a run directory; on later
     contacts detect and RECORD config drift (never overwrite the frozen
@@ -217,6 +226,12 @@ def ensure_run_manifest(
     spec_count}) with resolved_config semantics: written once at
     creation, later contacts only COMPARE and record deviations in
     config_drift ("spec file changed after run start") — never an abort.
+
+    enhanced_execution (optional, from
+    execution_provenance.enhanced_execution_fingerprint, E3.1) pins the FULL
+    enhanced execution condition. Unlike every other field here it is a HARD
+    GATE: if an existing manifest records a different fingerprint (or none),
+    this raises EnhancedExecutionConditionMismatch instead of recording drift.
 
     enhanced_policy (optional, from capabilities.policy_preflight, E2-A.1)
     records WHICH enforced capability policy governed the run: content
@@ -259,6 +274,8 @@ def ensure_run_manifest(
             manifest["prompt_selection"] = _jsonable(prompt_selection)
         if enhanced_policy is not None:
             manifest["enhanced_policy"] = _jsonable(enhanced_policy)
+        if enhanced_execution is not None:
+            manifest["enhanced_execution"] = _jsonable(enhanced_execution)
         _write_manifest(path, manifest)
         print(f"[{stage}] run manifest frozen: {path}")
         return manifest
@@ -272,6 +289,27 @@ def ensure_run_manifest(
     if enhanced_policy is not None and "enhanced_policy" not in existing:
         existing["enhanced_policy"] = _jsonable(enhanced_policy)
         enriched = True
+
+    # E3.1 HARD GATE for productive enhanced runs. Unlike config drift, a
+    # changed enhanced EXECUTION CONDITION means the existing records and the
+    # ones this invocation would write are not the same experiment. Recording
+    # it as drift and continuing would let one manifest describe two conditions,
+    # so this aborts BEFORE anything is written or skipped. A manifest that
+    # predates the fingerprint is not silently backfilled either: it has no
+    # evidence of the condition its records were produced under.
+    if enhanced_execution is not None:
+        recorded = existing.get("enhanced_execution")
+        recorded_sha = (recorded or {}).get(
+            "enhanced_execution_fingerprint_sha256")
+        current_sha = enhanced_execution.get(
+            "enhanced_execution_fingerprint_sha256")
+        if recorded_sha != current_sha:
+            raise EnhancedExecutionConditionMismatch(
+                "run manifest %s was frozen under enhanced execution "
+                "fingerprint %s but this invocation runs under %s. The two are "
+                "different experiments; use a fresh run_id. (A --force rerun "
+                "does not make them the same run.)"
+                % (path, recorded_sha or "<none recorded>", current_sha))
 
     # legacy manifests (pre enhanced_specs) get the pin backfilled ONCE
     # without counting it as drift — there is no frozen value to deviate

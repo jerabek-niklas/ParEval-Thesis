@@ -33,6 +33,45 @@ Keine Cross-Pilot-Fingerprints angefasst.
 
 ---
 
+> ## Nachtrag E3.1 (2026-08-30) — zwei zu starke Aussagen in diesem Report
+>
+> Dieser Report bleibt als Dokument des E3-Standes bestehen. Ein anschließender
+> read-only Audit hat zwei Formulierungen als **zu stark** belegt; beide werden
+> hier korrigiert, die zugrunde liegenden Zahlen ändern sich nicht.
+>
+> **(1) „…sie haben also nie einen Testfall erzeugt" (§3, Duplicate-Zeilen).**
+> Für die **direkte** Ausführung stimmt das: `build_benchmark_specs` dedupliziert
+> auf `spec_key`, die Identität lief genau einmal. Die Zeilen waren aber **nicht
+> wirkungslos**: die Mutation-Frontier wurde bis E3.1 aus den **rohen** Seedzeilen
+> gebildet (`frontier = list(seeds)`), eine doppelt serialisierte Zeile stand also
+> zweimal in der Frontier und veränderte über die Länge der Mutationsliste die
+> Shuffle-Reihenfolge — und damit, welche Mutanten den Target-Cap überlebten.
+> Gemessen am Pre-E3-Snapshot: **7 Benchmarks, 21 raw-only und 21
+> canonical-only abgeleitete Keys**, dazu `fft/08` mit denselben Keys in anderer
+> Reihenfolge. Derselbe Mechanismus galt für **invalide** Seedzeilen, dort
+> deutlich größer: **46 Benchmarks, 152 raw-only / 138 canonical-only**.
+>
+> Richtig ist also: *die doppelte Identität wurde einmal ausgeführt, aber die
+> doppelte Serialisierung konnte die abgeleitete Mutationsmenge verändern.*
+> E3 hat die Duplicate-Serialisierung aus dem Cache entfernt; **E3.1**
+> kanonisiert zusätzlich die Frontier, sodass künftig Seedidentitäten und nicht
+> Zeilenvielfachheit bestimmen, was ein Benchmark testet. Siehe
+> `thesis/evaluation/enhanced_e3_1_provenance_report.md`.
+>
+> **(2) „wortwörtlich übernommen" / „byte-for-byte" (§5, Retention).**
+> Identität und Semantik stimmen, die Bytes nicht in allen Fällen: von den 272
+> erhaltenen Identitäten sind **6 Zeilen nicht byteidentisch** zu ihrer
+> Pre-E3-Serialisierung, weil Nicht-ASCII-Zeichen im Freitext `rationale` beim
+> Schreiben anders kodiert werden. **Alle 272 geparsten JSON-Objekte sind
+> gleich** (`VALID_OLD_SPECS_MODIFIED = 0` gilt unverändert, es vergleicht die
+> Objekte). Korrekt formuliert: *dasselbe geparste JSON-Spec-Objekt, derselbe
+> `spec_key`, dieselbe Inputsemantik* — nicht notwendig dieselbe Byte-Zeile.
+>
+> Ebenfalls präzisiert: §3 nennt den Cache „nicht versioniert". Das galt für
+> E3. **E3.1 versioniert** die beiden Artefakte unter
+> `thesis/enhanced_tests/frozen/` (`e3_pre_specs.jsonl`,
+> `e3_final_specs.jsonl`), byte-exakt zu den hier genannten SHA-256.
+
 ## 2. Policy cleanup
 
 Zwei nicht-funktionale Textreste aus E2-B, plus die davon abhängigen
@@ -102,8 +141,10 @@ diese Kopie, nicht gegen git.
 `spec_key`s zweimal (7 Paare beidseitig invalid, 5 beidseitig valid). Die
 Duplikate unterscheiden sich **ausschließlich** im Freitext `rationale`, der
 weder in `spec_key` noch in `spec_defines` noch in `spec_runtime_env` eingeht —
-und `build_benchmark_specs` verwarf sie zur Laufzeit ohnehin (es dedupliziert
-auf `spec_key`), sie haben also nie einen Testfall erzeugt. E3 behandelt sie als
+und `build_benchmark_specs` verwarf sie für die **direkte** Ausführung ohnehin
+(es dedupliziert auf `spec_key`), die Identität lief also genau einmal.
+*(E3.1-Korrektur: wirkungslos waren sie damit trotzdem nicht — bis E3.1 wurde
+die Mutation-Frontier aus den rohen Zeilen gebildet, siehe Nachtrag oben.)* E3 behandelt sie als
 **redundante Zeilen einer Spec**, nicht als zusätzliche Specs: Populationsbasis
 sind die **471 distinkten Identitäten**, die erste Zeile bleibt erhalten. Damit
 geht keine Spec verloren und der finale Cache erfüllt `UNIQUE_SPEC_KEYS`.
@@ -136,14 +177,17 @@ Vereinigung alle 483 Zeilen ist:
 
 | Menge | Zeilen | Behandlung |
 |---|---|---|
-| `RETAINED_UNCHANGED` | **262** | wortwörtlich übernommen, gleicher `spec_key` |
-| `RETAINED_DRIFTED` | **10** | wortwörtlich übernommen, gleicher `spec_key`, `requires_reexecution = true` |
+| `RETAINED_UNCHANGED` | **262** | unverändert übernommen (gleiches geparstes Objekt, gleicher `spec_key`) |
+| `RETAINED_DRIFTED` | **10** | unverändert übernommen, gleicher `spec_key`, `requires_reexecution = true` |
 | `INVALID_TO_REPLACE` | **199** | aus dem finalen Cache entfernt |
 | `DUPLICATE_ROW` | **12** | redundante Zweitserialisierung, erste Zeile bleibt |
 
 Retained Specs werden als **das ursprüngliche JSON-Objekt** übernommen — kein
 Parametercleanup, kein Range-Normalisieren, kein Rationale-Umschreiben, kein
 Pattern-/Sizewechsel. Der `spec_key` ist damit konstruktionsbedingt unverändert.
+*(E3.1-Präzisierung: identisch ist das **geparste Objekt**, nicht in allen
+Fällen die Byte-Zeile — 6 der 272 Zeilen kodieren Nicht-ASCII im `rationale`
+anders. Siehe Nachtrag oben.)*
 
 ---
 
@@ -373,6 +417,7 @@ Manifests.
 |---|---|
 | `OLD_SPECS_SHA256` | `0fe9561e13504ef8a2dd6455711628a6e8512848e9347e5576a02d777d0e1874` |
 | Backup | `thesis/results/cache/enhanced/specs.pre_e3_dffbaa8.jsonl` (byteidentisch) |
+| Versionierter Snapshot (E3.1) | `thesis/enhanced_tests/frozen/e3_pre_specs.jsonl` / `e3_final_specs.jsonl`, byte-exakt |
 | `NEW_SPECS_SHA256` | `49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292` |
 | `policy_sha256` | `1173ac98200e65f4ae6e0995b9ea41db60d3851dc7d048151f8f89e91c1619b4` |
 | `catalog_sha256` | `8f3a0b6ad84aa183339bb12129dc638470c9c322d3a7e6fc300d7895c98dbada` |

@@ -123,6 +123,7 @@ from thesis.evaluation.run_correctness import (  # noqa: E402
     parse_mismatch_output,
 )
 from thesis.enhanced_tests import capabilities  # noqa: E402
+from thesis.enhanced_tests import execution_provenance as execprov  # noqa: E402
 from thesis.enhanced_tests.baseline_selftest import (  # noqa: E402
     build_wrapper,
     compile_and_run,
@@ -159,8 +160,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-id", default=None, help="Single model; default all enabled.")
     parser.add_argument(
         "--specs",
-        default=str(REPO_ROOT / "thesis" / "results" / "cache" / "enhanced" / "specs.jsonl"),
-        help="LLM spec JSONL (optional; static base set + mutations always run).",
+        # E3.1: the FROZEN, version-controlled execution artifact - not the
+        # gitignored generator cache. A fresh clone can run the enhanced stage
+        # with no local cache and no LLM. The mutable cache stays the
+        # GENERATOR's output; pass it explicitly to regenerate from it.
+        default=str(REPO_ROOT / "thesis" / "enhanced_tests" / "frozen"
+                    / "e3_final_specs.jsonl"),
+        help="Enhanced seed spec JSONL (default: the frozen E3 execution "
+             "artifact; static base set + mutations always run).",
     )
     parser.add_argument(
         "--force",
@@ -793,6 +800,20 @@ def main() -> None:
            policy_provenance["derived_from_sha256"][:16])
     )
 
+    # E3.1 EXECUTION CONDITION. A recorded result is the output of this spec
+    # set, this policy, this harness, these benchmark oracles, these drivers
+    # and this effective config. The fingerprint content-addresses all of them
+    # so resume can refuse anything else; the policy hash alone did not.
+    execution_provenance = execprov.enhanced_execution_fingerprint(
+        args.specs, settings, primary_compiler="g++")
+    print(
+        "Enhanced execution fingerprint: %s (specs %s, %d distinct keys)"
+        % (execution_provenance["enhanced_execution_fingerprint_sha256"][:16],
+           (execution_provenance["components"]["A_spec_set"]["specs_sha256"]
+            or "<missing>")[:16],
+           execution_provenance["components"]["A_spec_set"]["distinct_spec_keys"])
+    )
+
     cli_jobs = parse_jobs_arg(args.jobs) if args.jobs else None
     jobs = resolve_jobs(settings, cli_jobs)
 
@@ -829,6 +850,7 @@ def main() -> None:
     ensure_run_manifest(
         config, run_id, stage="enhanced_tests", profile=args.profile,
         primary_compiler="g++", enhanced_policy=policy_provenance,
+        enhanced_execution=execution_provenance,
     )
 
     llm_specs = load_llm_specs(Path(args.specs))
@@ -889,36 +911,40 @@ def main() -> None:
                         continue
 
             if done:
-                # E3 FAIL-CLOSED RESUME BOUNDARY.
+                # E3.1 FAIL-CLOSED RESUME BOUNDARY.
                 #
-                # A record is the result of a specific enhanced POLICY and
-                # harness, but resume keys only on (sample_id, spec_key) - and
-                # spec_key deliberately does not encode either. A spec whose
-                # identity stayed the same while its INPUT SEMANTICS changed
-                # (the drifted-but-valid class) would therefore be skipped and
-                # its stale record silently kept as current. Refuse instead:
-                # the run must either continue under the policy it started
-                # with, or start fresh (--force / a new run_id).
-                recorded_policy = None
+                # Resume keys on (sample_id, spec_key), and spec_key encodes
+                # NONE of the execution condition. Skipping a recorded row is
+                # therefore only sound when the whole condition is unchanged:
+                # spec artifact, policy, harness sources, benchmark oracles,
+                # drivers and effective config. Anything else - including a
+                # record written before this fingerprint existed - is refused.
+                # There is deliberately no legacy exemption for a productive
+                # resume.
+                recorded = None
                 resume_summary = output_path.parent / summary_name
                 if resume_summary.exists():
                     try:
-                        recorded_policy = (
-                            (json.loads(resume_summary.read_text(encoding="utf-8"))
-                             or {}).get("enhanced_policy_provenance") or {}
-                        ).get("enhanced_policy_sha256")
+                        recorded = (
+                            json.loads(resume_summary.read_text(encoding="utf-8"))
+                            or {}).get("enhanced_execution_provenance")
                     except ValueError:
-                        recorded_policy = None
-                current_policy = policy_provenance["enhanced_policy_sha256"]
-                if recorded_policy != current_policy:
+                        recorded = None
+                allowed, why = execprov.resume_allowed(
+                    recorded, execution_provenance)
+                recorded_sha = execprov.fingerprint_sha(recorded)
+                current_sha = execution_provenance[
+                    "enhanced_execution_fingerprint_sha256"]
+                if not allowed:
                     print(
-                        f"[{model_id}] RESUME REFUSED - existing records were "
-                        f"produced under enhanced policy "
-                        f"{recorded_policy or '<unrecorded>'} but the current "
-                        f"policy is {current_policy}. spec_key does not encode "
-                        "the policy, so resuming would keep results whose input "
-                        "semantics have since changed. Re-run this run_id with "
-                        "--force, or use a fresh run_id."
+                        f"[{model_id}] RESUME REFUSED - existing records carry "
+                        f"execution fingerprint {recorded_sha or '<none recorded>'} "
+                        f"but the current condition is {current_sha}. "
+                        f"Reason: {why}. "
+                        "spec_key does not encode the execution condition, so "
+                        "resuming would keep results the current tree would no "
+                        "longer produce. Use a fresh run_id (preferred), or "
+                        "re-run this one with --force."
                     )
                     sys.exit(3)
                 print(f"[{model_id}] resume: {len(done)} (sample, spec) rows exist, skipping those")
@@ -1120,6 +1146,9 @@ def main() -> None:
             # Content-addressed (sha256 over the policy and audit-catalog
             # bytes), never mtime, file name or git commit.
             "enhanced_policy_provenance": dict(policy_provenance),
+            # E3.1: the full execution condition these records belong to. The
+            # resume guard compares exactly this.
+            "enhanced_execution_provenance": dict(execution_provenance),
         }
         common.write_json(output_path.parent / summary_name, summary)
 

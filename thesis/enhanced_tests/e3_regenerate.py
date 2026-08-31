@@ -254,7 +254,7 @@ def main():
             print("  [%d/%d] %s budget=%d retained=%d"
                   % (position, len(todo), benchmark, budget,
                      len(retained_by_benchmark.get(benchmark, []))))
-            accepted, discarded, under = gen.generate_for_benchmark(
+            accepted, discarded, under, outcome = gen.generate_for_benchmark(
                 call_llm, benchmark, serial_prompts[name], baseline, settings,
                 known, spec_model_id,
                 retained_specs=retained_by_benchmark.get(benchmark, []),
@@ -268,6 +268,7 @@ def main():
                 "discarded": [{k: v for k, v in d.items() if k != "spec"}
                               for d in discarded],
                 "under_target": bool(under),
+                "outcome": outcome,
                 "generated_at_utc": utc_now(),
             }
             print("      -> accepted %d/%d%s"
@@ -350,11 +351,19 @@ def main():
         budget = plan["replacement_budget"]
         shortfall = budget - made
         info = generated.get(benchmark) or {}
+        # E3.1: the reason comes from the generator's own outcome, never from a
+        # guess. Only a genuinely exhausted admissible space is CAPABILITY_LIMITED.
         reason = None
         if shortfall > 0:
-            reason = ("GENERATION_FAILURE" if info.get("under_target")
-                      and not info.get("accepted") and info.get("api_failed")
-                      else "CAPABILITY_LIMITED")
+            outcome_reason = (info.get("outcome") or {}).get("reason")
+            if outcome_reason == "CAPABILITY_LIMITED":
+                reason = "CAPABILITY_LIMITED"
+            elif outcome_reason in ("API_FAILURE", "PARSE_OR_REFILL_EXHAUSTED"):
+                reason = "GENERATION_FAILURE:" + outcome_reason
+            elif outcome_reason is None:
+                reason = "OTHER_BLOCKER:no_generator_outcome_recorded"
+            else:
+                reason = "OTHER_BLOCKER:" + outcome_reason
         per_benchmark[benchmark] = OrderedDict([
             ("old_row_count", plan["old_row_count"]),
             ("duplicate_rows", plan["duplicate_rows"]),

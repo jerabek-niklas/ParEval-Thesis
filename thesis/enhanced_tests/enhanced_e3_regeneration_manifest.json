@@ -3268,5 +3268,19 @@
   }
  },
  "new_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
- "atomic_replacement": "PASS"
+ "atomic_replacement": "PASS",
+ "pre_e3_frozen_specs_path": "thesis/enhanced_tests/frozen/e3_pre_specs.jsonl",
+ "pre_e3_sha256": "0fe9561e13504ef8a2dd6455711628a6e8512848e9347e5576a02d777d0e1874",
+ "final_e3_frozen_specs_path": "thesis/enhanced_tests/frozen/e3_final_specs.jsonl",
+ "final_e3_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+ "exact_cache_reconstruction_available": true,
+ "fresh_clone_verification_command": "python thesis/enhanced_tests/verify_e3_frozen_artifacts.py",
+ "duplicate_row_count": 12,
+ "duplicate_group_count": 12,
+ "duplicate_rows_valid": 5,
+ "duplicate_row_semantics": "A duplicate ROW is a second serialization of a spec_key already present. For DIRECT execution it was deduplicated (build_benchmark_specs dedupes on spec_key), so the identity ran once. It was NOT inert, however: before E3.1 the mutation frontier was seeded from the RAW rows, so a duplicated row entered the frontier twice and changed which mutants survived the target cap (measured on the pre-E3 snapshot: 7 benchmarks, 21 raw-only and 21 canonical-only derived keys, plus fft/08 with the same keys in a different order). Invalid rows had the same effect at larger scale (46 benchmarks, 152/138). E3 removed the duplicate serialization from the cache; E3.1 canonicalizes the frontier so neither can influence mutation again.",
+ "mutation_frontier_canonicalization_version": "e3.1",
+ "retention_equality_semantics": "Retained specs are the same parsed JSON objects with the same spec_key and the same input semantics. Six retained lines are not byte-identical to their pre-E3 serialization because non-ASCII characters in the free-text rationale are re-encoded on write; the parsed objects compare equal.",
+ "raw_provider_responses_retained": false,
+ "raw_provider_responses_note": "The raw provider responses and the full discarded-proposal log of the E3 generation run were not persisted as a frozen artifact. The ACCEPTED artifact is fully version controlled, and the replacement key set, spec_model and generator config fingerprint are recorded here, so the accepted experiment is exactly reusable; the generation process itself is not re-derivable."
 }

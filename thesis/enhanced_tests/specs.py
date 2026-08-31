@@ -665,6 +665,42 @@ def _mutants_of(spec: dict, max_size: int) -> "List[dict]":
     return mutants
 
 
+MUTATION_FRONTIER_CANONICALIZATION_VERSION = "e3.1"
+
+
+def canonical_seed_identities(
+    seeds: "List[dict]",
+    known_benchmarks: "set",
+    max_size: int = 4096,
+    explicit_values_max_size: int = 64,
+) -> "List[dict]":
+    """The seed list reduced to one object per spec_key: the first VALID one.
+
+    E3.1: this is what both the emitted seeds and the mutation frontier are
+    built from, so neither row multiplicity nor unrunnable rows can influence
+    what a benchmark ends up testing. Order of first valid appearance is
+    preserved, so the deterministic mutation order is unchanged for a seed list
+    that was already unique and valid.
+    """
+    seen = set()
+    canonical: "List[dict]" = []
+    for spec in seeds:
+        try:
+            key = spec_key(spec)
+        except (KeyError, TypeError):
+            continue                      # not even shaped like a spec
+        if key in seen:
+            continue                      # a second serialization of the same spec
+        ok, _reason = validate_spec(
+            spec, known_benchmarks, max_size=max_size,
+            explicit_values_max_size=explicit_values_max_size)
+        if not ok:
+            continue                      # cannot run, so it must not breed either
+        seen.add(key)
+        canonical.append(spec)
+    return canonical
+
+
 def build_benchmark_specs(
     benchmark: str,
     llm_specs: "List[dict]",
@@ -684,6 +720,39 @@ def build_benchmark_specs(
     Priority under the cap: static base first, then LLM seeds, then
     mutations in seeded-shuffled round order. Invalid mutants (e.g. k out
     of range after a size mutation) are dropped via validate_spec.
+
+    E3.1 CANONICAL SEED FRONTIER. The seed list is canonicalized BEFORE it is
+    used, to the first VALID occurrence per spec_key. Previously the mutation
+    frontier was seeded from the raw rows, so two things that must not matter
+    did:
+
+      * ROW MULTIPLICITY - a spec_key serialized twice (the pre-E3 cache had 12
+        such rows) entered the frontier twice and mutated twice. Measured on the
+        pre-E3 snapshot: 7 benchmarks, 21 raw-only and 21 canonical-only derived
+        keys, plus fft/08 with the same keys in a different order.
+      * INVALID SEEDS - a seed the frozen policy rejects was never emitted
+        itself, but still produced mutants. Measured on the same snapshot: 46
+        benchmarks, 152 raw-only and 138 canonical-only derived keys.
+
+    Both are the same fake-diversity defect E2-A/E2-A.1 froze out one layer up:
+    what a benchmark tests must follow from its SEED IDENTITIES, not from how
+    many times a row was written or from rows that cannot run. Identity is
+    spec_key; validity is decided per OBJECT, so a duplicate whose first
+    serialization is invalid cannot mask a later valid one.
+
+    SCOPE. Canonicalization applies to the SEED ROWS (`llm_specs`, i.e. what was
+    deserialized from the spec artifact) - which is exactly where row
+    multiplicity and unrunnable rows can occur. It is deliberately NOT applied
+    to the union with the static base: `static_base_specs` is generated here,
+    deterministically, and a static/LLM spec_key collision is a different
+    phenomenon (two generators proposing one identity), not a serialization
+    artefact. It produces no fake diversity either, because emission already
+    dedupes on spec_key - it only lengthens the pre-shuffle mutation list.
+    Collapsing it WOULD change which mutants survive the target cap, i.e. it
+    would silently re-shuffle the suite E3 just froze (measured on the frozen
+    artifact: 12 benchmarks, 38 colliding identities, 10 benchmarks with a
+    changed key set). That is out of scope here and recorded as a separate
+    finding.
     """
     settings = stage_settings(config or {})
     target = int(settings["target_cases_per_benchmark"])
@@ -691,7 +760,15 @@ def build_benchmark_specs(
     known = {benchmark}
 
     static = static_base_specs(benchmark, settings["static_base_sizes"])
-    seeds = static + llm_specs
+    # Canonicalize the SEED ROWS read from the spec artifact. The static base is
+    # generated deterministically here, not deserialized, so it carries no row
+    # multiplicity; it is deliberately NOT collapsed against the LLM seeds (see
+    # the note above).
+    seeds = static + canonical_seed_identities(
+        llm_specs, known,
+        max_size=max_size,
+        explicit_values_max_size=int(settings["explicit_values_max_size"]),
+    )
 
     result: "List[dict]" = []
     seen = set()

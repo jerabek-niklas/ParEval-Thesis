@@ -257,7 +257,7 @@ def group_replacement_path():
              "rationale": "over budget"},
         ])
 
-    accepted, discarded, under = gen.generate_for_benchmark(
+    accepted, discarded, under, outcome = gen.generate_for_benchmark(
         fake, benchmark, "prompt", "baseline", settings, {benchmark},
         "glm_5_2", retained_specs=retained, replacement_budget=2)
 
@@ -285,6 +285,38 @@ def group_replacement_path():
     check("the prompt showed the retained spec as already accepted",
           "ALREADY ACCEPTED" in calls[0])
     check("under_target is false when the budget is met", not under)
+    check("the generator reports TARGET_MET", outcome["reason"] == "TARGET_MET",
+          str(outcome))
+
+    # E3.1: a provider failure must never be reported as a capability limit
+    def dead(_prompt):
+        return None
+
+    _a, _d, under2, outcome2 = gen.generate_for_benchmark(
+        dead, benchmark, "prompt", "baseline", settings, {benchmark},
+        "glm_5_2", retained_specs=retained, replacement_budget=2)
+    check("an API failure is classified API_FAILURE, not CAPABILITY_LIMITED",
+          under2 and outcome2["reason"] == "API_FAILURE", str(outcome2))
+
+    def garbage(_prompt):
+        return "not json at all"
+
+    _a, _d, under3, outcome3 = gen.generate_for_benchmark(
+        garbage, benchmark, "prompt", "baseline", settings, {benchmark},
+        "glm_5_2", retained_specs=retained, replacement_budget=2)
+    check("an unparseable response is classified PARSE_OR_REFILL_EXHAUSTED",
+          under3 and outcome3["reason"] == "PARSE_OR_REFILL_EXHAUSTED",
+          str(outcome3))
+
+    def only_invalid(_prompt):
+        return json.dumps([{"size": 8, "pattern": "extreme_values",
+                            "pattern_params": {}, "rationale": "banned"}])
+
+    _a, _d, under4, outcome4 = gen.generate_for_benchmark(
+        only_invalid, benchmark, "prompt", "baseline", settings, {benchmark},
+        "glm_5_2", retained_specs=retained, replacement_budget=2)
+    check("an exhausted admissible space is classified CAPABILITY_LIMITED",
+          under4 and outcome4["reason"] == "CAPABILITY_LIMITED", str(outcome4))
 
 
 # ---------------------------------------------------------------------------
