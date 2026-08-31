@@ -240,7 +240,18 @@ def group_resume_matrix():
     import inspect
     from thesis.evaluation import run_enhanced_tests as runner
     source = inspect.getsource(runner.main)
-    check("the runner calls resume_allowed", "execprov.resume_allowed(" in source)
+    # E3.1.1: the runner now calls the STRICTER per-model decision, which
+    # embeds this global fingerprint plus the candidate source hashes. Assert
+    # the property (a fingerprint-based resume decision that covers the global
+    # condition), not the old function name.
+    check("the runner uses a fingerprint-based resume decision",
+          "execprov.model_resume_allowed(" in source
+          or "execprov.resume_allowed(" in source)
+    check("the per-model decision embeds the global execution fingerprint",
+          "global_execution_fingerprint_sha256"
+          in json.dumps(execprov.model_execution_fingerprint(
+              current, {"model_id": "m", "combined_sha256": "x",
+                        "sample_count": 0})))
     check("the refusal exits instead of skipping rows", "sys.exit(3)" in source)
     lines = source.splitlines()
     guard = next((i for i, l in enumerate(lines) if "RESUME REFUSED" in l), None)

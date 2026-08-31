@@ -23,10 +23,29 @@ SHA-256 over these components:
                          combined canonical hash
     F  driver sources    the serial/omp/mpi drivers and the shared harness
                          headers the build actually uses
-    G  effective config  the execution-relevant enhanced settings
-    H  toolchain         compiler (and MPI, when an MPI model runs) identity,
-                         taken from the existing run_manifest helpers - no new
-                         environment subsystem
+    G  effective config  the execution-relevant enhanced settings PLUS the two
+                         values the runner resolves separately and that can
+                         change a record on their own: the effective
+                         run_timeout_seconds and the effective jobs map after
+                         the CLI override is merged in
+    H  toolchain         compiler identity, and - only when an MPI execution
+                         model actually runs - the MPI compiler and runtime
+                         identity, via the existing run_manifest helpers. No
+                         new environment subsystem.
+
+The GLOBAL fingerprint above covers everything that is shared across models.
+The tested CANDIDATE CODE is per model, so it is fingerprinted separately:
+
+    candidate_source_fingerprint()   hashes the actual assembled source BYTES of
+                                     every assembled sample of one model, via
+                                     the productive framework discovery path
+    model_execution_fingerprint()    global fingerprint + that model's candidate
+                                     fingerprint
+
+`sample_id` is a NAME, not a content address
+(`<model><type><name>__<exec>_sample<i>`), so two different generated programs
+can carry the same one. Resume therefore compares the MODEL execution
+fingerprint, which contains the source hashes.
 
 Everything is CONTENT-addressed. No mtime, no bare path, no git HEAD: a README
 commit must not invalidate a resume. The git HEAD is recorded alongside as
@@ -50,7 +69,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from thesis.enhanced_tests import capabilities  # noqa: E402
 
-FINGERPRINT_VERSION = "e3.1"
+FINGERPRINT_VERSION = "e3.1.1"
 
 # C: the enhanced input construction and its policy layer
 HARNESS_SOURCES = (
@@ -122,30 +141,71 @@ def benchmark_source_hashes():
     return per_benchmark
 
 
-def _toolchain(primary_compiler="g++", execution_models=()):
-    """H: reuse the existing run_manifest helpers; invent nothing."""
-    entry = OrderedDict()
+# the MPI tools whose identity can change an MPI result
+MPI_COMPILER = "mpicxx"
+MPI_RUNTIME = "mpirun"
+
+
+def _tool_version(tool):
+    """`<tool> --version`, first line, via the existing run_manifest helper.
+
+    Returns None when the tool is absent - never a made-up string. A productive
+    MPI run cannot get past the runner's environment gate in that state anyway.
+    """
     try:
         from thesis.evaluation import run_manifest
-        entry["primary_compiler"] = primary_compiler
-        entry["primary_compiler_version"] = run_manifest._compiler_version(
-            primary_compiler)
-    except Exception as error:  # noqa: BLE001 - reported, never invented
-        entry["primary_compiler"] = primary_compiler
-        entry["primary_compiler_version"] = None
-        entry["unavailable_reason"] = "%s: %s" % (type(error).__name__, error)
-    entry["mpi_in_execution_models"] = bool(
-        {"mpi"} & set(execution_models or ()))
+        return run_manifest._compiler_version(tool)
+    except Exception:  # noqa: BLE001 - absence is reported, never invented
+        return None
+
+
+def _toolchain(primary_compiler="g++", execution_models=()):
+    """H: reuse the existing run_manifest helpers; invent nothing.
+
+    MPI identity is included ONLY when an MPI execution model actually runs, so
+    a serial-only run does not become dependent on an unused MPI installation.
+    """
+    entry = OrderedDict()
+    entry["primary_compiler"] = primary_compiler
+    entry["primary_compiler_version"] = _tool_version(primary_compiler)
+
+    models = set(execution_models or ())
+    mpi_used = bool({"mpi"} & models)
+    entry["mpi_in_execution_models"] = mpi_used
+    if mpi_used:
+        entry["mpi_compiler"] = MPI_COMPILER
+        entry["mpi_compiler_version"] = _tool_version(MPI_COMPILER)
+        entry["mpi_runtime"] = MPI_RUNTIME
+        entry["mpi_runtime_version"] = _tool_version(MPI_RUNTIME)
     return entry
 
 
 def enhanced_execution_fingerprint(
     specs_path,
     settings: Dict[str, Any],
+    runtime: "Optional[Dict[str, Any]]" = None,
     primary_compiler: str = "g++",
     include_toolchain: bool = True,
 ) -> "Dict[str, Any]":
-    """The full execution condition plus its content-addressed fingerprint."""
+    """The full GLOBAL execution condition plus its content-addressed fingerprint.
+
+    `runtime` carries the values the runner resolves OUTSIDE `stage_settings`
+    and that can change a record on their own:
+
+        run_timeout_seconds  stages.enhanced_tests.run_timeout_seconds, else
+                             the runner's DEFAULT_RUN_TIMEOUT. A different
+                             timeout can turn the same program into
+                             timeout vs. pass/fail.
+        effective_jobs       the jobs map AFTER built-in defaults, config and
+                             the --jobs CLI override are merged. Not a claim
+                             that parallelism changes mathematical semantics -
+                             an operational execution condition capable of
+                             affecting timeout outcomes, which the runner's own
+                             overcommit note already records.
+
+    They are passed explicitly rather than read from `settings`, because
+    `stage_settings` does not contain either.
+    """
     specs_path = Path(specs_path)
     spec_rows = []
     if specs_path.is_file():
@@ -178,8 +238,15 @@ def enhanced_execution_fingerprint(
         ("combined_sha256", _canonical_hash(per_benchmark)),
     ])
     components["F_driver_sources"] = _source_hashes(DRIVER_SOURCES)
-    components["G_effective_config"] = OrderedDict(
+    runtime = dict(runtime or {})
+    effective_config = OrderedDict(
         (key, settings.get(key)) for key in EXECUTION_RELEVANT_SETTINGS)
+    effective_config["run_timeout_seconds"] = runtime.get("run_timeout_seconds")
+    effective_jobs = runtime.get("effective_jobs")
+    effective_config["effective_jobs"] = (
+        OrderedDict(sorted(effective_jobs.items()))
+        if isinstance(effective_jobs, dict) else effective_jobs)
+    components["G_effective_config"] = effective_config
     if include_toolchain:
         components["H_toolchain"] = _toolchain(
             primary_compiler, settings.get("execution_models") or ())
@@ -194,6 +261,98 @@ def enhanced_execution_fingerprint(
     # commit cannot invalidate a resume
     fingerprint["benchmark_source_hashes"] = per_benchmark
     return fingerprint
+
+
+def candidate_source_fingerprint(intermediate_dir, run_id, model_id,
+                                 repo_root=None) -> "Dict[str, Any]":
+    """Content-address the CANDIDATE CODE that one model's samples actually run.
+
+    Discovery goes through the productive path
+    (`framework.iter_assembled_samples`, which consumes assembly.jsonl), so
+    there is no second candidate-discovery logic. The hash is taken over the
+    assembled SOURCE BYTES, not over `sample_id` and not over metadata:
+    assembly.jsonl records no content hash, and local mutable metadata is not
+    trusted for this.
+    """
+    from thesis.evaluation import framework
+
+    root = Path(repo_root) if repo_root is not None else REPO_ROOT
+    samples = []
+    for sample in framework.iter_assembled_samples(
+            root, Path(intermediate_dir), run_id, model_id):
+        try:
+            relative = sample.source_path.resolve().relative_to(root.resolve())
+            logical = relative.as_posix()
+        except ValueError:
+            logical = sample.source_path.name
+        samples.append(OrderedDict([
+            ("sample_id", sample.sample_id),
+            ("model_id", sample.model_id),
+            ("execution_model", sample.execution_model),
+            ("benchmark", "%s/%s" % (sample.problem_type, sample.name)),
+            ("source_logical_path", logical),
+            ("source_sha256", _sha256_path(sample.source_path)),
+        ]))
+    samples.sort(key=lambda row: row["sample_id"])
+
+    entry = OrderedDict()
+    entry["model_id"] = model_id
+    entry["run_id"] = run_id
+    entry["sample_count"] = len(samples)
+    entry["missing_source_count"] = sum(
+        1 for row in samples if row["source_sha256"] is None)
+    entry["combined_sha256"] = _canonical_hash(samples)
+    entry["samples"] = samples
+    return entry
+
+
+def model_execution_fingerprint(global_fingerprint, candidate_fingerprint):
+    """The per-model condition a resume must match: global + candidate code."""
+    payload = OrderedDict([
+        ("fingerprint_version", FINGERPRINT_VERSION),
+        ("global_execution_fingerprint_sha256",
+         (global_fingerprint or {}).get("enhanced_execution_fingerprint_sha256")),
+        ("model_id", (candidate_fingerprint or {}).get("model_id")),
+        ("candidate_sources_sha256",
+         (candidate_fingerprint or {}).get("combined_sha256")),
+        ("candidate_sample_count",
+         (candidate_fingerprint or {}).get("sample_count")),
+    ])
+    entry = OrderedDict(payload)
+    entry["model_execution_fingerprint_sha256"] = _canonical_hash(payload)
+    # kept beside the hash for auditability, not part of it
+    entry["candidate_sources"] = candidate_fingerprint
+    return entry
+
+
+def model_fingerprint_sha(provenance) -> Optional[str]:
+    if not isinstance(provenance, dict):
+        return None
+    return provenance.get("model_execution_fingerprint_sha256")
+
+
+def model_resume_allowed(recorded, current):
+    """(allowed, reason) for the PER-MODEL condition, including candidate code.
+
+    Fail-closed in exactly the same way as the global check: a record without a
+    model execution fingerprint carries no evidence of the candidate code it was
+    produced against, so it is refused rather than exempted.
+    """
+    recorded_sha = model_fingerprint_sha(recorded)
+    current_sha = model_fingerprint_sha(current)
+    if recorded_sha is None:
+        return False, "no model execution provenance recorded"
+    if recorded_sha != current_sha:
+        differing = []
+        if (recorded or {}).get("global_execution_fingerprint_sha256") != \
+                (current or {}).get("global_execution_fingerprint_sha256"):
+            differing.append("global execution condition")
+        if (recorded or {}).get("candidate_sources_sha256") != \
+                (current or {}).get("candidate_sources_sha256"):
+            differing.append("candidate source contents")
+        return False, "model execution condition changed: " + (
+            ", ".join(differing) or "fingerprint differs")
+    return True, "model execution condition unchanged"
 
 
 def fingerprint_sha(provenance) -> Optional[str]:
@@ -245,9 +404,16 @@ def main():
                     help="omit component H (for reproducible cross-machine checks)")
     args = ap.parse_args()
 
-    settings = stage_settings(load_config(Path(args.config).resolve()))
+    config = load_config(Path(args.config).resolve())
+    settings = stage_settings(config)
+    stage = (config.get("stages") or {}).get("enhanced_tests") or {}
+    runtime = {
+        "run_timeout_seconds": float(stage.get("run_timeout_seconds", 30.0)),
+        "effective_jobs": dict(settings.get("jobs") or {}),
+    }
     fingerprint = enhanced_execution_fingerprint(
-        args.specs, settings, include_toolchain=not args.no_toolchain)
+        args.specs, settings, runtime=runtime,
+        include_toolchain=not args.no_toolchain)
     printable = OrderedDict(
         (k, v) for k, v in fingerprint.items() if k != "benchmark_source_hashes")
     print(json.dumps(printable, indent=1))

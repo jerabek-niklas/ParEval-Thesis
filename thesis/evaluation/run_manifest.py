@@ -159,7 +159,9 @@ def load_manifest(config: "Dict[str, Any]", run_id: str) -> "Optional[Dict[str, 
 ENHANCED_SPECS_DEFAULT = "thesis/results/cache/enhanced/specs.jsonl"
 
 
-def enhanced_specs_info(config: "Dict[str, Any]") -> "Optional[Dict[str, Any]]":
+def enhanced_specs_info(config: "Dict[str, Any]",
+                        specs_path: "Optional[str]" = None
+                        ) -> "Optional[Dict[str, Any]]":
     """{path, sha256, spec_count} of the enhanced spec file, or None when
     it is missing (runs without the enhanced stage stay possible; the
     caller warns). The specs are part of the TEST SET but live under
@@ -168,7 +170,11 @@ def enhanced_specs_info(config: "Dict[str, Any]") -> "Optional[Dict[str, Any]]":
     import hashlib
 
     stage = (config.get("stages") or {}).get("enhanced_tests") or {}
-    raw = stage.get("specs_file") or ENHANCED_SPECS_DEFAULT
+    # E3.1.1: the caller may pass the spec file this invocation ACTUALLY used
+    # (run_enhanced_tests --specs). Without it the manifest would pin the config
+    # default while enhanced_execution hashes the CLI file - two contradictory
+    # spec provenances for one run.
+    raw = specs_path or stage.get("specs_file") or ENHANCED_SPECS_DEFAULT
     path = Path(raw)
     if not path.is_absolute():
         path = REPO_ROOT / path
@@ -196,6 +202,39 @@ def enhanced_specs_info(config: "Dict[str, Any]") -> "Optional[Dict[str, Any]]":
             "spec_count": spec_count}
 
 
+def register_model_execution(config: "Dict[str, Any]", run_id: str,
+                             model_id: str, fingerprint_sha: str) -> None:
+    """Register one model's execution fingerprint in the run manifest.
+
+    E3.1.1. The manifest is run_id-global but a run may legitimately cover
+    several models, each with its own candidate code. So the per-model condition
+    is an ADDITIVE mapping:
+
+        first time a model appears   -> recorded, allowed
+        same model, same fingerprint -> allowed
+        same model, other fingerprint-> hard fail (different experiment)
+
+    A second model under the same run_id is therefore never blocked just
+    because a first model registered earlier.
+    """
+    path = manifest_path(config, run_id)
+    if not path.is_file():
+        return
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    mapping = manifest.setdefault("model_execution_fingerprints", {})
+    recorded = mapping.get(model_id)
+    if recorded is None:
+        mapping[model_id] = fingerprint_sha
+        _write_manifest(path, manifest)
+        return
+    if recorded != fingerprint_sha:
+        raise EnhancedExecutionConditionMismatch(
+            "run manifest %s already records model %r under model execution "
+            "fingerprint %s, but this invocation runs it under %s. The candidate "
+            "code, the spec set or the harness differs; use a fresh run_id."
+            % (path, model_id, recorded, fingerprint_sha))
+
+
 class EnhancedExecutionConditionMismatch(RuntimeError):
     """The run manifest belongs to a different enhanced execution condition.
 
@@ -213,6 +252,7 @@ def ensure_run_manifest(
     prompt_selection: "Optional[Dict[str, Any]]" = None,
     enhanced_policy: "Optional[Dict[str, Any]]" = None,
     enhanced_execution: "Optional[Dict[str, Any]]" = None,
+    enhanced_specs_path: "Optional[str]" = None,
 ) -> "Dict[str, Any]":
     """Create the manifest on first contact with a run directory; on later
     contacts detect and RECORD config drift (never overwrite the frozen
@@ -245,7 +285,7 @@ def ensure_run_manifest(
 
     existing = load_manifest(config, run_id)
 
-    specs_info = enhanced_specs_info(config)
+    specs_info = enhanced_specs_info(config, enhanced_specs_path)
 
     if existing is None:
         if specs_info is None:

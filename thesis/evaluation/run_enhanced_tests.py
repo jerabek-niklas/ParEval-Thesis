@@ -800,12 +800,23 @@ def main() -> None:
            policy_provenance["derived_from_sha256"][:16])
     )
 
+    # E3.1.1: the two values the runner resolves OUTSIDE stage_settings must be
+    # known BEFORE the fingerprint, because both can change a record on their
+    # own - a different timeout turns the same program into timeout vs.
+    # pass/fail, and the effective jobs map (built-in default, config, then the
+    # --jobs CLI override) is an operational condition the runner itself
+    # documents as capable of causing timeouts through overcommit.
+    cli_jobs = parse_jobs_arg(args.jobs) if args.jobs else None
+    jobs = resolve_jobs(settings, cli_jobs)
+
     # E3.1 EXECUTION CONDITION. A recorded result is the output of this spec
     # set, this policy, this harness, these benchmark oracles, these drivers
     # and this effective config. The fingerprint content-addresses all of them
     # so resume can refuse anything else; the policy hash alone did not.
     execution_provenance = execprov.enhanced_execution_fingerprint(
-        args.specs, settings, primary_compiler="g++")
+        args.specs, settings,
+        runtime={"run_timeout_seconds": run_timeout, "effective_jobs": jobs},
+        primary_compiler="g++")
     print(
         "Enhanced execution fingerprint: %s (specs %s, %d distinct keys)"
         % (execution_provenance["enhanced_execution_fingerprint_sha256"][:16],
@@ -813,9 +824,6 @@ def main() -> None:
             or "<missing>")[:16],
            execution_provenance["components"]["A_spec_set"]["distinct_spec_keys"])
     )
-
-    cli_jobs = parse_jobs_arg(args.jobs) if args.jobs else None
-    jobs = resolve_jobs(settings, cli_jobs)
 
     # environment gate BEFORE any record is written (2026-08-08, same
     # rationale as the dynamic preflight gate): without a compiler every
@@ -845,12 +853,17 @@ def main() -> None:
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
 
     # freeze the run configuration / record config drift (run_manifest.py)
-    from thesis.evaluation.run_manifest import ensure_run_manifest
+    from thesis.evaluation.run_manifest import (
+        ensure_run_manifest, register_model_execution)
 
     ensure_run_manifest(
         config, run_id, stage="enhanced_tests", profile=args.profile,
         primary_compiler="g++", enhanced_policy=policy_provenance,
         enhanced_execution=execution_provenance,
+        # E3.1.1: the manifest must pin the spec file this invocation actually
+        # used (--specs), not the config default - otherwise enhanced_execution
+        # and enhanced_specs could document two different artifacts.
+        enhanced_specs_path=args.specs,
     )
 
     llm_specs = load_llm_specs(Path(args.specs))
@@ -885,6 +898,27 @@ def main() -> None:
         model_id = model_config["id"]
         output_path = intermediate_dir / run_id / model_id / output_name
         groups_path = output_path.parent / groups_name
+
+        # E3.1.1 CANDIDATE CODE. sample_id is a NAME, not a content address, so
+        # the same (run_id, model_id, sample_id, spec_key) can denote a
+        # different generated program. The per-model fingerprint therefore
+        # hashes the assembled SOURCE BYTES of this model's samples, and that is
+        # what resume compares.
+        candidate_provenance = execprov.candidate_source_fingerprint(
+            intermediate_dir, run_id, model_id)
+        model_execution_provenance = execprov.model_execution_fingerprint(
+            execution_provenance, candidate_provenance)
+        print(
+            "[%s] candidate sources: %d assembled sample(s), model execution "
+            "fingerprint %s"
+            % (model_id, candidate_provenance["sample_count"],
+               model_execution_provenance["model_execution_fingerprint_sha256"][:16])
+        )
+        # additive per-model registration; same model + different condition
+        # fails closed, a NEW model under the same run_id is allowed
+        register_model_execution(
+            config, run_id, model_id,
+            model_execution_provenance["model_execution_fingerprint_sha256"])
 
         if args.force:
             # the summary must go too: a stale marker-less summary from a
@@ -921,20 +955,22 @@ def main() -> None:
                 # record written before this fingerprint existed - is refused.
                 # There is deliberately no legacy exemption for a productive
                 # resume.
-                recorded = None
+                recorded_model = None
                 resume_summary = output_path.parent / summary_name
                 if resume_summary.exists():
                     try:
-                        recorded = (
+                        recorded_model = (
                             json.loads(resume_summary.read_text(encoding="utf-8"))
-                            or {}).get("enhanced_execution_provenance")
+                            or {}).get("enhanced_model_execution_provenance")
                     except ValueError:
-                        recorded = None
-                allowed, why = execprov.resume_allowed(
-                    recorded, execution_provenance)
-                recorded_sha = execprov.fingerprint_sha(recorded)
-                current_sha = execution_provenance[
-                    "enhanced_execution_fingerprint_sha256"]
+                        recorded_model = None
+                # E3.1.1: the MODEL fingerprint, which contains the global
+                # condition AND this model's candidate source hashes
+                allowed, why = execprov.model_resume_allowed(
+                    recorded_model, model_execution_provenance)
+                recorded_sha = execprov.model_fingerprint_sha(recorded_model)
+                current_sha = model_execution_provenance[
+                    "model_execution_fingerprint_sha256"]
                 if not allowed:
                     print(
                         f"[{model_id}] RESUME REFUSED - existing records carry "
@@ -1146,9 +1182,12 @@ def main() -> None:
             # Content-addressed (sha256 over the policy and audit-catalog
             # bytes), never mtime, file name or git commit.
             "enhanced_policy_provenance": dict(policy_provenance),
-            # E3.1: the full execution condition these records belong to. The
-            # resume guard compares exactly this.
+            # E3.1: the full GLOBAL execution condition these records belong to.
             "enhanced_execution_provenance": dict(execution_provenance),
+            # E3.1.1: the per-model condition, including the content hashes of
+            # the candidate sources actually tested. The resume guard compares
+            # exactly this.
+            "enhanced_model_execution_provenance": dict(model_execution_provenance),
         }
         common.write_json(output_path.parent / summary_name, summary)
 
