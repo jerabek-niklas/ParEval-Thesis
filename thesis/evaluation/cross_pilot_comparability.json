@@ -1,634 +1,1404 @@
 {
- "generated_by": "Wave 3 cleanup",
- "date": "2026-08-27",
- "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
- "state_commit": "5b22343b8b01456ee37b6a009ee26aba5c07a2e9",
- "pilot_001_population": {
-  "iteration0_cells": 396,
-  "benchmarks": 12,
-  "models": 11,
-  "execution_models": 3,
-  "samples_per_cell": 1,
-  "source": "thesis/results/intermediate/pilot_001/<model>/correctness.jsonl, run_id == pilot_001 (base run only; NOT the 1903 overview/repair/analysis rows)",
-  "historical_schema_version": "correctness.v1",
-  "stdout_available": true,
-  "stdout_truncated_cells": 0
- },
- "candidate_subset": {
-  "cells": 99,
-  "benchmarks": [
-   "graph/15_graph_edge_count",
-   "reduce/25_reduce_xor",
-   "search/35_search_search_for_last_struct_by_key"
-  ],
-  "models": [
-   "claude_fable_5",
-   "claude_opus_5",
-   "deepseek_v4_flash",
-   "deepseek_v4_pro",
-   "gemini_31_pro",
-   "gemini_36_flash",
-   "openai_gpt55",
-   "openai_gpt56_sol",
-   "qwen36_35b_a3b",
-   "qwen37_max",
-   "qwen3_coder_api"
-  ],
-  "execution_models": [
-   "serial",
-   "omp",
-   "mpi"
-  ],
-  "samples_per_cell": 1,
-  "verdict_distribution": {
-   "build_failed": 2,
-   "pass": 94,
-   "runtime_error": 1,
-   "validation_failed": 2
+  "generated_by": "Cross-Pilot reevaluation after the final Enhanced freeze (E1-E3.1.1)",
+  "date": "2026-08-31",
+  "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
+  "state_commit": "6fc8a1a9a33d287f5dc7c87bf5f3502dfda9b859",
+  "pilot_001_population": {
+    "iteration0_cells": 396,
+    "benchmarks": 12,
+    "models": 11,
+    "execution_models": 3,
+    "samples_per_cell": 1,
+    "source": "thesis/results/intermediate/pilot_001/<model>/correctness.jsonl, run_id == pilot_001 (base run only; NOT the 1903 overview/repair/analysis rows)",
+    "historical_schema_version": "correctness.v1",
+    "stdout_available": true,
+    "stdout_truncated_cells": 0
   },
-  "selection_rule": "method-unchanged pilot_001 benchmarks (Wave-2B §34 categories A-E untouched) WHOSE GRADED COMPARISON PAYLOAD IS EXCLUSIVELY DISCRETE (int/bool/size_t scalars): for these, the verdict-relevant Wave-1/1b comparator classes K2/K3/K4/K5 are constructively unreachable (compile-time dead non-finite branches, no container in the graded path, no reachable BI condition) and K1/K7 are transport-only, so every historical verdict is method-stable by construction - no per-cell record analysis required."
- },
- "excluded_from_prior_198_cell_proposal": {
-  "benchmarks": [
-   "dense_la/00_dense_la_lu_decomp",
-   "scan/30_scan_prefix_sum",
-   "transform/55_transform_relu"
-  ],
-  "cells": 99,
-  "verdict_distribution": {
-   "build_failed": 1,
-   "pass": 92,
-   "timeout": 1,
-   "validation_failed": 5
-  },
-  "reason": "Floating-point graded payloads (vector<double>). K4: the pilot_001-era comparator was NaN-blind, so a historical 'pass' can hide non-finite candidate values without any trace in the frozen records; whether any given pass cell is affected is not determinable without re-measurement -> TRANSPORT_EFFECT_UNRESOLVED. Additionally for dense_la/00: K2 in-principle reachable (unpivoted pivot division in the oracle; NaN references structurally invisible historically). K3 (silent wrong-length pass under -DNDEBUG) shares the same no-trace problem for container payloads. Missing evidence is NOT interpreted as verdict-preserving."
- },
- "transport_effect": {
-  "population": "the 198-cell cross-pilot proposal of the Wave-3 report (6 method-unchanged benchmarks x 11 models x 3 execution models x 1 sample)",
-  "verdict_preserving_cells": 99,
-  "verdict_changed_cells": 0,
-  "unresolved_cells": 99,
-  "counting_rule": "Benchmark-level resolution: all 99 cells of the retained discrete-payload benchmarks are preserving by constructive unreachability; all 99 cells of the excluded FP-payload benchmarks are conservatively counted unresolved (individual fail-side cells there carry finite mismatch evidence and are plausibly preserving, but no per-cell claim is made). No cell shows evidence of a concrete verdict change (verdict_changed_cells = 0 means 'none demonstrated', not 'none possible' - for excluded cells the possibility is exactly why they are unresolved).",
-  "historical_stdout_reparse": "NOT performed: historical pilot_001 stdout predates the nonce and MUST NOT be fed through the authenticated parser as a verdict comparison; the class analysis is code- and record-structure-based."
- },
- "reuse_status": "UNDECIDED",
- "one_sample_per_cell": true,
- "change_classes": [
-  {
-   "id": "K1",
-   "name": "authenticated nonce transport",
-   "classification": "TRANSPORT_ONLY",
-   "requires_historical_record_filter": false,
-   "note": "Verdict computation unchanged; only emission/authentication/parsing of the Validation/BI lines. Wave-1 tests document correct nonce emission by the trusted drivers (wave1_final_gate_report.md §3.3, §4, §12.1); Wave-1 §8.2 measured 0 effective self-declared markers across the complete pilot_001 stdout corpus, so no historical verdict depended on an unauthenticated line. Historical stdout was NOT re-parsed with the authenticated parser."
-  },
-  {
-   "id": "K2",
-   "name": "non-finite reference -> BASELINE_INCOMPATIBLE",
-   "classification": "VERDICT_RELEVANT",
-   "requires_historical_record_filter": true,
-   "note": "Historically a NaN reference compared NaN-blind (silent pass); today the cell becomes baseline_incompatible and leaves the denominator. Historical NaN references are structurally invisible in the frozen records (Wave-1 §8.4). Reachability filter applied per benchmark: unreachable for discrete graded payloads; for dense_la/00 in-principle reachable (unpivoted division); for scan/30 and transform/55 oracle-side unreachable under the correctness-stage inputs."
-  },
-  {
-   "id": "K3",
-   "name": "size-mismatch FAIL",
-   "classification": "VERDICT_RELEVANT",
-   "requires_historical_record_filter": true,
-   "note": "Historically assert() vanished under -DNDEBUG, allowing a silent wrong-length pass; today explicit SIZE_MISMATCH FAIL. Only applicable to container graded payloads (00/30/55); a silent historical wrong-length pass leaves no record trace, so its historical occurrence is not determinable. Not applicable to the retained scalar benchmarks."
-  },
-  {
-   "id": "K4",
-   "name": "non-finite candidate FAIL",
-   "classification": "VERDICT_RELEVANT",
-   "requires_historical_record_filter": true,
-   "note": "Historically a NaN candidate value passed the NaN-blind tolerance predicate; today forced FAIL. A silent historical NaN pass leaves no record trace; effect on pass cells of FP benchmarks is not determinable from frozen records without re-measurement. Constructively unreachable for the retained benchmarks (int/bool/size_t scalar payloads; non-finite branches are compile-time dead code). Wave-1 §8.4 found 4 correctness records with non-finite got= values in pilot_001 (visible = already-failing cells)."
-  },
-  {
-   "id": "K5",
-   "name": "BASELINE_INCOMPATIBLE outranks process state",
-   "classification": "VERDICT_RELEVANT",
-   "requires_historical_record_filter": true,
-   "note": "Requires an authentic BI marker, which itself requires a reachable BI condition; pilot_001 predates the BI vocabulary entirely (0 markers in the frozen records). Unreachable for the retained benchmarks at the correctness stage (no BI path can fire: non-finite reference impossible for discrete payloads; search/35's TEST_SIZE==0 guard cannot fire at the correctness-stage size)."
-  },
-  {
-   "id": "K6",
-   "name": "repair terminal status stopped_baseline_incompatible",
-   "classification": "VERDICT_RELEVANT",
-   "requires_historical_record_filter": false,
-   "note": "Repair-state vocabulary change downstream of K2; outside the 396 iteration-0 cross-pilot population and measured to affect 0 pilot_001 records (0 BI stop_reasons; pilot_001 predates BI)."
-  },
-  {
-   "id": "K7",
-   "name": "legacy parser token-robustness fix (driver_wrapper.py)",
-   "classification": "TRANSPORT_ONLY",
-   "requires_historical_record_filter": false,
-   "note": "Upstream legacy parser reads the first token after the colon; identical result for all intended legacy-mode driver output (verified by real upstream regression, Wave-1 §12.3)."
-  }
- ],
- "non_finite_reachable_by_benchmark": {
-  "dense_la/00_dense_la_lu_decomp": "true (oracle: unguarded pivot division, baseline.hpp:16; candidate: vector<double> payload)",
-  "graph/15_graph_edge_count": "false (scalar int payload; non-finite branches compile-time dead)",
-  "reduce/25_reduce_xor": "false (scalar bool payload)",
-  "scan/30_scan_prefix_sum": "true (candidate: vector<double> payload; oracle-side unreachable under correctness-stage inputs)",
-  "search/35_search_search_for_last_struct_by_key": "false (scalar size_t payload)",
-  "transform/55_transform_relu": "true (candidate: vector<double> payload; oracle performs no arithmetic, cannot create non-finite from finite input)"
- },
- "statistical_caveats": [
-  "exactly 1 sample per cell - no within-cell variance estimation is possible",
-  "only 12 of 60 benchmarks were in pilot_001; only 3 of those 12 remain quantitatively comparable",
-  "the retained subset consists exclusively of scalar discrete-output benchmarks - a structural selection toward the simplest output class; results on it do not generalize to the suite",
-  "double selection bias: stratified 12-benchmark pilot selection, then method-stability filtering",
-  "PILOT_002_REUSES_PILOT_001_GENERATIONS = UNDECIDED - attribution sharpness (generation vs grading) depends on that open decision",
-  "the classification asserts FORMAL admissibility of a quantitative comparison on the named 99 cells only; it does NOT assert that pilot_001 is a strong, precise or statistically robust baseline"
- ],
- "rationale": "The Wave-3 report's 198-cell quantitative subset claim treated the suite-wide Wave-1/1b transport/comparator delta (F = WAVE1_TRANSPORT_CHANGE, kept separate from the benchmark-level A/B/C/D/E categories) as a caveat. This gate re-examined F class by class against the actual frozen records: K1/K7 are transport-only (with Wave-1 measured evidence that no pilot_001 verdict depended on unauthenticated markers); K2/K3/K4/K5 are verdict-relevant but constructively unreachable for discrete graded payloads. For the three FP-payload benchmarks the NaN-blind history makes hidden verdict changes undetectable in frozen records, so their 99 cells cannot be certified method-stable without re-measurement and are excluded. The quantitative claim is therefore narrowed to the 99 discrete-payload cells; A∪B∪C∪D∪E = 34/60 remains a benchmark-level change set only and F is never folded into it.",
- "supersedes_wave3_report_cross_pilot_claim": true,
- "candidate_subset_state": [
-  {
-   "benchmark": "graph/15_graph_edge_count",
-   "cpu_cc_sha256": "0fb956df49ab5e659573482f54d58cab8a656eea699719b7515d3ced0bda2667",
-   "baseline_hpp_sha256": "75dca8bc6fe6eeca156e5491c4c8350b4ea41323470f5dcb441083db0a8318d2",
-   "prompt_sha256": {
-    "serial": "89b04f25168500fd96cdf5ec6e3c56aa42508c5d6dea178587eb1ce0904f001c",
-    "omp": "19d08712aa9cf5e788fa511a3209b590e8f57a95e0d365b60c70ae2b36eb1182",
-    "mpi": "56b097ead0028c9b977e454cc787b03fe33d0972163860bbeccc8cc252725e2c"
-   },
-   "enhanced_spec_keys_sha256": "756dbdaf691af918d98babcc154dd81fb7c93ec0145a21fee6a1d31b07cbcfd2",
-   "enhanced_state_hash_available": true
-  },
-  {
-   "benchmark": "reduce/25_reduce_xor",
-   "cpu_cc_sha256": "a60032184126a2cf9f528811b207e432e286316b9ac0bfde5ca8641604b31aef",
-   "baseline_hpp_sha256": "f2b7cefaa2304208846d028baa227661bcc654589a95147930c01ff40e2fcae2",
-   "prompt_sha256": {
-    "serial": "e6f89cb930b1272f6abd96ac92022af0510b75ef81d0a7c4aff01dde902c0f49",
-    "omp": "149a9c965b2145be3187fa435c81ba73e7e780f47e3dc1ac85576694a3082604",
-    "mpi": "32e0f74de5dad786ce9b070d29fb3270e7d0fd8e8f32f67e33d82ac457b117d7"
-   },
-   "enhanced_spec_keys_sha256": "4e1af7b76e57d0fdad38dee73ebbc8a1e9f37a8f16bd47ed487283e51517ddaa",
-   "enhanced_state_hash_available": true
-  },
-  {
-   "benchmark": "search/35_search_search_for_last_struct_by_key",
-   "cpu_cc_sha256": "b8bed84111027d05cf307d245af7625c1670d2b54890d1a640bb84bf1a1cdae2",
-   "baseline_hpp_sha256": "79953120cb6dac92a3c1f58d4596e1ab5eafe5b1c9884fa3d196792c1fc75123",
-   "prompt_sha256": {
-    "serial": "fd0c33d9d049c23993d630ce96628d05af96c7ac6624f8261126f651780cc198",
-    "omp": "d216b18798231abb2c11760ac52a81a2084a05cd1457eef60940d6bf197f59e9",
-    "mpi": "853236def8beb660d79ee03f0e76d120b2dc5f2bce70ea60828989770fbf19f5"
-   },
-   "enhanced_spec_keys_sha256": "04b36d092c298fedd1d48e8e0024faa4126c4b884d46e8ac685c2585e47e947b",
-   "enhanced_state_hash_available": true
-  }
- ],
- "shared_state": {
-  "hash_rule": "SHA-256 over raw file bytes; no normalization, no git blob SHA. Granularity semantics and the condition canonicalization rules are documented authoritatively in check_cross_pilot_gate.py.",
-  "files": {
-   "drivers/cpp/utilities.hpp": {
-    "sha256": "872fa063612f766a2351f0a8f943b195cc7996aac8d35e7f736fcf20cb1901e8",
-    "granularity": "semantic",
-    "reason": "Shared comparator core used by every candidate-subset validate(): finite/non-finite logic (mismatchIsFinite), scalar/vector comparison helpers (reportAndCompareScalar/reportAndCompare*), mismatch reporting, BI emission helper (mismatchNoteNonFiniteReference), MAX_VALIDATION_ATTEMPTS default, shared harness macros. Essentially all content is shared verdict/comparison semantics."
-   },
-   "drivers/cpp/harness-markers.hpp": {
-    "sha256": "4698dcbdd279b72bdcda670c42856373627887999daa19f0bdf4e9a5d7fae554",
-    "granularity": "semantic",
-    "reason": "Authenticated trusted marker transport: parevalEmitValidation, PAREVAL_BI_NONCE handling, marker formats for Validation/BI lines. Entire file is transport semantics."
-   },
-   "drivers/cpp/enhanced-fill.hpp": {
-    "sha256": "157b998ae296c3af9a22152ee0faf09398011f8338a45fc6df35469d59a333ec",
-    "granularity": "semantic",
-    "reason": "Shared enhanced input semantics: ENHANCED_FILL pattern implementations, runtime-fill mode, ENHANCED_TEST_SIZE machinery. Changes alter enhanced input generation for candidate-subset benchmarks."
-   },
-   "drivers/cpp/models/serial-driver.cc": {
-    "sha256": "e4e5e73ae195ea05cce300be2c982ac8486a1d41065d2f9fe40eca1f14d2d1c4",
-    "granularity": "semantic",
-    "reason": "Shared serial driver main: validation invocation flow and argv contract compiled into every serial correctness binary."
-   },
-   "drivers/cpp/models/omp-driver.cc": {
-    "sha256": "9e35f283e34f7f1f916f0a65e1ae1a1e2759925c90a848872d3213bd01de42f2",
-    "granularity": "semantic",
-    "reason": "Shared OpenMP driver main: thread-count handling (argv[1]), fixed internal NITER, validation invocation flow."
-   },
-   "drivers/cpp/models/mpi-driver.cc": {
-    "sha256": "81166bc9e77c039bc7820cd16243a1764b1e3cae11b9a8d5a6d2b23a72745be6",
-    "granularity": "semantic",
-    "reason": "Shared MPI driver main: rank setup, root-only verdict path, validation invocation flow."
-   },
-   "thesis/evaluation/build_config.py": {
-    "sha256": "a39b982986c40d2264f9f8234cc0a78d4c7142d123a16f474f352a37d3b7bf81",
-    "granularity": "semantic",
-    "reason": "Declared single source of truth for compile and launch: base flags (-std=c++17 -O3), USE_* macros, compiler resolution (g++/mpicxx), -fopenmp, default launch grids (omp threads / mpi ranks 1,2,4,8). Essentially all content is measurement-condition semantics."
-   },
-   "thesis/evaluation/run_correctness.py": {
-    "sha256": "35a9a633da4689a4eb2a627730d0a0b810d4f71ae861515768990a4ade99350b",
-    "granularity": "coarse",
-    "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected."
-   },
-   "thesis/evaluation/framework.py": {
-    "sha256": "1ad10512fd67ada3f7aad658e692d39803e7f6b0bda051cf0e59e72fd27a42e3",
-    "granularity": "coarse",
-    "reason": "Contains run_command (timeout enforcement and timed_out/exit capture feeding the timeout/runtime_error verdicts) and compile-input plumbing (EvaluationContext.include_dirs) plus unrelated operational code."
-   },
-   "thesis/evaluation/run_enhanced_tests.py": {
-    "sha256": "7b17e2ff76a60a38ff28d4f0a14f277cef1e6254f53e55cb3489600629c95b8f",
-    "granularity": "coarse",
-    "reason": "Productive enhanced execution/verdict path (spec grouping, runtime-fill launches, enhanced verdicts) plus substantial runner/CLI/orchestration code."
-   },
-   "thesis/enhanced_tests/specs.py": {
-    "sha256": "59ddf3233fa1fe86efd6ca821a1cd68dd932fe5156060addefdcef1337ebc564",
-    "granularity": "semantic",
-    "reason": "Shared enhanced spec semantics: spec interpretation, build_benchmark_specs, spec_key identity. Changes alter what an enhanced spec means for every benchmark."
-   },
-   "thesis/enhanced_tests/baseline_selftest.py": {
-    "sha256": "a81c82b34b27eb266d66c49b648e6c805cb4f0f07e3f486faf9932a5801d833a",
-    "granularity": "coarse",
-    "reason": "Enhanced baseline gate (selftest deciding oracle evaluability before grading) plus operational code around it."
-   }
-  },
-  "generation_condition": {
-   "sha256": "e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281",
-   "definition": "Identical to the Wave-3 generation-condition comparison: yaml.safe_load(thesis/config/config.yaml); projection {generation_defaults, models} with models keyed by stable model id and every model field EXCEPT price_per_mtok_in/price_per_mtok_out; canonical JSON (sort_keys, separators (',',':'), UTF-8), SHA-256. No secrets (api_key_env is an environment-variable NAME only), no prices, no run_id, no paths, no profiles.",
-   "canonical_fields": [
-    "generation_defaults.system_prompt",
-    "generation_defaults.temperature",
-    "generation_defaults.top_p",
-    "generation_defaults.max_output_tokens",
-    "generation_defaults.api_mode",
-    "generation_defaults.api_mode_overrides",
-    "generation_defaults.retry_attempts",
-    "generation_defaults.sleep_seconds_between_requests",
-    "generation_defaults.timeout_seconds",
-    "models[id].* (all per-model fields incl. provider, provider model name, enabled flag, reasoning/thinking config, api_key_env name; excluding price_per_mtok_in/out)"
-   ],
-   "continuity_note": "This definition reproduces the Wave-3 comparison hash: the stored value equals the Wave-3 PILOT_001/PILOT_002_GENERATION_PARAMS_HASH e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281 as long as the config is unchanged."
-  },
-  "evaluation_condition": {
-   "sha256": "7f53b0903e3d5e2be2ca4de8bd085da00d3cc6e9e350fc03bf390cac66c35e74",
-   "definition": "Canonical projection of the verdict-relevant correctness evaluation condition, rebuilt at check time from the productive sources: build_config.py (compilers, base flags, USE_* macros, launch grids), tools.py (DRIVER_PROBLEM_SIZE define), run_correctness.py (niter/timeout defaults, primary-compiler default), utilities.hpp (MAX_VALIDATION_ATTEMPTS default; no -D override is passed in the build), config.yaml stages.correctness_tests (niter, timeouts, launch_overrides). List order (flags, grids) preserved as produced; dict keys canonically sorted. Deliberately excluded as verdict-invariant/operational: include-directory paths, MISMATCH_REPORT_MAX (diagnostic display cap only), output/cache/report paths, run_id, logging options.",
-   "canonical_fields": [
-    "stage (correctness_tests)",
-    "primary_compiler",
-    "per_execution_model.{serial,omp,mpi}.compiler",
-    "per_execution_model.{serial,omp,mpi}.cxxflags (ordered; -std=c++17, -O3, [-fopenmp], -DUSE_*, -DDRIVER_PROBLEM_SIZE=...)",
-    "per_execution_model.{serial,omp,mpi}.macro",
-    "per_execution_model.{serial,omp,mpi}.model_driver_file",
-    "per_execution_model.{serial,omp,mpi}.launch_params (serial [{}]; omp num_threads 1,2,4,8; mpi num_procs 1,2,4,8)",
-    "per_execution_model.{serial,omp,mpi}.launcher",
-    "ndebug_defined (currently false - NDEBUG is NOT defined in the productive correctness build)",
-    "driver_problem_size ((1<<8))",
-    "niter (1)",
-    "max_validation_attempts (2, utilities.hpp default; no -D override)",
-    "build_timeout_seconds (120.0)",
-    "run_timeout_seconds (120.0)",
-    "launch_overrides (null - config defines none)"
-   ],
-   "projection": {
-    "stage": "correctness_tests",
-    "primary_compiler": "g++",
-    "per_execution_model": {
-     "serial": {
-      "compiler": "g++",
-      "cxxflags": [
-       "-std=c++17",
-       "-O3",
-       "-DUSE_SERIAL",
-       "-DDRIVER_PROBLEM_SIZE=(1<<8)"
-      ],
-      "macro": "USE_SERIAL",
-      "model_driver_file": "models/serial-driver.cc",
-      "launch_params": [
-       {}
-      ],
-      "launcher": "direct; argv[1]=niter"
-     },
-     "omp": {
-      "compiler": "g++",
-      "cxxflags": [
-       "-std=c++17",
-       "-O3",
-       "-fopenmp",
-       "-DUSE_OMP",
-       "-DDRIVER_PROBLEM_SIZE=(1<<8)"
-      ],
-      "macro": "USE_OMP",
-      "model_driver_file": "models/omp-driver.cc",
-      "launch_params": [
-       {
-        "num_threads": 1
-       },
-       {
-        "num_threads": 2
-       },
-       {
-        "num_threads": 4
-       },
-       {
-        "num_threads": 8
-       }
-      ],
-      "launcher": "direct; argv[1]=num_threads; OMP_NUM_THREADS set; driver NITER fixed at 5"
-     },
-     "mpi": {
-      "compiler": "mpicxx",
-      "cxxflags": [
-       "-std=c++17",
-       "-O3",
-       "-DUSE_MPI",
-       "-DDRIVER_PROBLEM_SIZE=(1<<8)"
-      ],
-      "macro": "USE_MPI",
-      "model_driver_file": "models/mpi-driver.cc",
-      "launch_params": [
-       {
-        "num_procs": 1
-       },
-       {
-        "num_procs": 2
-       },
-       {
-        "num_procs": 4
-       },
-       {
-        "num_procs": 8
-       }
-      ],
-      "launcher": "mpirun -np <num_procs>; trailing argv=niter"
-     }
+  "candidate_subset": {
+    "cells": 99,
+    "benchmarks": [
+      "graph/15_graph_edge_count",
+      "reduce/25_reduce_xor",
+      "search/35_search_search_for_last_struct_by_key"
+    ],
+    "models": [
+      "claude_fable_5",
+      "claude_opus_5",
+      "deepseek_v4_flash",
+      "deepseek_v4_pro",
+      "gemini_31_pro",
+      "gemini_36_flash",
+      "openai_gpt55",
+      "openai_gpt56_sol",
+      "qwen36_35b_a3b",
+      "qwen37_max",
+      "qwen3_coder_api"
+    ],
+    "execution_models": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "samples_per_cell": 1,
+    "verdict_distribution": {
+      "build_failed": 2,
+      "pass": 94,
+      "runtime_error": 1,
+      "validation_failed": 2
     },
-    "ndebug_defined": false,
-    "driver_problem_size": "(1<<8)",
-    "niter": 1,
-    "max_validation_attempts": 2,
-    "build_timeout_seconds": 120.0,
-    "run_timeout_seconds": 120.0,
-    "launch_overrides": null
-   }
-  }
- },
- "assembly_state": {
-  "files": {
-   "thesis/assembly/cleaning.py": {
-    "sha256": "3fadc2173e5f0651ce51326ccda4389b6df8e6ecb45af085b1996a49b02b82d7",
-    "granularity": "semantic",
-    "reason": "Pure model-output -> candidate-source transformation semantics (fence extraction, prose stripping, signature dedup incl. NO_INLINE-patched variant, include relocation, comment/string-aware brace balance). No CLI, no IO, no reporting; clean_for_assembly is a pure function of (prompt_text, raw_text). Any byte diff is highly likely methodically relevant."
-   },
-   "thesis/assembly/assemble_sources.py": {
-    "sha256": "f610284d8836ec54f2b204037d5aafe5e3512ae3b3ac07860516d2f2c082fa24",
-    "granularity": "coarse",
-    "reason": "Contains the generated-code.hpp construction core (patch_signature_line, assemble_content, auto-close/brace-check block, ~50 of 335 lines) PLUS substantial CLI/IO/reporting code (argparse, jsonl bookkeeping, driver-path metadata, --export-pareval-json, manifest contact, print summaries). A byte diff requires inspecting whether the candidate-source construction is affected."
-   }
+    "selection_rule": "method-unchanged pilot_001 benchmarks (Wave-2B §34 categories A-E untouched) WHOSE GRADED COMPARISON PAYLOAD IS EXCLUSIVELY DISCRETE (int/bool/size_t scalars): for these, the verdict-relevant Wave-1/1b comparator classes K2/K3/K4/K5 are constructively unreachable (compile-time dead non-finite branches, no container in the graded path, no reachable BI condition) and K1/K7 are transport-only, so every historical verdict is method-stable by construction - no per-cell record analysis required."
   },
-  "condition": {
-   "sha256": "a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c",
-   "definition": "Canonical projection of the assembly configuration that can change generated-code.hpp bytes. Verified by read-only audit: stages.assembly.auto_close_single_brace (default True; appends exactly one '}' when the assembled file's brace balance is +1 and the generation was not truncated) is the ONLY config option affecting the assembled candidate source - cleaning.clean_for_assembly reads no config; enabled/output_file_name/feedback_caps are unconsumed by the assembler or reporting-only; outputs.* keys are locations only. Canonical JSON (sort_keys, separators (',',':'), UTF-8), SHA-256. The repair loop reuses assemble_model() unchanged, so the same condition governs iteration assembly.",
-   "canonical_fields": [
-    "stage (assembly)",
-    "auto_close_single_brace (true)"
-   ],
-   "projection": {
-    "stage": "assembly",
-    "auto_close_single_brace": true
-   }
+  "excluded_from_prior_198_cell_proposal": {
+    "benchmarks": [
+      "dense_la/00_dense_la_lu_decomp",
+      "scan/30_scan_prefix_sum",
+      "transform/55_transform_relu"
+    ],
+    "cells": 99,
+    "verdict_distribution": {
+      "build_failed": 1,
+      "pass": 92,
+      "timeout": 1,
+      "validation_failed": 5
+    },
+    "reason": "Floating-point graded payloads (vector<double>). K4: the pilot_001-era comparator was NaN-blind, so a historical 'pass' can hide non-finite candidate values without any trace in the frozen records; whether any given pass cell is affected is not determinable without re-measurement -> TRANSPORT_EFFECT_UNRESOLVED. Additionally for dense_la/00: K2 in-principle reachable (unpivoted pivot division in the oracle; NaN references structurally invisible historically). K3 (silent wrong-length pass under -DNDEBUG) shares the same no-trace problem for container payloads. Missing evidence is NOT interpreted as verdict-preserving."
   },
-  "pipeline_note": "Productive path verified read-only: generations.jsonl -> assemble_sources.assemble_model -> cleaning.clean_for_assembly (extract_code, split_at_signature, relocate_includes, brace_balance) -> assemble_content -> generated-code.hpp (+ assembly.v1 metadata records)."
- },
- "effective_invocation_policy": {
-  "mode": "must_match_frozen_pilot_condition",
-  "invocation_self_declared": true,
-  "preflight_is_declaration_check_not_enforcement": true,
-  "declaration_semantics": "invocation.json is a machine-readable SELF-DECLARATION of the planned EFFECTIVE invocation (values after applying CLI overrides, not raw argv). A passing preflight means only that the declared planned invocation is compatible with this gate; it is NOT proof that the actual later run was started with exactly these arguments. The after-the-fact proof is the post-run manifest verification (see pilot_preflight.post_run_manifest_verification).",
-  "required_invocation_fields": [
-   "config_path",
-   "profile",
-   "effective_run_id",
-   "selected_model_ids",
-   "primary_compiler",
-   "run_timeout_seconds",
-   "model_id_cli_override"
-  ],
-  "rationale": "The evaluation_condition hash freezes the config/default state, but run_correctness.py accepts runtime-effective CLI overrides. A pilot run may therefore execute under a different EFFECTIVE condition while the repo-state checker still reports fresh. pilot_002 must use the frozen evaluation condition: verdict-relevant overrides are either not passed at all, or their effective values must be materialized and checked against this gate BEFORE the run (no silent mixture).",
-  "verdict_relevant_cli_overrides": {
-   "primary_compiler": {
-    "cli_flag": "--primary-compiler",
-    "expected": "g++",
-    "expected_source": "argparse default (run_correctness.py; choices g++|clang++); also frozen per manifest at first stage contact"
-   },
-   "run_timeout_seconds": {
-    "cli_flag": "--run-timeout",
-    "expected": 120.0,
-    "expected_source": "config stages.correctness_tests.run_timeout_seconds = 120 (CLI value would silently take precedence)"
-   }
+  "transport_effect": {
+    "population": "the 198-cell cross-pilot proposal of the Wave-3 report (6 method-unchanged benchmarks x 11 models x 3 execution models x 1 sample)",
+    "verdict_preserving_cells": 99,
+    "verdict_changed_cells": 0,
+    "unresolved_cells": 99,
+    "counting_rule": "Benchmark-level resolution: all 99 cells of the retained discrete-payload benchmarks are preserving by constructive unreachability; all 99 cells of the excluded FP-payload benchmarks are conservatively counted unresolved (individual fail-side cells there carry finite mismatch evidence and are plausibly preserving, but no per-cell claim is made). No cell shows evidence of a concrete verdict change (verdict_changed_cells = 0 means 'none demonstrated', not 'none possible' - for excluded cells the possibility is exactly why they are unresolved).",
+    "historical_stdout_reparse": "NOT performed: historical pilot_001 stdout predates the nonce and MUST NOT be fed through the authenticated parser as a verdict comparison; the class analysis is code- and record-structure-based."
   },
-  "population_constraints": {
-   "config": "--config must resolve to a configuration whose generation_condition_sha256 and evaluation_condition_sha256 equal the frozen values (content-addressed; the file path itself is irrelevant)",
-   "model_selection": "no --model-id restriction for the pilot_002 base run: all 11 enabled models of the frozen generation condition",
-   "run_id": "--run-id/--profile must address the pilot_002 BASE run (iteration variants __*__iterN are repair populations, not the cross-pilot base population)"
+  "reuse_status": "UNDECIDED",
+  "one_sample_per_cell": true,
+  "change_classes": [
+    {
+      "id": "K1",
+      "name": "authenticated nonce transport",
+      "classification": "TRANSPORT_ONLY",
+      "requires_historical_record_filter": false,
+      "note": "Verdict computation unchanged; only emission/authentication/parsing of the Validation/BI lines. Wave-1 tests document correct nonce emission by the trusted drivers (wave1_final_gate_report.md §3.3, §4, §12.1); Wave-1 §8.2 measured 0 effective self-declared markers across the complete pilot_001 stdout corpus, so no historical verdict depended on an unauthenticated line. Historical stdout was NOT re-parsed with the authenticated parser."
+    },
+    {
+      "id": "K2",
+      "name": "non-finite reference -> BASELINE_INCOMPATIBLE",
+      "classification": "VERDICT_RELEVANT",
+      "requires_historical_record_filter": true,
+      "note": "Historically a NaN reference compared NaN-blind (silent pass); today the cell becomes baseline_incompatible and leaves the denominator. Historical NaN references are structurally invisible in the frozen records (Wave-1 §8.4). Reachability filter applied per benchmark: unreachable for discrete graded payloads; for dense_la/00 in-principle reachable (unpivoted division); for scan/30 and transform/55 oracle-side unreachable under the correctness-stage inputs."
+    },
+    {
+      "id": "K3",
+      "name": "size-mismatch FAIL",
+      "classification": "VERDICT_RELEVANT",
+      "requires_historical_record_filter": true,
+      "note": "Historically assert() vanished under -DNDEBUG, allowing a silent wrong-length pass; today explicit SIZE_MISMATCH FAIL. Only applicable to container graded payloads (00/30/55); a silent historical wrong-length pass leaves no record trace, so its historical occurrence is not determinable. Not applicable to the retained scalar benchmarks."
+    },
+    {
+      "id": "K4",
+      "name": "non-finite candidate FAIL",
+      "classification": "VERDICT_RELEVANT",
+      "requires_historical_record_filter": true,
+      "note": "Historically a NaN candidate value passed the NaN-blind tolerance predicate; today forced FAIL. A silent historical NaN pass leaves no record trace; effect on pass cells of FP benchmarks is not determinable from frozen records without re-measurement. Constructively unreachable for the retained benchmarks (int/bool/size_t scalar payloads; non-finite branches are compile-time dead code). Wave-1 §8.4 found 4 correctness records with non-finite got= values in pilot_001 (visible = already-failing cells)."
+    },
+    {
+      "id": "K5",
+      "name": "BASELINE_INCOMPATIBLE outranks process state",
+      "classification": "VERDICT_RELEVANT",
+      "requires_historical_record_filter": true,
+      "note": "Requires an authentic BI marker, which itself requires a reachable BI condition; pilot_001 predates the BI vocabulary entirely (0 markers in the frozen records). Unreachable for the retained benchmarks at the correctness stage (no BI path can fire: non-finite reference impossible for discrete payloads; search/35's TEST_SIZE==0 guard cannot fire at the correctness-stage size)."
+    },
+    {
+      "id": "K6",
+      "name": "repair terminal status stopped_baseline_incompatible",
+      "classification": "VERDICT_RELEVANT",
+      "requires_historical_record_filter": false,
+      "note": "Repair-state vocabulary change downstream of K2; outside the 396 iteration-0 cross-pilot population and measured to affect 0 pilot_001 records (0 BI stop_reasons; pilot_001 predates BI)."
+    },
+    {
+      "id": "K7",
+      "name": "legacy parser token-robustness fix (driver_wrapper.py)",
+      "classification": "TRANSPORT_ONLY",
+      "requires_historical_record_filter": false,
+      "note": "Upstream legacy parser reads the first token after the colon; identical result for all intended legacy-mode driver output (verified by real upstream regression, Wave-1 §12.3)."
+    }
+  ],
+  "non_finite_reachable_by_benchmark": {
+    "dense_la/00_dense_la_lu_decomp": "true (oracle: unguarded pivot division, baseline.hpp:16; candidate: vector<double> payload)",
+    "graph/15_graph_edge_count": "false (scalar int payload; non-finite branches compile-time dead)",
+    "reduce/25_reduce_xor": "false (scalar bool payload)",
+    "scan/30_scan_prefix_sum": "true (candidate: vector<double> payload; oracle-side unreachable under correctness-stage inputs)",
+    "search/35_search_search_for_last_struct_by_key": "false (scalar size_t payload)",
+    "transform/55_transform_relu": "true (candidate: vector<double> payload; oracle performs no arithmetic, cannot create non-finite from finite input)"
   },
-  "documented_provenance_gaps": [
-   "the EFFECTIVE --run-timeout value is persisted nowhere by the runner (not in the run manifest, not in correctness records; records store timed_out/duration but never the limit in force) - therefore the preflight materialization below is the only mechanical control",
-   "the manifest freezes primary_compiler only at first stage contact; later invocations with a different --primary-compiler leave no trace and no config_drift entry",
-   "the compile argv is not stored per record",
-   "ambient environment (PATH resolution of g++/mpicxx/mpirun, OMP_*/OMPI_MCA_* variables) is copied wholesale into every compile/run child and is unrecorded - the runtime preflight environment capture is the compensating control"
+  "statistical_caveats": [
+    "exactly 1 sample per cell - no within-cell variance estimation is possible",
+    "only 12 of 60 benchmarks were in pilot_001; only 3 of those 12 remain quantitatively comparable",
+    "the retained subset consists exclusively of scalar discrete-output benchmarks - a structural selection toward the simplest output class; results on it do not generalize to the suite",
+    "double selection bias: stratified 12-benchmark pilot selection, then method-stability filtering",
+    "PILOT_002_REUSES_PILOT_001_GENERATIONS = UNDECIDED - attribution sharpness (generation vs grading) depends on that open decision",
+    "the classification asserts FORMAL admissibility of a quantitative comparison on the named 99 cells only; it does NOT assert that pilot_001 is a strong, precise or statistically robust baseline"
   ],
-  "on_difference": "PILOT_CONDITION_MATCH = false -> CROSS_PILOT_GATE_STALE -> pilot_002_not_authorized",
-  "runtime_check": "REQUIRED - thesis/evaluation/pilot_preflight.py --invocation <effective.json> --environment <runtime.json>; the repo-side checker validates only that the EXPECTED values remain reproducible",
-  "config_condition": {
-   "generation_condition_must_match": true,
-   "evaluation_condition_must_match": true,
-   "note": "Content-addressed, never path-addressed: the preflight loads the declared config and projects it through the SAME authoritative condition definitions (check_cross_pilot_gate.generation_condition_projection / evaluation_condition_projection with an explicit config path); the resulting hashes must equal the frozen shared_state hashes. A different file with identical relevant content is methodically identical."
+  "rationale": "The Wave-3 report's 198-cell quantitative subset claim treated the suite-wide Wave-1/1b transport/comparator delta (F = WAVE1_TRANSPORT_CHANGE, kept separate from the benchmark-level A/B/C/D/E categories) as a caveat. This gate re-examined F class by class against the actual frozen records: K1/K7 are transport-only (with Wave-1 measured evidence that no pilot_001 verdict depended on unauthenticated markers); K2/K3/K4/K5 are verdict-relevant but constructively unreachable for discrete graded payloads. For the three FP-payload benchmarks the NaN-blind history makes hidden verdict changes undetectable in frozen records, so their 99 cells cannot be certified method-stable without re-measurement and are excluded. The quantitative claim is therefore narrowed to the 99 discrete-payload cells; A∪B∪C∪D∪E = 34/60 remains a benchmark-level change set only and F is never folded into it.",
+  "supersedes_wave3_report_cross_pilot_claim": true,
+  "candidate_subset_state": [
+    {
+      "benchmark": "graph/15_graph_edge_count",
+      "cpu_cc_sha256": "0fb956df49ab5e659573482f54d58cab8a656eea699719b7515d3ced0bda2667",
+      "baseline_hpp_sha256": "75dca8bc6fe6eeca156e5491c4c8350b4ea41323470f5dcb441083db0a8318d2",
+      "prompt_sha256": {
+        "serial": "89b04f25168500fd96cdf5ec6e3c56aa42508c5d6dea178587eb1ce0904f001c",
+        "omp": "19d08712aa9cf5e788fa511a3209b590e8f57a95e0d365b60c70ae2b36eb1182",
+        "mpi": "56b097ead0028c9b977e454cc787b03fe33d0972163860bbeccc8cc252725e2c"
+      },
+      "enhanced_spec_keys_sha256": "31f0c85af0ca324a3e504dc5f3c14f137162a71d8ab51cb74b0422c1b8b00b21"
+    },
+    {
+      "benchmark": "reduce/25_reduce_xor",
+      "cpu_cc_sha256": "a60032184126a2cf9f528811b207e432e286316b9ac0bfde5ca8641604b31aef",
+      "baseline_hpp_sha256": "f2b7cefaa2304208846d028baa227661bcc654589a95147930c01ff40e2fcae2",
+      "prompt_sha256": {
+        "serial": "e6f89cb930b1272f6abd96ac92022af0510b75ef81d0a7c4aff01dde902c0f49",
+        "omp": "149a9c965b2145be3187fa435c81ba73e7e780f47e3dc1ac85576694a3082604",
+        "mpi": "32e0f74de5dad786ce9b070d29fb3270e7d0fd8e8f32f67e33d82ac457b117d7"
+      },
+      "enhanced_spec_keys_sha256": "2a0133713340e425daa7aadd3475f18ed0f259695fe2f4e09afd6f10a7ef5bf9"
+    },
+    {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "cpu_cc_sha256": "b8bed84111027d05cf307d245af7625c1670d2b54890d1a640bb84bf1a1cdae2",
+      "baseline_hpp_sha256": "79953120cb6dac92a3c1f58d4596e1ab5eafe5b1c9884fa3d196792c1fc75123",
+      "prompt_sha256": {
+        "serial": "fd0c33d9d049c23993d630ce96628d05af96c7ac6624f8261126f651780cc198",
+        "omp": "d216b18798231abb2c11760ac52a81a2084a05cd1457eef60940d6bf197f59e9",
+        "mpi": "853236def8beb660d79ee03f0e76d120b2dc5f2bce70ea60828989770fbf19f5"
+      },
+      "enhanced_spec_keys_sha256": "c3a1c9f48483bbf5ab8f0021cf7c4c15c1a384334910f64e5ab296e5caec5042"
+    }
+  ],
+  "shared_state": {
+    "hash_rule": "SHA-256 over raw file bytes; no normalization, no git blob SHA. Granularity semantics and the condition canonicalization rules are documented authoritatively in check_cross_pilot_gate.py.",
+    "files": {
+      "drivers/cpp/utilities.hpp": {
+        "sha256": "872fa063612f766a2351f0a8f943b195cc7996aac8d35e7f736fcf20cb1901e8",
+        "granularity": "semantic",
+        "reason": "Shared comparator core used by every candidate-subset validate(): finite/non-finite logic (mismatchIsFinite), scalar/vector comparison helpers (reportAndCompareScalar/reportAndCompare*), mismatch reporting, BI emission helper (mismatchNoteNonFiniteReference), MAX_VALIDATION_ATTEMPTS default, shared harness macros. Essentially all content is shared verdict/comparison semantics."
+      },
+      "drivers/cpp/harness-markers.hpp": {
+        "sha256": "4698dcbdd279b72bdcda670c42856373627887999daa19f0bdf4e9a5d7fae554",
+        "granularity": "semantic",
+        "reason": "Authenticated trusted marker transport: parevalEmitValidation, PAREVAL_BI_NONCE handling, marker formats for Validation/BI lines. Entire file is transport semantics."
+      },
+      "drivers/cpp/enhanced-fill.hpp": {
+        "sha256": "fd059e2d01b8c1efb93e857d760b9bf3c7e744e7adb2df39a500ab566991e264",
+        "granularity": "semantic",
+        "reason": "Shared enhanced input semantics: ENHANCED_FILL pattern implementations, runtime-fill mode, ENHANCED_TEST_SIZE machinery. Changes alter enhanced input generation for candidate-subset benchmarks."
+      },
+      "drivers/cpp/models/serial-driver.cc": {
+        "sha256": "e4e5e73ae195ea05cce300be2c982ac8486a1d41065d2f9fe40eca1f14d2d1c4",
+        "granularity": "semantic",
+        "reason": "Shared serial driver main: validation invocation flow and argv contract compiled into every serial correctness binary."
+      },
+      "drivers/cpp/models/omp-driver.cc": {
+        "sha256": "9e35f283e34f7f1f916f0a65e1ae1a1e2759925c90a848872d3213bd01de42f2",
+        "granularity": "semantic",
+        "reason": "Shared OpenMP driver main: thread-count handling (argv[1]), fixed internal NITER, validation invocation flow."
+      },
+      "drivers/cpp/models/mpi-driver.cc": {
+        "sha256": "81166bc9e77c039bc7820cd16243a1764b1e3cae11b9a8d5a6d2b23a72745be6",
+        "granularity": "semantic",
+        "reason": "Shared MPI driver main: rank setup, root-only verdict path, validation invocation flow."
+      },
+      "thesis/evaluation/build_config.py": {
+        "sha256": "a39b982986c40d2264f9f8234cc0a78d4c7142d123a16f474f352a37d3b7bf81",
+        "granularity": "semantic",
+        "reason": "Declared single source of truth for compile and launch: base flags (-std=c++17 -O3), USE_* macros, compiler resolution (g++/mpicxx), -fopenmp, default launch grids (omp threads / mpi ranks 1,2,4,8). Essentially all content is measurement-condition semantics."
+      },
+      "thesis/evaluation/run_correctness.py": {
+        "sha256": "35a9a633da4689a4eb2a627730d0a0b810d4f71ae861515768990a4ade99350b",
+        "granularity": "coarse",
+        "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected."
+      },
+      "thesis/evaluation/framework.py": {
+        "sha256": "1ad10512fd67ada3f7aad658e692d39803e7f6b0bda051cf0e59e72fd27a42e3",
+        "granularity": "coarse",
+        "reason": "Contains run_command (timeout enforcement and timed_out/exit capture feeding the timeout/runtime_error verdicts) and compile-input plumbing (EvaluationContext.include_dirs) plus unrelated operational code."
+      },
+      "thesis/evaluation/run_enhanced_tests.py": {
+        "sha256": "c415a9d3c4b2ba29d459ec6271a475fd103673d8e145a894aec80909e50497bd",
+        "granularity": "coarse",
+        "reason": "Productive enhanced execution/verdict path (spec grouping, runtime-fill launches, enhanced verdicts) plus substantial runner/CLI/orchestration code."
+      },
+      "thesis/enhanced_tests/specs.py": {
+        "sha256": "b0e337aae6c9b113c94ce276493fb11c43f4fb97e545825a56c75461c056016f",
+        "granularity": "semantic",
+        "reason": "Shared enhanced spec semantics: spec interpretation, build_benchmark_specs, spec_key identity. Changes alter what an enhanced spec means for every benchmark."
+      },
+      "thesis/enhanced_tests/baseline_selftest.py": {
+        "sha256": "a81c82b34b27eb266d66c49b648e6c805cb4f0f07e3f486faf9932a5801d833a",
+        "granularity": "coarse",
+        "reason": "Enhanced baseline gate (selftest deciding oracle evaluability before grading) plus operational code around it."
+      }
+    },
+    "generation_condition": {
+      "sha256": "e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281",
+      "definition": "Identical to the Wave-3 generation-condition comparison: yaml.safe_load(thesis/config/config.yaml); projection {generation_defaults, models} with models keyed by stable model id and every model field EXCEPT price_per_mtok_in/price_per_mtok_out; canonical JSON (sort_keys, separators (',',':'), UTF-8), SHA-256. No secrets (api_key_env is an environment-variable NAME only), no prices, no run_id, no paths, no profiles.",
+      "canonical_fields": [
+        "generation_defaults.system_prompt",
+        "generation_defaults.temperature",
+        "generation_defaults.top_p",
+        "generation_defaults.max_output_tokens",
+        "generation_defaults.api_mode",
+        "generation_defaults.api_mode_overrides",
+        "generation_defaults.retry_attempts",
+        "generation_defaults.sleep_seconds_between_requests",
+        "generation_defaults.timeout_seconds",
+        "models[id].* (all per-model fields incl. provider, provider model name, enabled flag, reasoning/thinking config, api_key_env name; excluding price_per_mtok_in/out)"
+      ],
+      "continuity_note": "This definition reproduces the Wave-3 comparison hash: the stored value equals the Wave-3 PILOT_001/PILOT_002_GENERATION_PARAMS_HASH e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281 as long as the config is unchanged."
+    },
+    "evaluation_condition": {
+      "sha256": "7f53b0903e3d5e2be2ca4de8bd085da00d3cc6e9e350fc03bf390cac66c35e74",
+      "definition": "Canonical projection of the verdict-relevant correctness evaluation condition, rebuilt at check time from the productive sources: build_config.py (compilers, base flags, USE_* macros, launch grids), tools.py (DRIVER_PROBLEM_SIZE define), run_correctness.py (niter/timeout defaults, primary-compiler default), utilities.hpp (MAX_VALIDATION_ATTEMPTS default; no -D override is passed in the build), config.yaml stages.correctness_tests (niter, timeouts, launch_overrides). List order (flags, grids) preserved as produced; dict keys canonically sorted. Deliberately excluded as verdict-invariant/operational: include-directory paths, MISMATCH_REPORT_MAX (diagnostic display cap only), output/cache/report paths, run_id, logging options.",
+      "canonical_fields": [
+        "stage (correctness_tests)",
+        "primary_compiler",
+        "per_execution_model.{serial,omp,mpi}.compiler",
+        "per_execution_model.{serial,omp,mpi}.cxxflags (ordered; -std=c++17, -O3, [-fopenmp], -DUSE_*, -DDRIVER_PROBLEM_SIZE=...)",
+        "per_execution_model.{serial,omp,mpi}.macro",
+        "per_execution_model.{serial,omp,mpi}.model_driver_file",
+        "per_execution_model.{serial,omp,mpi}.launch_params (serial [{}]; omp num_threads 1,2,4,8; mpi num_procs 1,2,4,8)",
+        "per_execution_model.{serial,omp,mpi}.launcher",
+        "ndebug_defined (currently false - NDEBUG is NOT defined in the productive correctness build)",
+        "driver_problem_size ((1<<8))",
+        "niter (1)",
+        "max_validation_attempts (2, utilities.hpp default; no -D override)",
+        "build_timeout_seconds (120.0)",
+        "run_timeout_seconds (120.0)",
+        "launch_overrides (null - config defines none)"
+      ],
+      "projection": {
+        "stage": "correctness_tests",
+        "primary_compiler": "g++",
+        "per_execution_model": {
+          "serial": {
+            "compiler": "g++",
+            "cxxflags": [
+              "-std=c++17",
+              "-O3",
+              "-DUSE_SERIAL",
+              "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+            ],
+            "macro": "USE_SERIAL",
+            "model_driver_file": "models/serial-driver.cc",
+            "launch_params": [
+              {}
+            ],
+            "launcher": "direct; argv[1]=niter"
+          },
+          "omp": {
+            "compiler": "g++",
+            "cxxflags": [
+              "-std=c++17",
+              "-O3",
+              "-fopenmp",
+              "-DUSE_OMP",
+              "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+            ],
+            "macro": "USE_OMP",
+            "model_driver_file": "models/omp-driver.cc",
+            "launch_params": [
+              {
+                "num_threads": 1
+              },
+              {
+                "num_threads": 2
+              },
+              {
+                "num_threads": 4
+              },
+              {
+                "num_threads": 8
+              }
+            ],
+            "launcher": "direct; argv[1]=num_threads; OMP_NUM_THREADS set; driver NITER fixed at 5"
+          },
+          "mpi": {
+            "compiler": "mpicxx",
+            "cxxflags": [
+              "-std=c++17",
+              "-O3",
+              "-DUSE_MPI",
+              "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+            ],
+            "macro": "USE_MPI",
+            "model_driver_file": "models/mpi-driver.cc",
+            "launch_params": [
+              {
+                "num_procs": 1
+              },
+              {
+                "num_procs": 2
+              },
+              {
+                "num_procs": 4
+              },
+              {
+                "num_procs": 8
+              }
+            ],
+            "launcher": "mpirun -np <num_procs>; trailing argv=niter"
+          }
+        },
+        "ndebug_defined": false,
+        "driver_problem_size": "(1<<8)",
+        "niter": 1,
+        "max_validation_attempts": 2,
+        "build_timeout_seconds": 120.0,
+        "run_timeout_seconds": 120.0,
+        "launch_overrides": null
+      }
+    }
   },
-  "model_population": {
-   "allow_model_id_restriction": false,
-   "source_of_expected_population": "enabled models from the validated (hash-matching) invocation config",
-   "note": "The generation-condition hash already freezes WHICH model population the config defines (enabled, provider, model name, reasoning config). This check adds ONLY the execution question: does the planned base run execute that full population (selected_model_ids == enabled ids, no --model-id restriction)? No second population source of truth."
-  }
- },
- "environment_condition": {
-  "expected": {
-   "primary_compiler": "g++",
-   "primary_compiler_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
-   "mpi_implementation": "Open MPI",
-   "mpi_version_line": "mpirun (Open MPI) 4.1.6",
-   "container": {
-    "image": "pareval-thesis",
-    "base_image": "ubuntu:24.04",
-    "pinning": "TAG_ONLY",
-    "image_digest_or_id": null
-   }
+  "assembly_state": {
+    "files": {
+      "thesis/assembly/cleaning.py": {
+        "sha256": "3fadc2173e5f0651ce51326ccda4389b6df8e6ecb45af085b1996a49b02b82d7",
+        "granularity": "semantic",
+        "reason": "Pure model-output -> candidate-source transformation semantics (fence extraction, prose stripping, signature dedup incl. NO_INLINE-patched variant, include relocation, comment/string-aware brace balance). No CLI, no IO, no reporting; clean_for_assembly is a pure function of (prompt_text, raw_text). Any byte diff is highly likely methodically relevant."
+      },
+      "thesis/assembly/assemble_sources.py": {
+        "sha256": "f610284d8836ec54f2b204037d5aafe5e3512ae3b3ac07860516d2f2c082fa24",
+        "granularity": "coarse",
+        "reason": "Contains the generated-code.hpp construction core (patch_signature_line, assemble_content, auto-close/brace-check block, ~50 of 335 lines) PLUS substantial CLI/IO/reporting code (argparse, jsonl bookkeeping, driver-path metadata, --export-pareval-json, manifest contact, print summaries). A byte diff requires inspecting whether the candidate-source construction is affected."
+      }
+    },
+    "condition": {
+      "sha256": "a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c",
+      "definition": "Canonical projection of the assembly configuration that can change generated-code.hpp bytes. Verified by read-only audit: stages.assembly.auto_close_single_brace (default True; appends exactly one '}' when the assembled file's brace balance is +1 and the generation was not truncated) is the ONLY config option affecting the assembled candidate source - cleaning.clean_for_assembly reads no config; enabled/output_file_name/feedback_caps are unconsumed by the assembler or reporting-only; outputs.* keys are locations only. Canonical JSON (sort_keys, separators (',',':'), UTF-8), SHA-256. The repair loop reuses assemble_model() unchanged, so the same condition governs iteration assembly.",
+      "canonical_fields": [
+        "stage (assembly)",
+        "auto_close_single_brace (true)"
+      ],
+      "projection": {
+        "stage": "assembly",
+        "auto_close_single_brace": true
+      }
+    },
+    "pipeline_note": "Productive path verified read-only: generations.jsonl -> assemble_sources.assemble_model -> cleaning.clean_for_assembly (extract_code, split_at_signature, relocate_includes, brace_balance) -> assemble_content -> generated-code.hpp (+ assembly.v1 metadata records)."
   },
-  "source": "Frozen pilot_001 toolchain provenance thesis/results/intermediate/pilot_001/toolchain-versions.txt (copied at run time from the container-baked /opt/toolchain-versions.txt; image build 2026-07-31) plus docker/Dockerfile (FROM ubuntu:24.04). The pilot_001 run_manifest.json itself carries primary_compiler='g++' but primary_compiler_version=null and toolchain_versions=null because the manifest was frozen host-side by the generation stage - the side file is the authoritative toolchain record.",
-  "container_pinning_classification": "TAG_ONLY - docker/Dockerfile pins no digest (FROM ubuntu:24.04), apt packages float at build time, and no image digest/ID is recorded in any repository provenance artifact. TAG_ONLY is NOT digest-pinned reproducibility; this is stated honestly rather than claiming a pinned image.",
-  "recomputation": "runtime preflight required",
-  "runtime_requirements": [
-   "before pilot_002, capture inside the execution container: first line of `g++ --version`, first line of `mpirun --version`, and the concrete docker image ID or repo digest of the pareval-thesis image actually used",
-   "compare via thesis/evaluation/pilot_preflight.py; a missing captured value is UNRESOLVED and blocks the pilot (missing runtime provenance is never a match)",
-   "persist the captured image ID/digest as run provenance (upgrades the classification toward IMAGE_ID_RECORDED for that run)"
-  ]
- },
- "expected_pilot_002_population": {
-  "selection": null,
-  "prompt_limit": null,
-  "num_samples_per_prompt": null,
-  "status": "NOT_YET_DECIDED",
-  "note": "The pilot_002 target population is an OPEN methodical decision (PILOT_002_POPULATION_DECISION = OPEN, in particular PILOT_002_NUM_SAMPLES_PER_PROMPT = OPEN). The historical pilot_001 values (selection=stratified, prompt_limit=36, num_samples_per_prompt=1) are deliberately NOT copied here: 1 sample per cell is a documented pilot_001 weakness, and a deliberate increase for pilot_002 would be a methodical improvement that this gate must not block. While status == NOT_YET_DECIDED the preflight reports PROFILE_POPULATION_MATCH = UNRESOLVED and PILOT_002_POPULATION_READY = false (NOT a mismatch). A later separate decision sets the three values and status = DECIDED."
- },
- "expected_pilot_002_base_run": {
-  "run_id": null,
-  "status": "NOT_YET_CONFIGURED",
-  "forbid_iteration_variants": true,
-  "note": "No pilot_002 base run id is configured yet (the config pilot profile still carries the historical pilot_001 run id, which is deliberately NOT adopted as the expected pilot_002 value). While NOT_YET_CONFIGURED the preflight reports RUN_ID_MATCH = UNRESOLVED and PILOT_002_BASE_RUN_ID_READY = false. Independent of this status, reserved/iteration run ids (pilot_001, smoke_*, full_*, repair_smoke_*, model_check_*, any '__iter'/variant suffix) are always rejected - a repair-iteration population can never be the cross-pilot base run."
- },
- "validity": {
-  "stale": false,
-  "staleness_check": "recompute_candidate_subset_state_hashes + recompute_shared_state_file_hashes + recompute_generation_condition_hash + recompute_evaluation_condition_hash + recompute_assembly_state_hashes + recompute_assembly_condition_hash + verify_expected_invocation_values + verify_environment_provenance",
-  "checker": "thesis/evaluation/check_cross_pilot_gate.py (authoritative hash rules in its docstring; exit 0 fresh / 1 stale / 2 unresolved)",
-  "on_hash_difference": "comparability_re_evaluation_required",
-  "on_unreproducible_state": "CROSS_PILOT_GATE_STALE = UNRESOLVED (never silently false)",
-  "invalidated_by_changes_to": [
-   "benchmark_semantics",
-   "oracle_semantics",
-   "validator_semantics",
-   "enhanced_test_semantics",
-   "prompt_semantics",
-   "generation_condition",
-   "evaluation_condition",
-   "assembly_semantics",
-   "effective_invocation",
-   "environment_condition"
+  "effective_invocation_policy": {
+    "mode": "must_match_frozen_pilot_condition",
+    "invocation_self_declared": true,
+    "preflight_is_declaration_check_not_enforcement": true,
+    "declaration_semantics": "invocation.json is a machine-readable SELF-DECLARATION of the planned EFFECTIVE invocation (values after applying CLI overrides, not raw argv). A passing preflight means only that the declared planned invocation is compatible with this gate; it is NOT proof that the actual later run was started with exactly these arguments. The after-the-fact proof is the post-run manifest verification (see pilot_preflight.post_run_manifest_verification).",
+    "required_invocation_fields": [
+      "config_path",
+      "profile",
+      "effective_run_id",
+      "selected_model_ids",
+      "primary_compiler",
+      "run_timeout_seconds",
+      "model_id_cli_override"
+    ],
+    "rationale": "The evaluation_condition hash freezes the config/default state, but run_correctness.py accepts runtime-effective CLI overrides. A pilot run may therefore execute under a different EFFECTIVE condition while the repo-state checker still reports fresh. pilot_002 must use the frozen evaluation condition: verdict-relevant overrides are either not passed at all, or their effective values must be materialized and checked against this gate BEFORE the run (no silent mixture).",
+    "verdict_relevant_cli_overrides": {
+      "primary_compiler": {
+        "cli_flag": "--primary-compiler",
+        "expected": "g++",
+        "expected_source": "argparse default (run_correctness.py; choices g++|clang++); also frozen per manifest at first stage contact"
+      },
+      "run_timeout_seconds": {
+        "cli_flag": "--run-timeout",
+        "expected": 120.0,
+        "expected_source": "config stages.correctness_tests.run_timeout_seconds = 120 (CLI value would silently take precedence)"
+      }
+    },
+    "population_constraints": {
+      "config": "--config must resolve to a configuration whose generation_condition_sha256 and evaluation_condition_sha256 equal the frozen values (content-addressed; the file path itself is irrelevant)",
+      "model_selection": "no --model-id restriction for the pilot_002 base run: all 11 enabled models of the frozen generation condition",
+      "run_id": "--run-id/--profile must address the pilot_002 BASE run (iteration variants __*__iterN are repair populations, not the cross-pilot base population)"
+    },
+    "documented_provenance_gaps": [
+      "the EFFECTIVE --run-timeout value is persisted nowhere by the runner (not in the run manifest, not in correctness records; records store timed_out/duration but never the limit in force) - therefore the preflight materialization below is the only mechanical control",
+      "the manifest freezes primary_compiler only at first stage contact; later invocations with a different --primary-compiler leave no trace and no config_drift entry",
+      "the compile argv is not stored per record",
+      "ambient environment (PATH resolution of g++/mpicxx/mpirun, OMP_*/OMPI_MCA_* variables) is copied wholesale into every compile/run child and is unrecorded - the runtime preflight environment capture is the compensating control"
+    ],
+    "on_difference": "PILOT_CONDITION_MATCH = false -> CROSS_PILOT_GATE_STALE -> pilot_002_not_authorized",
+    "runtime_check": "REQUIRED - thesis/evaluation/pilot_preflight.py --invocation <effective.json> --environment <runtime.json>; the repo-side checker validates only that the EXPECTED values remain reproducible",
+    "config_condition": {
+      "generation_condition_must_match": true,
+      "evaluation_condition_must_match": true,
+      "note": "Content-addressed, never path-addressed: the preflight loads the declared config and projects it through the SAME authoritative condition definitions (check_cross_pilot_gate.generation_condition_projection / evaluation_condition_projection with an explicit config path); the resulting hashes must equal the frozen shared_state hashes. A different file with identical relevant content is methodically identical."
+    },
+    "model_population": {
+      "allow_model_id_restriction": false,
+      "source_of_expected_population": "enabled models from the validated (hash-matching) invocation config",
+      "note": "The generation-condition hash already freezes WHICH model population the config defines (enabled, provider, model name, reasoning config). This check adds ONLY the execution question: does the planned base run execute that full population (selected_model_ids == enabled ids, no --model-id restriction)? No second population source of truth."
+    }
+  },
+  "environment_condition": {
+    "expected": {
+      "primary_compiler": "g++",
+      "primary_compiler_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "mpi_implementation": "Open MPI",
+      "mpi_version_line": "mpirun (Open MPI) 4.1.6",
+      "container": {
+        "image": "pareval-thesis",
+        "base_image": "ubuntu:24.04",
+        "pinning": "TAG_ONLY",
+        "image_digest_or_id": null
+      }
+    },
+    "source": "Frozen pilot_001 toolchain provenance thesis/results/intermediate/pilot_001/toolchain-versions.txt (copied at run time from the container-baked /opt/toolchain-versions.txt; image build 2026-07-31) plus docker/Dockerfile (FROM ubuntu:24.04). The pilot_001 run_manifest.json itself carries primary_compiler='g++' but primary_compiler_version=null and toolchain_versions=null because the manifest was frozen host-side by the generation stage - the side file is the authoritative toolchain record.",
+    "container_pinning_classification": "TAG_ONLY - docker/Dockerfile pins no digest (FROM ubuntu:24.04), apt packages float at build time, and no image digest/ID is recorded in any repository provenance artifact. TAG_ONLY is NOT digest-pinned reproducibility; this is stated honestly rather than claiming a pinned image.",
+    "recomputation": "runtime preflight required",
+    "runtime_requirements": [
+      "before pilot_002, capture inside the execution container: first line of `g++ --version`, first line of `mpirun --version`, and the concrete docker image ID or repo digest of the pareval-thesis image actually used",
+      "compare via thesis/evaluation/pilot_preflight.py; a missing captured value is UNRESOLVED and blocks the pilot (missing runtime provenance is never a match)",
+      "persist the captured image ID/digest as run provenance (upgrades the classification toward IMAGE_ID_RECORDED for that run)"
+    ]
+  },
+  "expected_pilot_002_population": {
+    "selection": null,
+    "prompt_limit": null,
+    "num_samples_per_prompt": null,
+    "status": "NOT_YET_DECIDED",
+    "note": "The pilot_002 target population is an OPEN methodical decision (PILOT_002_POPULATION_DECISION = OPEN, in particular PILOT_002_NUM_SAMPLES_PER_PROMPT = OPEN). The historical pilot_001 values (selection=stratified, prompt_limit=36, num_samples_per_prompt=1) are deliberately NOT copied here: 1 sample per cell is a documented pilot_001 weakness, and a deliberate increase for pilot_002 would be a methodical improvement that this gate must not block. While status == NOT_YET_DECIDED the preflight reports PROFILE_POPULATION_MATCH = UNRESOLVED and PILOT_002_POPULATION_READY = false (NOT a mismatch). A later separate decision sets the three values and status = DECIDED."
+  },
+  "expected_pilot_002_base_run": {
+    "run_id": null,
+    "status": "NOT_YET_CONFIGURED",
+    "forbid_iteration_variants": true,
+    "note": "No pilot_002 base run id is configured yet (the config pilot profile still carries the historical pilot_001 run id, which is deliberately NOT adopted as the expected pilot_002 value). While NOT_YET_CONFIGURED the preflight reports RUN_ID_MATCH = UNRESOLVED and PILOT_002_BASE_RUN_ID_READY = false. Independent of this status, reserved/iteration run ids (pilot_001, smoke_*, full_*, repair_smoke_*, model_check_*, any '__iter'/variant suffix) are always rejected - a repair-iteration population can never be the cross-pilot base run."
+  },
+  "validity": {
+    "stale": false,
+    "staleness_check": "recompute_candidate_subset_state_hashes + recompute_shared_state_file_hashes + recompute_generation_condition_hash + recompute_evaluation_condition_hash + recompute_assembly_state_hashes + recompute_assembly_condition_hash + verify_expected_invocation_values + verify_environment_provenance",
+    "checker": "thesis/evaluation/check_cross_pilot_gate.py (authoritative hash rules in its docstring; exit 0 fresh / 1 stale / 2 unresolved)",
+    "on_hash_difference": "comparability_re_evaluation_required",
+    "on_unreproducible_state": "CROSS_PILOT_GATE_STALE = UNRESOLVED (never silently false)",
+    "invalidated_by_changes_to": [
+      "benchmark_semantics",
+      "oracle_semantics",
+      "validator_semantics",
+      "enhanced_test_semantics",
+      "prompt_semantics",
+      "generation_condition",
+      "evaluation_condition",
+      "assembly_semantics",
+      "effective_invocation",
+      "environment_condition"
+    ],
+    "scope": "candidate_subset.benchmarks + shared_state (shared measurement dependencies, generation condition, evaluation condition) + assembly_state + effective_invocation_policy + environment_condition (repo-side; runtime values via pilot_preflight)",
+    "note": "stale=false is only a cached status as of state_commit; the authoritative staleness signal is recomputation of every stored fingerprint by thesis/evaluation/check_cross_pilot_gate.py. A non-stale gate does NOT mean PILOT READY: the external gates (semantic interlocks, pilot_002 population, run_id, reuse, publication, static/repair, post-run verification) remain open and the checker may still honestly report NOT_READY."
+  },
+  "staleness_coverage": {
+    "shared_state_coverage_complete": true,
+    "generation_condition_recomputable": true,
+    "evaluation_condition_recomputable": true,
+    "matrix": [
+      {
+        "category": "benchmark_semantics",
+        "covered_by": [
+          "candidate_subset_state[*].cpu_cc_sha256",
+          "candidate_subset_state[*].baseline_hpp_sha256",
+          "shared_state.files (model drivers, build_config.py)"
+        ],
+        "coverage_complete": true,
+        "notes": "benchmark-local sources plus the shared driver mains compiled into every binary"
+      },
+      {
+        "category": "oracle_semantics",
+        "covered_by": [
+          "candidate_subset_state[*].baseline_hpp_sha256",
+          "candidate_subset_state[*].cpu_cc_sha256",
+          "shared_state.files (drivers/cpp/utilities.hpp comparator helpers)"
+        ],
+        "coverage_complete": true,
+        "notes": ""
+      },
+      {
+        "category": "validator_semantics",
+        "covered_by": [
+          "candidate_subset_state[*].cpu_cc_sha256",
+          "shared_state.files (utilities.hpp, harness-markers.hpp, run_correctness.py, framework.py, build_config.py, model drivers)"
+        ],
+        "coverage_complete": true,
+        "notes": "run_correctness.py and framework.py are coarse: a diff there triggers STALE but requires inspecting semantic relevance"
+      },
+      {
+        "category": "enhanced_test_semantics",
+        "covered_by": [
+          "candidate_subset_state[*].enhanced_spec_keys_sha256",
+          "shared_state.files (enhanced-fill.hpp, specs.py, run_enhanced_tests.py, baseline_selftest.py)"
+        ],
+        "coverage_complete": true,
+        "notes": "benchmark-local spec projection plus the shared enhanced harness/runner path"
+      },
+      {
+        "category": "prompt_semantics",
+        "covered_by": [
+          "candidate_subset_state[*].prompt_sha256.{serial,omp,mpi}"
+        ],
+        "coverage_complete": true,
+        "notes": ""
+      },
+      {
+        "category": "generation_condition",
+        "covered_by": [
+          "shared_state.generation_condition.sha256"
+        ],
+        "coverage_complete": true,
+        "notes": "covers the response-relevant condition (system prompt, generation params, model identities/reasoning config); the generation/assembly PIPELINE CODE (provider adapters, extraction/cleaning) is a documented scope boundary outside this category's definition"
+      },
+      {
+        "category": "evaluation_condition",
+        "covered_by": [
+          "shared_state.evaluation_condition.sha256"
+        ],
+        "coverage_complete": true,
+        "notes": "covers launch grids, compilers/flags, NDEBUG state, DRIVER_PROBLEM_SIZE, niter, MAX_VALIDATION_ATTEMPTS, build/run timeouts; environment-level state (container image, compiler binary versions) is a documented scope boundary - it is not addressable as a repo file hash"
+      },
+      {
+        "category": "assembly_semantics",
+        "covered_by": [
+          "assembly_state.files (cleaning.py semantic, assemble_sources.py coarse)",
+          "assembly_state.condition.sha256 (auto_close_single_brace)"
+        ],
+        "coverage_complete": true,
+        "notes": "cleaning is a pure function of (prompt_text, raw_text); the single content-affecting config option is captured; the repair loop reuses the same assembly path"
+      },
+      {
+        "category": "effective_invocation",
+        "covered_by": [
+          "effective_invocation_policy.verdict_relevant_cli_overrides (frozen expected values)",
+          "pilot_preflight rule (runtime materialization + comparison)",
+          "repo-side checker (expected values reproducible from defaults/config)"
+        ],
+        "coverage_complete": false,
+        "notes": "The POLICY coverage is complete (all six verdict-/population-relevant CLI dimensions of run_correctness.py are declared, checked or explicitly gated: --config/--profile content-addressed via condition hashes, --model-id via the model-population check, --run-id via the base-run-id check, --primary-compiler and --run-timeout via frozen expected values). The concrete future invocation itself remains unknown at repo time: the preflight validates a SELF-DECLARATION (invocation_self_declared = true, not enforcement), and the actual execution must additionally be proven by the post-run manifest verification (REQUIRED_NOT_IMPLEMENTED; the runner persists no effective --run-timeout - documented gap).",
+        "policy_coverage_complete": true,
+        "runtime_declaration_check_required": true,
+        "post_run_execution_verification_required": true
+      },
+      {
+        "category": "environment_condition",
+        "covered_by": [
+          "environment_condition.expected (from frozen pilot_001 toolchain provenance)",
+          "Dockerfile pinning classification (TAG_ONLY)",
+          "pilot_preflight runtime capture (compiler/MPI versions, image ID/digest)"
+        ],
+        "coverage_complete": false,
+        "notes": "container is TAG_ONLY pinned (no digest recorded anywhere); toolchain-versions.txt reflects image BUILD time, not run time; a rebuilt image can drift silently - therefore ENVIRONMENT_RUNTIME_CHECK = REQUIRED and missing runtime provenance blocks the pilot"
+      }
+    ],
+    "known_scope_boundaries": [
+      "generation pipeline CODE (provider adapters, request/response handling in thesis/generation/**) remains outside the fingerprinted categories; the assembly/cleaning path (model response -> candidate source) is now fingerprinted under assembly_semantics",
+      "toolchain/environment BINARIES are not repo files: expected values are frozen from recorded pilot_001 provenance under environment_condition, the container is honestly classified TAG_ONLY, and a runtime preflight capturing the actual image ID/digest and tool versions is mandatory before pilot_002"
+    ]
+  },
+  "pilot_preflight": {
+    "tool": "thesis/evaluation/pilot_preflight.py",
+    "tool_checks": [
+      "cross_pilot_repo_state_fresh",
+      "declared_invocation_complete_and_matches",
+      "config_generation_condition_matches",
+      "config_evaluation_condition_matches",
+      "profile_exists",
+      "pilot_002_population_target_check (UNRESOLVED while NOT_YET_DECIDED)",
+      "full_model_population_executed_no_model_id_restriction",
+      "base_run_id_check (UNRESOLVED while NOT_YET_CONFIGURED; reserved/iteration ids always rejected)",
+      "runtime_environment_toolchain_compatible",
+      "runtime_image_identity_captured"
+    ],
+    "external_final_gate_checks": [
+      "interlock_disclosure_ready",
+      "pilot_002_population_decided",
+      "pilot_002_base_run_id_configured",
+      "reuse_decision_ready",
+      "publication_policy_ready"
+    ],
+    "external_note": "pilot_preflight.py does NOT perform the external final-gate checks and never claims to; a passing tool run reports technical_cross_pilot_preflight_passed AND final_pilot_gate_still_required - never 'pilot_002 fully authorized'.",
+    "on_failure": "pilot_002_not_authorized",
+    "post_run_manifest_verification": {
+      "status": "REQUIRED_NOT_IMPLEMENTED",
+      "rationale": "The preflight is a declaration check, not enforcement. After the actual pilot_002, a read-only comparison of the actual run_manifest.json (frozen resolved config, effective primary compiler, run identity, config drift, toolchain/environment provenance, and the effective invocation where materialized) against this gate is a mandatory later step. Known manifest gap to respect there: the effective --run-timeout is currently persisted nowhere by the runner."
+    }
+  },
+  "cross_pilot_reevaluation": {
+    "wave": "cross_pilot_reevaluation_post_enhanced_freeze",
+    "date": "2026-08-31",
+    "start_head": "6fc8a1a9a33d287f5dc7c87bf5f3502dfda9b859",
+    "pilot_001_baseline_commit": "6846d689fd81186b2161786dc7f52d485ccf2b5c",
+    "supersedes_state_commit": "5b22343b8b01456ee37b6a009ee26aba5c07a2e9",
+    "previous_cross_pilot_fingerprint_sha256": "2d99753f4e9e4c84ecc3d71ec76f8ec30926dc4b9ffc558639f861d9588cb563",
+    "question_answered": "Can a pilot_001 measurement be METHODICALLY compared with a measurement under today's experiment semantics? A file diff alone is neither necessary nor sufficient: assembly/generation changed zero bytes and are comparable, while search/35's cpu.cc changed and stays comparable at the correctness stage because the added guard is unreachable there.",
+    "pilot_001_not_reinterpreted": "No pilot_001 stdout was re-parsed with the authenticated nonce parser and no historical verdict was recomputed. Verdicts are taken verbatim from the stored records; stdout was read only as historical RAW DATA to answer reachability questions.",
+    "evidence_inventory": {
+      "correctness_records": 396,
+      "correctness_source": "thesis/results/intermediate/pilot_001/<model>/correctness.jsonl (base run only; repair iteration directories pilot_001__*__iter* are a separate population and are NOT mixed in)",
+      "schema_versions": [
+        "correctness.v1"
+      ],
+      "benchmarks": 12,
+      "models": 11,
+      "model_ids": [
+        "claude_fable_5",
+        "claude_opus_5",
+        "deepseek_v4_flash",
+        "deepseek_v4_pro",
+        "gemini_31_pro",
+        "gemini_36_flash",
+        "openai_gpt55",
+        "openai_gpt56_sol",
+        "qwen36_35b_a3b",
+        "qwen37_max",
+        "qwen3_coder_api"
+      ],
+      "execution_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "sample_ids": [
+        "sample_0"
+      ],
+      "expected_cells": 396,
+      "missing_cells": 0,
+      "duplicate_cells": 0,
+      "verdict_distribution": {
+        "build_failed": 11,
+        "pass": 315,
+        "runtime_error": 3,
+        "timeout": 1,
+        "validation_failed": 66
+      },
+      "run_manifest": "thesis/results/intermediate/pilot_001/run_manifest.json",
+      "run_manifest_git_commit": "6846d689fd81186b2161786dc7f52d485ccf2b5c",
+      "run_manifest_git_dirty": false,
+      "enhanced_records": 7920,
+      "enhanced_status_distribution": {
+        "baseline_incompatible": 264,
+        "build_failed": 206,
+        "crash": 135,
+        "fail": 461,
+        "numerically_unstable": 132,
+        "pass": 6676,
+        "timeout": 46
+      }
+    },
+    "historical_raw_stdout_observations": {
+      "scope": "pilot_001 base run, 1144 run entries inside the 396 records",
+      "validation_marker_lines_per_run": "exactly 1 for every one of the 1129 runs with non-empty stdout; 0 for the remaining 15 (build_failed / no output). No run carries a SECOND, candidate-emitted Validation line, so no historical verdict can have been decided by a self-declared marker (K1 reachability = 0).",
+      "baseline_incompatible_markers_in_correctness_stdout": 0,
+      "records_with_non_finite_got_value": 2,
+      "records_with_non_finite_got_value_detail": "dense_la/00 x deepseek_v4_flash x mpi and sparse_la/45 x qwen36_35b_a3b x mpi - both ALREADY validation_failed, neither in the retained subset.",
+      "relation_to_wave1_section_8_4": "Wave-1 8.4 reports 4 such records. That count spans ALL pilot_001* runs; measured here: base run 2, static_feedback iter1 1, static_feedback iter2 1, others 0 - total 4. Different scope, not a contradiction. The 396-cell cross-pilot population contains 2."
+    },
+    "k_class_reachability": [
+      {
+        "id": "K1",
+        "classification": "TRANSPORT_ONLY",
+        "reachability": "NOT_REACHABLE",
+        "evidence": "measured on the frozen records: max 1 Validation line per run, 0 candidate-emitted markers"
+      },
+      {
+        "id": "K2",
+        "classification": "VERDICT_RELEVANT",
+        "reachability": "BENCHMARK_DEPENDENT",
+        "evidence": "non_finite_reachable_by_benchmark; oracle-side reachable only for dense_la/00 (unguarded pivot division, baseline.hpp:17)"
+      },
+      {
+        "id": "K3",
+        "classification": "VERDICT_RELEVANT",
+        "reachability": "NOT_REACHABLE for the retained subset",
+        "evidence": "the retained graded payloads are scalars (int, bool, size_t); no container enters the graded path, so the fequal size check cannot fire"
+      },
+      {
+        "id": "K4",
+        "classification": "VERDICT_RELEVANT",
+        "reachability": "NOT_REACHABLE for the retained subset",
+        "evidence": "mismatchIsFinite() is an if-constexpr that returns true for integral and boolean value types, so both non-finite branches of reportAndCompareScalarImpl are compile-time dead for the retained benchmarks"
+      },
+      {
+        "id": "K5",
+        "classification": "VERDICT_RELEVANT",
+        "reachability": "NOT_REACHABLE",
+        "evidence": "0 BASELINE_INCOMPATIBLE markers in the whole pilot_001 correctness stdout corpus; the correctness stage predates the BI vocabulary"
+      },
+      {
+        "id": "K6",
+        "classification": "VERDICT_RELEVANT",
+        "reachability": "OUT_OF_POPULATION",
+        "evidence": "repair-state vocabulary; outside the 396 iteration-0 cells"
+      },
+      {
+        "id": "K7",
+        "classification": "TRANSPORT_ONLY",
+        "reachability": "NOT_REACHABLE",
+        "evidence": "the legacy upstream parser (driver_wrapper.py) is not part of this pipeline's productive path; no file of that name exists in the tree"
+      }
+    ],
+    "prompt_change_reproduction": {
+      "method": "byte diff of thesis/prompts/generation-prompts-thesis.json between the pilot_001 manifest commit and HEAD",
+      "prompt_entries_changed": 69,
+      "benchmarks_changed": 23,
+      "atomicity_violations": 0,
+      "atomicity_rule": "serial/omp/mpi are treated atomically per benchmark contract; every one of the changed benchmarks changed all three entries",
+      "pilot_benchmarks_prompt_changed": [
+        "fft/05_fft_inverse_fft",
+        "geometry/10_geometry_convex_hull",
+        "sparse_la/45_sparse_la_sparse_solve",
+        "stencil/50_stencil_xor_kernel"
+      ],
+      "pilot_cells_affected_by_prompt_change": 132,
+      "matches_historical_wave3_figures": true
+    },
+    "normal_correctness_vs_enhanced_separation": {
+      "NORMAL_CORRECTNESS_INPUT_PATH_CHANGED": false,
+      "source_evidence": [
+        "fillRand() in drivers/cpp/utilities.hpp is BYTE-IDENTICAL to the pilot_001 commit (function extracted from both revisions and hashed: 64ecbd3131d0...)",
+        "without the enhanced compile defines, ENHANCED_FILL(x, lo, hi) expands to fillRand(x, lo, hi) and ENHANCED_TEST_SIZE_DEFAULT(d) expands to (d) (drivers/cpp/enhanced-fill.hpp, #else branches)",
+        "the correctness build (thesis/evaluation/build_config.py) emits only -D<execution model macro>, DRIVER_PROBLEM_SIZE and the diagnostic flags; ENHANCED_FILL_PATTERN / ENHANCED_TEST_SIZE / ENHANCED_RUNTIME_FILL are emitted exclusively by thesis/evaluation/run_enhanced_tests.py"
+      ],
+      "conclusion": "The six STALE items that triggered this reevaluation are ALL enhanced-side (3 enhanced_spec_keys projections, enhanced-fill.hpp, specs.py, run_enhanced_tests.py). No correctness-relevant fingerprint moved. Enhanced changes do not invalidate normal-correctness comparability."
+    },
+    "correctness_cell_matrix": {
+      "total_cells": 396,
+      "classes": {
+        "DIRECTLY_COMPARABLE": 99,
+        "INSUFFICIENT_EVIDENCE": 66,
+        "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE": 198,
+        "SEMANTIC_INTERLOCK": 33
+      },
+      "verdict_distribution_by_class": {
+        "DIRECTLY_COMPARABLE": {
+          "build_failed": 2,
+          "pass": 94,
+          "runtime_error": 1,
+          "validation_failed": 2
+        },
+        "INSUFFICIENT_EVIDENCE": {
+          "build_failed": 1,
+          "pass": 63,
+          "timeout": 1,
+          "validation_failed": 1
+        },
+        "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE": {
+          "build_failed": 8,
+          "pass": 129,
+          "runtime_error": 2,
+          "validation_failed": 59
+        },
+        "SEMANTIC_INTERLOCK": {
+          "pass": 29,
+          "validation_failed": 4
+        }
+      },
+      "per_benchmark": [
+        {
+          "benchmark": "dense_la/00_dense_la_lu_decomp",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": false,
+          "class": "SEMANTIC_INTERLOCK"
+        },
+        {
+          "benchmark": "fft/05_fft_inverse_fft",
+          "cells": 33,
+          "prompt_changed_execution_models": [
+            "mpi",
+            "omp",
+            "serial"
+          ],
+          "benchmark_sources_changed": true,
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "geometry/10_geometry_convex_hull",
+          "cells": 33,
+          "prompt_changed_execution_models": [
+            "mpi",
+            "omp",
+            "serial"
+          ],
+          "benchmark_sources_changed": true,
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "graph/15_graph_edge_count",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": false,
+          "class": "DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "histogram/20_histogram_pixel_histogram",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": true,
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "reduce/25_reduce_xor",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": false,
+          "class": "DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "scan/30_scan_prefix_sum",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": false,
+          "class": "INSUFFICIENT_EVIDENCE"
+        },
+        {
+          "benchmark": "search/35_search_search_for_last_struct_by_key",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": true,
+          "class": "DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": true,
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+          "cells": 33,
+          "prompt_changed_execution_models": [
+            "mpi",
+            "omp",
+            "serial"
+          ],
+          "benchmark_sources_changed": true,
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "stencil/50_stencil_xor_kernel",
+          "cells": 33,
+          "prompt_changed_execution_models": [
+            "mpi",
+            "omp",
+            "serial"
+          ],
+          "benchmark_sources_changed": true,
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+        },
+        {
+          "benchmark": "transform/55_transform_relu",
+          "cells": 33,
+          "prompt_changed_execution_models": [],
+          "benchmark_sources_changed": false,
+          "class": "INSUFFICIENT_EVIDENCE"
+        }
+      ],
+      "directly_comparable_benchmarks": [
+        "graph/15_graph_edge_count",
+        "reduce/25_reduce_xor",
+        "search/35_search_search_for_last_struct_by_key"
+      ],
+      "directly_comparable_cells": 99,
+      "mandatory_disclosures_for_the_directly_comparable_cells": [
+        "suite-wide Wave-1/1b transport note (K1/K7)",
+        "1 sample per cell - no variance estimation",
+        "double selection bias (stratified 12-of-60, then method filtering)",
+        "the retained subset is exclusively scalar discrete-output benchmarks and does not generalize to the suite"
+      ],
+      "note_on_disclosure_counting": "The 99 directly comparable cells and the 99 cells that require disclosure are THE SAME 99 cells: the project classification never admits them without the documented disclosures. They are not two disjoint sets, and no separate disclosure-only population exists.",
+      "search_35_special_case": "search/35's cpu.cc DID change since pilot_001 (Wave-2B added an explicit TEST_SIZE == 0 guard). It stays DIRECTLY_COMPARABLE because the correctness stage uses ENHANCED_TEST_SIZE_DEFAULT(1024) with no enhanced size override, so the guard is unreachable there. Section 34 already classified this change as class-preserving (F); the diff was re-read in this wave and confirms it.",
+      "histogram_20_observation": "histogram/20's only source change is likewise an enhanced-stage-only domain guard (out-of-[0,255] pixel values) and its prompts are byte-identical, so its correctness cells are arguably unaffected. It REMAINS excluded because the selection rule keys on the frozen benchmark-level change ledger (section 34 category B), and widening the comparable population is not a decision this comparability wave makes. Recorded as a candidate for a future, explicit widening decision."
+    },
+    "previous_structure_reproduction": {
+      "previous_structure": "99 retained / 99 unresolved / 198 method-changed",
+      "status": "REPRODUCED_UNCHANGED",
+      "evidence": [
+        "the 396-cell population reproduces exactly from the local records (12 x 11 x 3 x 1, 0 missing, 0 duplicate)",
+        "retained verdict distribution recomputed from the records equals the stored one exactly (build_failed 2, pass 94, runtime_error 1, validation_failed 2)",
+        "excluded verdict distribution recomputed from the records equals the stored one exactly (build_failed 1, pass 92, timeout 1, validation_failed 5)",
+        "both conjuncts of the selection rule re-verified against CURRENT source: the three retained benchmarks are not in the section-34 change ledger and their graded payloads are int / bool / size_t scalars; the three excluded ones grade vector<double>"
+      ],
+      "refinement_not_a_change": "The 99 unresolved cells are now labelled at finer grain: 66 INSUFFICIENT_EVIDENCE (scan/30, transform/55) plus 33 SEMANTIC_INTERLOCK (dense_la/00). This makes the open BL-01 interlock machine-visible as required; it does not move any cell between the 99 / 99 / 198 groups."
+    },
+    "enhanced": {
+      "historical_source": "the spec objects stored INSIDE the pilot_001 enhanced result records (thesis/results/intermediate/pilot_001/<model>/enhanced_tests.jsonl). No hypothetical reconstruction of the old suite with today's mutator was used as historical truth.",
+      "historical_record_count": 7920,
+      "historical_benchmarks": 12,
+      "historical_distinct_spec_keys": 240,
+      "historical_pattern_distribution": {
+        "all_same": 22,
+        "all_zeros": 23,
+        "alternating": 12,
+        "ascending": 15,
+        "descending": 6,
+        "duplicate_at": 8,
+        "explicit_values": 34,
+        "extreme_values": 35,
+        "random": 79,
+        "sorted_except_one": 6
+      },
+      "current_source": "thesis/enhanced_tests/frozen/e3_final_specs.jsonl materialized through the CURRENT build_benchmark_specs",
+      "current_frozen_seed_specs": 471,
+      "current_productive_specs_total": 1200,
+      "current_productive_specs_per_benchmark": 20,
+      "current_productive_benchmarks": 60,
+      "current_pattern_distribution": {
+        "all_same": 131,
+        "all_zeros": 77,
+        "alternating": 64,
+        "ascending": 69,
+        "descending": 31,
+        "duplicate_at": 50,
+        "explicit_values": 169,
+        "random": 549,
+        "sorted_except_one": 19,
+        "spike_at": 41
+      },
+      "current_size_distribution": {
+        "0": 90,
+        "1": 136,
+        "2": 202,
+        "3": 143,
+        "4": 137,
+        "5": 58,
+        "6": 73,
+        "7": 72,
+        "8": 72,
+        "9": 13,
+        "10": 20,
+        "11": 5,
+        "12": 4,
+        "13": 4,
+        "14": 43,
+        "15": 7,
+        "16": 17,
+        "17": 4,
+        "18": 3,
+        "20": 3,
+        "24": 3,
+        "25": 2,
+        "26": 2,
+        "27": 1,
+        "28": 5,
+        "30": 2,
+        "31": 2,
+        "32": 9,
+        "33": 2,
+        "34": 2,
+        "50": 1,
+        "52": 1,
+        "54": 1,
+        "63": 1,
+        "64": 2,
+        "65": 1,
+        "128": 1,
+        "130": 1,
+        "255": 1,
+        "256": 4,
+        "512": 1,
+        "1021": 1,
+        "1022": 1,
+        "1023": 5,
+        "1024": 6,
+        "1025": 6,
+        "2046": 1,
+        "2047": 2,
+        "2048": 6,
+        "4094": 3,
+        "4095": 7,
+        "4096": 11
+      },
+      "overlap_totals": {
+        "CURRENT_ONLY_SPEC": 101,
+        "DIRECT_SAME_INPUT_COMPARABLE": 16,
+        "HISTORICAL_ONLY_SPEC": 101,
+        "SAME_KEY": 139,
+        "SAME_KEY_DRIFTED": 0,
+        "SAME_KEY_SAME_INPUT": 139,
+        "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED": 123
+      },
+      "per_benchmark": [
+        {
+          "benchmark": "dense_la/00_dense_la_lu_decomp",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 12,
+          "same_key_same_input": 12,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 8,
+          "current_only_spec": 8,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": false,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "fft/05_fft_inverse_fft",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 11,
+          "same_key_same_input": 11,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 9,
+          "current_only_spec": 9,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "geometry/10_geometry_convex_hull",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 12,
+          "same_key_same_input": 12,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 8,
+          "current_only_spec": 8,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "graph/15_graph_edge_count",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 5,
+          "same_key_same_input": 5,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 15,
+          "current_only_spec": 15,
+          "enhanced_fill_sites": 0,
+          "graded_payload": "discrete_scalar",
+          "benchmark_sources_changed_since_pilot_001": false,
+          "verdict_mechanism_changed": false,
+          "class": "DIRECT_SAME_INPUT_COMPARABLE"
+        },
+        {
+          "benchmark": "histogram/20_histogram_pixel_histogram",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 15,
+          "same_key_same_input": 15,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 5,
+          "current_only_spec": 5,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "reduce/25_reduce_xor",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 11,
+          "same_key_same_input": 11,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 9,
+          "current_only_spec": 9,
+          "enhanced_fill_sites": 0,
+          "graded_payload": "discrete_scalar",
+          "benchmark_sources_changed_since_pilot_001": false,
+          "verdict_mechanism_changed": false,
+          "class": "DIRECT_SAME_INPUT_COMPARABLE"
+        },
+        {
+          "benchmark": "scan/30_scan_prefix_sum",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 10,
+          "same_key_same_input": 10,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 10,
+          "current_only_spec": 10,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": false,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "search/35_search_search_for_last_struct_by_key",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 12,
+          "same_key_same_input": 12,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 8,
+          "current_only_spec": 8,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "discrete_scalar",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 13,
+          "same_key_same_input": 13,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 7,
+          "current_only_spec": 7,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 8,
+          "same_key_same_input": 8,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 12,
+          "current_only_spec": 12,
+          "enhanced_fill_sites": 0,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "stencil/50_stencil_xor_kernel",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 17,
+          "same_key_same_input": 17,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 3,
+          "current_only_spec": 3,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": true,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        },
+        {
+          "benchmark": "transform/55_transform_relu",
+          "historical_executed_spec_keys": 20,
+          "current_productive_spec_keys": 20,
+          "same_key": 13,
+          "same_key_same_input": 13,
+          "same_key_input_drifted": 0,
+          "historical_only_spec": 7,
+          "current_only_spec": 7,
+          "enhanced_fill_sites": 1,
+          "graded_payload": "container_or_fp",
+          "benchmark_sources_changed_since_pilot_001": false,
+          "verdict_mechanism_changed": true,
+          "class": "SAME_KEY_SAME_INPUT_VERDICT_MECHANISM_CHANGED"
+        }
+      ],
+      "extreme_values": {
+        "historical_distinct_spec_keys": 35,
+        "current_productive_spec_keys": 0,
+        "all_historical_extreme_values_keys_are_historical_only": true,
+        "note": "`pattern` is part of spec_key, so a historical extreme_values spec can never match a current alternating spec. The E2-B finding that both now realize the same bytes does NOT make the historical results reusable: that run executed the OLD extreme semantics."
+      },
+      "e3_reexecution_set": {
+        "count": 10,
+        "benchmarks": [
+          "dense_la/03_dense_la_axpy",
+          "geometry/11_geometry_convex_hull_perimeter",
+          "scan/31_scan_scan_with_min_function",
+          "search/36_search_check_if_array_contains_value",
+          "search/39_search_xor_contains",
+          "sort/42_sort_sorted_ranks",
+          "sparse_la/46_sparse_la_spmm",
+          "sparse_la/47_sparse_la_spmv",
+          "sparse_la/48_sparse_la_sparse_axpy"
+        ],
+        "inside_pilot_population": 0,
+        "note": "The 10 authoritative E3 retained-drifted specs (same spec_key, changed input semantics) touch 9 benchmarks, NONE of which is in the pilot_001 population, so they contribute nothing to this comparison. They remain non-comparable by construction wherever they do apply."
+      },
+      "input_drift_determination": {
+        "classifier": "thesis/enhanced_tests/classify_specs_e2b.drift_reason (the productive, test-frozen classifier; E2-A DType map + E2-B spike/extreme semantics)",
+        "same_key_drifted_in_pilot_population": 0,
+        "why_zero": "no pilot benchmark appears in the E2-A DType drift map (that map covers reduce/28, scan/31, sort/42, sort/43) and no SAME_KEY spec uses spike_at (all 3 current spike_at specs are current-only).",
+        "residual_dependency": "For the 9 pilot benchmarks that DO have a fill site, 'same input' additionally rests on the E2-A.1 measurement that the rewritten enhanced-fill.hpp is value-identical to the old header for every range the validator admits. That was not re-measured here. It is not load-bearing: all 123 of those SAME_KEY specs are already excluded from direct comparability on verdict-mechanism grounds."
+      },
+      "mutation_frontier_caveat": "The pilot_001 productive suite was NOT the seed rows alone: build_benchmark_specs combined static base + LLM seeds + mutations, and the historical frontier was additionally shaped by duplicate and invalid seed rows (E3.1). The current frontier is built from unique valid artifact seed identities. That is exactly why the historical side of this comparison is taken from the RESULT RECORDS and never reconstructed by re-running today's mutator over the old seed file.",
+      "direct_same_input_comparable_rationale": "Only graph/15 and reduce/25 qualify. Both have ZERO ENHANCED_FILL sites (pattern_effect NONE in the capability catalog), so neither the E2-A.1 fill rewrite nor any E2-B pattern policy can touch their input - it varies through `size` alone, and rand() is deliberately unseeded (utilities.hpp:251) so inputs are byte-reproducible. Their cpu.cc and baseline.hpp are byte-unchanged since pilot_001 and their graded payloads are discrete scalars, so the K2/K4 additions in reportAndCompareScalarImpl are compile-time dead.",
+      "historical_provenance_limitation": {
+        "status": "HISTORICAL_PROVENANCE_LIMITATION",
+        "detail": "pilot_001 enhanced_tests_summary.json carries no policy hash, no specs hash and no execution fingerprint (enhanced_execution_provenance / enhanced_model_execution_provenance / enhanced_policy_provenance are all absent). It records effective_config and the specs_file PATH only. The harness state is pinned only indirectly, through the run manifest's git_commit, which was written by the GENERATION stage on 2026-08-12 while the enhanced stage ran on 2026-08-20.",
+        "not_retroactively_attributed": "The E3.1.1 enhanced_execution_fingerprint / model_execution_fingerprint describe the CURRENT condition only. pilot_001 is not credited with that provenance."
+      },
+      "current_execution_condition_reference": {
+        "fingerprint_version": "e3.1.1",
+        "frozen_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+        "frozen_specs_path": "thesis/enhanced_tests/frozen/e3_final_specs.jsonl",
+        "pre_e3_specs_sha256": "0fe9561e13504ef8a2dd6455711628a6e8512848e9347e5576a02d777d0e1874",
+        "pilot_001_manifest_enhanced_specs_sha256": "0fe9561e13504ef8a2dd6455711628a6e8512848e9347e5576a02d777d0e1874",
+        "pilot_001_seed_cache_equals_frozen_pre_e3_artifact": true,
+        "components": "frozen specs SHA, policy, harness sources, benchmark sources, driver sources, timeout, jobs, toolchain, assembled candidate source hashes"
+      }
+    },
+    "areas": {
+      "A_correctness": {
+        "status": "PARTIALLY_COMPARABLE",
+        "direct_quantitative_comparison_allowed": true,
+        "comparable_population": "99 of 396 cells (graph/15, reduce/25, search/35 x 11 models x 3 execution models)",
+        "changed_components": [
+          "prompts of 4 of 12 pilot benchmarks",
+          "benchmark sources of 7 of 12 pilot benchmarks",
+          "shared comparator utilities.hpp (K2/K3/K4)"
+        ],
+        "exclusions": [
+          "198 method-changed cells",
+          "66 insufficient-evidence cells",
+          "33 semantic-interlock cells"
+        ],
+        "disclosure_requirements": "transport note, 1-sample limit, selection bias, BL-01 interlock context",
+        "evidence": "local record inventory + byte diffs against the pilot_001 manifest commit + current-source payload and reachability analysis"
+      },
+      "B_enhanced_tests": {
+        "status": "LARGELY_NOT_DIRECTLY_COMPARABLE",
+        "direct_quantitative_comparison_allowed": false,
+        "direct_same_input_comparable_spec_keys": 16,
+        "direct_same_input_comparable_benchmarks": [
+          "graph/15_graph_edge_count",
+          "reduce/25_reduce_xor"
+        ],
+        "changed_components": [
+          "enhanced-fill.hpp (E2-A.1 rewrite)",
+          "specs.py",
+          "run_enhanced_tests.py",
+          "spec population (E3 regeneration + freeze)",
+          "benchmark oracles of 7 of 12 pilot benchmarks"
+        ],
+        "exclusions": "all 101 historical-only specs, all 101 current-only specs, and the 123 same-key specs whose verdict mechanism changed",
+        "disclosure_requirements": "HISTORICAL_PROVENANCE_LIMITATION; the 16 same-input spec keys are still only 1 sample per (model, execution model)",
+        "evidence": "pilot_001 enhanced result records vs the frozen E3 artifact materialized through the current builder"
+      },
+      "C_generation_assembly": {
+        "status": "DIRECTLY_COMPARABLE",
+        "direct_quantitative_comparison_allowed": true,
+        "changed_components": [],
+        "evidence": "git diff --name-status between the pilot_001 manifest commit and HEAD over thesis/assembly/ and thesis/generation/ is EMPTY (verified with a positive control on a file known to have changed). The generation CONDITION hash is additionally unchanged (e22ce9be...).",
+        "caveat": "The generation INPUT is not unchanged: the prompt text of 4 of 12 pilot benchmarks changed. Pipeline semantics and prompt text are separate axes and are reported separately.",
+        "exclusions": [],
+        "disclosure_requirements": "none beyond the prompt-change set"
+      },
+      "D_environment_toolchain": {
+        "status": "UNKNOWN",
+        "direct_quantitative_comparison_allowed": false,
+        "expected": {
+          "primary_compiler": "g++",
+          "primary_compiler_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+          "mpi_version_line": "mpirun (Open MPI) 4.1.6"
+        },
+        "pilot_001_run_manifest_primary_compiler_version": null,
+        "pilot_001_run_manifest_toolchain_versions": null,
+        "pilot_001_artifact_values_match_expected": true,
+        "evidence": "thesis/results/intermediate/pilot_001/run_manifest.json records primary_compiler_version = null and toolchain_versions = null. The sibling artifact toolchain-versions.txt DOES list g++ 13.3.0 and mpirun (Open MPI) 4.1.6, and those values MATCH the expected ones - but it is stamped 2026-07-31 (image build time) while the correctness stage ran 2026-08-13 and the enhanced stage 2026-08-20.",
+        "classification_rationale": "The recorded VERSIONS match. What is not proven is that they were the versions in force during the run: the container is TAG_ONLY pinned, so a rebuild can drift silently and no run-time capture exists. Nothing is invented; the run-level binding stays UNKNOWN.",
+        "changed_components": "not determinable",
+        "exclusions": [],
+        "disclosure_requirements": "ENVIRONMENT_RUNTIME_CHECK = REQUIRED before pilot_002",
+        "kept_separate_from_benchmark_comparability": true
+      },
+      "E_invocation": {
+        "status": "POLICY_UNCHANGED_SELF_DECLARED",
+        "direct_quantitative_comparison_allowed": false,
+        "INVOCATION_SELF_DECLARED": true,
+        "PREFLIGHT_IS_DECLARATION_CHECK_NOT_ENFORCEMENT": true,
+        "evidence": "run_correctness.py still exposes exactly the six CLI dimensions the policy covers (--config, --profile, --model-id, --primary-compiler, --run-timeout, --run-id), and the frozen expected values remain reproducible from the productive defaults/config (primary_compiler g++, run_timeout_seconds 120.0). Nothing in current source contradicts either statement, so neither was changed.",
+        "changed_components": "none on the correctness side",
+        "partial_gap_closure_since_the_last_freeze": "E3.1.1 now persists the EFFECTIVE run_timeout_seconds and the effective jobs map inside the enhanced execution fingerprint (component G). The documented gap 'the effective --run-timeout is persisted nowhere' is therefore closed for the ENHANCED stage and remains open for run_correctness.py.",
+        "exclusions": [],
+        "disclosure_requirements": "EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED before pilot_002"
+      },
+      "F_static_repair": {
+        "status": "NOT_REEVALUATED_IN_THIS_WAVE",
+        "direct_quantitative_comparison_allowed": null,
+        "evidence": "Wave-2B section 35 item D ('STATIC/REPAIR WAVE: GCC analyzer event path, tool-state model, PARCOACH, LLOV gate, retry semantics') is still queued and explicitly untouched.",
+        "changed_components": "not assessed",
+        "exclusions": "not assessed",
+        "disclosure_requirements": "a dedicated static/repair wave is required before any static or repair result is compared across pilots",
+        "explicitly_not_marked_current_or_comparable": true
+      }
+    },
+    "semantic_interlocks": {
+      "count": 7,
+      "status": "disclosure_required",
+      "changed_in_this_wave": false,
+      "source": "thesis/evaluation/prompt_oracle_interlock.json",
+      "in_pilot_population": [
+        "dense_la/00_dense_la_lu_decomp"
+      ],
+      "in_pilot_population_cells": 33,
+      "outside_pilot_population": [
+        "geometry/12_geometry_smallest_triangle",
+        "geometry/13_geometry_closest_pair_2d",
+        "geometry/14_geometry_closest_pair_1d",
+        "histogram/22_histogram_count_quadrants",
+        "scan/34_scan_largest_contiguous_subarray_sum",
+        "search/37_search_find_the_closest_number_to_pi"
+      ],
+      "note": "All seven remain BLOCKED_PENDING_SEMANTIC_DECISION. No exclusion, verdict override, tie-break or tolerance was invented here; the ambiguity is made visible, not resolved."
+    },
+    "decisions_explicitly_not_made": {
+      "reuse": "UNDECIDED",
+      "publication_policy": "unchanged",
+      "pilot_002_population": "NOT_YET_DECIDED",
+      "pilot_002_base_run_id": "NOT_YET_CONFIGURED",
+      "run_id": "unchanged",
+      "semantic_interlocks": "unchanged",
+      "static_repair": "NOT_REEVALUATED_IN_THIS_WAVE",
+      "note": "Comparability is not reuse. This artifact records which measurements COULD be compared, never which will be reused."
+    },
+    "reuse_eligibility_preparation_only": {
+      "disclaimer": "Preparatory information for a LATER reuse decision. This is NOT a reuse decision and sets nothing.",
+      "correctness_cells_theoretically_reuse_eligible": 99,
+      "correctness_benchmarks_theoretically_reuse_eligible": [
+        "graph/15_graph_edge_count",
+        "reduce/25_reduce_xor",
+        "search/35_search_search_for_last_struct_by_key"
+      ],
+      "enhanced_spec_keys_methodically_same_input": 16,
+      "enhanced_benchmarks_methodically_same_input": [
+        "graph/15_graph_edge_count",
+        "reduce/25_reduce_xor"
+      ],
+      "REUSE": "UNDECIDED"
+    },
+    "no_common_percentage_across_stages": "Correctness cells and enhanced spec keys are counted separately and are never combined into a single percentage: they are different populations with different units (396 graded cells vs 240/1200 spec identities)."
+  },
+  "classification_reconfirmed": {
+    "date": "2026-08-31",
+    "verdict": "UNCHANGED",
+    "neither_tightened_nor_loosened": true,
+    "reason": "The 99/99/198 correctness structure reproduces exactly from the local records and from current source, and every STALE fingerprint that triggered this reevaluation is enhanced-side. The enhanced stage is reported separately and is largely NOT directly comparable; that does not change the correctness classification, which the statement scopes."
+  },
+  "external_gates_still_open": [
+    "7 semantic interlocks (disclosure_required, BLOCKED_PENDING_SEMANTIC_DECISION)",
+    "pilot_002 population decision (NOT_YET_DECIDED)",
+    "pilot_002 base run_id (NOT_YET_CONFIGURED)",
+    "reuse decision (UNDECIDED)",
+    "publication policy (unchanged)",
+    "static/repair comparability (NOT_REEVALUATED_IN_THIS_WAVE)",
+    "EFFECTIVE_INVOCATION_RUNTIME_CHECK (pilot preflight)",
+    "ENVIRONMENT_RUNTIME_CHECK (pilot preflight; container is TAG_ONLY pinned)",
+    "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
-  "scope": "candidate_subset.benchmarks + shared_state (shared measurement dependencies, generation condition, evaluation condition) + assembly_state + effective_invocation_policy + environment_condition (repo-side; runtime values via pilot_preflight)",
-  "note": "stale=false is only a cached status as of state_commit; the authoritative staleness signal is recomputation of the stored fingerprints under the rules in the checker."
- },
- "staleness_coverage": {
-  "shared_state_coverage_complete": true,
-  "generation_condition_recomputable": true,
-  "evaluation_condition_recomputable": true,
-  "matrix": [
-   {
-    "category": "benchmark_semantics",
-    "covered_by": [
-     "candidate_subset_state[*].cpu_cc_sha256",
-     "candidate_subset_state[*].baseline_hpp_sha256",
-     "shared_state.files (model drivers, build_config.py)"
-    ],
-    "coverage_complete": true,
-    "notes": "benchmark-local sources plus the shared driver mains compiled into every binary"
-   },
-   {
-    "category": "oracle_semantics",
-    "covered_by": [
-     "candidate_subset_state[*].baseline_hpp_sha256",
-     "candidate_subset_state[*].cpu_cc_sha256",
-     "shared_state.files (drivers/cpp/utilities.hpp comparator helpers)"
-    ],
-    "coverage_complete": true,
-    "notes": ""
-   },
-   {
-    "category": "validator_semantics",
-    "covered_by": [
-     "candidate_subset_state[*].cpu_cc_sha256",
-     "shared_state.files (utilities.hpp, harness-markers.hpp, run_correctness.py, framework.py, build_config.py, model drivers)"
-    ],
-    "coverage_complete": true,
-    "notes": "run_correctness.py and framework.py are coarse: a diff there triggers STALE but requires inspecting semantic relevance"
-   },
-   {
-    "category": "enhanced_test_semantics",
-    "covered_by": [
-     "candidate_subset_state[*].enhanced_spec_keys_sha256",
-     "shared_state.files (enhanced-fill.hpp, specs.py, run_enhanced_tests.py, baseline_selftest.py)"
-    ],
-    "coverage_complete": true,
-    "notes": "benchmark-local spec projection plus the shared enhanced harness/runner path"
-   },
-   {
-    "category": "prompt_semantics",
-    "covered_by": [
-     "candidate_subset_state[*].prompt_sha256.{serial,omp,mpi}"
-    ],
-    "coverage_complete": true,
-    "notes": ""
-   },
-   {
-    "category": "generation_condition",
-    "covered_by": [
-     "shared_state.generation_condition.sha256"
-    ],
-    "coverage_complete": true,
-    "notes": "covers the response-relevant condition (system prompt, generation params, model identities/reasoning config); the generation/assembly PIPELINE CODE (provider adapters, extraction/cleaning) is a documented scope boundary outside this category's definition"
-   },
-   {
-    "category": "evaluation_condition",
-    "covered_by": [
-     "shared_state.evaluation_condition.sha256"
-    ],
-    "coverage_complete": true,
-    "notes": "covers launch grids, compilers/flags, NDEBUG state, DRIVER_PROBLEM_SIZE, niter, MAX_VALIDATION_ATTEMPTS, build/run timeouts; environment-level state (container image, compiler binary versions) is a documented scope boundary - it is not addressable as a repo file hash"
-   },
-   {
-    "category": "assembly_semantics",
-    "covered_by": [
-     "assembly_state.files (cleaning.py semantic, assemble_sources.py coarse)",
-     "assembly_state.condition.sha256 (auto_close_single_brace)"
-    ],
-    "coverage_complete": true,
-    "notes": "cleaning is a pure function of (prompt_text, raw_text); the single content-affecting config option is captured; the repair loop reuses the same assembly path"
-   },
-   {
-    "category": "effective_invocation",
-    "covered_by": [
-     "effective_invocation_policy.verdict_relevant_cli_overrides (frozen expected values)",
-     "pilot_preflight rule (runtime materialization + comparison)",
-     "repo-side checker (expected values reproducible from defaults/config)"
-    ],
-    "coverage_complete": false,
-    "notes": "The POLICY coverage is complete (all six verdict-/population-relevant CLI dimensions of run_correctness.py are declared, checked or explicitly gated: --config/--profile content-addressed via condition hashes, --model-id via the model-population check, --run-id via the base-run-id check, --primary-compiler and --run-timeout via frozen expected values). The concrete future invocation itself remains unknown at repo time: the preflight validates a SELF-DECLARATION (invocation_self_declared = true, not enforcement), and the actual execution must additionally be proven by the post-run manifest verification (REQUIRED_NOT_IMPLEMENTED; the runner persists no effective --run-timeout - documented gap).",
-    "policy_coverage_complete": true,
-    "runtime_declaration_check_required": true,
-    "post_run_execution_verification_required": true
-   },
-   {
-    "category": "environment_condition",
-    "covered_by": [
-     "environment_condition.expected (from frozen pilot_001 toolchain provenance)",
-     "Dockerfile pinning classification (TAG_ONLY)",
-     "pilot_preflight runtime capture (compiler/MPI versions, image ID/digest)"
-    ],
-    "coverage_complete": false,
-    "notes": "container is TAG_ONLY pinned (no digest recorded anywhere); toolchain-versions.txt reflects image BUILD time, not run time; a rebuilt image can drift silently - therefore ENVIRONMENT_RUNTIME_CHECK = REQUIRED and missing runtime provenance blocks the pilot"
-   }
-  ],
-  "known_scope_boundaries": [
-   "generation pipeline CODE (provider adapters, request/response handling in thesis/generation/**) remains outside the fingerprinted categories; the assembly/cleaning path (model response -> candidate source) is now fingerprinted under assembly_semantics",
-   "toolchain/environment BINARIES are not repo files: expected values are frozen from recorded pilot_001 provenance under environment_condition, the container is honestly classified TAG_ONLY, and a runtime preflight capturing the actual image ID/digest and tool versions is mandatory before pilot_002"
-  ]
- },
- "pilot_preflight": {
-  "tool": "thesis/evaluation/pilot_preflight.py",
-  "tool_checks": [
-   "cross_pilot_repo_state_fresh",
-   "declared_invocation_complete_and_matches",
-   "config_generation_condition_matches",
-   "config_evaluation_condition_matches",
-   "profile_exists",
-   "pilot_002_population_target_check (UNRESOLVED while NOT_YET_DECIDED)",
-   "full_model_population_executed_no_model_id_restriction",
-   "base_run_id_check (UNRESOLVED while NOT_YET_CONFIGURED; reserved/iteration ids always rejected)",
-   "runtime_environment_toolchain_compatible",
-   "runtime_image_identity_captured"
-  ],
-  "external_final_gate_checks": [
-   "interlock_disclosure_ready",
-   "pilot_002_population_decided",
-   "pilot_002_base_run_id_configured",
-   "reuse_decision_ready",
-   "publication_policy_ready"
-  ],
-  "external_note": "pilot_preflight.py does NOT perform the external final-gate checks and never claims to; a passing tool run reports technical_cross_pilot_preflight_passed AND final_pilot_gate_still_required - never 'pilot_002 fully authorized'.",
-  "on_failure": "pilot_002_not_authorized",
-  "post_run_manifest_verification": {
-   "status": "REQUIRED_NOT_IMPLEMENTED",
-   "rationale": "The preflight is a declaration check, not enforcement. After the actual pilot_002, a read-only comparison of the actual run_manifest.json (frozen resolved config, effective primary compiler, run identity, config drift, toolchain/environment provenance, and the effective invocation where materialized) against this gate is a mandatory later step. Known manifest gap to respect there: the effective --run-timeout is currently persisted nowhere by the runner."
-  }
- }
+  "cross_pilot_fingerprint_sha256": "3469f4a9f7d1de31c819343bc048ebf2842237edd4a7a5e8669d900a83bd15c1",
+  "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

@@ -49,8 +49,12 @@ Benchmark-local hash rules (unchanged since gate creation):
                        the stable identity (problem_type, name,
                        parallelism_model). Array positions are never join keys.
   enhanced_spec_keys_sha256
-                       Benchmark-local projection of
-                       thesis/results/cache/enhanced/specs.jsonl: take every
+                       Benchmark-local projection of the frozen E3 spec
+                       artifact thesis/enhanced_tests/frozen/e3_final_specs.jsonl
+                       (version controlled; the gitignored generator cache
+                       thesis/results/cache/enhanced/specs.jsonl remains a
+                       fallback and was byte-identical when this source was
+                       switched, so no stored hash changed): take every
                        raw line whose parsed JSON object has
                        obj["benchmark"] == "<problem_type>/<name>", strip one
                        trailing "\\n" / "\\r\\n" from the line, sort the lines
@@ -106,7 +110,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_PATH = REPO_ROOT / "thesis" / "evaluation" / "cross_pilot_comparability.json"
 PROMPTS_PATH = REPO_ROOT / "thesis" / "prompts" / "generation-prompts-thesis.json"
-SPECS_PATH = REPO_ROOT / "thesis" / "results" / "cache" / "enhanced" / "specs.jsonl"
+# Cross-pilot reevaluation: the benchmark-local enhanced-spec projection is read
+# from the VERSION-CONTROLLED frozen E3 artifact, not from the gitignored
+# generator cache (.gitignore:23 ignores thesis/results/cache/). The two were
+# verified byte-identical at reevaluation time (both sha256
+# 49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292, 471 specs),
+# so NO stored hash changes; only the source becomes reproducible in a fresh
+# clone. The legacy cache path stays as a documented fallback so an older
+# checkout without the frozen artifact still resolves instead of going
+# UNRESOLVED.
+SPECS_PATH = (REPO_ROOT / "thesis" / "enhanced_tests" / "frozen"
+              / "e3_final_specs.jsonl")
+SPECS_PATH_LEGACY_CACHE = (REPO_ROOT / "thesis" / "results" / "cache"
+                           / "enhanced" / "specs.jsonl")
 BENCH_ROOT = REPO_ROOT / "drivers" / "cpp" / "benchmarks"
 CONFIG_PATH = REPO_ROOT / "thesis" / "config" / "config.yaml"
 UTILITIES_HPP = REPO_ROOT / "drivers" / "cpp" / "utilities.hpp"
@@ -367,10 +383,11 @@ def enhanced_spec_hash(benchmark: str):
     """Canonical benchmark-local spec projection hash; None if the specs file
     is absent. An empty projection (no lines for the benchmark) hashes the
     empty string - a stable, meaningful state of its own."""
-    if not SPECS_PATH.is_file():
+    path = SPECS_PATH if SPECS_PATH.is_file() else SPECS_PATH_LEGACY_CACHE
+    if not path.is_file():
         return None
     lines = []
-    with SPECS_PATH.open("r", encoding="utf-8") as f:
+    with path.open("r", encoding="utf-8") as f:
         for line in f:
             stripped = line.rstrip("\r\n")
             if not stripped:
@@ -406,6 +423,24 @@ def recompute_state(benchmark: str):
 # ---------------------------------------------------------------------------
 # comparison driver
 # ---------------------------------------------------------------------------
+
+def self_fingerprint_line(artifact):
+    """Cross-pilot reevaluation: the artifact carries its OWN content
+    fingerprint, so a hand-edit that skips recomputation is detected instead of
+    passing silently. Rule (also stored in the artifact): canon_sha256 over the
+    parsed file content with the two fingerprint fields removed."""
+    stored = artifact.get("cross_pilot_fingerprint_sha256")
+    if stored is None:
+        return "ARTIFACT_SELF_FINGERPRINT\n  absent (pre-reevaluation artifact)"
+    body = {k: v for k, v in artifact.items()
+            if k not in ("cross_pilot_fingerprint_sha256",
+                         "cross_pilot_fingerprint_rule")}
+    current = canon_sha256(body)
+    if current == stored:
+        return "ARTIFACT_SELF_FINGERPRINT\n  %s: ok" % current
+    return ("ARTIFACT_SELF_FINGERPRINT\n  MISMATCH (stored %s... != current "
+            "%s...)" % (stored[:12], current[:12]))
+
 
 def main() -> int:
     if not GATE_PATH.is_file():
@@ -619,6 +654,8 @@ def main() -> int:
           " image digest/ID - must be captured and compared by the pilot"
           " preflight before pilot_002)")
 
+    print(self_fingerprint_line(gate))
+
     if stale:
         print("\nCROSS_PILOT_REPO_STATE_STALE = true")
         print("CROSS_PILOT_GATE_STALE = true")
@@ -629,6 +666,12 @@ def main() -> int:
     if unresolved:
         print("\nCROSS_PILOT_REPO_STATE_STALE = UNRESOLVED")
         print("CROSS_PILOT_GATE_STALE = UNRESOLVED")
+        return 2
+    if "MISMATCH" in self_fingerprint_line(gate):
+        print("\nCROSS_PILOT_REPO_STATE_STALE = UNRESOLVED")
+        print("CROSS_PILOT_GATE_STALE = UNRESOLVED (the artifact's own"
+              " fingerprint does not reproduce - it was edited without"
+              " recomputation)")
         return 2
     print("\nCROSS_PILOT_REPO_STATE_STALE = false")
     print("CROSS_PILOT_GATE_STALE = false (repo-state check; the RUNTIME"
