@@ -256,63 +256,63 @@
     "language": "cpp",
     "name": "12_geometry_smallest_triangle",
     "parallelism_model": "serial",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble triangleArea(Point const& A, Point const& B, Point const& C) {\n  return 0.5 * std::abs( A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y) );\n}\n\n/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble triangleArea(Point const& A, Point const& B, Point const& C) {\n  return 0.5 * std::abs( A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y) );\n}\n\n/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident.\n   If fewer than 3 points are given, return 0.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "12_geometry_smallest_triangle",
     "parallelism_model": "omp",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble triangleArea(Point const& A, Point const& B, Point const& C) {\n  return 0.5 * std::abs( A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y) );\n}\n\n/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble triangleArea(Point const& A, Point const& B, Point const& C) {\n  return 0.5 * std::abs( A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y) );\n}\n\n/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident.\n   If fewer than 3 points are given, return 0.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "12_geometry_smallest_triangle",
     "parallelism_model": "mpi",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble triangleArea(Point const& A, Point const& B, Point const& C) {\n  return 0.5 * std::abs( A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y) );\n}\n\n/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble triangleArea(Point const& A, Point const& B, Point const& C) {\n  return 0.5 * std::abs( A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y) );\n}\n\n/* Return the area of the smallest triangle that can be formed by any 3 points.\n   Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident.\n   If fewer than 3 points are given, return 0.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Example:\n\n   input: [{0, 10}, {5, 5}, {1,0}, {-1, 1}, {-10, 0}]\n   output: 5.5\n*/\ndouble smallestArea(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "13_geometry_closest_pair_2d",
     "parallelism_model": "serial",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   If the vector contains fewer than two points, return 0.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "13_geometry_closest_pair_2d",
     "parallelism_model": "omp",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   Use OpenMP to compute in parallel.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   If the vector contains fewer than two points, return 0.\n   Use OpenMP to compute in parallel.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "13_geometry_closest_pair_2d",
     "parallelism_model": "mpi",
-    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The final result is returned on rank 0.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
+    "prompt": "struct Point {\n\tdouble x, y;\n};\n\ndouble distance(Point const& p1, Point const& p2) {\n\treturn std::sqrt(std::pow(p2.x-p1.x, 2) + std::pow(p2.y-p1.y, 2));\n}\n\n/* Return the distance between the closest two points in the vector points.\n   If the vector contains fewer than two points, return 0.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The final result is returned on rank 0.\n   Example: \n\n   input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]\n   output: 1.41421\n*/\ndouble closestPair(std::vector<Point> const& points) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "14_geometry_closest_pair_1d",
     "parallelism_model": "serial",
-    "prompt": "double distance(double x1, double x2) {\n\treturn std::abs(x1 - x2);\n}\n\n/* Return the distance between the closest two elements in the vector x.\n   Example: \n\n   input: [7, 3, 9, 12, 31, 1]\n   output: 2\n*/\ndouble closestPair(std::vector<double> const& x) {"
+    "prompt": "double distance(double x1, double x2) {\n\treturn std::abs(x1 - x2);\n}\n\n/* Return the distance between the closest two elements in the vector x.\n   If the vector contains fewer than two elements, return 0.\n   Example: \n\n   input: [7, 3, 9, 12, 31, 1]\n   output: 2\n*/\ndouble closestPair(std::vector<double> const& x) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "14_geometry_closest_pair_1d",
     "parallelism_model": "omp",
-    "prompt": "double distance(double x1, double x2) {\n\treturn std::abs(x1 - x2);\n}\n\n/* Return the distance between the closest two elements in the vector x.\n   Use OpenMP to compute in parallel.\n   Example: \n\n   input: [7, 3, 9, 12, 31, 1]\n   output: 2\n*/\ndouble closestPair(std::vector<double> const& x) {"
+    "prompt": "double distance(double x1, double x2) {\n\treturn std::abs(x1 - x2);\n}\n\n/* Return the distance between the closest two elements in the vector x.\n   If the vector contains fewer than two elements, return 0.\n   Use OpenMP to compute in parallel.\n   Example: \n\n   input: [7, 3, 9, 12, 31, 1]\n   output: 2\n*/\ndouble closestPair(std::vector<double> const& x) {"
   },
   {
     "problem_type": "geometry",
     "language": "cpp",
     "name": "14_geometry_closest_pair_1d",
     "parallelism_model": "mpi",
-    "prompt": "double distance(double x1, double x2) {\n\treturn std::abs(x1 - x2);\n}\n\n/* Return the distance between the closest two elements in the vector x.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Example: \n\n   input: [7, 3, 9, 12, 31, 1]\n   output: 2\n*/\ndouble closestPair(std::vector<double> const& x) {"
+    "prompt": "double distance(double x1, double x2) {\n\treturn std::abs(x1 - x2);\n}\n\n/* Return the distance between the closest two elements in the vector x.\n   If the vector contains fewer than two elements, return 0.\n   Use MPI to compute in parallel. Assume MPI is already initialized.\n   Example: \n\n   input: [7, 3, 9, 12, 31, 1]\n   output: 2\n*/\ndouble closestPair(std::vector<double> const& x) {"
   },
   {
     "problem_type": "graph",
@@ -466,21 +466,21 @@
     "language": "cpp",
     "name": "22_histogram_count_quadrants",
     "parallelism_model": "serial",
-    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.\n   Store the counts in `bins`.\n   Example:\n\n   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]\n*/\nvoid countQuadrants(std::vector<Point> const& points, std::array<size_t, 4> &bins) {"
+    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.\n   Store the counts in `bins`.\n   A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.\n   Example:\n\n   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]\n*/\nvoid countQuadrants(std::vector<Point> const& points, std::array<size_t, 4> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "22_histogram_count_quadrants",
     "parallelism_model": "omp",
-    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.\n   Store the counts in `bins`.\n   Use OpenMP to count in parallel.\n   Example:\n\n   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]\n*/\nvoid countQuadrants(std::vector<Point> const& points, std::array<size_t, 4> &bins) {"
+    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.\n   Store the counts in `bins`.\n   A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.\n   Use OpenMP to count in parallel.\n   Example:\n\n   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]\n*/\nvoid countQuadrants(std::vector<Point> const& points, std::array<size_t, 4> &bins) {"
   },
   {
     "problem_type": "histogram",
     "language": "cpp",
     "name": "22_histogram_count_quadrants",
     "parallelism_model": "mpi",
-    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.\n   Store the counts in `bins`.\n   Use MPI to count in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The result is stored in bins on rank 0.\n   Example:\n\n   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]\n*/\nvoid countQuadrants(std::vector<Point> const& points, std::array<size_t, 4> &bins) {"
+    "prompt": "struct Point {\n   double x, y;\n};\n\n/* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.\n   Store the counts in `bins`.\n   A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.\n   Use MPI to count in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of points. The result is stored in bins on rank 0.\n   Example:\n\n   input: [{x=1.5, y=0.1}, {x=-3, y=1.1}, {x=5, y=9}, {x=1.5, y=-1}, {x=3, y=-7}, {x=0.1, y=2}]\n   output: [3, 1, 0, 2]\n*/\nvoid countQuadrants(std::vector<Point> const& points, std::array<size_t, 4> &bins) {"
   },
   {
     "problem_type": "histogram",
@@ -718,21 +718,21 @@
     "language": "cpp",
     "name": "34_scan_largest_contiguous_subarray_sum",
     "parallelism_model": "serial",
-    "prompt": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {"
+    "prompt": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   The subarray must be non-empty.\n   Assume x contains at least one element.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {"
   },
   {
     "problem_type": "scan",
     "language": "cpp",
     "name": "34_scan_largest_contiguous_subarray_sum",
     "parallelism_model": "omp",
-    "prompt": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {"
+    "prompt": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   The subarray must be non-empty.\n   Assume x contains at least one element.\n   Use OpenMP to compute in parallel.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {"
   },
   {
     "problem_type": "scan",
     "language": "cpp",
     "name": "34_scan_largest_contiguous_subarray_sum",
     "parallelism_model": "mpi",
-    "prompt": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {"
+    "prompt": "/* Return the largest sum of any contiguous subarray in the vector x.\n   i.e. if x=[\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4] then [4, \u22121, 2, 1] is the contiguous\n   subarray with the largest sum of 6.\n   The subarray must be non-empty.\n   Assume x contains at least one element.\n   Use MPI to compute in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Example:\n\n   input: [\u22122, 1, \u22123, 4, \u22121, 2, 1, \u22125, 4]\n   output: 6\n*/\nint maximumSubarray(std::vector<int> const& x) {"
   },
   {
     "problem_type": "search",
@@ -781,21 +781,21 @@
     "language": "cpp",
     "name": "37_search_find_the_closest_number_to_pi",
     "parallelism_model": "serial",
-    "prompt": "/* Return the index of the value in the vector x that is closest to the math constant PI.\n   Use M_PI for the value of PI.\n   Example:\n\n   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1\n*/\nsize_t findClosestToPi(std::vector<double> const& x) {"
+    "prompt": "/* Return the index of the value in the vector x that is closest to the math constant PI.\n   Use M_PI for the value of PI.\n   If several values are equally close to PI, return the smallest such index.\n   Example:\n\n   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1\n*/\nsize_t findClosestToPi(std::vector<double> const& x) {"
   },
   {
     "problem_type": "search",
     "language": "cpp",
     "name": "37_search_find_the_closest_number_to_pi",
     "parallelism_model": "omp",
-    "prompt": "/* Return the index of the value in the vector x that is closest to the math constant PI.\n   Use M_PI for the value of PI.\n   Use OpenMP to search in parallel.\n   Example:\n\n   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1\n*/\nsize_t findClosestToPi(std::vector<double> const& x) {"
+    "prompt": "/* Return the index of the value in the vector x that is closest to the math constant PI.\n   Use M_PI for the value of PI.\n   If several values are equally close to PI, return the smallest such index.\n   Use OpenMP to search in parallel.\n   Example:\n\n   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1\n*/\nsize_t findClosestToPi(std::vector<double> const& x) {"
   },
   {
     "problem_type": "search",
     "language": "cpp",
     "name": "37_search_find_the_closest_number_to_pi",
     "parallelism_model": "mpi",
-    "prompt": "/* Return the index of the value in the vector x that is closest to the math constant PI.\n   Use M_PI for the value of PI.\n   Use MPI to search in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Example:\n\n   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1\n*/\nsize_t findClosestToPi(std::vector<double> const& x) {"
+    "prompt": "/* Return the index of the value in the vector x that is closest to the math constant PI.\n   Use M_PI for the value of PI.\n   If several values are equally close to PI, return the smallest such index.\n   Use MPI to search in parallel. Assume MPI has already been initialized.\n   Every rank has a complete copy of x. Return the result on rank 0.\n   Example:\n\n   input: [9.18, 3.05, 7.24, 11.3, -166.49, 2.1]\n   output: 1\n*/\nsize_t findClosestToPi(std::vector<double> const& x) {"
   },
   {
     "problem_type": "search",

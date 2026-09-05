@@ -67,6 +67,19 @@ PROMPTS_JSON = os.path.join(REPO_ROOT, "thesis", "prompts", "generation-prompts-
 # --------------------------------------------------------------------------
 FIXTURES_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompt_oracle_fixtures.json")
 
+# --------------------------------------------------------------------------
+# CONVENTION fixtures (Semantic Interlock wave). Same fixture shape as above,
+# but keyed  "<name>": [ {case_id, decision_id, description, prompt_sentence,
+# harness_cpp, expected_json, compare}, ... ]  - one entry per resolved
+# semantic convention. They pin the input class the worked example does NOT
+# exercise (degenerate sizes, axis points, all-negative arrays, ties) to the
+# behaviour the prompt now states, so prompt and oracle cannot drift apart on
+# exactly the case the interlock was about. Reported as "<name>#<case_id>"
+# with their own summary line; absence of the file is not an error.
+# --------------------------------------------------------------------------
+CONVENTION_FIXTURES_JSON = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "prompt_oracle_convention_fixtures.json")
+
 NO_WORKED_EXAMPLE = []  # benchmark names whose prompts carry no example
 
 DEFAULT_FLOAT_REL = 1e-9
@@ -119,10 +132,11 @@ def compare_json(actual, expected, rel, abs_tol, path="$"):
     return mismatches
 
 
-def run_fixture(problem_type, name, fixture, workdir, gxx):
+def run_fixture(problem_type, name, fixture, workdir, gxx, tag=None):
     bench_dir = os.path.join(DRIVERS_CPP, "benchmarks", problem_type, name)
-    src = os.path.join(workdir, "fixture_%s.cpp" % name)
-    exe = os.path.join(workdir, "fixture_%s" % name)
+    stem = name if tag is None else "%s__%s" % (name, tag)
+    src = os.path.join(workdir, "fixture_%s.cpp" % stem)
+    exe = os.path.join(workdir, "fixture_%s" % stem)
     with open(src, "w", encoding="utf-8") as fh:
         fh.write(fixture["harness_cpp"])
     argv = [
@@ -175,8 +189,14 @@ def main():
             print("FATAL: unknown benchmark %r" % args.benchmark)
             return 2
 
+    conventions = {}
+    if os.path.isfile(CONVENTION_FIXTURES_JSON):
+        with open(CONVENTION_FIXTURES_JSON, "r", encoding="utf-8") as fh:
+            conventions = json.load(fh)
+
     workdir = tempfile.mkdtemp(prefix="prompt_oracle_check_")
     rows = []
+    convention_rows = []
     worst = 0
     try:
         for problem_type, name in benchmarks:
@@ -194,13 +214,28 @@ def main():
                 worst = max(worst, 1)
             elif status == "infra_error":
                 worst = max(worst, 2)
+        # resolved semantic conventions: one fixture per pinned input class
+        for problem_type, name in benchmarks:
+            for case in conventions.get(name) or []:
+                case_id = str(case.get("case_id", "?"))
+                status, detail, _actual = run_fixture(
+                    problem_type, name, case, workdir, args.gxx, tag=case_id)
+                convention_rows.append(("%s#%s" % (name, case_id), status, detail))
+                if status == "INCONSISTENT":
+                    worst = max(worst, 1)
+                elif status == "infra_error":
+                    worst = max(worst, 2)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
     if args.json:
-        print(json.dumps([{"benchmark": n, "status": s, "detail": d} for n, s, d in rows], indent=2))
+        print(json.dumps(
+            [{"kind": "worked_example", "benchmark": n, "status": s, "detail": d}
+             for n, s, d in rows]
+            + [{"kind": "convention", "benchmark": n, "status": s, "detail": d}
+               for n, s, d in convention_rows], indent=2))
     else:
-        width = max(len(n) for n, _s, _d in rows)
+        width = max(len(n) for n, _s, _d in rows + convention_rows)
         for name, status, detail in rows:
             line = "%-*s  %-18s" % (width, name, status)
             if detail:
@@ -210,6 +245,17 @@ def main():
         for _n, status, _d in rows:
             counts[status] = counts.get(status, 0) + 1
         print("\nSummary: " + ", ".join("%s=%d" % kv for kv in sorted(counts.items())))
+        if convention_rows:
+            print("\nResolved semantic conventions (prompt_oracle_convention_fixtures.json):")
+            for name, status, detail in convention_rows:
+                line = "%-*s  %-18s" % (width, name, status)
+                if detail:
+                    line += "  " + detail
+                print(line)
+            counts = {}
+            for _n, status, _d in convention_rows:
+                counts[status] = counts.get(status, 0) + 1
+            print("\nConvention summary: " + ", ".join("%s=%d" % kv for kv in sorted(counts.items())))
     return worst
 
 

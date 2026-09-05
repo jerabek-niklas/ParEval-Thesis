@@ -1,0 +1,290 @@
+{
+  "12_geometry_smallest_triangle": [
+    {
+      "case_id": "n1_returns_zero",
+      "decision_id": "BL-05",
+      "description": "one point: fewer than 3 points -> 0",
+      "prompt_sentence": "Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident. / If fewer than 3 points are given, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/12_geometry_smallest_triangle\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{1.0, 2.0}};\n    const double result = correctSmallestArea(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "n2_returns_zero",
+      "decision_id": "BL-05",
+      "description": "two points: fewer than 3 points -> 0 (not the segment length)",
+      "prompt_sentence": "Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident. / If fewer than 3 points are given, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/12_geometry_smallest_triangle\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, 0.0}, {3.0, 4.0}};\n    const double result = correctSmallestArea(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "collinear_triple_counts",
+      "decision_id": "BL-05",
+      "description": "a collinear triple counts as a degenerate triangle of area 0 (skip-degenerate reading would give 2.5)",
+      "prompt_sentence": "Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident. / If fewer than 3 points are given, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/12_geometry_smallest_triangle\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}, {0.0, 5.0}};\n    const double result = correctSmallestArea(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "duplicate_point_counts",
+      "decision_id": "BL-05",
+      "description": "worked example plus a duplicate of (5,5): coincident points form a zero-area triangle (skip-degenerate reading would give 5.5)",
+      "prompt_sentence": "Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident. / If fewer than 3 points are given, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/12_geometry_smallest_triangle\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, 10.0}, {5.0, 5.0}, {1.0, 0.0}, {-1.0, 1.0}, {-10.0, 0.0}, {5.0, 5.0}};\n    const double result = correctSmallestArea(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    }
+  ],
+  "13_geometry_closest_pair_2d": [
+    {
+      "case_id": "empty_returns_zero",
+      "decision_id": "BL-06",
+      "description": "no points -> 0",
+      "prompt_sentence": "If the vector contains fewer than two points, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/13_geometry_closest_pair_2d\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {};\n    const double result = correctClosestPair(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "single_returns_zero",
+      "decision_id": "BL-06",
+      "description": "one point -> 0",
+      "prompt_sentence": "If the vector contains fewer than two points, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/13_geometry_closest_pair_2d\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{1.0, 2.0}};\n    const double result = correctClosestPair(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "minimal_pair_is_graded",
+      "decision_id": "BL-06",
+      "description": "exactly two points is a real pair: distance 5, the clause applies strictly below two",
+      "prompt_sentence": "If the vector contains fewer than two points, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/13_geometry_closest_pair_2d\n// Executes the grading oracle on the pinned input class and prints one JSON value.\n#include <cmath>\n#include <cstdio>\n#include <vector>\nstruct Point {\n    double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, 0.0}, {3.0, 4.0}};\n    const double result = correctClosestPair(points);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "5",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    }
+  ],
+  "14_geometry_closest_pair_1d": [
+    {
+      "case_id": "empty_returns_zero",
+      "decision_id": "BL-07",
+      "description": "no elements -> 0",
+      "prompt_sentence": "If the vector contains fewer than two elements, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/14_geometry_closest_pair_1d\n#include <cmath>\n#include <cstdio>\n#include <vector>\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<double> x = {};\n    const double result = correctClosestPair(x);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "single_returns_zero",
+      "decision_id": "BL-07",
+      "description": "one element -> 0",
+      "prompt_sentence": "If the vector contains fewer than two elements, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/14_geometry_closest_pair_1d\n#include <cmath>\n#include <cstdio>\n#include <vector>\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<double> x = {42.0};\n    const double result = correctClosestPair(x);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "minimal_pair_is_graded",
+      "decision_id": "BL-07",
+      "description": "exactly two elements is a real pair: distance 3",
+      "prompt_sentence": "If the vector contains fewer than two elements, return 0.",
+      "harness_cpp": "// Convention fixture: geometry/14_geometry_closest_pair_1d\n#include <cmath>\n#include <cstdio>\n#include <vector>\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<double> x = {1.0, 4.0};\n    const double result = correctClosestPair(x);\n    std::printf(\"%.17g\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "3",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    }
+  ],
+  "22_histogram_count_quadrants": [
+    {
+      "case_id": "origin_is_first_quadrant",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "(0,0): both coordinates non-negative -> bins[0]",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, 0.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[1, 0, 0, 0]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "positive_axes_are_first_quadrant",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "(1,0) and (0,1): a zero coordinate counts as non-negative -> bins[0]",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{1.0, 0.0}, {0.0, 1.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[2, 0, 0, 0]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "negative_x_axis_is_second_quadrant",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "(-1,0): x<0, y>=0 -> bins[1]",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{-1.0, 0.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[0, 1, 0, 0]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "negative_y_axis_is_fourth_quadrant",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "(0,-1): x>=0, y<0 -> bins[3]",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, -1.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[0, 0, 0, 1]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "ramp_crossing_zero",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "(-1,-1),(0,0),(1,1) -> bins [2,0,1,0]",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{-1.0, -1.0}, {0.0, 0.0}, {1.0, 1.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[2, 0, 1, 0]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "axis_cross_sum_equals_n",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "(1,0),(0,1),(-1,0),(0,-1): every axis point lands in exactly one bin",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{1.0, 0.0}, {0.0, 1.0}, {-1.0, 0.0}, {0.0, -1.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[2, 1, 0, 1]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "mixed_axis_points_and_interior",
+      "decision_id": "AXIS-CONVENTION-OPEN",
+      "description": "origin, both y-axis halves, both x-axis halves and an interior QIII point -> [3,1,1,1]",
+      "prompt_sentence": "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.",
+      "harness_cpp": "// Convention fixture: histogram/22_histogram_count_quadrants\n#include <array>\n#include <cstdio>\n#include <vector>\nstruct Point {\n   double x, y;\n};\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<Point> points = {{0.0, 0.0}, {0.0, 2.0}, {-2.0, 0.0}, {0.0, -2.0}, {2.0, 0.0}, {-1.0, -1.0}};\n    std::array<size_t, 4> bins;\n    bins.fill(0);\n    correctCountQuadrants(points, bins);\n    printf(\"[%zu, %zu, %zu, %zu]\\n\", bins[0], bins[1], bins[2], bins[3]);\n    return 0;\n}\n",
+      "expected_json": "[3, 1, 1, 1]",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    }
+  ],
+  "34_scan_largest_contiguous_subarray_sum": [
+    {
+      "case_id": "all_negative_pair",
+      "decision_id": "BL-10",
+      "description": "[-5,-3]: non-empty subarray required -> largest single element -3 (empty-allowed reading would give 0)",
+      "prompt_sentence": "The subarray must be non-empty. / Assume x contains at least one element.",
+      "harness_cpp": "// Convention fixture: scan/34_scan_largest_contiguous_subarray_sum\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n#include <cstdio>\n#include <vector>\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<int> x = {-5, -3};\n    const int result = correctMaximumSubarray(x);\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "-3",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "all_negative_separating",
+      "decision_id": "BL-10",
+      "description": "[-3,-1,-7,-2] -> -1",
+      "prompt_sentence": "The subarray must be non-empty. / Assume x contains at least one element.",
+      "harness_cpp": "// Convention fixture: scan/34_scan_largest_contiguous_subarray_sum\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n#include <cstdio>\n#include <vector>\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<int> x = {-3, -1, -7, -2};\n    const int result = correctMaximumSubarray(x);\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "-1",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "single_negative_minimal_size",
+      "decision_id": "BL-11",
+      "description": "[-42]: minimal admissible size n=1 -> -42",
+      "prompt_sentence": "The subarray must be non-empty. / Assume x contains at least one element.",
+      "harness_cpp": "// Convention fixture: scan/34_scan_largest_contiguous_subarray_sum\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline)) __attribute__((optimize(\"O3\")))\n#endif\n#include <cstdio>\n#include <vector>\n#include \"baseline.hpp\"\n\nint main() {\n    const std::vector<int> x = {-42};\n    const int result = correctMaximumSubarray(x);\n    std::printf(\"%d\\n\", result);\n    return 0;\n}\n",
+      "expected_json": "-42",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    }
+  ],
+  "37_search_find_the_closest_number_to_pi": [
+    {
+      "case_id": "tie_duplicate_in_worked_example",
+      "decision_id": "TIE-BREAK-OPEN",
+      "description": "3.05 duplicated at index 3: smallest index 1 wins (last-index reading would give 3)",
+      "prompt_sentence": "If several values are equally close to PI, return the smallest such index.",
+      "harness_cpp": "// Convention fixture: search/37_search_find_the_closest_number_to_pi\n#include <cstdio>\n#include <cmath>\n#include <vector>\n#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> const x = {9.18, 3.05, 7.24, 3.05, -166.49, 2.1};\n    size_t idx = correctFindClosestToPi(x);\n    std::printf(\"%zu\\n\", idx);\n    return 0;\n}\n",
+      "expected_json": "1",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "tie_symmetric_larger_value_first",
+      "decision_id": "TIE-BREAK-OPEN",
+      "description": "M_PI+1 at index 1 and M_PI-1 at index 3 are exactly equidistant: smallest index 1 (smaller-value reading would give 3)",
+      "prompt_sentence": "If several values are equally close to PI, return the smallest such index.",
+      "harness_cpp": "// Convention fixture: search/37_search_find_the_closest_number_to_pi\n#include <cstdio>\n#include <cmath>\n#include <vector>\n#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> const x = {1000.0, M_PI + 1.0, 50.0, M_PI - 1.0};\n    size_t idx = correctFindClosestToPi(x);\n    std::printf(\"%zu\\n\", idx);\n    return 0;\n}\n",
+      "expected_json": "1",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    },
+    {
+      "case_id": "tie_all_equal",
+      "decision_id": "TIE-BREAK-OPEN",
+      "description": "all elements equal: index 0",
+      "prompt_sentence": "If several values are equally close to PI, return the smallest such index.",
+      "harness_cpp": "// Convention fixture: search/37_search_find_the_closest_number_to_pi\n#include <cstdio>\n#include <cmath>\n#include <vector>\n#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n#ifndef NO_INLINE\n#define NO_INLINE __attribute__((noinline))\n#endif\n#include \"baseline.hpp\"\n\nint main() {\n    std::vector<double> const x = {7.0, 7.0, 7.0, 7.0, 7.0};\n    size_t idx = correctFindClosestToPi(x);\n    std::printf(\"%zu\\n\", idx);\n    return 0;\n}\n",
+      "expected_json": "0",
+      "compare": {
+        "float_abs": 1e-09,
+        "float_rel": 1e-09
+      }
+    }
+  ]
+}

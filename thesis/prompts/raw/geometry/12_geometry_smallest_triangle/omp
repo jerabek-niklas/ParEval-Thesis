@@ -7,6 +7,8 @@ double triangleArea(Point const& A, Point const& B, Point const& C) {
 }
 
 /* Return the area of the smallest triangle that can be formed by any 3 points.
+   Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident.
+   If fewer than 3 points are given, return 0.
    Use OpenMP to compute in parallel.
    Example:
 

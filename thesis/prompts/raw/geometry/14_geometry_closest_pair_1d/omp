@@ -3,6 +3,7 @@ double distance(double x1, double x2) {
 }
 
 /* Return the distance between the closest two elements in the vector x.
+   If the vector contains fewer than two elements, return 0.
    Use OpenMP to compute in parallel.
    Example: 
 

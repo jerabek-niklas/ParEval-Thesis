@@ -621,3 +621,32 @@ unchanged.** Neither tightened nor loosened.
 
 Comparability is not reuse. This wave records which measurements *could* be
 compared; it decides nothing about which will be.
+
+---
+
+## Addendum (2026-09-05) — after the Semantic Interlock wave
+
+The figures in §4 describe the prompt state **at the time of the reevaluation**
+(HEAD `068ac0b2…`). The Semantic Interlock wave that followed clarified six
+benchmark contracts atomically (serial/omp/mpi) — `geometry/12`, `geometry/13`,
+`geometry/14`, `histogram/22`, `scan/34`, `search/37` — all **outside** the
+pilot_001 population. Re-measured with the same byte diff:
+
+| Metric | §4 (reevaluation) | now |
+|---|---|---|
+| Prompt entries changed vs pilot_001 commit | 69 | **87** |
+| Benchmarks changed | 23 | **29** |
+| Non-atomic changes | 0 | **0** |
+| Pilot benchmarks affected | 4 | **4** (unchanged) |
+| Pilot cells affected | 132 | **132** (unchanged) |
+
+The 99 / 99 / 198 correctness classification is untouched: no pilot_001
+prompt, oracle or input domain changed. The seven semantic interlocks are now
+final: six RESOLVED, one (`dense_la/00`, BL-01) deliberately
+`ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002` with a machine-readable reporting
+requirement (`thesis/evaluation/semantic_decisions_pilot002.json`,
+`thesis/evaluation/semantic_interlocks_pilot002_report.md`). The
+`SEMANTIC_INTERLOCK` cell class of `dense_la/00` keeps its meaning; the
+disclosure is accepted, not pending. The cross-pilot artifact's
+semantic-interlock block and its self-fingerprint were refreshed accordingly
+(`99bbe4cfa1585e3919ba993bb4e0f087554a850227f6f6ff40a0346ebe12a4a0`).

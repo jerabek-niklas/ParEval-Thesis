@@ -7,6 +7,7 @@ double distance(Point const& p1, Point const& p2) {
 }
 
 /* Return the distance between the closest two points in the vector points.
+   If the vector contains fewer than two points, return 0.
    Use MPI to compute in parallel. Assume MPI has already been initialized.
    Every rank has a complete copy of points. The final result is returned on rank 0.
    Example: 

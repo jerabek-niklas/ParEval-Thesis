@@ -21,9 +21,9 @@ identity, config drift, toolchain provenance) against the gate:
 
     POST_RUN_MANIFEST_VERIFICATION = REQUIRED_NOT_IMPLEMENTED
 
-This tool also does NOT check the external final-gate steps (semantic
-interlock disclosure readiness, pilot_002 population decision, pilot_002
-base-run-id configuration, reuse decision, publication policy). Those stay
+This tool also does NOT check the external final-gate steps (pilot_002
+population decision, pilot_002 base-run-id configuration, reuse decision,
+publication policy, rendering of semantic disclosures). Those stay
 external; a passing tool run reports
 "technical_cross_pilot_preflight_passed" and
 "final_pilot_gate_still_required" - never "pilot_002 fully authorized".
@@ -58,6 +58,14 @@ CHECKED DIMENSIONS (tool-owned)
 10. reserved/iteration run ids are always rejected (pilot_001, smoke_*,
     full_*, repair_smoke_*, model_check_*, any "__iter"/variant suffix) - a
     repair-iteration population can never pass the base-run preflight
+16. semantic decisions (Semantic Interlock wave, check_semantic_decisions):
+    every former prompt/oracle interlock must carry a FINAL decision.
+    SEMANTIC_DECISION_UNRESOLVED > 0 -> BLOCK; a deliberately accepted
+    disclosure (SEMANTIC_DISCLOSURE_ACCEPTED) does NOT block, provided its
+    reporting requirement is machine-readable. Rendering the disclosure in
+    reports is a later reporting-wave obligation
+    (SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED) and is never claimed
+    here.
 11. primary compiler vs frozen expected value
 12. run timeout vs frozen expected value
 13. runtime compiler version compatible with the recorded toolchain
@@ -105,6 +113,7 @@ import sys
 from pathlib import Path
 
 import check_cross_pilot_gate as repo_gate
+import check_semantic_decisions as semantic_gate
 
 GATE_PATH = repo_gate.GATE_PATH
 
@@ -445,11 +454,53 @@ def main() -> int:
           " present - NOT proof of a historically identical container)"
           % tristate(env_match))
 
+    # ---- 16. semantic decisions (Semantic Interlock wave) ----
+    # A registry entry is NOT automatically a blocker any more: the semantic
+    # gate distinguishes an unresolved decision (BLOCK) from a deliberately
+    # accepted disclosure (PASS_WITH_DISCLOSURE, allowed for pilot_002 as long
+    # as its reporting requirement is machine-readable). Rendering the
+    # disclosure is a reporting-wave obligation and is not claimed here.
+    print("SEMANTIC_DECISION_CHECK")
+    sem_decisions = load_json(semantic_gate.DECISIONS_PATH)
+    sem_registry = load_json(semantic_gate.REGISTRY_PATH)
+    if sem_decisions is None or sem_registry is None:
+        print("  UNRESOLVED (semantic decision artifact or interlock registry"
+              " missing/unreadable)")
+        print("SEMANTIC_DECISION_UNRESOLVED = UNRESOLVED")
+        print("SEMANTIC_DISCLOSURE_ACCEPTED = UNRESOLVED")
+        cond_open()
+    else:
+        sem = semantic_gate.evaluate(sem_decisions, sem_registry)
+        for row in sem["rows"]:
+            print("  %s (%s): %s" % (row["benchmark"], ",".join(row["decision_ids"]),
+                                     row["gate"]))
+            for issue in row["issues"]:
+                print("      - %s" % issue)
+        for problem in sem["problems"]:
+            print("  PROBLEM: %s" % problem)
+        print("SEMANTIC_DECISION_UNRESOLVED = %d" % sem["unresolved"])
+        print("SEMANTIC_DISCLOSURE_ACCEPTED = %d" % sem["accepted_disclosure"])
+        if sem["gate"] == "UNRESOLVED":
+            cond_open()
+        elif sem["gate"] == "BLOCK":
+            print("  -> pilot_002 blocked: at least one semantic decision is not"
+                  " final or inconsistent (SEMANTIC_DECISION_UNRESOLVED)")
+            cond_fail()
+        elif sem["gate"] == "PASS_WITH_DISCLOSURE":
+            print("  -> accepted-disclosure decisions do not block pilot_002;"
+                  " their reporting requirements are machine-readable"
+                  " (SEMANTIC_DISCLOSURE_ACCEPTED)")
+        print("SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED (reporting-wave"
+              " obligation; the requirement itself is verified above)")
+    print("SEMANTIC_GATE = %s"
+          % ("UNRESOLVED" if sem_decisions is None or sem_registry is None
+             else sem["gate"]))
+
     # ---- verdict ----
     print("\nEXTERNAL_FINAL_GATE_CHECKS (NOT performed by this tool):"
-          " interlock_disclosure_ready, pilot_002_population_decided,"
+          " pilot_002_population_decided,"
           " pilot_002_base_run_id_configured, reuse_decision_ready,"
-          " publication_policy_ready")
+          " publication_policy_ready, semantic_disclosure_rendering")
     print("POST_RUN_MANIFEST_VERIFICATION = REQUIRED_NOT_IMPLEMENTED"
           " (after the actual pilot_002, its run_manifest.json must be"
           " compared read-only against this gate)")

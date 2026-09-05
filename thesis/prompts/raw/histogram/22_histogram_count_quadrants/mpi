@@ -4,6 +4,7 @@ struct Point {
 
 /* Count the number of cartesian points in each quadrant. The vector points contains a list of `Point` objects.
    Store the counts in `bins`.
+   A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped.
    Use MPI to count in parallel. Assume MPI has already been initialized.
    Every rank has a complete copy of points. The result is stored in bins on rank 0.
    Example:

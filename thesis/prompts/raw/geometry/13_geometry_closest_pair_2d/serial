@@ -7,6 +7,7 @@ double distance(Point const& p1, Point const& p2) {
 }
 
 /* Return the distance between the closest two points in the vector points.
+   If the vector contains fewer than two points, return 0.
    Example: 
 
    input: [{2, 3}, {12, 30}, {40, 50}, {5, 1}, {12, 10}, {3, 4}]

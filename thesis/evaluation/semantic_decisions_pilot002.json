@@ -1,0 +1,662 @@
+{
+  "schema_version": "semantic_decisions.v1",
+  "generated_at": "2026-09-05T00:00:00Z",
+  "generated_by": "Semantic Interlock wave (final pilot_002 semantic decisions)",
+  "source_head": "068ac0b28ebb4b0d15f4392da1040cb7fd5f2735",
+  "benchmark_count": 7,
+  "decision_id_count": 8,
+  "resolved_count": 6,
+  "disclosure_count": 1,
+  "unresolved_count": 0,
+  "statuses": {
+    "RESOLVED": "convention made explicit in the prompt (serial/omp/mpi atomically); no oracle change; input domain unchanged",
+    "ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002": "deliberately accepted open convention: benchmark runs, verdict unchanged, no sample excluded, disclosure mandatory in per-benchmark reporting and aggregates"
+  },
+  "decision_priority_used": [
+    "1 prompt-defined semantics",
+    "2 established mathematical/algorithmic definition",
+    "3 worked examples",
+    "4 input range actually produced",
+    "5 existing oracle behaviour",
+    "6 minimal additional convention"
+  ],
+  "global_invariants": {
+    "general_fequal_changed": false,
+    "general_validation_tolerance_changed": false,
+    "k1_k7_comparator_policy_changed": false,
+    "non_finite_policy_changed": false,
+    "verdict_schema_changed": false,
+    "oracle_files_changed": 0,
+    "input_domain_rules_changed": 0,
+    "frozen_e3_specs_changed": false,
+    "frozen_e3_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+    "enhanced_specs_regenerated": false,
+    "llm_api_calls": 0,
+    "benchmarks_partially_changed": 0,
+    "pilot_001_prompts_changed": []
+  },
+  "prompt_regeneration": {
+    "generator": "python thesis/prompts/create_generation_prompts.py (default options, as for pilot_001 and Wave 3)",
+    "generated_file": "thesis/prompts/generation-prompts-thesis.json",
+    "generated_file_sha256_lf": "c8e463b55044ade1bddf89aafb2308465afcef03feccf0363dae8c5d9d95358a",
+    "raw_source_of_truth": "thesis/prompts/raw/<problem_type>/<name>/{serial,omp,mpi} (CRLF, no trailing newline)",
+    "prompt_benchmarks_changed": [
+      "geometry/12_geometry_smallest_triangle",
+      "geometry/13_geometry_closest_pair_2d",
+      "geometry/14_geometry_closest_pair_1d",
+      "histogram/22_histogram_count_quadrants",
+      "scan/34_scan_largest_contiguous_subarray_sum",
+      "search/37_search_find_the_closest_number_to_pi"
+    ],
+    "prompt_entries_changed": 18,
+    "requires_pilot_002_regeneration_total": 18,
+    "wave3_regeneration_set_reference": "thesis/evaluation/wave3_regeneration_set.json (69 entries / 23 benchmarks, untouched); the pilot_002 regeneration set is the union of both"
+  },
+  "registry": {
+    "path": "thesis/evaluation/prompt_oracle_interlock.json",
+    "remaining_benchmarks": [
+      "dense_la/00_dense_la_lu_decomp"
+    ],
+    "interlock_benchmark_count": 1,
+    "interlock_prompt_pair_count": 3
+  },
+  "checker": "thesis/evaluation/check_semantic_decisions.py (unresolved -> BLOCK, resolved -> PASS, accepted disclosure -> PASS_WITH_DISCLOSURE); wired into thesis/evaluation/pilot_preflight.py section 16",
+  "convention_fixtures": "thesis/evaluation/prompt_oracle_convention_fixtures.json (run by check_prompt_oracle_consistency.py)",
+  "decisions": [
+    {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "decision_ids": [
+        "BL-01"
+      ],
+      "status": "ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002",
+      "decision": "dense_la/00 runs in pilot_002 unchanged: the correctness verdict stays the absolute 1e-3 elementwise comparison against the unpivoted kij Doolittle reference at TEST_SIZE=512 (both validation attempts). The tolerance regime is a DELIBERATELY ACCEPTED open convention (BL-01): a mathematically identical Doolittle factorization computed with a different floating-point rounding sequence (accumulate-then-subtract, blocked panels, FMA contraction, reciprocal multipliers) can be graded FAIL. No sample is excluded and no verdict is overridden; every per-benchmark report of a dense_la/00 result must carry the BL-01 disclosure and aggregates must mark the benchmark as disclosure-bearing.",
+      "reason": "The factorization CONVENTION is not ambiguous: it is fixed at level 3 by the worked example [[4,3],[6,3]] -> [[4,3],[1.5,-1.5]] (Doolittle packing, unit L implicit, no pivoting - measured: Crout and partial pivoting both fail the example) and is mathematically unique on the produced domain (level 2). What stays open is the floating-point TOLERANCE regime, which no level of the priority derives: the prompt is silent (1); mathematics defines no rounding tolerance (2); the produced input range REACHES the class (4): on the thesis correctness stream (DRIVER_PROBLEM_SIZE 1<<8) validation trial 1 at N=512 has max|LU| 3.8e5 and min pivot 0.062, and a mathematically identical Doolittle written as accumulate-then-subtract exceeds 1e-3 at 52 indices - exactly the recorded pilot_001 qwen3_coder_api serial/omp FAIL, reproduced bit-exactly at index 205201 (expected 182070.86024185043, got 182070.86173061817, rel 8.2e-9), while the rejected code's componentwise backward error (1.8e-16) equals the oracle's (2.1e-16); the oracle's absolute 1e-3 (5) is a historical choice retained unchanged, not promoted to a contract. Every validator-side fix is either forbidden in this wave (1e-3 -> 1e-2, absolute -> relative), a new grading methodology whose bound constant is itself a frozen-decision matter (Higham-type backward-error residual), or a change of the graded input of a pilot_001 benchmark (smaller TEST_SIZE) that would force a full cross-pilot reevaluation. The prompt is NOT changed. Verified NOT to hold (refuted during adversarial review and withdrawn): the audit's claim that the pipeline's enhanced-stage stability probe would flag the trial-1 matrix - the real probe (baseline_selftest.build_probe_wrapper: a single-TU oracle copy under optimize(O2,fast-math,fp-contract=fast)+target(x86-64-v3)) PASSES both correctness matrices (perturbation 6.25e-5 / 5.34e-4), so that gate is blind to BL-01 and is not a future resolution path.",
+      "prompt_changed": false,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "evidence": [
+        "drivers/cpp/benchmarks/dense_la/00_dense_la_lu_decomp/cpu.cc:51,63,76 (TEST_SIZE 512, fillRand [-10,10], reportAndCompare 1e-3)",
+        "drivers/cpp/benchmarks/dense_la/00_dense_la_lu_decomp/baseline.hpp:12-24 (kij, no pivoting, Doolittle packing)",
+        "thesis/docs/oracle-correctness-audit.md:224-235 (BL-01, #71)",
+        "thesis/results/intermediate/pilot_001: qwen3_coder_api dense_la/00 serial+omp validation_failed, MISMATCH index=205201 expected=182070.86024185043 got=182070.86173061817 rel=8.18e-09 total=52",
+        "audit probes (draw-dependent estimates): 22/40 random 512x512 draws fail for at least one common Doolittle formulation; N<=128 0/40; N=256 reachable in a minority of draws; pure loop interchanges kij/kji/jki/ikj bit-identical",
+        "componentwise backward error |A-LU|/(|L||U|) at N=512 ~2e-16 for the oracle AND every valid variant (vs n*u = 5.7e-14): the rejected implementations are numerically as good as the reference",
+        "enhanced stage NOT affected by BL-01: productive sizes <= 8, worst rounding difference 1.6e-10; 14 of 20 productive specs are verdict-bearing, 6 are gated baseline_incompatible by the frozen non-finite-reference gate (singular inputs: all_zeros@2/@4, all_same[5,5]@3/@6, all_same(midpoint 0)@2, explicit singular@3) - a separate axis",
+        "the enhanced-stage stability probe (baseline_selftest.build_probe_wrapper) run through the real driver on the correctness stream: Validation PASS on both trials (0 mismatches) - it does NOT detect BL-01",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": {
+        "benchmark": "dense_la/00_dense_la_lu_decomp",
+        "decision_ids": [
+          "BL-01"
+        ],
+        "short_hint": "BL-01 open tolerance convention: correctness verdicts are absolute-1e-3 elementwise against one unpivoted reference at N=512; a FAIL whose mismatches are all finite with small relative error (observed 8e-9) is a rounding-order effect, not a contract violation.",
+        "affected_results": [
+          "correctness-stage verdicts of dense_la/00 (serial, omp, mpi): validation_failed with finite, small-relative-error mismatches may be false FAILs (verdict unchanged)",
+          "timing stage: pass-gated, so such a sample is absent from speedup tables",
+          "repair loop: iteration counts driven by such a FAIL",
+          "aggregates: dense_la/00 must be marked disclosure-bearing"
+        ],
+        "not_affected": [
+          "enhanced_tests stage (sizes <= 8; worst rounding difference 1.6e-10)",
+          "pass verdicts",
+          "non-rounding FAILs (non-finite got=, rel of order 1)"
+        ],
+        "enhanced_reporting_note": "pilot_002 enhanced results for dense_la/00 have an expected ceiling of 14 verdict-bearing specs: 6 of the 20 productive specs are singular inputs gated baseline_incompatible (non_finite_reference) by the frozen gate - a separate axis from BL-01; '14 pass' must not be read as 6 failures",
+        "post_hoc_classifier_hint": "reporting-layer label only, never a verdict rule: mismatch_class = rounding_signature iff every SHOWN mismatch line (rel is recorded only for the <= MISMATCH_REPORT_MAX shown lines, not for all mismatched indices) is finite with relative error far below 1 (pilot_001 rounding case: 8.2e-9; genuine-bug records: rel 0.57 / 1.83 / got=-inf). The audit's tentative 1e-4 cut is NOT frozen: measured worst relative deviations of valid rounding variants range from 4.65e-6 (mismatched indices, 40 draws) to 4e-4 (blocked variant, sweep) depending on the variant and draw",
+        "rendering_status": "SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED (reporting-wave obligation)"
+      },
+      "pilot_001_population_member": true,
+      "cross_pilot_effect": "none: no prompt/oracle/domain change; the 99/99/198 classification and dense_la/00's SEMANTIC_INTERLOCK cell class are unchanged",
+      "deferred_alternatives": [
+        "validate by a Higham-type backward-error residual (componentwise |A-LU|/(|L||U|) measured ~2e-16 for oracle and valid variants vs n*u): the derivable level-2 contract, rejected for THIS wave because (a) a validator redesign is not permitted for an oracle that is not objectively wrong, (b) it interacts with the frozen non-finite-reference gate on the six singular enhanced specs, (c) the bound constant is itself a frozen-decision matter",
+        "reduce TEST_SIZE for this benchmark (changes the graded input of a pilot_001 benchmark; the margin is continuous in N - N<=128 0/40 draws, N=256 draw-dependent - so no principled cutoff exists)",
+        "NOT an alternative (withdrawn after adversarial review): applying the enhanced-stage stability probe to the correctness stage - it passes both correctness matrices and would not have reclassified the pilot_001 FAIL"
+      ],
+      "priority_attribution": "factorization convention fixed at level 3 (worked example, verified discriminating); tolerance axis derivable at no level -> accepted open convention; oracle behaviour (level 5) retained unchanged, not promoted to a contract"
+    },
+    {
+      "benchmark": "geometry/12_geometry_smallest_triangle",
+      "decision_ids": [
+        "BL-05"
+      ],
+      "decision_id_cross_reference": "registry/contract id BL-05; in thesis/docs/oracle-correctness-audit.md this benchmark's findings are the decision-table row (line 124) and the two unnumbered should-fix bullets (lines 481-482); audit-doc BL-05 is geometry/13's n<2 finding",
+      "status": "RESOLVED",
+      "decision": "Two conventions made explicit in the prompt. (a) Degenerate triples count: any three collinear or coincident points form a triangle of area 0, so the answer is 0 whenever such a triple exists. (b) Fewer than 3 points -> return 0.",
+      "reason": "(a) Level 2 (standard shoelace/signed-area definition: a degenerate triangle has area 0), corroborated by level 1 (the prompt's own triangleArea() helper returns 0 for such triples and 'any 3 points' carries no non-degeneracy qualifier) and level 5 (oracle: unfiltered minimum over all C(n,3) triples). (b) Level 5 + 6: the standard problem is undefined below 3 points; the contract-preferred precondition ('at least 3 points') is NOT available in this wave because enforcing it (min_size 3) invalidates the frozen E3 seeds (2, all_zeros) and (1, all_zeros) and 7 productive specs and fails verify_e3_frozen_artifacts.py; a non-degeneracy precondition would invalidate all 8 frozen seeds. The extended-real convention min(empty set) = +inf was considered and rejected: it requires an oracle change the wave forbids (0 is a convention, not an objectively wrong oracle), a +inf reference is announced as non_finite_reference and would make the 7 n<3 productive specs vacuous under the frozen comparator, and existing verdicts already reject +inf/DBL_MAX/NaN candidates. The oracle's stable 0 (upstream ParEval baseline, unchanged; coherent with geometry/13 and /14, which return 0 below their minimum size - geometry/11 is NOT a uniform-0 sibling, it returns twice the segment length for two distinct points) is therefore written out explicitly, exactly as the project's own domain table queued it. Corpus precedent for stating degenerate-input returns in prompts: geometry/11 and reduce/28 (Wave 3).",
+      "prompt_changed": true,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "prompt_convention_sentences": [
+        "Three collinear or coincident points count as a triangle of area 0, so the answer is 0 whenever any three of the given points are collinear or coincident.",
+        "If fewer than 3 points are given, return 0."
+      ],
+      "prompt_insertion_point": "directly after the first comment line '/* Return the area of the smallest triangle ...', before the parallelism sentence / Example",
+      "evidence": [
+        "drivers/cpp/benchmarks/geometry/12_geometry_smallest_triangle/baseline.hpp:12-33 (n<3 -> 0; unfiltered min over all triples)",
+        "own probe (container): n0=0 n1=0 n2=0 collinear3=0 dup3=0 col4=0",
+        "thesis/docs/benchmark-domain-table.json row 12 prompt_restriction_needed (queued sentences adopted)",
+        "frozen seeds at sizes 1 and 2 explicitly target the n<3 path; productive suite: 17/20 specs hit the degenerate class",
+        "correctness stage: TEST_SIZE 1024, independent uniform doubles in [-1000,1000] -> zero degenerate triples in 3/3 draws; no verdict change",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": "none",
+      "size_zero_decision": "e2b_size_zero stays DISALLOWED (min_size 1) solely to keep the productive suite and the E3 freeze stable (re-allowing size 0 would re-validate a removed pre-E3 seed row and fail verify_e3_frozen_artifacts.py); its catalog reason text ('that the frozen prompt does not state') is superseded by the new prompt sentence and is flagged for the next catalog/policy wave - no catalog change now, because the reason string is copied into enhanced_policy.json and would move the policy SHA (execution-fingerprint component B)",
+      "precondition_path_blocked_by": "frozen E3 seeds (size 2, all_zeros) and (size 1, all_zeros) - BLOCKED_PENDING_ENHANCED_REGENERATION if ever pursued (simulated min_size 3: 2 frozen seeds invalid, 12 productive keys change); no catalog field can express a semantic min_size 3 (e2b_size_zero is binary, enforced_size_safety is technical-only)",
+      "alternatives_rejected": [
+        "precondition n>=3 + min_size 3 (invalidates frozen seeds)",
+        "non-degeneracy precondition (invalidates all frozen seeds; coupled x/y fills cannot respect it)",
+        "oracle change to skip zero-area triples (flips 17/20 references, invents semantics)",
+        "validator leniency at n<3 (touches the comparator policy)",
+        "accepted disclosure (an objectively better, non-inventive convention is derivable)"
+      ],
+      "regeneration_set": [
+        {
+          "prompt_id": "geometry/12_geometry_smallest_triangle/serial",
+          "problem_type": "geometry",
+          "name": "12_geometry_smallest_triangle",
+          "parallelism_model": "serial",
+          "p0_prompt_sha256": "b21360602d8b2e196d1fbec866750aa34bc05556f8fa5300fbfc4193e01455ac",
+          "pre_wave_prompt_sha256": "b21360602d8b2e196d1fbec866750aa34bc05556f8fa5300fbfc4193e01455ac",
+          "post_wave_prompt_sha256": "9f91f336d21f0bb211765f1f7d30fb42fa1f2affed80eed461a8e047781b531c",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "geometry/12_geometry_smallest_triangle/omp",
+          "problem_type": "geometry",
+          "name": "12_geometry_smallest_triangle",
+          "parallelism_model": "omp",
+          "p0_prompt_sha256": "da8c1f89b1e37ee5b1c8394801fcb8f0f2478f697186ff4ed39101f3cb7d5ea0",
+          "pre_wave_prompt_sha256": "da8c1f89b1e37ee5b1c8394801fcb8f0f2478f697186ff4ed39101f3cb7d5ea0",
+          "post_wave_prompt_sha256": "7ff7a68ce0e8fe9650965992001f1f0ec9edbd833f408cf105398ddb07aec570",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "geometry/12_geometry_smallest_triangle/mpi",
+          "problem_type": "geometry",
+          "name": "12_geometry_smallest_triangle",
+          "parallelism_model": "mpi",
+          "p0_prompt_sha256": "5742e3319e3d1e421028694b596599213041bef7083172d32c34d77f89badcf2",
+          "pre_wave_prompt_sha256": "5742e3319e3d1e421028694b596599213041bef7083172d32c34d77f89badcf2",
+          "post_wave_prompt_sha256": "41d3fad88cef381ef23a88da1a9f1426771cefda724f1a2fbb2db70d0734a707",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        }
+      ]
+    },
+    {
+      "benchmark": "geometry/13_geometry_closest_pair_2d",
+      "decision_ids": [
+        "BL-06"
+      ],
+      "decision_id_cross_reference": "registry/contract id BL-06; in thesis/docs/oracle-correctness-audit.md the n<2 finding for this benchmark is BL-05 (line 275) and BL-06 (line 288) is the all-distances-overflow DBL_MAX finding, which the E2-B domain policy makes unreachable (extreme_values unsupported, spike_at = domain hi, value_range subset of [-1000,1000])",
+      "status": "RESOLVED",
+      "decision": "If the vector contains fewer than two points, closestPair returns 0. Stated in the prompt for all three models; no oracle or input-domain change.",
+      "reason": "Level 6 (minimal additional convention), chosen because level 2 yields only the precondition n>=2 whose enforcement (enforced_size_safety.min_size = 2) is wave-blocked: it invalidates the frozen E3 seed (size 1, all_zeros) and 3 productive specs and fails verify_e3_frozen_artifacts.py check 12-15. The registry's factual claim that the oracle returns a DBL_MAX sentinel for n<2 is WRONG: baseline.hpp:13-15 returns 0 before any arithmetic (verified empirically; DBL_MAX arises only when every pairwise distance overflows). 0 is finite (comparator-compatible), family-consistent (geometry/11 Wave-3 sentence, geometry/14 identical guard), upstream-neutral (upstream never grades n<2) and is the audit document's own option (a). Not chosen merely because the oracle does it: it is the only wave-legal way to make the convention model-visible without invalidating frozen specs or inventing oracle methodology.",
+      "prompt_changed": true,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "prompt_convention_sentences": [
+        "If the vector contains fewer than two points, return 0."
+      ],
+      "prompt_insertion_point": "directly after '/* Return the distance between the closest two points in the vector points.'",
+      "evidence": [
+        "drivers/cpp/benchmarks/geometry/13_geometry_closest_pair_2d/baseline.hpp:13-15 (size<2 -> return 0)",
+        "own probe (container): n0=0 n1=0 same2=0 two=5; real serial driver at -DENHANCED_TEST_SIZE=1: candidate returning 0 PASS, +inf FAIL, DBL_MAX FAIL (verifier)",
+        "thesis/docs/benchmark-domain-table.json row 13 prompt_restriction_needed (queued sentence adopted verbatim)",
+        "frozen seed (size 1, all_zeros, llm) targets the n<2 base case; 3 productive size-1 specs; size 0 already DISALLOWED (e2b_size_zero)",
+        "correctness stage: TEST_SIZE 1024, fillRand [-1000,1000]: n<2 unreachable; no verdict change",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": "none",
+      "size_zero_decision": "e2b_size_zero stays DISALLOWED (no productive-suite change); the contract sentence covers n=0 as well while the suite tests only n=1",
+      "precondition_path_blocked_by": "frozen E3 seed (size 1, all_zeros) - BLOCKED_PENDING_ENHANCED_REGENERATION if ever pursued; preferred long-term contract remains the precondition n>=2 with enforced_size_safety.min_size = 2, to be re-evaluated in the next enhanced regeneration wave",
+      "registry_correction": "oracle_behavior 'DBL_MAX sentinel' was wrong (0 for n<2); recorded here, entry removed as RESOLVED",
+      "alternatives_rejected": [
+        "precondition n>=2 + min_size 2 (invalidates frozen seed)",
+        "oracle change to +inf (non-finite references -> BASELINE_INCOMPATIBLE, deviates from upstream)",
+        "prompt pinning +infinity (would require the oracle change)",
+        "permissive comparison at n<2 (touches the K1 scalar comparator / non-finite policy)",
+        "accepted disclosure (a better wave-legal option exists)",
+        "manual seed removal (prohibited)"
+      ],
+      "regeneration_set": [
+        {
+          "prompt_id": "geometry/13_geometry_closest_pair_2d/serial",
+          "problem_type": "geometry",
+          "name": "13_geometry_closest_pair_2d",
+          "parallelism_model": "serial",
+          "p0_prompt_sha256": "942246694fa710ffd355c1f7818b0ff26f89b0b4029148d1dd0bbf29985d9100",
+          "pre_wave_prompt_sha256": "942246694fa710ffd355c1f7818b0ff26f89b0b4029148d1dd0bbf29985d9100",
+          "post_wave_prompt_sha256": "05d0e013a85d4bde0d8be21e9976d35755707961de03fa5e98f9ded662dedb18",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "geometry/13_geometry_closest_pair_2d/omp",
+          "problem_type": "geometry",
+          "name": "13_geometry_closest_pair_2d",
+          "parallelism_model": "omp",
+          "p0_prompt_sha256": "e51e01994b92fa58b1d835f7176e04a3402964186df648b727fa7f9894bcb530",
+          "pre_wave_prompt_sha256": "e51e01994b92fa58b1d835f7176e04a3402964186df648b727fa7f9894bcb530",
+          "post_wave_prompt_sha256": "5ab5eb85819021942885e7746b0c0cbcb23a748052581513061c3533b89a2fff",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "geometry/13_geometry_closest_pair_2d/mpi",
+          "problem_type": "geometry",
+          "name": "13_geometry_closest_pair_2d",
+          "parallelism_model": "mpi",
+          "p0_prompt_sha256": "bf6978f0dc6a529cc84c511eccff8c704021cd14b9d5c462549fdfa4ab38b6dc",
+          "pre_wave_prompt_sha256": "bf6978f0dc6a529cc84c511eccff8c704021cd14b9d5c462549fdfa4ab38b6dc",
+          "post_wave_prompt_sha256": "fb93dd9abddcb1afedd02c7a0640b980835e11dbf2c51fd2648ad41e66c60d2a",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        }
+      ]
+    },
+    {
+      "benchmark": "geometry/14_geometry_closest_pair_1d",
+      "decision_ids": [
+        "BL-07"
+      ],
+      "decision_id_cross_reference": "registry/contract id BL-07 = thesis/docs/oracle-correctness-audit.md BL-07 (line 301)",
+      "status": "RESOLVED",
+      "decision": "If the vector contains fewer than two elements, closestPair returns 0. Stated in the prompt for all three models; no oracle or input-domain change. Decided consistently with geometry/13 (identical guard, identical frozen-seed situation).",
+      "reason": "Same derivation as geometry/13: level 2 gives only the precondition n>=2, whose enforcement invalidates the frozen E3 seed (size 1, explicit_values [42.0]) and reshuffles 5 productive specs; the oracle stably returns 0 through an explicit, commented, upstream-original guard (baseline.hpp:13-15, commit da414f1); the domain table's conditional option (c) wording is adopted. BL-07's strongest objection - 0 is a LEGAL distance, so 'no pair' is indistinguishable from 'a coincident pair' - is answered explicitly: for a GRADING contract the collision is irrelevant once the rule is stated (candidate and oracle are compared on the same input), 0 is finite and therefore gradable under the frozen non-finite policy (which rejects +inf/NaN candidates), and among the finite candidates 0 is the existing upstream oracle behaviour and the geometry-family idiom (12/13/14 return 0 below their minimum size). The frozen seed is oracle-derived (the seed LLM saw baseline.hpp) and is cited only to show that size 1 cannot be excluded, never as independent merit.",
+      "prompt_changed": true,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "prompt_convention_sentences": [
+        "If the vector contains fewer than two elements, return 0."
+      ],
+      "prompt_insertion_point": "directly after '/* Return the distance between the closest two elements in the vector x.'",
+      "evidence": [
+        "drivers/cpp/benchmarks/geometry/14_geometry_closest_pair_1d/baseline.hpp:13-15 (size<2 -> return 0)",
+        "own probe (container): n0=0 n1=0 same2=0 two=3",
+        "thesis/docs/benchmark-domain-table.json row 14 prompt_restriction_needed (conditional option (c) sentence adopted)",
+        "frozen seed (size 1, explicit_values) targets the n<2 base case; size 0 already DISALLOWED",
+        "correctness stage: TEST_SIZE 1024: n<2 unreachable; no verdict change",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": "none",
+      "size_zero_decision": "e2b_size_zero stays DISALLOWED; contract covers n=0 as well",
+      "precondition_path_blocked_by": "frozen E3 seed (size 1, explicit_values [42.0]) - BLOCKED_PENDING_ENHANCED_REGENERATION if ever pursued (simulated: 1 frozen seed invalid, 5 productive specs reshuffled)",
+      "registry_correction": "oracle_behavior 'DBL_MAX sentinel / implementation accident' was wrong (0 for n<2 via an explicit upstream guard, commit da414f1); recorded here, entry removed as RESOLVED",
+      "alternatives_rejected": [
+        "precondition n>=2 + min_size 2 (invalidates frozen seed)",
+        "oracle change to +inf",
+        "accepted disclosure (a better wave-legal option exists)"
+      ],
+      "regeneration_set": [
+        {
+          "prompt_id": "geometry/14_geometry_closest_pair_1d/serial",
+          "problem_type": "geometry",
+          "name": "14_geometry_closest_pair_1d",
+          "parallelism_model": "serial",
+          "p0_prompt_sha256": "0b634b07a9d7dbe6339009c79176e9ebb5bdf9101a92f68025e376fc29b2583a",
+          "pre_wave_prompt_sha256": "0b634b07a9d7dbe6339009c79176e9ebb5bdf9101a92f68025e376fc29b2583a",
+          "post_wave_prompt_sha256": "44a152cbb8206bea6be38b5d480e441ea5907b4b931843f5f5851299bad33b65",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "geometry/14_geometry_closest_pair_1d/omp",
+          "problem_type": "geometry",
+          "name": "14_geometry_closest_pair_1d",
+          "parallelism_model": "omp",
+          "p0_prompt_sha256": "4a7c93c8f7d3206263419cba045604b63fee7257a14d00ebd1250f49c463b120",
+          "pre_wave_prompt_sha256": "4a7c93c8f7d3206263419cba045604b63fee7257a14d00ebd1250f49c463b120",
+          "post_wave_prompt_sha256": "f117f0c3dd7ed7b2152bfda368d0e873bf72262cfa43b746936d68cd762c60fe",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "geometry/14_geometry_closest_pair_1d/mpi",
+          "problem_type": "geometry",
+          "name": "14_geometry_closest_pair_1d",
+          "parallelism_model": "mpi",
+          "p0_prompt_sha256": "a66f7099ad2237f8c5758da1191701f4ec7279a34f496a1a45fbc80b19a2e69b",
+          "pre_wave_prompt_sha256": "a66f7099ad2237f8c5758da1191701f4ec7279a34f496a1a45fbc80b19a2e69b",
+          "post_wave_prompt_sha256": "460406cfece7c16849789433821f4aab2de255daa62e7a29a17d0d7928ef5a7f",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        }
+      ]
+    },
+    {
+      "benchmark": "histogram/22_histogram_count_quadrants",
+      "decision_ids": [
+        "AXIS-CONVENTION-OPEN"
+      ],
+      "status": "RESOLVED",
+      "decision": "Exact axis convention, now stated in the prompt: a point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0. Hence x == 0 (y != 0) -> bins[0] for y > 0, bins[3] for y < 0; y == 0 (x != 0) -> bins[0] for x > 0, bins[1] for x < 0; the origin (and signed zeros) -> bins[0]. Every finite point is counted exactly once; nothing is dropped.",
+      "reason": "Level 1 is silent. Level 2 (mathematics) says axis points belong to NO quadrant - adopting that would require either an oracle change (strict inequalities: flips 6/20 productive verdicts, diverges from the upstream oracle, and the oracle is not objectively wrong) or a precondition 'no point on an axis' (invalidates frozen seeds 2, 4, 6 and three mutations -> BLOCKED; no value-dependent capability predicate exists). Level 3 fixes only the bin order. Level 4: the productive enhanced suite reaches the origin in 6/20 specs (all_zeros, ascending/descending ramps crossing zero, alternating), while the correctness stage cannot produce an exact 0.0 with RAND_MAX = 2^31-1. The wave rule therefore selects level 5: the existing oracle convention (deterministic, total over finite doubles, sanitizer clean, upstream-inherited and unchanged) is the only non-blocking, verdict-preserving resolution and is made explicit. Methodological precedent: Wave 3 fixed histogram/21's boundary value 100 by a prompt sentence, not an oracle change. Wording adopted verbatim from the project's own domain-table queue.",
+      "prompt_changed": true,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "prompt_convention_sentences": [
+        "A point counts into bins[0] if x >= 0 and y >= 0, into bins[1] if x < 0 and y >= 0, into bins[2] if x < 0 and y < 0, and into bins[3] if x >= 0 and y < 0; points lying exactly on an axis or at the origin are therefore counted by these non-strict comparisons and are never dropped."
+      ],
+      "prompt_insertion_point": "directly after '   Store the counts in `bins`.'",
+      "evidence": [
+        "drivers/cpp/benchmarks/histogram/22_histogram_count_quadrants/baseline.hpp:16-28 (>= 0 comparisons)",
+        "own probe (container): origin->[1,0,0,0] (1,0)->[1,0,0,0] (-1,0)->[0,1,0,0] (0,1)->[1,0,0,0] (0,-1)->[0,0,0,1] (-0.0,-0.0)->[1,0,0,0]",
+        "thesis/docs/benchmark-domain-table.json row 22 prompt_restriction_needed (queued sentence adopted verbatim)",
+        "productive suite: 6/20 specs reach the origin; a strict-inequality or zero-negative candidate fails exactly those 6 (verifier)",
+        "correctness stage: exhaustive rand() scan finds 0 exact zeros; all conventions agree there; no verdict change",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": "none",
+      "alternatives_rejected": [
+        "oracle change to strict inequalities / zero-negative / atan2 binning (invents semantics, flips 6 verdicts)",
+        "precondition 'no point on an axis' (invalidates frozen seeds 2, 4, 6; deletes the only boundary coverage)",
+        "accepted disclosure (the domain reaches the class and an objectively better contract is derivable)"
+      ],
+      "regeneration_set": [
+        {
+          "prompt_id": "histogram/22_histogram_count_quadrants/serial",
+          "problem_type": "histogram",
+          "name": "22_histogram_count_quadrants",
+          "parallelism_model": "serial",
+          "p0_prompt_sha256": "23412b8ac5716e637a961bd12106b937e48f8e4a1db5f6ee9994f5f2b86aca2a",
+          "pre_wave_prompt_sha256": "23412b8ac5716e637a961bd12106b937e48f8e4a1db5f6ee9994f5f2b86aca2a",
+          "post_wave_prompt_sha256": "a9cc16e19c99edb7e049fe76662bd8a441df7a9f1cc2b0cef224c906d07ef6fb",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "histogram/22_histogram_count_quadrants/omp",
+          "problem_type": "histogram",
+          "name": "22_histogram_count_quadrants",
+          "parallelism_model": "omp",
+          "p0_prompt_sha256": "4d93d33a7623c63883926c7ce62de700a10121f89b4a94eccbd5ca102dc78bda",
+          "pre_wave_prompt_sha256": "4d93d33a7623c63883926c7ce62de700a10121f89b4a94eccbd5ca102dc78bda",
+          "post_wave_prompt_sha256": "524e13a71964df8fe2b957561f5ffb4fdd611ea422898a542c3b4bda19e57b3e",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "histogram/22_histogram_count_quadrants/mpi",
+          "problem_type": "histogram",
+          "name": "22_histogram_count_quadrants",
+          "parallelism_model": "mpi",
+          "p0_prompt_sha256": "1375eecfdaa56eee2119539ce9a4aadcfe5c5eac1ee5863034d749e489a4009b",
+          "pre_wave_prompt_sha256": "1375eecfdaa56eee2119539ce9a4aadcfe5c5eac1ee5863034d749e489a4009b",
+          "post_wave_prompt_sha256": "0585b6aede7562f14ec4874e9c6190e0b2527a76426a71de25013d45b11fa52b",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        }
+      ]
+    },
+    {
+      "benchmark": "scan/34_scan_largest_contiguous_subarray_sum",
+      "decision_ids": [
+        "BL-10",
+        "BL-11"
+      ],
+      "status": "RESOLVED",
+      "decision": "BL-10 (explicit algorithmic convention): the subarray must be non-empty - the maximum is taken over non-empty contiguous subarrays, so an all-negative input yields its largest single element (never 0). BL-11 (input precondition): x contains at least one element; the empty input is outside the contract and the oracle's INT_MIN artefact is never graded.",
+      "reason": "BL-10: level 2 narrows the space to the two standard conventions (non-empty: CLRS 4.1 / LeetCode 53; empty-allowed: Bentley/Kadane reset-to-zero) without selecting; level 3 (example answer 6) does not discriminate; level 4 shows the class IS reached (6/20 productive enhanced specs are all-negative; the correctness stage with fillRand [-100,99] never separates them); level 5 selects per the wave's tie-break rule: the oracle stably implements the non-empty convention (baseline.hpp:14-19; unchanged by upstream fix 883ed97). Seed rationales are oracle-derived and are NOT counted as independent evidence. BL-11 (level 2 + the PRECONDITIONS rule, enforcement verified at level 4): the problem is undefined for empty x under the non-empty convention and ALL productive paths already exclude size 0 (e2b_size_zero DISALLOWED -> min_size 1; frozen seeds sizes 1..9; correctness TEST_SIZE 1024), so a precondition is preferred over stating the INT_MIN accumulator artefact. The minimal wording is chosen deliberately (a corollary such as 'for all-negative input the result is the largest element' would read as coaching for the tested input class). Wording adopted verbatim from the project's domain-table queue ('The subarray must be non-empty.') and the corpus idiom ('Assume ... non-empty', histogram/23). scan/34 was not in the pilot_001 population; pilot_002 generates fresh under the clarified prompt.",
+      "prompt_changed": true,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "prompt_convention_sentences": [
+        "The subarray must be non-empty.",
+        "Assume x contains at least one element."
+      ],
+      "prompt_insertion_point": "directly after '   subarray with the largest sum of 6.'",
+      "evidence": [
+        "drivers/cpp/benchmarks/scan/34_scan_largest_contiguous_subarray_sum/baseline.hpp:14-22 (INT_MIN initialiser; sums of non-empty runs only)",
+        "own probe (container): [-3,-1,-7,-2]->-1 [-5,-3]->-3 []->-2147483648 example->6 [0,0,0]->0 [-7]->-7",
+        "thesis/docs/oracle-correctness-audit.md:340-364 (BL-10, BL-11)",
+        "thesis/docs/benchmark-domain-table.json row 34 prompt_restriction_needed (queued sentences adopted)",
+        "enhanced_policy.json scan/34 size_constraint.min_size = 1 (e2b_size_zero DISALLOWED); frozen seeds sizes 1,2,3,4,5,9; no size-0 spec",
+        "correctness stage: TEST_SIZE 1024, fillRand [-100,99]: precondition holds; K1 and K2 both pass there; no verdict change",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": "none",
+      "decision_split": {
+        "BL-10": "explicit algorithmic convention",
+        "BL-11": "input precondition"
+      },
+      "size_zero_decision": "e2b_size_zero stays DISALLOWED; its catalog reason text is superseded by the prompt precondition but is NOT reworded in this wave (the string is copied into enhanced_policy.json and would move the policy SHA / E3 manifest hashes)",
+      "alternatives_rejected": [
+        "oracle change to empty-allowed (flips 6/20 references, invents semantics)",
+        "stating the INT_MIN size-0 sentinel (never graded, pure artefact)",
+        "re-admitting size 0 (grades sentinel guessing; spec changes)",
+        "dropping the all-negative specs (invalidates 3 frozen seeds)",
+        "accepted disclosure (a derivable convention exists; 30% of the productive suite sits in the ambiguous class)"
+      ],
+      "regeneration_set": [
+        {
+          "prompt_id": "scan/34_scan_largest_contiguous_subarray_sum/serial",
+          "problem_type": "scan",
+          "name": "34_scan_largest_contiguous_subarray_sum",
+          "parallelism_model": "serial",
+          "p0_prompt_sha256": "d9fc1c9754c7fcb58cee878099bb737a3ba6498dc644fe7c7eac520a1fea7512",
+          "pre_wave_prompt_sha256": "d9fc1c9754c7fcb58cee878099bb737a3ba6498dc644fe7c7eac520a1fea7512",
+          "post_wave_prompt_sha256": "5e65271c28a6b7c5e9a78cab16652822b550f963dba58be920bbf6aa458e978c",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT",
+            "PRECONDITION"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "scan/34_scan_largest_contiguous_subarray_sum/omp",
+          "problem_type": "scan",
+          "name": "34_scan_largest_contiguous_subarray_sum",
+          "parallelism_model": "omp",
+          "p0_prompt_sha256": "486a5a751c188f7b24c7cd2026c178f888d6d71c104e8d6479af381de5f97752",
+          "pre_wave_prompt_sha256": "486a5a751c188f7b24c7cd2026c178f888d6d71c104e8d6479af381de5f97752",
+          "post_wave_prompt_sha256": "d947321321b4c1c177adc56e931f88739a9543a59006a14f2bc91319ccb8289b",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT",
+            "PRECONDITION"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "scan/34_scan_largest_contiguous_subarray_sum/mpi",
+          "problem_type": "scan",
+          "name": "34_scan_largest_contiguous_subarray_sum",
+          "parallelism_model": "mpi",
+          "p0_prompt_sha256": "df9a9f3273ab5147d9533e4c5286f094a91c388e0a4916006d4e6867aa9e8056",
+          "pre_wave_prompt_sha256": "df9a9f3273ab5147d9533e4c5286f094a91c388e0a4916006d4e6867aa9e8056",
+          "post_wave_prompt_sha256": "5a9731aab9dcd8768dd315c47c51a1a87fcc9c3c54afb31e348adf937697116b",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT",
+            "PRECONDITION"
+          ],
+          "requires_pilot_002_regeneration": true
+        }
+      ]
+    },
+    {
+      "benchmark": "search/37_search_find_the_closest_number_to_pi",
+      "decision_ids": [
+        "TIE-BREAK-OPEN"
+      ],
+      "status": "RESOLVED",
+      "decision": "Tie-break made explicit: if several values are equally close to PI, the smallest such index is returned (the function returns an index, size_t). This is a property of the input, not of an iteration order: a parallel implementation must reduce on (distance, index) and keep the lowest index among equal distances.",
+      "reason": "Level 2 as the dominant algorithmic convention for argmin ties (first occurrence: std::min_element, numpy.argmin, MATLAB/Julia argmin), corroborated by level 5 (the oracle is a deterministic, language-guaranteed forward scan with strict '<', baseline.hpp:14-16 - not an accidental iteration order) and level 3 (the worked example has a unique closest value). Level 4: no tie is reachable in the correctness stage (fill [100,1000] plus a forced 10.0 -> unique argmin) nor in the 20 productive enhanced specs, but exact double ties are genuinely constructible (duplicates; M_PI+-d for d = 1, 0.5, 0.25, 0.1, 3), so the contract is stated. n = 0 is a separate undefined input (oracle reads x[0]) already excluded on every productive path (technical min_size 1; correctness 1024) and deliberately NOT decided under TIE-BREAK-OPEN.",
+      "prompt_changed": true,
+      "oracle_changed": false,
+      "input_domain_changed": false,
+      "parallelism_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "prompt_convention_sentences": [
+        "If several values are equally close to PI, return the smallest such index."
+      ],
+      "prompt_insertion_point": "directly after '   Use M_PI for the value of PI.'",
+      "evidence": [
+        "drivers/cpp/benchmarks/search/37_search_find_the_closest_number_to_pi/baseline.hpp:12-21 (strict < forward scan from index 0)",
+        "own probe (container): [5,5]->0 [10,3.14,3.14]->1 [pi-1,pi+1]->0 [pi+1,pi-1]->0 [3,100,3]->0; |(pi-1)-pi| == |(pi+1)-pi| exactly",
+        "thesis/docs/benchmark-domain-table.json row 37 prompt_restriction_needed (queued sentence adopted verbatim)",
+        "graded builds use -std=c++17 -O3 without -ffast-math (cpp_driver_wrapper.py) - exact-tie equality is IEEE-stable",
+        "correctness stage: unique argmin (sentinel 10.0 vs fill [100,1000]); enhanced: 0/20 productive specs contain a tie; no verdict change",
+        "thesis/evaluation/semantic_interlocks_pilot002_report.md (per-benchmark audit, empirical oracle table, refuter verdicts)",
+        "workflow wf_2b70efcb-f6e: 7 independent audits + 3 adversarial verifiers per audit (oracle empirics, methodology, enhanced/correctness impact), 0 refutations",
+        "thesis/evaluation/prompt_oracle_convention_fixtures.json: oracle re-executed on the pinned input class in the analysis container (check_prompt_oracle_consistency.py, all cases consistent)"
+      ],
+      "reporting_requirement": "none",
+      "alternatives_rejected": [
+        "accepted disclosure (a clearly better, cost-free convention is derivable)",
+        "tie-agnostic validator (changes grading semantics, diverges from upstream)",
+        "last index / smaller value / larger value (contradict oracle and the standard convention)",
+        "input-domain rule forbidding ties (unenforceable for random doubles)",
+        "oracle stabilization (unnecessary; already deterministic)"
+      ],
+      "regeneration_set": [
+        {
+          "prompt_id": "search/37_search_find_the_closest_number_to_pi/serial",
+          "problem_type": "search",
+          "name": "37_search_find_the_closest_number_to_pi",
+          "parallelism_model": "serial",
+          "p0_prompt_sha256": "0f4e494f72c5d0bc333041888ec344500e7843bdea84436e477fc51e268aebd3",
+          "pre_wave_prompt_sha256": "0f4e494f72c5d0bc333041888ec344500e7843bdea84436e477fc51e268aebd3",
+          "post_wave_prompt_sha256": "f1728bdeb1b10dc948c46c73202c07d1a5a99efb133685f487b29d1c3b165738",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "search/37_search_find_the_closest_number_to_pi/omp",
+          "problem_type": "search",
+          "name": "37_search_find_the_closest_number_to_pi",
+          "parallelism_model": "omp",
+          "p0_prompt_sha256": "ea6d4e391e1cfbb431b7a6bc698b1e051de89906ce5ecd7d4bfe8456584b689f",
+          "pre_wave_prompt_sha256": "ea6d4e391e1cfbb431b7a6bc698b1e051de89906ce5ecd7d4bfe8456584b689f",
+          "post_wave_prompt_sha256": "9b7a4959c520a09cef79952804fb1328669c232e8ab4c73f6e4a3789498a0097",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        },
+        {
+          "prompt_id": "search/37_search_find_the_closest_number_to_pi/mpi",
+          "problem_type": "search",
+          "name": "37_search_find_the_closest_number_to_pi",
+          "parallelism_model": "mpi",
+          "p0_prompt_sha256": "0e8cefefcc66f6f62bf97fa9813fcd285e8e44db7d77ee08c5a37aaa5b2e1399",
+          "pre_wave_prompt_sha256": "0e8cefefcc66f6f62bf97fa9813fcd285e8e44db7d77ee08c5a37aaa5b2e1399",
+          "post_wave_prompt_sha256": "2ead0f912365e01bc45b7a8a41d6ca9b1f8cf5a82513be3785f1906c5f757314",
+          "change_period": "SEMANTIC_INTERLOCK_WAVE",
+          "change_nature": "SEMANTIC",
+          "change_types": [
+            "KONVENTION_EXPLIZIT_GEMACHT"
+          ],
+          "requires_pilot_002_regeneration": true
+        }
+      ]
+    }
+  ]
+}

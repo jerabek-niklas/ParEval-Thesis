@@ -1,5 +1,6 @@
 /* Return the index of the value in the vector x that is closest to the math constant PI.
    Use M_PI for the value of PI.
+   If several values are equally close to PI, return the smallest such index.
    Use OpenMP to search in parallel.
    Example:
 

@@ -3,6 +3,7 @@ double distance(double x1, double x2) {
 }
 
 /* Return the distance between the closest two elements in the vector x.
+   If the vector contains fewer than two elements, return 0.
    Example: 
 
    input: [7, 3, 9, 12, 31, 1]

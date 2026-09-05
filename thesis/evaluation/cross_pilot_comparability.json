@@ -1,6 +1,6 @@
 {
   "generated_by": "Cross-Pilot reevaluation after the final Enhanced freeze (E1-E3.1.1)",
-  "date": "2026-08-31",
+  "date": "2026-09-05",
   "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
   "state_commit": "6fc8a1a9a33d287f5dc7c87bf5f3502dfda9b859",
   "pilot_001_population": {
@@ -744,8 +744,8 @@
     ],
     "prompt_change_reproduction": {
       "method": "byte diff of thesis/prompts/generation-prompts-thesis.json between the pilot_001 manifest commit and HEAD",
-      "prompt_entries_changed": 69,
-      "benchmarks_changed": 23,
+      "prompt_entries_changed": 87,
+      "benchmarks_changed": 29,
       "atomicity_violations": 0,
       "atomicity_rule": "serial/omp/mpi are treated atomically per benchmark contract; every one of the changed benchmarks changed all three entries",
       "pilot_benchmarks_prompt_changed": [
@@ -755,7 +755,25 @@
         "stencil/50_stencil_xor_kernel"
       ],
       "pilot_cells_affected_by_prompt_change": 132,
-      "matches_historical_wave3_figures": true
+      "matches_historical_wave3_figures": true,
+      "prompt_entries_changed_at_reevaluation": 69,
+      "benchmarks_changed_at_reevaluation": 23,
+      "post_semantic_interlock_wave": {
+        "date": "2026-09-05",
+        "prompt_benchmarks_clarified": [
+          "geometry/12_geometry_smallest_triangle",
+          "geometry/13_geometry_closest_pair_2d",
+          "geometry/14_geometry_closest_pair_1d",
+          "histogram/22_histogram_count_quadrants",
+          "scan/34_scan_largest_contiguous_subarray_sum",
+          "search/37_search_find_the_closest_number_to_pi"
+        ],
+        "prompt_entries_added": 18,
+        "benchmarks_added": 6,
+        "all_outside_pilot_001_population": true,
+        "pilot_001_prompt_change_set_unchanged": true,
+        "note": "The Semantic Interlock wave clarified conventions atomically (serial/omp/mpi) for benchmarks outside the pilot_001 population, so the global diff against the pilot_001 commit grew while the 4-benchmark / 132-cell pilot figure and the 99/99/198 classification are unchanged."
+      }
     },
     "normal_correctness_vs_enhanced_separation": {
       "NORMAL_CORRECTNESS_INPUT_PATH_CHANGED": false,
@@ -1337,23 +1355,41 @@
       }
     },
     "semantic_interlocks": {
-      "count": 7,
-      "status": "disclosure_required",
+      "count": 1,
+      "status": "ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002",
       "changed_in_this_wave": false,
       "source": "thesis/evaluation/prompt_oracle_interlock.json",
       "in_pilot_population": [
         "dense_la/00_dense_la_lu_decomp"
       ],
       "in_pilot_population_cells": 33,
-      "outside_pilot_population": [
-        "geometry/12_geometry_smallest_triangle",
-        "geometry/13_geometry_closest_pair_2d",
-        "geometry/14_geometry_closest_pair_1d",
-        "histogram/22_histogram_count_quadrants",
-        "scan/34_scan_largest_contiguous_subarray_sum",
-        "search/37_search_find_the_closest_number_to_pi"
-      ],
-      "note": "All seven remain BLOCKED_PENDING_SEMANTIC_DECISION. No exclusion, verdict override, tie-break or tolerance was invented here; the ambiguity is made visible, not resolved."
+      "outside_pilot_population": [],
+      "note": "All seven remain BLOCKED_PENDING_SEMANTIC_DECISION. No exclusion, verdict override, tie-break or tolerance was invented here; the ambiguity is made visible, not resolved.",
+      "count_at_reevaluation": 7,
+      "status_at_reevaluation": "disclosure_required",
+      "semantic_interlock_wave": {
+        "date": "2026-09-05",
+        "decision_artifact": "thesis/evaluation/semantic_decisions_pilot002.json",
+        "resolved": [
+          "geometry/12_geometry_smallest_triangle",
+          "geometry/13_geometry_closest_pair_2d",
+          "geometry/14_geometry_closest_pair_1d",
+          "histogram/22_histogram_count_quadrants",
+          "scan/34_scan_largest_contiguous_subarray_sum",
+          "search/37_search_find_the_closest_number_to_pi"
+        ],
+        "accepted_disclosure": [
+          "dense_la/00_dense_la_lu_decomp"
+        ],
+        "unresolved": [],
+        "registry_interlock_benchmark_count": 1,
+        "registry_interlock_prompt_pair_count": 3,
+        "gate": "thesis/evaluation/check_semantic_decisions.py",
+        "pilot_001_population_member_still_disclosure_bearing": [
+          "dense_la/00_dense_la_lu_decomp"
+        ],
+        "note": "Resolved conventions are prompt clarifications (plus, where recorded, input-domain enforcement); the accepted disclosure keeps its verdict, excludes no sample and must be rendered per benchmark by the reporting stage (SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED)."
+      }
     },
     "decisions_explicitly_not_made": {
       "reuse": "UNDECIDED",
@@ -1389,7 +1425,7 @@
     "reason": "The 99/99/198 correctness structure reproduces exactly from the local records and from current source, and every STALE fingerprint that triggered this reevaluation is enhanced-side. The enhanced stage is reported separately and is largely NOT directly comparable; that does not change the correctness classification, which the statement scopes."
   },
   "external_gates_still_open": [
-    "7 semantic interlocks (disclosure_required, BLOCKED_PENDING_SEMANTIC_DECISION)",
+    "1 semantic interlock(s) remain, all ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002 (dense_la/00_dense_la_lu_decomp) - not a blocker; reporting requirement machine-readable, rendering pending (SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED)",
     "pilot_002 population decision (NOT_YET_DECIDED)",
     "pilot_002 base run_id (NOT_YET_CONFIGURED)",
     "reuse decision (UNDECIDED)",
@@ -1399,6 +1435,7 @@
     "ENVIRONMENT_RUNTIME_CHECK (pilot preflight; container is TAG_ONLY pinned)",
     "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
-  "cross_pilot_fingerprint_sha256": "3469f4a9f7d1de31c819343bc048ebf2842237edd4a7a5e8669d900a83bd15c1",
+  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735",
+  "cross_pilot_fingerprint_sha256": "99bbe4cfa1585e3919ba993bb4e0f087554a850227f6f6ff40a0346ebe12a4a0",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }
