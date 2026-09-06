@@ -123,6 +123,10 @@ def print_status(loops) -> None:
         # contract F3b.3: samples whose ORACLE was not evaluable. Shown as its
         # own column so it is never read as part of "clean".
         ("bi", 4),
+        # tool-state wave: non-model terminal states, never read as "clean"
+        # gap = stopped_analysis_incomplete, api = stopped_api_exhausted
+        ("gap", 4),
+        ("api", 4),
         ("ext", 4),
         ("batch", 20),
     ]
@@ -144,6 +148,8 @@ def print_status(loops) -> None:
             str(row["stopped_budget"]),
             str(row["repair_unusable"]),
             str(row["stopped_baseline_incompatible"]),
+            str(row["stopped_analysis_incomplete"]),
+            str(row["stopped_api_exhausted"]),
             str(row["pending_external"]),
             str(row["batch_id"] or "-"),
         ]

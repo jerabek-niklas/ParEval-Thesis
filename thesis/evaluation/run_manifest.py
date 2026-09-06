@@ -202,6 +202,50 @@ def enhanced_specs_info(config: "Dict[str, Any]",
             "spec_count": spec_count}
 
 
+class AnalysisConditionMismatch(RuntimeError):
+    """A run manifest already records a different static/repair condition."""
+
+
+def _register_condition(config: "Dict[str, Any]", run_id: str, field: str,
+                        sha: str, condition: "Dict[str, Any]") -> None:
+    """Static/Repair tool-state wave: pin a content-addressed condition
+    (static_analysis_condition_sha256 / repair_condition_sha256) in the run
+    manifest. First contact writes it; a later contact with a DIFFERENT sha
+    is a hard failure - the same run must not mix analysis conditions.
+    Manifests that predate the field (pilot_001) are backfilled ONCE and the
+    backfill is recorded as a limitation, never silently."""
+    path = manifest_path(config, run_id)
+    if not path.is_file():
+        return
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    recorded = manifest.get(field)
+    if recorded is None:
+        manifest[field] = sha
+        manifest[field.replace("_sha256", "")] = condition
+        if manifest.get("created_by_stage") not in (None, "static_analysis", "repair"):
+            manifest.setdefault("condition_backfills", []).append(
+                {"field": field, "note": "condition pinned after run creation "
+                                          "(earlier stages ran without it)"})
+        _write_manifest(path, manifest)
+        return
+    if recorded != sha:
+        raise AnalysisConditionMismatch(
+            "run manifest %s records %s = %s... but this invocation computes %s.... "
+            "The tool implementation, tool config, build config, TU strategy or "
+            "repair policy changed mid-run; use a fresh run_id."
+            % (path, field, recorded[:12], sha[:12]))
+
+
+def register_static_condition(config: "Dict[str, Any]", run_id: str,
+                              sha: str, condition: "Dict[str, Any]") -> None:
+    _register_condition(config, run_id, "static_analysis_condition_sha256", sha, condition)
+
+
+def register_repair_condition(config: "Dict[str, Any]", run_id: str,
+                              sha: str, condition: "Dict[str, Any]") -> None:
+    _register_condition(config, run_id, "repair_condition_sha256", sha, condition)
+
+
 def register_model_execution(config: "Dict[str, Any]", run_id: str,
                              model_id: str, fingerprint_sha: str) -> None:
     """Register one model's execution fingerprint in the run manifest.

@@ -1,0 +1,755 @@
+{
+  "schema_version": "static_repair_pilot001_inventory.v1",
+  "pilot": "pilot_001",
+  "source_of_truth": "thesis/results/intermediate/pilot_001 (records read only; nothing re-run)",
+  "tool_state_schema": "tool_state.v1",
+  "static": {
+    "base": {
+      "records": 396,
+      "models": 11,
+      "schema_versions": [
+        "static_analysis.v2"
+      ],
+      "raw_legacy_state_per_tool": {
+        "compiler": {
+          "COMPLETED": 396
+        },
+        "gcc_analyzer": {
+          "COMPLETED": 231,
+          "PARTIAL": 154,
+          "TOOL_ERROR": 11
+        },
+        "clang_tidy": {
+          "COMPLETED": 386,
+          "TOOL_ERROR": 10
+        },
+        "cppcheck": {
+          "COMPLETED": 396
+        },
+        "infer": {
+          "COMPLETED": 256,
+          "NOT_ANALYZED": 130,
+          "TOOL_ERROR": 10
+        },
+        "parcoach": {
+          "COMPLETED": 83,
+          "TOOL_ERROR": 30,
+          "TIMEOUT": 19,
+          "NOT_APPLICABLE": 264
+        },
+        "llov": {
+          "COMPLETED": 49,
+          "PARTIAL": 10,
+          "NOT_ANALYZED": 45,
+          "TOOL_ERROR": 28,
+          "NOT_APPLICABLE": 264
+        }
+      },
+      "effective_state_per_tool": {
+        "compiler": {
+          "COMPLETED": 396
+        },
+        "gcc_analyzer": {
+          "COMPLETED": 231,
+          "PARTIAL": 154,
+          "NOT_ANALYZED": 11
+        },
+        "clang_tidy": {
+          "COMPLETED": 386,
+          "NOT_ANALYZED": 10
+        },
+        "cppcheck": {
+          "COMPLETED": 396
+        },
+        "infer": {
+          "COMPLETED": 256,
+          "NOT_ANALYZED": 140
+        },
+        "parcoach": {
+          "COMPLETED": 83,
+          "NOT_ANALYZED": 8,
+          "TOOL_ERROR": 22,
+          "TIMEOUT": 19,
+          "NOT_APPLICABLE": 264
+        },
+        "llov": {
+          "COMPLETED": 49,
+          "PARTIAL": 10,
+          "NOT_ANALYZED": 47,
+          "TOOL_ERROR": 26,
+          "NOT_APPLICABLE": 264
+        }
+      },
+      "verdict_per_tool": {
+        "compiler": {
+          "CLEAN": 385,
+          "DEFECT_FOUND": 11
+        },
+        "gcc_analyzer": {
+          "NO_TRUSTWORTHY_VERDICT": 105,
+          "CLEAN": 230,
+          "DEFECT_FOUND": 61
+        },
+        "clang_tidy": {
+          "CLEAN": 300,
+          "DEFECT_FOUND": 86,
+          "NO_TRUSTWORTHY_VERDICT": 10
+        },
+        "cppcheck": {
+          "CLEAN": 394,
+          "DEFECT_FOUND": 2
+        },
+        "infer": {
+          "DEFECT_FOUND": 26,
+          "NO_TRUSTWORTHY_VERDICT": 140,
+          "CLEAN": 230
+        },
+        "parcoach": {
+          "NOT_APPLICABLE": 264,
+          "CLEAN": 81,
+          "NO_TRUSTWORTHY_VERDICT": 49,
+          "DEFECT_FOUND": 2
+        },
+        "llov": {
+          "NOT_APPLICABLE": 264,
+          "NO_TRUSTWORTHY_VERDICT": 79,
+          "CLEAN": 27,
+          "DEFECT_FOUND": 26
+        }
+      },
+      "not_analyzed_subsumed_by_compiler": {
+        "gcc_analyzer": 11,
+        "clang_tidy": 10,
+        "infer": 10,
+        "llov": 2,
+        "parcoach": 8
+      },
+      "records_with_analysis_gap": 258,
+      "records_all_applicable_tools_completed_and_clean": 119,
+      "llov_rederivation": {
+        "scope": "stored findings vs fixed parser over retained raw output (LLOV raw output never hit the 8000-char cap)",
+        "counts": {
+          "records": 132,
+          "stored_findings": 63,
+          "rederived_findings": 67,
+          "stored_race_findings": 32,
+          "rederived_race_findings": 36
+        },
+        "class_stored": {
+          "error": 28,
+          "no_finding": 57,
+          "not_analyzed_only": 21,
+          "race": 26
+        },
+        "class_rederived": {
+          "error": 28,
+          "race_free_only": 25,
+          "not_analyzed_only": 45,
+          "race": 28,
+          "free_and_not_analyzed": 6
+        },
+        "samples_with_changed_race_count": [
+          {
+            "sample_id": "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__omp__sample_0",
+            "model_id": "deepseek_v4_pro",
+            "stored_race": 1,
+            "rederived_race": 2
+          },
+          {
+            "sample_id": "qwen36_35b_a3b__scan__30_scan_prefix_sum__omp__sample_0",
+            "model_id": "qwen36_35b_a3b",
+            "stored_race": 0,
+            "rederived_race": 1
+          },
+          {
+            "sample_id": "qwen36_35b_a3b__sparse_la__45_sparse_la_sparse_solve__omp__sample_0",
+            "model_id": "qwen36_35b_a3b",
+            "stored_race": 1,
+            "rederived_race": 2
+          },
+          {
+            "sample_id": "qwen37_max__sparse_la__45_sparse_la_sparse_solve__omp__sample_0",
+            "model_id": "qwen37_max",
+            "stored_race": 0,
+            "rederived_race": 1
+          }
+        ]
+      },
+      "finding_set_regression": {
+        "compiler": {
+          "parser_changed": false,
+          "blocking_rule_changed_for": "toolchain failures only (exit -1 without timeout, ICE, cc1plus fatal)",
+          "records_affected": 0,
+          "detail": {},
+          "FINDING_SET_CHANGED_BY_TOOL": false
+        },
+        "gcc_analyzer": {
+          "parser_changed": false,
+          "blocking_rule_changed_for": "nothing (state PARTIAL/TOOL_ERROR added; path events attached)",
+          "reparse_check_on_uncapped_raw": {
+            "raw_capped_records": 148,
+            "uncapped_records": 237,
+            "identical_reparse": 237
+          },
+          "FINDING_SET_CHANGED_BY_TOOL": false
+        },
+        "clang_tidy": {
+          "parser_changed": false,
+          "blocking_rule_changed_for": "clang-diagnostic-error (front-end rejection): blocking -> non-blocking, state TOOL_ERROR / NOT_ANALYZED",
+          "detail": {
+            "blocking_flag_flipped": 23,
+            "records": 0,
+            "records_with_flip": 10,
+            "records_with_flip_and_compiler_failed": 10
+          },
+          "FINDING_SET_CHANGED_BY_TOOL": true,
+          "identities_changed": false
+        },
+        "cppcheck": {
+          "parser_changed": false,
+          "blocking_rule_changed_for": "syntaxError / internalError / preprocessorErrorDirective (lexer) etc.: blocking -> non-blocking, state PARTIAL / NOT_ANALYZED",
+          "detail": {
+            "blocking_flag_flipped:preprocessorErrorDirective": 1
+          },
+          "FINDING_SET_CHANGED_BY_TOOL": true,
+          "identities_changed": false
+        },
+        "infer": {
+          "parser_changed": false,
+          "level_filter_changed": false,
+          "blocking_rule_changed_for": "nothing (state NOT_ANALYZED / PARTIAL on frontend abort)",
+          "detail": {
+            "frontend_abort_records": 132
+          },
+          "FINDING_SET_CHANGED_BY_TOOL": false
+        },
+        "parcoach": {
+          "parser_changed": false,
+          "blocking_rule_changed_for": "nothing",
+          "method_changed": "reduced TU now carries the cpu.cc system-include preamble (coverage fix)",
+          "detail": {
+            "completed": 83,
+            "timeouts": 19,
+            "reduced_tu_compile_failures": 30,
+            "reduced_tu_failures_on_compiler_built_samples": 22
+          },
+          "FINDING_SET_CHANGED_BY_TOOL": "COVERAGE_ONLY: 22 reduced-TU failures on compiler-built samples would be analyzed (measured: identical findings on already-analyzable samples)"
+        }
+      }
+    },
+    "iterations": {
+      "pilot_001__combined_feedback__iter1": {
+        "variant": "combined_feedback",
+        "iteration": 1,
+        "records": 189,
+        "effective_state_per_tool": {
+          "compiler": {
+            "COMPLETED": 189
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 58,
+            "PARTIAL": 126,
+            "NOT_ANALYZED": 5
+          },
+          "clang_tidy": {
+            "COMPLETED": 184,
+            "NOT_ANALYZED": 5
+          },
+          "cppcheck": {
+            "COMPLETED": 189
+          },
+          "infer": {
+            "COMPLETED": 120,
+            "NOT_ANALYZED": 69
+          },
+          "parcoach": {
+            "COMPLETED": 53,
+            "NOT_ANALYZED": 4,
+            "TOOL_ERROR": 13,
+            "TIMEOUT": 16,
+            "NOT_APPLICABLE": 103
+          },
+          "llov": {
+            "COMPLETED": 14,
+            "PARTIAL": 10,
+            "NOT_ANALYZED": 26,
+            "TOOL_ERROR": 15,
+            "NOT_APPLICABLE": 124
+          }
+        },
+        "records_with_analysis_gap": 166,
+        "records_all_completed_and_clean": 18
+      },
+      "pilot_001__combined_feedback__iter2": {
+        "variant": "combined_feedback",
+        "iteration": 2,
+        "records": 123,
+        "effective_state_per_tool": {
+          "compiler": {
+            "COMPLETED": 123
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 19,
+            "PARTIAL": 99,
+            "NOT_ANALYZED": 5
+          },
+          "clang_tidy": {
+            "COMPLETED": 119,
+            "NOT_ANALYZED": 4
+          },
+          "cppcheck": {
+            "COMPLETED": 123
+          },
+          "infer": {
+            "COMPLETED": 79,
+            "NOT_ANALYZED": 44
+          },
+          "parcoach": {
+            "COMPLETED": 39,
+            "NOT_ANALYZED": 4,
+            "TOOL_ERROR": 4,
+            "TIMEOUT": 8,
+            "NOT_APPLICABLE": 68
+          },
+          "llov": {
+            "COMPLETED": 10,
+            "PARTIAL": 3,
+            "NOT_ANALYZED": 21,
+            "TOOL_ERROR": 6,
+            "NOT_APPLICABLE": 83
+          }
+        },
+        "records_with_analysis_gap": 116,
+        "records_all_completed_and_clean": 2
+      },
+      "pilot_001__static_feedback__iter1": {
+        "variant": "static_feedback",
+        "iteration": 1,
+        "records": 159,
+        "effective_state_per_tool": {
+          "compiler": {
+            "COMPLETED": 159
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 46,
+            "PARTIAL": 111,
+            "NOT_ANALYZED": 2
+          },
+          "clang_tidy": {
+            "COMPLETED": 157,
+            "NOT_ANALYZED": 2
+          },
+          "cppcheck": {
+            "COMPLETED": 159
+          },
+          "infer": {
+            "COMPLETED": 107,
+            "NOT_ANALYZED": 52
+          },
+          "parcoach": {
+            "COMPLETED": 53,
+            "TOOL_ERROR": 14,
+            "TIMEOUT": 16,
+            "NOT_APPLICABLE": 76
+          },
+          "llov": {
+            "COMPLETED": 8,
+            "PARTIAL": 6,
+            "NOT_ANALYZED": 23,
+            "TOOL_ERROR": 15,
+            "NOT_APPLICABLE": 107
+          }
+        },
+        "records_with_analysis_gap": 144,
+        "records_all_completed_and_clean": 13
+      },
+      "pilot_001__static_feedback__iter2": {
+        "variant": "static_feedback",
+        "iteration": 2,
+        "records": 76,
+        "effective_state_per_tool": {
+          "compiler": {
+            "COMPLETED": 76
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 10,
+            "PARTIAL": 64,
+            "NOT_ANALYZED": 2
+          },
+          "clang_tidy": {
+            "COMPLETED": 74,
+            "NOT_ANALYZED": 2
+          },
+          "cppcheck": {
+            "COMPLETED": 76
+          },
+          "infer": {
+            "COMPLETED": 59,
+            "NOT_ANALYZED": 17
+          },
+          "parcoach": {
+            "COMPLETED": 38,
+            "NOT_ANALYZED": 2,
+            "TOOL_ERROR": 4,
+            "TIMEOUT": 7,
+            "NOT_APPLICABLE": 25
+          },
+          "llov": {
+            "COMPLETED": 7,
+            "PARTIAL": 2,
+            "NOT_ANALYZED": 2,
+            "TOOL_ERROR": 4,
+            "NOT_APPLICABLE": 41,
+            "missing_entry": 20
+          }
+        },
+        "records_with_analysis_gap": 71,
+        "records_all_completed_and_clean": 1
+      },
+      "pilot_001__test_feedback__iter1": {
+        "variant": "test_feedback",
+        "iteration": 1,
+        "records": 98,
+        "effective_state_per_tool": {
+          "compiler": {
+            "COMPLETED": 98
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 28,
+            "PARTIAL": 68,
+            "NOT_ANALYZED": 2
+          },
+          "clang_tidy": {
+            "COMPLETED": 96,
+            "NOT_ANALYZED": 2
+          },
+          "cppcheck": {
+            "COMPLETED": 98
+          },
+          "infer": {
+            "COMPLETED": 60,
+            "NOT_ANALYZED": 38
+          },
+          "parcoach": {
+            "COMPLETED": 27,
+            "NOT_ANALYZED": 1,
+            "TOOL_ERROR": 6,
+            "TIMEOUT": 5,
+            "NOT_APPLICABLE": 59
+          },
+          "llov": {
+            "COMPLETED": 7,
+            "PARTIAL": 7,
+            "NOT_ANALYZED": 17,
+            "TOOL_ERROR": 6,
+            "NOT_APPLICABLE": 61
+          }
+        },
+        "records_with_analysis_gap": 88,
+        "records_all_completed_and_clean": 6
+      },
+      "pilot_001__test_feedback__iter2": {
+        "variant": "test_feedback",
+        "iteration": 2,
+        "records": 70,
+        "effective_state_per_tool": {
+          "compiler": {
+            "COMPLETED": 70
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 18,
+            "PARTIAL": 50,
+            "NOT_ANALYZED": 2
+          },
+          "clang_tidy": {
+            "COMPLETED": 68,
+            "NOT_ANALYZED": 2
+          },
+          "cppcheck": {
+            "COMPLETED": 70
+          },
+          "infer": {
+            "COMPLETED": 42,
+            "NOT_ANALYZED": 28
+          },
+          "parcoach": {
+            "COMPLETED": 17,
+            "TOOL_ERROR": 2,
+            "TIMEOUT": 4,
+            "NOT_APPLICABLE": 43,
+            "missing_entry": 4
+          },
+          "llov": {
+            "COMPLETED": 6,
+            "PARTIAL": 5,
+            "NOT_ANALYZED": 12,
+            "TOOL_ERROR": 3,
+            "NOT_APPLICABLE": 44
+          }
+        },
+        "records_with_analysis_gap": 65,
+        "records_all_completed_and_clean": 3
+      }
+    },
+    "iterations_total_records": 715,
+    "iterations_finding_set_regression": {
+      "compiler": {
+        "parser_changed": false,
+        "blocking_rule_changed_for": "toolchain failures only (exit -1 without timeout, ICE, cc1plus fatal)",
+        "records_affected": 0,
+        "detail": {},
+        "FINDING_SET_CHANGED_BY_TOOL": false
+      },
+      "gcc_analyzer": {
+        "parser_changed": false,
+        "blocking_rule_changed_for": "nothing (state PARTIAL/TOOL_ERROR added; path events attached)",
+        "reparse_check_on_uncapped_raw": {
+          "raw_capped_records": 436,
+          "uncapped_records": 261,
+          "identical_reparse": 261
+        },
+        "FINDING_SET_CHANGED_BY_TOOL": false
+      },
+      "clang_tidy": {
+        "parser_changed": false,
+        "blocking_rule_changed_for": "clang-diagnostic-error (front-end rejection): blocking -> non-blocking, state TOOL_ERROR / NOT_ANALYZED",
+        "detail": {
+          "blocking_flag_flipped": 60,
+          "records": 0,
+          "records_with_flip": 17,
+          "records_with_flip_and_compiler_failed": 17
+        },
+        "FINDING_SET_CHANGED_BY_TOOL": true,
+        "identities_changed": false
+      },
+      "cppcheck": {
+        "parser_changed": false,
+        "blocking_rule_changed_for": "syntaxError / internalError / preprocessorErrorDirective (lexer) etc.: blocking -> non-blocking, state PARTIAL / NOT_ANALYZED",
+        "detail": {
+          "blocking_flag_flipped:syntaxError": 3,
+          "blocking_flag_flipped:preprocessorErrorDirective": 3
+        },
+        "FINDING_SET_CHANGED_BY_TOOL": true,
+        "identities_changed": false
+      },
+      "infer": {
+        "parser_changed": false,
+        "level_filter_changed": false,
+        "blocking_rule_changed_for": "nothing (state NOT_ANALYZED / PARTIAL on frontend abort)",
+        "detail": {
+          "frontend_abort_records": 234
+        },
+        "FINDING_SET_CHANGED_BY_TOOL": false
+      },
+      "parcoach": {
+        "parser_changed": false,
+        "blocking_rule_changed_for": "nothing",
+        "method_changed": "reduced TU now carries the cpu.cc system-include preamble (coverage fix)",
+        "detail": {
+          "completed": 227,
+          "timeouts": 56,
+          "reduced_tu_compile_failures": 54,
+          "reduced_tu_failures_on_compiler_built_samples": 43
+        },
+        "FINDING_SET_CHANGED_BY_TOOL": "COVERAGE_ONLY: 43 reduced-TU failures on compiler-built samples would be analyzed (measured: identical findings on already-analyzable samples)"
+      }
+    }
+  },
+  "repair": {
+    "loops": 33,
+    "loop_phases": {
+      "done": 33
+    },
+    "loops_with_repair_condition_sha256": 0,
+    "state_schema_versions": {
+      "repair_state.v1": 1903
+    },
+    "status_records_per_variant": {
+      "combined_feedback": {
+        "active": 312,
+        "stopped_clean": 292,
+        "stopped_budget": 104
+      },
+      "static_feedback": {
+        "active": 235,
+        "stopped_clean": 340,
+        "stopped_budget": 56
+      },
+      "test_feedback": {
+        "stopped_tests_pass": 337,
+        "active": 168,
+        "stopped_budget": 59
+      }
+    },
+    "final_status_per_variant": {
+      "combined_feedback": {
+        "stopped_clean": 292,
+        "stopped_budget": 104
+      },
+      "static_feedback": {
+        "stopped_clean": 340,
+        "stopped_budget": 56
+      },
+      "test_feedback": {
+        "stopped_tests_pass": 337,
+        "stopped_budget": 59
+      }
+    },
+    "low_confidence_key_arity": {
+      "2": 17
+    },
+    "clean_stops_reassessed_under_tool_state": {
+      "combined_feedback": {
+        "clean_with_complete_coverage": 125,
+        "would_be_stopped_analysis_incomplete": 167,
+        "gap:infer:NOT_ANALYZED": 101,
+        "gap:llov:NOT_ANALYZED": 43,
+        "gap:gcc_analyzer:PARTIAL": 76,
+        "gap:parcoach:TIMEOUT": 15,
+        "gap:parcoach:TOOL_ERROR": 23,
+        "gap:llov:TOOL_ERROR": 27,
+        "gap:llov:PARTIAL": 6
+      },
+      "static_feedback": {
+        "clean_with_complete_coverage": 133,
+        "would_be_stopped_analysis_incomplete": 207,
+        "gap:infer:NOT_ANALYZED": 120,
+        "gap:llov:NOT_ANALYZED": 58,
+        "gap:gcc_analyzer:PARTIAL": 102,
+        "gap:parcoach:TIMEOUT": 19,
+        "gap:parcoach:TOOL_ERROR": 25,
+        "gap:llov:TOOL_ERROR": 30,
+        "gap:llov:PARTIAL": 7
+      },
+      "test_feedback": {
+        "clean_with_complete_coverage": 337
+      }
+    },
+    "iteration_generations": {
+      "files": 66,
+      "records": 715,
+      "success": 715
+    },
+    "provider_retry_evidence": "no failure record survives in pilot_001 (the orchestrator dropped non-terminal failures on every load); orchestrator-level resubmissions are therefore not reconstructible - HISTORICAL_PROVENANCE_LIMITATION"
+  },
+  "comparability_per_tool": {
+    "compiler": {
+      "class": "DIRECTLY_COMPARABLE",
+      "reason": "same g++ 13.3.0 toolchain image, unchanged diagnostic parser and build flags; the only rule change (toolchain failures never become synthetic model compile errors) affects 0 pilot_001 records",
+      "pilot_001_completed": 396
+    },
+    "gcc_analyzer": {
+      "class": "COMPARABLE_WITH_LIMITATIONS",
+      "reason": "identical tool, flags and parser; the wave adds the coverage STATE (PARTIAL for bail-out / too-complex) and path events. pilot_001 'no finding' results split into COMPLETED and PARTIAL only through the re-derived legacy classification (raw stderr capped at 8000 chars: PARTIAL is a lower bound); a pilot_002 comparison must be scoped to COMPLETED+DEFECT_FOUND vs CLEAN populations",
+      "pilot_001_states": {
+        "COMPLETED": 231,
+        "PARTIAL": 154,
+        "NOT_ANALYZED": 11
+      }
+    },
+    "clang_tidy": {
+      "class": "COMPARABLE_WITH_LIMITATIONS",
+      "reason": "same LLVM 18.1.3, same check set; clang-diagnostic-error changed from blocking model defect to TOOL_ERROR / NOT_ANALYZED (subsumed). In pilot_001 every such finding sits in a compiler-failed record, so no stop decision changes; blocking counts differ by exactly those findings",
+      "pilot_001_states": {
+        "COMPLETED": 386,
+        "NOT_ANALYZED": 10
+      }
+    },
+    "cppcheck": {
+      "class": "COMPARABLE_WITH_LIMITATIONS",
+      "reason": "same Cppcheck 2.13.0 and options; lexer/parser failures (preprocessorErrorDirective 'No pair', syntaxError) are no longer blocking model defects; genuine #error directives stay blocking; 1 pilot_001 base finding affected (compiler-failed record)",
+      "pilot_001_states": {
+        "COMPLETED": 396
+      }
+    },
+    "infer": {
+      "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE for omp; COMPARABLE_WITH_LIMITATIONS for serial/mpi",
+      "reason": "same Infer 1.1.0 and level filter; but every pilot_001 OpenMP kernel was dropped by infer's clang-11 frontend ('Aborting translation of method') and recorded as a clean COMPLETED run. Under the tool-state model those 130 verdicts are NOT_ANALYZED; there is no OMP infer verdict to compare",
+      "pilot_001_states": {
+        "COMPLETED": 256,
+        "NOT_ANALYZED": 140
+      }
+    },
+    "parcoach": {
+      "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+      "reason": "reduced TU now includes the cpu.cc system-include preamble (22 pilot_001 base entries were compile failures on g++-buildable code); container identity for pilot_001 is TAG_ONLY (parcoach-demo:2.4.1, no digest recorded); precision stays low-confidence (MBI 0.506, unchanged)",
+      "pilot_001_states": {
+        "COMPLETED": 83,
+        "NOT_ANALYZED": 8,
+        "TOOL_ERROR": 22,
+        "TIMEOUT": 19,
+        "NOT_APPLICABLE": 264
+      }
+    },
+    "llov": {
+      "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+      "reason": "parser fix ('Directive Not Analyzed', line:col locations) changes the stored verdict classes of pilot_001 (re-derived next to the stored ones, never replacing them) and the reduced TU gained the preamble; pilot_001 image identity TAG_ONLY (pareval-llov, clang 7.1.0 recorded)",
+      "pilot_001_states": {
+        "COMPLETED": 49,
+        "PARTIAL": 10,
+        "NOT_ANALYZED": 47,
+        "TOOL_ERROR": 26,
+        "NOT_APPLICABLE": 264
+      },
+      "llov_rederivation": {
+        "error": 28,
+        "race_free_only": 25,
+        "not_analyzed_only": 45,
+        "race": 28,
+        "free_and_not_analyzed": 6
+      }
+    }
+  },
+  "comparability_repair": {
+    "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+    "reason": "stop semantics changed: a required tool without a complete verdict now yields stopped_analysis_incomplete instead of stopped_clean; grace_once identity widened to (tool, check_id, file, line); orchestrator retry rounds bounded; repair condition pinned. pilot_001 loops carry no repair_condition_sha256 (HISTORICAL_PROVENANCE_INSUFFICIENT for the policy identity) and their clean stops are re-assessed above",
+    "pilot_001_final_status": {
+      "combined_feedback": {
+        "stopped_clean": 292,
+        "stopped_budget": 104
+      },
+      "static_feedback": {
+        "stopped_clean": 340,
+        "stopped_budget": 56
+      },
+      "test_feedback": {
+        "stopped_tests_pass": 337,
+        "stopped_budget": 59
+      }
+    },
+    "clean_stops_reassessed_under_tool_state": {
+      "combined_feedback": {
+        "clean_with_complete_coverage": 125,
+        "would_be_stopped_analysis_incomplete": 167,
+        "gap:infer:NOT_ANALYZED": 101,
+        "gap:llov:NOT_ANALYZED": 43,
+        "gap:gcc_analyzer:PARTIAL": 76,
+        "gap:parcoach:TIMEOUT": 15,
+        "gap:parcoach:TOOL_ERROR": 23,
+        "gap:llov:TOOL_ERROR": 27,
+        "gap:llov:PARTIAL": 6
+      },
+      "static_feedback": {
+        "clean_with_complete_coverage": 133,
+        "would_be_stopped_analysis_incomplete": 207,
+        "gap:infer:NOT_ANALYZED": 120,
+        "gap:llov:NOT_ANALYZED": 58,
+        "gap:gcc_analyzer:PARTIAL": 102,
+        "gap:parcoach:TIMEOUT": 19,
+        "gap:parcoach:TOOL_ERROR": 25,
+        "gap:llov:TOOL_ERROR": 30,
+        "gap:llov:PARTIAL": 7
+      },
+      "test_feedback": {
+        "clean_with_complete_coverage": 337
+      }
+    }
+  },
+  "historical_provenance_limitations": [
+    "no static_analysis_condition_sha256 / repair_condition_sha256 in any pilot_001 manifest or wave state (fields did not exist): RECONSTRUCTED from the pilot commit where possible, otherwise HISTORICAL_PROVENANCE_INSUFFICIENT",
+    "no per-tool execution fingerprints, no sample_source_sha256, no per-tool timestamps in pilot_001 records",
+    "external container identity TAG_ONLY (no image digest) for parcoach-demo:2.4.1 and pareval-llov",
+    "gcc_analyzer raw_stderr capped at 8000 chars: PARTIAL re-derivation is a lower bound",
+    "non-terminal provider failures were dropped on load: orchestrator-level retry counts are not reconstructible"
+  ]
+}

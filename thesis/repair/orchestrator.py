@@ -78,12 +78,16 @@ if str(REPO_ROOT) not in sys.path:
 from thesis.generation import common  # noqa: E402
 from thesis.repair import feedback  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
+from thesis.evaluation import framework
 from thesis.evaluation.tool_config import (  # noqa: E402
     ToolSettings,
     resolve_tool_settings,
 )
 
-STATE_SCHEMA_VERSION = "repair_state.v1"
+# v2 (tool-state wave): low_confidence_keys carry 4-field identities
+# (tool, check_id, file, line); entries may carry analysis_gaps and
+# request_rounds. v1 entries are read tolerantly.
+STATE_SCHEMA_VERSION = "repair_state.v2"
 WAVE_SCHEMA_VERSION = "repair_wave.v1"
 REQUEST_SCHEMA_VERSION = "repair_request.v1"
 
@@ -104,13 +108,56 @@ STATUS_UNUSABLE = "repair_unusable"
 # separately reportable.
 STATUS_BASELINE_INCOMPATIBLE = "stopped_baseline_incompatible"
 
+# Tool-state wave. No further model-directed repair is justified (nothing
+# actionable is left and the variant's tests, if any, pass) BUT at least one
+# required static tool produced no complete, trustworthy verdict (TIMEOUT,
+# TOOL_ERROR, NOT_ANALYZED, PARTIAL). `stopped_clean` would assert "all
+# static analysis clean" which is NOT proven; this status says exactly what
+# is known. Which tool / state / reason is persisted per sample in
+# `analysis_gaps`.
+STATUS_ANALYSIS_INCOMPLETE = "stopped_analysis_incomplete"
+
+# Tool-state wave. The orchestrator-level request resubmission bound
+# (stages.repair.request_retry_rounds) is exhausted by TRANSPORT/API
+# failures. An infrastructure condition: NOT a model failure, NOT a refusal,
+# NOT repaired - excluded from every model-attributed rate and re-openable
+# only explicitly (delete the sample's ledger entry after the outage).
+STATUS_API_EXHAUSTED = "stopped_api_exhausted"
+
 TERMINAL_STATUSES = (
     STATUS_CLEAN,
     STATUS_TESTS_PASS,
     STATUS_BUDGET,
     STATUS_UNUSABLE,
     STATUS_BASELINE_INCOMPATIBLE,
+    STATUS_ANALYSIS_INCOMPLETE,
+    STATUS_API_EXHAUSTED,
 )
+
+# Statuses that are NOT model outcomes (never counted as repaired /
+# unrepaired / refused); reporting must keep them apart.
+NON_MODEL_TERMINAL_STATUSES = (
+    STATUS_BASELINE_INCOMPATIBLE,
+    STATUS_ANALYSIS_INCOMPLETE,
+    STATUS_API_EXHAUSTED,
+)
+
+# Tool-state wave: canonical identity of a low-confidence finding for the
+# grace_once rule. (check_id, line) alone collided across tools and files.
+LOW_CONFIDENCE_IDENTITY_FIELDS = ("tool", "check_id", "file", "line")
+
+# Orchestrator-level submission rounds per (sample, iteration), across
+# process restarts. Provider-internal retries (generation_defaults.
+# retry_attempts, default 2 -> 3 attempts) live INSIDE one round. Default 2:
+# the initial submission plus ONE resubmission after a restart covers a
+# transient outage window (6 provider attempts in total); a failure that
+# survives that is an infrastructure condition to resolve, not something
+# to keep paying for silently.
+DEFAULT_REQUEST_RETRY_ROUNDS = 2
+
+# response records the orchestrator writes itself for a completed batch that
+# did not answer a requested sample
+BATCH_RESPONSE_MISSING = "BatchResponseMissing"
 
 PHASES = (
     "start",
@@ -186,6 +233,9 @@ def repair_settings(config: Dict[str, Any]) -> Dict[str, Any]:
         "host_repo_path": repair.get("host_repo_path"),
         "low_confidence_stop_mode": repair.get(
             "low_confidence_stop_mode", "grace_once"
+        ),
+        "request_retry_rounds": int(
+            repair.get("request_retry_rounds", DEFAULT_REQUEST_RETRY_ROUNDS)
         ),
     }
 
@@ -379,6 +429,13 @@ class LoopPaths:
     def pending_external_path(self) -> Path:
         return self.repair_dir / "pending_external.txt"
 
+    @property
+    def retry_ledger_path(self) -> Path:
+        """Persistent orchestrator-level submission counter per
+        (sample_id, iteration) - survives process restarts, which the
+        generations file cannot (failed records are dropped for retry)."""
+        return self.repair_dir / "request_rounds.json"
+
     def requests_path(self, iteration: int) -> Path:
         return self.repair_dir / ("iter%d" % iteration) / "requests.jsonl"
 
@@ -417,11 +474,72 @@ class StopDecision:
     stop_reason: str
     counts: Dict[str, int]
     test_verdict: Optional[str]
-    low_confidence_keys: List[List[Any]]  # [[check_id, line], ...] of THIS iteration
+    low_confidence_keys: List[List[Any]]  # [[tool, check_id, file, line], ...] of THIS iteration
+    analysis_gaps: List[Dict[str, Any]] = field(default_factory=list)
 
 
-def _finding_key(finding: Dict[str, Any]) -> Tuple[Any, Any]:
-    return (finding.get("check_id", "unknown"), finding.get("line"))
+def _finding_key(finding: Dict[str, Any]) -> Tuple[Any, Any, Any, Any]:
+    """Canonical low-confidence identity (LOW_CONFIDENCE_IDENTITY_FIELDS)."""
+    return (
+        finding.get("tool", "unknown"),
+        finding.get("check_id", "unknown"),
+        finding.get("file"),
+        finding.get("line"),
+    )
+
+
+def _key_seen_before(key: Tuple[Any, Any, Any, Any],
+                     previous: List[List[Any]]) -> bool:
+    """Did this finding identity occur in the previous iteration?
+
+    Current keys are 4-field. Legacy (repair_state.v1) keys are 2-field
+    (check_id, line): they are matched on those two fields only - the old,
+    coarser semantics - so a historical state file is never re-interpreted
+    as "never seen" (which would re-grant grace) nor silently upgraded.
+    """
+    for prev in previous or []:
+        prev_t = tuple(prev)
+        if len(prev_t) == 4 and prev_t == key:
+            return True
+        if len(prev_t) == 2 and prev_t == (key[1], key[3]):
+            return True
+    return False
+
+
+def required_static_tools(config: Dict[str, Any], variant: str,
+                          execution_model: Optional[str]) -> List[str]:
+    """Static tools whose analysis the variant's stop decision depends on:
+    test_feedback needs only the compiler; the static variants need every
+    enabled static tool whose scope covers the sample's execution model."""
+    settings = resolve_tool_settings(config, "static_analysis")
+    enabled = [name for name, s in settings.items() if s.enabled]
+
+    if variant == "test_feedback":
+        return [name for name in enabled if name == "compiler"]
+
+    return [
+        name for name in enabled
+        if execution_model is None or settings[name].applies_to(execution_model)
+    ]
+
+
+def analysis_gaps_of(static_record: Optional[Dict[str, Any]],
+                     required: List[str]) -> List[Dict[str, Any]]:
+    """Required tools whose persisted entry is an analysis gap (TIMEOUT,
+    TOOL_ERROR, NOT_ANALYZED, PARTIAL). A MISSING entry is not a gap here -
+    that is "pending" and blocks the decide phase upstream."""
+    if not static_record:
+        return []
+
+    gaps: List[Dict[str, Any]] = []
+    for name in required:
+        # record-level state: a specialised tool that rejected a TU the
+        # compiler ALSO rejected is subsumed by the compiler's blocking
+        # verdict and contributes no gap of its own
+        gap = framework.record_analysis_gap(static_record, name)
+        if gap is not None:
+            gaps.append(gap)
+    return gaps
 
 
 def evaluate_stop(
@@ -488,7 +606,8 @@ def evaluate_stop(
 
     # Keys of ALL reported low_confidence findings — the identity set the
     # next iteration's grace check compares against ("occurred before").
-    current_keys = sorted({_finding_key(f) for f in low_confidence_all})
+    current_keys = sorted({_finding_key(f) for f in low_confidence_all},
+                          key=lambda k: tuple(str(x) for x in k))
 
     mode = repair_settings(config)["low_confidence_stop_mode"]
 
@@ -497,12 +616,19 @@ def evaluate_stop(
     elif mode == "always_blocking":
         low_confidence_effective = len(low_confidence_blocking)
     else:  # grace_once (default)
-        previous = {tuple(key) for key in (previous_low_confidence_keys or [])}
         low_confidence_effective = sum(
             1
             for f in low_confidence_blocking
-            if _finding_key(f) not in previous
+            if not _key_seen_before(_finding_key(f), previous_low_confidence_keys or [])
         )
+
+    # Tool-state wave: analysis gaps of the required static tools. Never an
+    # issue to repair (a tool failure is not a model defect), but they decide
+    # whether an issue-free sample may be called clean.
+    gaps = analysis_gaps_of(
+        static_record,
+        required_static_tools(config, variant, static_record.get("execution_model")),
+    )
 
     test_verdict = correctness_record.get("verdict") if needs_tests else None
 
@@ -536,7 +662,36 @@ def evaluate_stop(
         "low_confidence": len(low_confidence_all),
         "low_confidence_effective": low_confidence_effective,
         "non_blocking": non_blocking,
+        "analysis_gaps": len(gaps),
     }
+
+    if not issues and gaps:
+        # nothing actionable is left, but the static coverage is incomplete:
+        # neither "clean" nor a repair target
+        gap_text = "; ".join(
+            "%s %s (%s)" % (g["tool"], g["analysis_state"], g.get("reason") or "no reason recorded")
+            for g in gaps
+        )
+        oracle_side = needs_tests and test_verdict == feedback.BASELINE_INCOMPATIBLE
+        status = STATUS_BASELINE_INCOMPATIBLE if oracle_side else STATUS_ANALYSIS_INCOMPLETE
+        reason = (
+            "no actionable issue at iteration %d, but static analysis coverage "
+            "is incomplete: %s" % (iteration, gap_text)
+        )
+        if needs_tests:
+            reason += (
+                " (ParEval %s)" % feedback.BASELINE_INCOMPATIBLE
+                if test_verdict == feedback.BASELINE_INCOMPATIBLE
+                else " (ParEval pass)"
+            )
+        return StopDecision(
+            status=status,
+            stop_reason=reason,
+            counts=counts,
+            test_verdict=test_verdict,
+            low_confidence_keys=[list(key) for key in current_keys],
+            analysis_gaps=gaps,
+        )
 
     if not issues:
         # Contract C3b.1/F3b: `stopped_tests_pass` ASSERTS that the ParEval
@@ -581,6 +736,7 @@ def evaluate_stop(
         counts=counts,
         test_verdict=test_verdict,
         low_confidence_keys=[list(key) for key in current_keys],
+        analysis_gaps=gaps,
     )
 
 
@@ -637,7 +793,26 @@ class RepairLoop:
 
         if path.exists():
             with path.open("r", encoding="utf-8") as handle:
-                return json.load(handle)
+                state = json.load(handle)
+            recorded = state.get("repair_condition_sha256")
+            current = self.repair_condition_sha256()
+            if recorded is None:
+                if not getattr(self, "_legacy_condition_logged", False):
+                    self.log(
+                        "wave state predates the repair condition fingerprint "
+                        "(historical provenance limitation) - pinned on next save"
+                    )
+                    self._legacy_condition_logged = True
+            elif current is not None and recorded != current:
+                raise RuntimeError(
+                    "repair loop %s/%s was started under repair condition %s... "
+                    "but this invocation runs under %s... (variants, max_iterations, "
+                    "strategies, feedback template, low-confidence policy, retry "
+                    "policy or tool-state semantics changed). Refusing to resume; "
+                    "use a fresh run_id." % (self.model_id, self.variant,
+                                             recorded[:12], current[:12])
+                )
+            return state
 
         return {"iteration": 0, "phase": "start", "batch": None}
 
@@ -655,9 +830,24 @@ class RepairLoop:
             "iteration": iteration,
             "phase": phase,
             "batch": batch,
+            "repair_condition_sha256": self.repair_condition_sha256(),
             "updated_at_utc": common.utc_now_iso(),
         }
         common.write_json(self.paths.wave_state_path, state)
+
+    def repair_condition_sha256(self) -> Optional[str]:
+        """Content-addressed repair condition (static_provenance); pinned in
+        the wave state and checked on resume - a loop must not continue
+        under a changed repair policy. None only if the module is absent."""
+        if getattr(self, "_repair_condition_sha", None) is None:
+            try:
+                from thesis.evaluation import static_provenance
+                condition = static_provenance.repair_condition(self.config)
+                self._repair_condition_sha = static_provenance.repair_condition_sha256(condition)
+            except Exception as error:  # noqa: BLE001
+                self.log("repair condition fingerprint unavailable: %s" % error)
+                self._repair_condition_sha = None
+        return self._repair_condition_sha
 
     # -- sample state -----------------------------------------------------
 
@@ -674,6 +864,8 @@ class RepairLoop:
         test_verdict: Optional[str] = None,
         low_confidence_keys: Optional[List[List[Any]]] = None,
         batch_id: Optional[str] = None,
+        analysis_gaps: Optional[List[Dict[str, Any]]] = None,
+        request_rounds: Optional[int] = None,
     ) -> None:
         common.append_jsonl(
             self.paths.state_path,
@@ -689,10 +881,69 @@ class RepairLoop:
                 "counts": counts or {},
                 "test_verdict": test_verdict,
                 "low_confidence_keys": low_confidence_keys or [],
+                "low_confidence_identity": list(LOW_CONFIDENCE_IDENTITY_FIELDS),
+                # tool-state wave: which tool / state / reason (persisted
+                # even while the loop stays active, so a later
+                # stopped_analysis_incomplete is attributable)
+                "analysis_gaps": analysis_gaps or [],
+                "request_rounds": request_rounds,
                 "batch_id": batch_id,
                 "updated_at_utc": common.utc_now_iso(),
             },
         )
+
+    # -- orchestrator-level request retry ledger ---------------------------
+
+    def load_retry_ledger(self) -> Dict[str, Dict[str, int]]:
+        path = self.paths.retry_ledger_path
+        if not path.exists():
+            return {}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            return {}
+
+    def request_rounds(self, sample_id: str, iteration: int) -> int:
+        return int(self.load_retry_ledger().get(sample_id, {}).get(str(iteration), 0))
+
+    def count_request_round(self, sample_ids: List[str], iteration: int) -> None:
+        """One more orchestrator-level submission for these samples at this
+        iteration (direct: one adapter.generate call incl. its provider-
+        internal retries; batch: one batch submission)."""
+        ledger = self.load_retry_ledger()
+        for sample_id in sample_ids:
+            entry = ledger.setdefault(sample_id, {})
+            entry[str(iteration)] = int(entry.get(str(iteration), 0)) + 1
+        common.write_json(self.paths.retry_ledger_path, ledger)
+
+    def exhaust_request_rounds(self, sample_ids: List[str], iteration: int,
+                               detail: str) -> List[str]:
+        """Samples whose submission rounds are used up are marked
+        stopped_api_exhausted (infrastructure; not a model failure) and
+        removed from the to-do list. Returns the remaining ids."""
+        limit = self.settings["request_retry_rounds"]
+        remaining: List[str] = []
+        for sample_id in sample_ids:
+            rounds = self.request_rounds(sample_id, iteration)
+            if rounds >= limit:
+                prior = self.sample_states().get(sample_id)
+                if not prior or prior.get("status") != STATUS_API_EXHAUSTED:
+                    self.log(
+                        "sample %s -> %s at iteration %d: %d submission round(s) "
+                        "used (limit %d); last failure: %s"
+                        % (sample_id, STATUS_API_EXHAUSTED, iteration, rounds, limit, detail)
+                    )
+                    self.append_sample_state(
+                        sample_id, iteration, STATUS_API_EXHAUSTED,
+                        "transport/API failure persisted across %d submission "
+                        "round(s) (limit %d): %s - infrastructure condition, not a "
+                        "model failure; re-open by resetting request_rounds.json"
+                        % (rounds, limit, detail),
+                        request_rounds=rounds,
+                    )
+            else:
+                remaining.append(sample_id)
+        return remaining
 
     def active_samples(self) -> List[str]:
         return sorted(
@@ -896,7 +1147,13 @@ class RepairLoop:
             from thesis.evaluation import run_static_analysis
             from thesis.evaluation.tools import register_default_tools
 
-            register_default_tools(primary_compiler=self.primary_compiler)
+            # Tool-state wave: the SAME effective tool options as the normal
+            # static runner (gcc_analyzer.timeout_seconds, infer.
+            # bufferoverrun_max_level, parcoach.timeout_seconds, ...) - the
+            # repair path must never resolve a tool differently
+            register_default_tools(
+                primary_compiler=self.primary_compiler, config=self.config
+            )
             settings = self.internal_static_settings()
             self._check_tools_available(list(settings))
 
@@ -910,12 +1167,21 @@ class RepairLoop:
                 "analyze iteration %d: static (%s)"
                 % (iteration, ", ".join(settings))
             )
+            all_static = resolve_tool_settings(self.config, "static_analysis")
+            expected = dict(settings)
+            if self.variant != "test_feedback":
+                for name in self.settings["external_tools"]:
+                    if name in all_static and all_static[name].enabled:
+                        expected[name] = all_static[name]
             run_static_analysis.run_model(
                 context=context,
                 intermediate_dir=intermediate_root,
                 run_id=run_id,
                 model_id=self.model_id,
                 tool_settings=settings,
+                expected_tools=expected,
+                invocation_label="repair %s/%s iteration %d (internal static)"
+                % (self.model_id, self.variant, iteration),
             )
 
         if "correctness" in stages:
@@ -1005,6 +1271,40 @@ class RepairLoop:
                 pending.append((name, len(missing)))
 
         return pending
+
+    def external_coverage(self, iteration: int) -> Dict[str, Dict[str, int]]:
+        """Tool-state wave: per external tool, how its applicable samples of
+        this iteration stand - `pending` = NO record/entry at all (the only
+        thing pending_external waits for), the analysis states otherwise.
+        A persisted TIMEOUT / TOOL_ERROR / NOT_ANALYZED entry is TERMINAL
+        for the loop: it is reported as an analysis gap (evaluate_stop),
+        never re-run on resume (a PARCOACH timeout is deterministic and would
+        cost its full budget again); an explicit
+        `run_static_analysis.py --rerun-gaps` re-analyzes such entries."""
+        if self.variant == "test_feedback":
+            return {}
+
+        settings = resolve_tool_settings(self.config, "static_analysis")
+        static_records = self.load_stage_records(iteration, "static_analysis")
+        coverage: Dict[str, Dict[str, int]] = {}
+
+        for name in self.settings["external_tools"]:
+            tool = settings.get(name)
+            if tool is None or not tool.enabled:
+                continue
+            counts: Dict[str, int] = {"pending": 0}
+            for sample_id in self.iteration_samples(iteration):
+                if execution_model_of(sample_id) not in tool.execution_models:
+                    continue
+                record = static_records.get(sample_id)
+                if record is None or name not in (record.get("tools") or {}):
+                    counts["pending"] += 1
+                    continue
+                state, _reason = framework.effective_tool_state(record, name)
+                counts[state] = counts.get(state, 0) + 1
+            coverage[name] = counts
+
+        return coverage
 
     def external_command(self, tool: str, iteration: int) -> str:
         return build_external_command(
@@ -1111,10 +1411,18 @@ class RepairLoop:
                            ", ".join("%s(%d)" % (t, c) for t, c in pending))
                     )
                     self.write_pending_external(pending, iteration)
+                    self.log(
+                        "external coverage at iteration %d: %s"
+                        % (iteration, json.dumps(self.external_coverage(iteration), sort_keys=True))
+                    )
                     self.save_wave_state(iteration, "analyzed_waiting_external")
                     return OUTCOME_BLOCKED_EXTERNAL
             else:
                 self.write_pending_external(pending, iteration)
+                self.log(
+                    "external coverage at iteration %d: %s"
+                    % (iteration, json.dumps(self.external_coverage(iteration), sort_keys=True))
+                )
                 self.save_wave_state(iteration, "analyzed_waiting_external")
                 return OUTCOME_BLOCKED_EXTERNAL
 
@@ -1196,6 +1504,7 @@ class RepairLoop:
                 counts=decision.counts,
                 test_verdict=decision.test_verdict,
                 low_confidence_keys=decision.low_confidence_keys,
+                analysis_gaps=decision.analysis_gaps,
             )
             outcomes[decision.status] += 1
 
@@ -1370,6 +1679,7 @@ class RepairLoop:
 
         terminal: Dict[str, Dict[str, Any]] = {}
         kept_lines: List[str] = []
+        dropped_lines: List[str] = []
         dropped = 0
 
         with path.open("r", encoding="utf-8") as handle:
@@ -1393,8 +1703,24 @@ class RepairLoop:
                     kept_lines.append(line if line.endswith("\n") else line + "\n")
                 else:
                     dropped += 1
+                    dropped_lines.append(line)
 
         if dropped:
+            # Tool-state wave: the failure history used to be erased here
+            # (pilot_001 keeps 0 non-success records). Dropped records are
+            # appended to a sibling history file BEFORE the rewrite so
+            # transport failures stay auditable; the request ledger
+            # (request_rounds.json) bounds the resubmissions.
+            common.append_jsonl(
+                path.with_name("failed_responses.jsonl"),
+                {
+                    "dropped_at_utc": common.utc_now_iso(),
+                    "records": [
+                        (json.loads(l) if l.strip() else None)
+                        for l in dropped_lines
+                    ],
+                },
+            )
             with path.open("w", encoding="utf-8") as handle:
                 handle.writelines(kept_lines)
             self.log(
@@ -1480,10 +1806,16 @@ class RepairLoop:
                     + str((record.get("status") or {}).get("error_message"))[:200],
                 )
 
+        # samples whose rounds are exhausted are terminal, not missing
+        missing = self.exhaust_request_rounds(
+            missing, target_iteration, "no terminal response after the last round")
+
         if missing:
             self.log(
-                "iteration %d: %d response(s) still missing after retries — "
-                "re-run run_repair.py to retry" % (target_iteration, len(missing))
+                "iteration %d: %d response(s) still missing after this round — "
+                "re-run run_repair.py to retry (bounded by stages.repair."
+                "request_retry_rounds = %d)"
+                % (target_iteration, len(missing), self.settings["request_retry_rounds"])
             )
             return OUTCOME_BLOCKED_API
 
@@ -1498,7 +1830,19 @@ class RepairLoop:
         generations_path = self.paths.iter_generations_path(target_iteration)
         terminal = self._load_terminal_responses(generations_path)
         requests = self.load_requests(target_iteration)
-        todo = [r for r in requests if r["sample_id"] not in terminal]
+        exhausted_ids = {
+            sid for sid, st in self.sample_states().items()
+            if st.get("status") == STATUS_API_EXHAUSTED
+        }
+        todo = [r for r in requests
+                if r["sample_id"] not in terminal and r["sample_id"] not in exhausted_ids]
+
+        # bounded orchestrator-level rounds: samples that already used their
+        # rounds are terminal (stopped_api_exhausted), never resubmitted
+        allowed = set(self.exhaust_request_rounds(
+            [r["sample_id"] for r in todo], target_iteration,
+            "previous submission round(s) ended in transport/API errors"))
+        todo = [r for r in todo if r["sample_id"] in allowed]
 
         if todo:
             provider = self.model_config["provider"]
@@ -1541,6 +1885,10 @@ class RepairLoop:
                     base_records[request["sample_id"]], request, generation_parameters
                 )
 
+                # one orchestrator-level round = one generate() call (which
+                # retries retry_attempts times internally); counted BEFORE
+                # the call so a crash mid-call is still accounted for
+                self.count_request_round([request["sample_id"]], target_iteration)
                 started = time.time()
 
                 try:
@@ -1607,11 +1955,19 @@ class RepairLoop:
 
         generations_path = self.paths.iter_generations_path(target_iteration)
         terminal = self._load_terminal_responses(generations_path)
+        exhausted_ids = {
+            sid for sid, st in self.sample_states().items()
+            if st.get("status") == STATUS_API_EXHAUSTED
+        }
         requests = [
             r
             for r in self.load_requests(target_iteration)
-            if r["sample_id"] not in terminal
+            if r["sample_id"] not in terminal and r["sample_id"] not in exhausted_ids
         ]
+        allowed = set(self.exhaust_request_rounds(
+            [r["sample_id"] for r in requests], target_iteration,
+            "previous batch round(s) failed or answered with errors"))
+        requests = [r for r in requests if r["sample_id"] in allowed]
 
         if not requests:
             return self._finish_responses(target_iteration)
@@ -1619,6 +1975,9 @@ class RepairLoop:
         provider = self.model_config["provider"]
         generation_defaults = self.config.get("generation_defaults", {})
         system_prompt = common.get_required_system_prompt(generation_defaults)
+
+        # one batch submission = one round for every sample it carries
+        self.count_request_round([r["sample_id"] for r in requests], target_iteration)
 
         batch_info = batch_api.submit_batch(
             provider=provider,
@@ -1737,11 +2096,36 @@ class RepairLoop:
             common.append_jsonl(generations_path, record)
             merged += 1
 
+        # A completed batch that did NOT answer a requested sample: write an
+        # explicit (non-terminal) failure record so the sample is resubmitted
+        # in a NEW batch on the next run instead of polling this completed
+        # batch forever; the resubmission is bounded by the retry ledger.
+        answered = set(status.responses)
+        unanswered = [
+            sid for sid in batch_info.get("sample_ids", [])
+            if sid not in answered and sid not in terminal and sid in requests_by_id
+        ]
+        for sample_id in unanswered:
+            record = self.build_response_record(
+                base_records[sample_id], requests_by_id[sample_id], generation_parameters
+            )
+            record["status"]["error_type"] = BATCH_RESPONSE_MISSING
+            record["status"]["error_message"] = (
+                "completed batch %s carried no response for this request"
+                % batch_info.get("batch_id")
+            )
+            record["repair"]["batch_id"] = batch_info.get("batch_id")
+            common.append_jsonl(generations_path, record)
+
+        # the batch is consumed either way: drop its info so the next run
+        # resubmits only the still-unanswered requests
+        info_path.unlink()
+
         # per-sample batch attribution lives in batch.json (sample_ids) and
         # on each merged response record (repair.batch_id)
         self.log(
-            "iteration %d: batch %s completed, %d response(s) merged"
-            % (target_iteration, batch_info.get("batch_id"), merged)
+            "iteration %d: batch %s completed, %d response(s) merged, %d unanswered"
+            % (target_iteration, batch_info.get("batch_id"), merged, len(unanswered))
         )
 
         return self._finish_responses(target_iteration)
@@ -1883,6 +2267,8 @@ class RepairLoop:
             "stopped_baseline_incompatible": by_status.get(
                 STATUS_BASELINE_INCOMPATIBLE, 0
             ),
+            "stopped_analysis_incomplete": by_status.get(STATUS_ANALYSIS_INCOMPLETE, 0),
+            "stopped_api_exhausted": by_status.get(STATUS_API_EXHAUSTED, 0),
             "pending_external": pending_external,
             "batch_id": batch.get("batch_id"),
         }

@@ -221,9 +221,16 @@
         "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected."
       },
       "thesis/evaluation/framework.py": {
-        "sha256": "1ad10512fd67ada3f7aad658e692d39803e7f6b0bda051cf0e59e72fd27a42e3",
+        "sha256": "0ef4956864b145fee21e470eb4524393d909dc1c67f5c3e5af804586bfda72aa",
         "granularity": "coarse",
-        "reason": "Contains run_command (timeout enforcement and timed_out/exit capture feeding the timeout/runtime_error verdicts) and compile-input plumbing (EvaluationContext.include_dirs) plus unrelated operational code."
+        "reason": "Contains run_command (timeout enforcement and timed_out/exit capture feeding the timeout/runtime_error verdicts) and compile-input plumbing (EvaluationContext.include_dirs) plus unrelated operational code.",
+        "previous_sha256": "0ef4956864b145fee21e470eb4524393d909dc1c67f5c3e5af804586bfda72aa",
+        "refreshed": {
+          "date": "2026-09-05",
+          "wave": "static_repair_tool_state",
+          "assessment": "function-level AST diff against HEAD 59ee9c86: run_command, iter_assembled_samples, EvaluationContext(.include_dirs), AssembledSample, CommandResult, get_tool, register_tool UNCHANGED; 12 additive tool-state helpers; ToolResult/Finding gained additive fields (analysis_state, analysis_gap_reason, analysis_details, path) and to_dict emits them additively. No verdict-relevant path of the correctness stage touched; correctness comparator suite (test_comparator_semantics.py) green after the change.",
+          "semantic_change_for_correctness": false
+        }
       },
       "thesis/evaluation/run_enhanced_tests.py": {
         "sha256": "c415a9d3c4b2ba29d459ec6271a475fd103673d8e145a894aec80909e50497bd",
@@ -733,7 +740,10 @@
         "id": "K6",
         "classification": "VERDICT_RELEVANT",
         "reachability": "OUT_OF_POPULATION",
-        "evidence": "repair-state vocabulary; outside the 396 iteration-0 cells"
+        "evidence": "repair-state vocabulary; outside the 396 iteration-0 cells",
+        "name": "repair terminal statuses stopped_baseline_incompatible / stopped_analysis_incomplete / stopped_api_exhausted",
+        "note": "Repair-state vocabulary; outside the 396 iteration-0 cross-pilot population. Static/Repair wave (2026-09-05): two further non-model terminal statuses (stopped_analysis_incomplete = nothing actionable but a required static tool left no complete verdict; stopped_api_exhausted = orchestrator-level transport rounds exhausted). Measured on the persisted pilot_001 repair states: 0 records carry any of the three statuses (the vocabulary postdates the pilot); under the new semantics 207 of 340 static_feedback and 167 of 292 combined_feedback stopped_clean decisions would have been stopped_analysis_incomplete (infer OpenMP frontend abort, gcc bail-out, LLOV not-analyzed, PARCOACH timeout/reduced-TU failure). No pilot_001 record is rewritten.",
+        "static_repair_wave": "K6 extended; K1-K5 untouched"
       },
       {
         "id": "K7",
@@ -1345,13 +1355,158 @@
         "disclosure_requirements": "EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED before pilot_002"
       },
       "F_static_repair": {
-        "status": "NOT_REEVALUATED_IN_THIS_WAVE",
-        "direct_quantitative_comparison_allowed": null,
-        "evidence": "Wave-2B section 35 item D ('STATIC/REPAIR WAVE: GCC analyzer event path, tool-state model, PARCOACH, LLOV gate, retry semantics') is still queued and explicitly untouched.",
-        "changed_components": "not assessed",
-        "exclusions": "not assessed",
-        "disclosure_requirements": "a dedicated static/repair wave is required before any static or repair result is compared across pilots",
-        "explicitly_not_marked_current_or_comparable": true
+        "status": "REEVALUATED_STATIC_REPAIR_WAVE",
+        "date": "2026-09-05",
+        "start_head": "59ee9c863637af63970eed32af0c3c35494cc2df",
+        "direct_quantitative_comparison_allowed": false,
+        "summary": "Static and repair results of pilot_001 are NOT directly comparable with a prospective pilot_002 as a whole: the compiler stage is DIRECTLY_COMPARABLE, gcc_analyzer / clang_tidy / cppcheck are COMPARABLE_WITH_LIMITATIONS (identical tools and parsers; the tool-state model re-classifies pilot_001 'no finding' entries into COMPLETED vs PARTIAL/NOT_ANALYZED, and front-end rejections are no longer blocking model defects), infer on OpenMP, parcoach, llov and the repair loop are METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE (frontend abort recognised, reduced-TU preamble, LLOV parser fix, new stop/retry semantics). pilot_001 verdicts are not re-interpreted: the classifications are computed from the persisted records and reported next to them.",
+        "per_tool": {
+          "compiler": {
+            "class": "DIRECTLY_COMPARABLE",
+            "reason": "same g++ 13.3.0 toolchain image, unchanged diagnostic parser and build flags; the only rule change (toolchain failures never become synthetic model compile errors) affects 0 pilot_001 records"
+          },
+          "gcc_analyzer": {
+            "class": "COMPARABLE_WITH_LIMITATIONS",
+            "reason": "identical tool, flags and parser; the wave adds the coverage STATE (PARTIAL for bail-out / too-complex) and path events. pilot_001 'no finding' results split into COMPLETED and PARTIAL only through the re-derived legacy classification (raw stderr capped at 8000 chars: PARTIAL is a lower bound); a pilot_002 comparison must be scoped to COMPLETED+DEFECT_FOUND vs CLEAN populations"
+          },
+          "clang_tidy": {
+            "class": "COMPARABLE_WITH_LIMITATIONS",
+            "reason": "same LLVM 18.1.3, same check set; clang-diagnostic-error changed from blocking model defect to TOOL_ERROR / NOT_ANALYZED (subsumed). In pilot_001 every such finding sits in a compiler-failed record, so no stop decision changes; blocking counts differ by exactly those findings"
+          },
+          "cppcheck": {
+            "class": "COMPARABLE_WITH_LIMITATIONS",
+            "reason": "same Cppcheck 2.13.0 and options; lexer/parser failures (preprocessorErrorDirective 'No pair', syntaxError) are no longer blocking model defects; genuine #error directives stay blocking; 1 pilot_001 base finding affected (compiler-failed record)"
+          },
+          "infer": {
+            "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE for omp; COMPARABLE_WITH_LIMITATIONS for serial/mpi",
+            "reason": "same Infer 1.1.0 and level filter; but every pilot_001 OpenMP kernel was dropped by infer's clang-11 frontend ('Aborting translation of method') and recorded as a clean COMPLETED run. Under the tool-state model those 130 verdicts are NOT_ANALYZED; there is no OMP infer verdict to compare"
+          },
+          "parcoach": {
+            "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+            "reason": "reduced TU now includes the cpu.cc system-include preamble (22 pilot_001 base entries were compile failures on g++-buildable code); container identity for pilot_001 is TAG_ONLY (parcoach-demo:2.4.1, no digest recorded); precision stays low-confidence (MBI 0.506, unchanged)"
+          },
+          "llov": {
+            "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+            "reason": "parser fix ('Directive Not Analyzed', line:col locations) changes the stored verdict classes of pilot_001 (re-derived next to the stored ones, never replacing them) and the reduced TU gained the preamble; pilot_001 image identity TAG_ONLY (pareval-llov, clang 7.1.0 recorded)"
+          }
+        },
+        "repair": {
+          "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+          "reason": "stop semantics changed: a required tool without a complete verdict now yields stopped_analysis_incomplete instead of stopped_clean; grace_once identity widened to (tool, check_id, file, line); orchestrator retry rounds bounded; repair condition pinned. pilot_001 loops carry no repair_condition_sha256 (HISTORICAL_PROVENANCE_INSUFFICIENT for the policy identity) and their clean stops are re-assessed above",
+          "pilot_001_final_status": {
+            "combined_feedback": {
+              "stopped_clean": 292,
+              "stopped_budget": 104
+            },
+            "static_feedback": {
+              "stopped_clean": 340,
+              "stopped_budget": 56
+            },
+            "test_feedback": {
+              "stopped_tests_pass": 337,
+              "stopped_budget": 59
+            }
+          },
+          "clean_stops_reassessed_under_tool_state": {
+            "combined_feedback": {
+              "clean_with_complete_coverage": 125,
+              "would_be_stopped_analysis_incomplete": 167,
+              "gap:infer:NOT_ANALYZED": 101,
+              "gap:llov:NOT_ANALYZED": 43,
+              "gap:gcc_analyzer:PARTIAL": 76,
+              "gap:parcoach:TIMEOUT": 15,
+              "gap:parcoach:TOOL_ERROR": 23,
+              "gap:llov:TOOL_ERROR": 27,
+              "gap:llov:PARTIAL": 6
+            },
+            "static_feedback": {
+              "clean_with_complete_coverage": 133,
+              "would_be_stopped_analysis_incomplete": 207,
+              "gap:infer:NOT_ANALYZED": 120,
+              "gap:llov:NOT_ANALYZED": 58,
+              "gap:gcc_analyzer:PARTIAL": 102,
+              "gap:parcoach:TIMEOUT": 19,
+              "gap:parcoach:TOOL_ERROR": 25,
+              "gap:llov:TOOL_ERROR": 30,
+              "gap:llov:PARTIAL": 7
+            },
+            "test_feedback": {
+              "clean_with_complete_coverage": 337
+            }
+          }
+        },
+        "pilot_001_static_states_effective": {
+          "compiler": {
+            "COMPLETED": 396
+          },
+          "gcc_analyzer": {
+            "COMPLETED": 231,
+            "PARTIAL": 154,
+            "NOT_ANALYZED": 11
+          },
+          "clang_tidy": {
+            "COMPLETED": 386,
+            "NOT_ANALYZED": 10
+          },
+          "cppcheck": {
+            "COMPLETED": 396
+          },
+          "infer": {
+            "COMPLETED": 256,
+            "NOT_ANALYZED": 140
+          },
+          "parcoach": {
+            "COMPLETED": 83,
+            "NOT_ANALYZED": 8,
+            "TOOL_ERROR": 22,
+            "TIMEOUT": 19,
+            "NOT_APPLICABLE": 264
+          },
+          "llov": {
+            "COMPLETED": 49,
+            "PARTIAL": 10,
+            "NOT_ANALYZED": 47,
+            "TOOL_ERROR": 26,
+            "NOT_APPLICABLE": 264
+          }
+        },
+        "pilot_001_llov_rederivation": {
+          "error": 28,
+          "race_free_only": 25,
+          "not_analyzed_only": 45,
+          "race": 28,
+          "free_and_not_analyzed": 6
+        },
+        "finding_set_regression": {
+          "compiler": false,
+          "gcc_analyzer": false,
+          "clang_tidy": true,
+          "cppcheck": true,
+          "infer": false,
+          "parcoach": "COVERAGE_ONLY: 22 reduced-TU failures on compiler-built samples would be analyzed (measured: identical findings on already-analyzable samples)"
+        },
+        "historical_limitations": [
+          "no static_analysis_condition_sha256 / repair_condition_sha256 in any pilot_001 manifest or wave state (fields did not exist): RECONSTRUCTED from the pilot commit where possible, otherwise HISTORICAL_PROVENANCE_INSUFFICIENT",
+          "no per-tool execution fingerprints, no sample_source_sha256, no per-tool timestamps in pilot_001 records",
+          "external container identity TAG_ONLY (no image digest) for parcoach-demo:2.4.1 and pareval-llov",
+          "gcc_analyzer raw_stderr capped at 8000 chars: PARTIAL re-derivation is a lower bound",
+          "non-terminal provider failures were dropped on load: orchestrator-level retry counts are not reconstructible"
+        ],
+        "fingerprints": {
+          "static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+          "repair_condition_sha256": "09a8e8a20a0582202e5b35496c47b17cdf8b4fdf5badc4b824035482bca9cd36",
+          "tool_state_schema": "tool_state.v1",
+          "drivers_tree_sha256": "a6105f1d3b9b384ebb7c2f4fbe1e7a71277001cbcd5abedf0bef7092fcf72ee2",
+          "tools_module_sha256": "9ed277a0bb3b74eaca64ccf5ab772f25589d513bc155a7dbe1311459d60465b6",
+          "pilot_001": "NONE RECORDED (fields did not exist); reconstructed condition: tools.py blob identical to the pilot commit 6846d689 for tools.py/framework.py/run_static_analysis.py/tool_config.py; orchestrator.py/feedback.py differed only by the BI handling; drivers changed after the pilot (utilities.hpp, harness-markers.hpp, 7 of 12 benchmark cpu.cc/baseline.hpp) - HISTORICAL_PROVENANCE_LIMITATION"
+        },
+        "evidence": [
+          "thesis/evaluation/static_repair_pilot001_inventory.json (records read only)",
+          "thesis/tool_validation/results/tool_state_fixtures/{pareval-thesis,parcoach-demo,pareval-llov}.json (measured in the containers)",
+          "thesis/evaluation/static_repair_pilot002_readiness_report.md"
+        ],
+        "explicitly_not_marked_current_or_comparable": false,
+        "correctness_matrix_unchanged": "99 / 99 / 198 untouched: no static/repair code path feeds the normal correctness measurement (run_command, iter_assembled_samples, EvaluationContext byte-identical at the AST level)"
       }
     },
     "semantic_interlocks": {
@@ -1398,7 +1553,7 @@
       "pilot_002_base_run_id": "NOT_YET_CONFIGURED",
       "run_id": "unchanged",
       "semantic_interlocks": "unchanged",
-      "static_repair": "NOT_REEVALUATED_IN_THIS_WAVE",
+      "static_repair": "REEVALUATED_2026-09-05: per-tool matrix and repair comparability stored in areas.F_static_repair; no reuse, publication, population or run_id decision is implied",
       "note": "Comparability is not reuse. This artifact records which measurements COULD be compared, never which will be reused."
     },
     "reuse_eligibility_preparation_only": {
@@ -1430,12 +1585,12 @@
     "pilot_002 base run_id (NOT_YET_CONFIGURED)",
     "reuse decision (UNDECIDED)",
     "publication policy (unchanged)",
-    "static/repair comparability (NOT_REEVALUATED_IN_THIS_WAVE)",
+    "static/repair comparability REEVALUATED (areas.F_static_repair; not directly comparable as a whole; compiler DIRECTLY_COMPARABLE, gcc_analyzer/clang_tidy/cppcheck COMPARABLE_WITH_LIMITATIONS, infer-omp/parcoach/llov/repair METHOD_CHANGED); readiness artifact thesis/evaluation/static_repair_readiness.json consumed by pilot_preflight",
     "EFFECTIVE_INVOCATION_RUNTIME_CHECK (pilot preflight)",
     "ENVIRONMENT_RUNTIME_CHECK (pilot preflight; container is TAG_ONLY pinned)",
     "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
-  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735",
-  "cross_pilot_fingerprint_sha256": "99bbe4cfa1585e3919ba993bb4e0f087554a850227f6f6ff40a0346ebe12a4a0",
+  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change)",
+  "cross_pilot_fingerprint_sha256": "44821aee46ce3541984ea22894c153a6ef854100be1e1f8fdc78b5941e4fdb53",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

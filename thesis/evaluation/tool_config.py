@@ -421,6 +421,19 @@ def validate_repair_config(config: "Dict[str, Any]") -> None:
                 "(got '%s')" % (provider, ", ".join(REPAIR_API_MODES), mode)
             )
 
+    # Tool-state wave: orchestrator-level request resubmission bound. It is
+    # NOT generation_defaults.retry_attempts (that one is provider-internal,
+    # inside ONE generate call); this bounds how many times the orchestrator
+    # resubmits a still-unanswered repair request across process restarts.
+    rounds = repair.get("request_retry_rounds")
+    if rounds is not None and (
+            isinstance(rounds, bool) or not isinstance(rounds, int) or rounds < 1):
+        raise ValueError(
+            "stages.repair.request_retry_rounds must be a positive integer "
+            "(total orchestrator-level submission rounds per request; got %r)"
+            % (rounds,)
+        )
+
     external_mode = repair.get("external_tools_mode")
     if external_mode is not None and external_mode not in REPAIR_EXTERNAL_TOOLS_MODES:
         raise ValueError(

@@ -267,7 +267,9 @@ def test_grace_once():
     )
     check("new lc finding blocks", decision.status == STATUS_ACTIVE)
     check("lc effective counted", decision.counts["low_confidence_effective"] == 1)
-    check("keys persisted", decision.low_confidence_keys == [["parcoach-collective", 7]])
+    check("keys persisted (4-field identity)",
+          decision.low_confidence_keys
+          == [["parcoach", "parcoach-collective", "generated-code.hpp", 7]])
 
     # same key persisted from previous iteration -> stops counting
     decision = evaluate_stop(

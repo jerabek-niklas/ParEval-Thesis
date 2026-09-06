@@ -1,0 +1,235 @@
+{
+  "schema_version": "static_repair_readiness.v1",
+  "config_path": "thesis/config/config.yaml",
+  "tool_state_schema": "tool_state.v1",
+  "config": {
+    "repair_config": "PASS",
+    "request_retry_rounds": 2,
+    "external_tools_mode": "docker",
+    "external_tools": [
+      "parcoach",
+      "llov"
+    ],
+    "enabled_static_tools": [
+      "compiler",
+      "gcc_analyzer",
+      "clang_tidy",
+      "cppcheck",
+      "infer",
+      "parcoach",
+      "llov"
+    ]
+  },
+  "external_images": {
+    "parcoach": {
+      "image": "registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1",
+      "interpreter": "python3"
+    },
+    "llov": {
+      "image": "pareval-llov",
+      "interpreter": "python3.8"
+    }
+  },
+  "static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+  "repair_condition_sha256": "09a8e8a20a0582202e5b35496c47b17cdf8b4fdf5badc4b824035482bca9cd36",
+  "drivers_tree_sha256": "a6105f1d3b9b384ebb7c2f4fbe1e7a71277001cbcd5abedf0bef7092fcf72ee2",
+  "tools_module_sha256": "9ed277a0bb3b74eaca64ccf5ab772f25589d513bc155a7dbe1311459d60465b6",
+  "host_repo_path": "C:/Users/jerab/Desktop/ParEval-thesis",
+  "measured": {
+    "compiler": {
+      "image": "pareval-thesis",
+      "fixtures": {
+        "compiler clean": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 9.67,
+          "detail": "",
+          "tool_identities": {
+            "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+          }
+        },
+        "compiler model compile error": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 17.713,
+          "detail": "",
+          "tool_identities": {
+            "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+          }
+        }
+      }
+    },
+    "gcc_analyzer": {
+      "image": "pareval-thesis",
+      "fixtures": {
+        "gcc_analyzer clean": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 8.338,
+          "detail": "",
+          "tool_identities": {
+            "gcc_analyzer": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+          }
+        },
+        "gcc_analyzer multi-step null path": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 7.874,
+          "detail": "",
+          "tool_identities": {
+            "gcc_analyzer": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+          }
+        }
+      }
+    },
+    "clang_tidy": {
+      "image": "pareval-thesis",
+      "fixtures": {
+        "clang_tidy clean": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 16.649,
+          "detail": "",
+          "tool_identities": {
+            "clang_tidy": "Ubuntu LLVM version 18.1.3"
+          }
+        },
+        "clang_tidy narrowing": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 20.409,
+          "detail": "",
+          "tool_identities": {
+            "clang_tidy": "Ubuntu LLVM version 18.1.3"
+          }
+        }
+      }
+    },
+    "cppcheck": {
+      "image": "pareval-thesis",
+      "fixtures": {
+        "cppcheck clean": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 0.638,
+          "detail": "",
+          "tool_identities": {
+            "cppcheck": "Cppcheck 2.13.0"
+          }
+        },
+        "cppcheck bounds": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 0.391,
+          "detail": "",
+          "tool_identities": {
+            "cppcheck": "Cppcheck 2.13.0"
+          }
+        }
+      }
+    },
+    "infer": {
+      "image": "pareval-thesis",
+      "fixtures": {
+        "infer clean": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 20.685,
+          "detail": "",
+          "tool_identities": {
+            "infer": "Infer version v1.1.0"
+          }
+        },
+        "infer null dereference": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 20.053,
+          "detail": "",
+          "tool_identities": {
+            "infer": "Infer version v1.1.0"
+          }
+        }
+      }
+    },
+    "parcoach": {
+      "image": "registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1",
+      "interpreter": "python3",
+      "fixtures": {
+        "parcoach A unconditional collective": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 0.028,
+          "detail": "",
+          "tool_identities": {
+            "parcoach": "Ubuntu LLVM version 15.0.7"
+          }
+        },
+        "parcoach B rank-conditional collective (low confidence)": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 0.016,
+          "detail": "",
+          "tool_identities": {
+            "parcoach": "Ubuntu LLVM version 15.0.7"
+          }
+        }
+      }
+    },
+    "llov": {
+      "image": "pareval-llov",
+      "interpreter": "python3.8",
+      "fixtures": {
+        "llov race free": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 0,
+          "duration_seconds": 0.768,
+          "detail": "",
+          "tool_identities": {
+            "llov": "clang version 7.1.0  (git@github.com-utpalbora:utpalbora/LLVMOMPVerify 93321be55c75b340df54c9a208d52e8ec5113dab)"
+          }
+        },
+        "llov data race": {
+          "returncode": 0,
+          "status": "PASS",
+          "measured_state": "COMPLETED",
+          "num_blocking": 1,
+          "duration_seconds": 0.859,
+          "detail": "",
+          "tool_identities": {
+            "llov": "clang version 7.1.0  (git@github.com-utpalbora:utpalbora/LLVMOMPVerify 93321be55c75b340df54c9a208d52e8ec5113dab)"
+          }
+        }
+      }
+    }
+  },
+  "problems": [],
+  "unresolved": [],
+  "gate": "READY",
+  "created_at_utc": "2026-09-05T18:53:18.228834Z"
+}

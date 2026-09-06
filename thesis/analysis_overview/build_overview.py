@@ -72,6 +72,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
+from thesis.evaluation import framework  # noqa: E402
 from thesis.evaluation.finding_classes import CLASSES, classify_finding  # noqa: E402
 from thesis.evaluation.tool_config import (  # noqa: E402
     STAGE_TOOLS,
@@ -185,6 +186,11 @@ CLEANING_COLUMNS = (
 TOOL_RUNTIME_COLUMNS = (
     ["%s_seconds" % tool for tool in PIPELINE_TOOLS]
     + ["%s_timed_out" % tool for tool in PIPELINE_TOOLS]
+    # tool-state wave: the record-level analysis state per tool
+    # (NOT_APPLICABLE / COMPLETED / PARTIAL / NOT_ANALYZED / TOOL_ERROR /
+    # TIMEOUT; None = no entry). A <tool>_blocking number is a VERDICT only
+    # for COMPLETED (and, for its defect findings, PARTIAL) entries.
+    + ["%s_analysis_state" % tool for tool in PIPELINE_TOOLS]
 )
 
 # Generation-side effort/timing view, filled for EVERY iteration (0 = the
@@ -237,6 +243,8 @@ def tool_timed_out(entry: Dict[str, Any]) -> bool:
     "build failed (timeout)", ...). Such entries still carry a duration —
     but it is the configured limit, not a measured analysis time.
     """
+    if framework.analysis_state_of(entry) == framework.STATE_TIMEOUT:
+        return True
     error = entry.get("error")
     if not isinstance(error, str):
         return False
@@ -529,6 +537,18 @@ def build_row(
         "stop_reason": (state_record or {}).get("stop_reason"),
     })
 
+    # Tool-state wave: a sample that stopped for a NON-model reason
+    # (transport rounds exhausted, static coverage incomplete) has no new
+    # artifact at this iteration; label it by its status, never as
+    # "repair_unusable" (which is the model-refusal / garbage label).
+    non_model_status = (state_record or {}).get("status")
+    if non_model_status in NON_MODEL_NA_STATUSES and (
+            run_data is None or not run_data.exists
+            or (run_data.assembly.get(sample_id) or {}).get("assembled") is not True):
+        row["data_complete"] = False
+        row["na_reason"] = non_model_status
+        return row
+
     if run_data is None or not run_data.exists:
         row["data_complete"] = False
         row["na_reason"] = "artifact_missing"
@@ -574,7 +594,22 @@ def build_row(
             continue
         for tool_name, entry in (record.get("tools") or {}).items():
             column = "%s_blocking" % tool_name
+            state, _reason = framework.effective_tool_state(record, tool_name)
+            if "%s_analysis_state" % tool_name in row:
+                row["%s_analysis_state" % tool_name] = state
             if entry.get("ran"):
+                # runtime is recorded for every run, verdict or not (a
+                # timed-out run's duration is the configured limit and is
+                # flagged so the runtime summary can exclude it)
+                duration = float(entry.get("duration_seconds", 0.0))
+                stage_seconds[stage_name] += duration
+                row["%s_seconds" % tool_name] = round(duration, 3)
+                row["%s_timed_out" % tool_name] = tool_timed_out(entry)
+            # tool-state wave: only a COMPLETED / PARTIAL analysis yields a
+            # numeric verdict cell; a TOOL_ERROR / TIMEOUT / NOT_ANALYZED
+            # entry ran but produced no verdict and must not read as "0"
+            if entry.get("ran") and state in (
+                    framework.STATE_COMPLETED, framework.STATE_PARTIAL):
                 row[column] = int(entry.get("num_blocking", 0))
                 have_counts = True
                 blocking += int(entry.get("num_blocking", 0))
@@ -592,11 +627,6 @@ def build_row(
                                 finding.get("message") or "",
                             )
                         ] += 1
-
-                duration = float(entry.get("duration_seconds", 0.0))
-                stage_seconds[stage_name] += duration
-                row["%s_seconds" % tool_name] = round(duration, 3)
-                row["%s_timed_out" % tool_name] = tool_timed_out(entry)
 
     if have_counts:
         row["blocking_count"] = blocking
@@ -839,6 +869,7 @@ def _effective_row(row_map: "Dict[int, Dict[str, Any]]", iteration: int
         i for i, row in row_map.items()
         if i <= iteration
         and row.get("na_reason") not in ("repair_unusable", "artifact_missing")
+        and row.get("na_reason") not in NON_MODEL_NA_STATUSES
     ]
     if not eligible:
         return None
@@ -918,6 +949,11 @@ def trajectory_table(rows: "List[Dict[str, Any]]", variant: str) -> List[str]:
 # they are separated here for READ-ONLY display only, so a mixed dataset does
 # not show a non-evaluable sample under "clean".
 REPAIR_STATUS_BASELINE_INCOMPATIBLE = "stopped_baseline_incompatible"
+
+# repair statuses that are NOT model outcomes (tool-state wave): the sample
+# has no artifact of its own at that iteration and must not be counted as
+# repaired, unrepaired or refused
+NON_MODEL_NA_STATUSES = ("stopped_api_exhausted", "stopped_analysis_incomplete")
 LEGACY_BI_DISPLAY_STATUS = "stopped_clean (legacy, oracle-side)"
 
 

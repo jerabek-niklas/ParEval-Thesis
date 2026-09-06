@@ -17,9 +17,30 @@ run ABORTS before writing any record — that is with near certainty an
 environment error (wrong host/container), and the old skip-with-a-warning
 behavior once produced a complete host run of empty records. INDIVIDUAL
 unavailable tools remain a warning (legitimate under the parcoach/llov
-container split) and are persisted as `tools_skipped` in the per-model
-summary artifact (static_analysis_summary.json), so the gap is documented
-in the artifacts, not just in the terminal.
+container split) and are persisted per invocation in the summary artifact
+(static_analysis_summary.json), so the gap is documented in the artifacts,
+not just in the terminal.
+
+TOOL-STATE WAVE (cross-container merge safety, static_analysis.v3):
+  * every record pins `sample_source_sha256` (the candidate bytes analysed);
+    a later invocation on the same sample_id with different bytes is REFUSED
+    (thesis/evaluation/static_provenance.check_merge) - tool entries of two
+    candidate versions are never mixed;
+  * every tool entry carries `tool_execution_fingerprint_sha256` +
+    `tool_execution_condition` (implementation hash, settings, options,
+    build config, TU strategy, measured tool identity, source hash). The same
+    tool under a DIFFERENT condition is refused unless
+    --replace-tool-entries <tool> is given explicitly; the same tool under
+    the SAME condition is idempotent (kept, not re-run) - a persisted
+    TIMEOUT / TOOL_ERROR is terminal for automatic resume and only re-runs
+    with --rerun-gaps. Different tools from their own containers merge
+    freely: fingerprints are per tool;
+  * the summary is derived from the MERGED records, never from the current
+    invocation alone: per expected tool - applicable / completed / partial /
+    not-analyzed / errored / timed-out / missing sample counts, findings,
+    blocking, low-confidence - plus an append-only invocation history
+    (tools requested / run / skipped per invocation). Container order does
+    not change the canonical summary.
 """
 
 from __future__ import annotations
@@ -27,7 +48,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import Counter
+from collections import Counter, OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +60,19 @@ if str(REPO_ROOT) not in sys.path:
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
 from thesis.evaluation import framework  # noqa: E402
+from thesis.evaluation import static_provenance as provenance  # noqa: E402
+from thesis.evaluation.framework import (  # noqa: E402
+    ANALYSIS_GAP_STATES,
+    STATE_COMPLETED,
+    STATE_NOT_ANALYZED,
+    STATE_NOT_APPLICABLE,
+    STATE_PARTIAL,
+    STATE_TIMEOUT,
+    STATE_TOOL_ERROR,
+    TOOL_STATE_SCHEMA_VERSION,
+    analysis_state_of,
+    entry_is_clean,
+)
 from thesis.evaluation.tool_config import (  # noqa: E402
     ToolSettings,
     mark_low_confidence,
@@ -46,10 +80,14 @@ from thesis.evaluation.tool_config import (  # noqa: E402
 )
 from thesis.evaluation.tools import register_default_tools  # noqa: E402
 
-# v2: per-tool config schema — findings carry low_confidence, per-tool
-# entries carry num_low_confidence, records carry low_confidence_count,
-# out-of-scope tools are recorded as not-applicable entries.
-STATIC_ANALYSIS_SCHEMA_VERSION = "static_analysis.v2"
+# v3: v2 plus the tool-state wave fields - per record `sample_source_sha256`,
+# per tool entry `analysis_state` / `analysis_complete` /
+# `analysis_gap_reason` / `tool_verdict` / `analysis_details` /
+# `tool_execution_fingerprint_sha256` / `tool_execution_condition`. All
+# additive; v2 records stay readable (framework.analysis_state_of derives the
+# legacy state), so consumers use the accessors, never the raw fields.
+STATIC_ANALYSIS_SCHEMA_VERSION = "static_analysis.v3"
+STATIC_SUMMARY_SCHEMA_VERSION = "static_analysis_summary.v2"
 
 # Container toolchain manifest (written at image build time). Phase-2
 # backfill compares its container against the phase-1 record
@@ -87,6 +125,23 @@ def parse_args() -> argparse.Namespace:
         help="Override the profile run_id (repair-loop iteration artifacts "
         "use the convention <run>__<variant>__iter<N>).",
     )
+    parser.add_argument(
+        "--replace-tool-entries",
+        nargs="*",
+        default=None,
+        metavar="TOOL",
+        help="EXPLICITLY replace existing entries of these tools even if they "
+        "were recorded under a different execution condition (otherwise a "
+        "condition mismatch is refused). Recorded in the invocation history.",
+    )
+    parser.add_argument(
+        "--rerun-gaps",
+        action="store_true",
+        help="Re-run tools whose existing entry is an analysis gap (TIMEOUT / "
+        "TOOL_ERROR / NOT_ANALYZED / PARTIAL) under the same condition. "
+        "Without it a persisted gap is terminal for resume (no repeated "
+        "60 s PARCOACH timeouts on every resume).",
+    )
     return parser.parse_args()
 
 
@@ -121,6 +176,7 @@ def not_applicable_entry(tool_name: str, execution_model: str) -> dict[str, Any]
         exit_code=None,
         duration_seconds=0.0,
         error=f"not applicable: '{execution_model}' outside configured execution_models",
+        analysis_state=STATE_NOT_APPLICABLE,
     ).to_dict()
 
 
@@ -160,6 +216,158 @@ def record_low_confidence_count(record: dict[str, Any]) -> int:
     )
 
 
+def record_analysis_gaps(record: dict[str, Any]) -> list[dict[str, Any]]:
+    """Tools of a record that ran without a complete, trustworthy verdict."""
+    gaps = []
+    for tool_name in (record.get("tools") or {}):
+        # record-level state: a front-end rejection of a TU the compiler
+        # also rejected is subsumed (no gap of its own), see framework
+        gap = framework.record_analysis_gap(record, tool_name)
+        if gap is not None:
+            gaps.append(gap)
+    return gaps
+
+
+# ---------------------------------------------------------------------------
+# summary derived from the MERGED records
+# ---------------------------------------------------------------------------
+
+def load_summary(summary_path: Path) -> dict[str, Any]:
+    if not summary_path.exists():
+        return {}
+    try:
+        return json.loads(summary_path.read_text(encoding="utf-8"))
+    except ValueError:
+        return {}
+
+
+def summarize_records(
+    model_id: str,
+    records: "dict[str, dict[str, Any]]",
+    expected_tools: "dict[str, ToolSettings]",
+    invocations: "list[dict[str, Any]]",
+) -> dict[str, Any]:
+    """The canonical per-model summary: a pure function of the merged records
+    and the EXPECTED (config-enabled) tool set - identical regardless of the
+    order in which the containers ran.
+    """
+    per_tool: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
+
+    for name, settings in expected_tools.items():
+        applicable = [
+            r for r in records.values()
+            if settings.applies_to(r.get("execution_model", ""))
+        ]
+        states: Counter = Counter()
+        findings = blocking = low_confidence = 0
+        missing = subsumed = 0
+        for record in applicable:
+            entry = (record.get("tools") or {}).get(name)
+            if entry is None:
+                missing += 1
+                continue
+            state, reason = framework.effective_tool_state(record, name)
+            states[state] += 1
+            if framework.is_subsumed_rejection(state, reason):
+                subsumed += 1
+            findings += int(entry.get("num_findings", 0) or 0)
+            blocking += int(entry.get("num_blocking", 0) or 0)
+            low_confidence += int(entry.get("num_low_confidence", 0) or 0)
+
+        completed = states.get(STATE_COMPLETED, 0)
+        per_tool[name] = OrderedDict([
+            ("execution_models", list(settings.execution_models)),
+            ("applicable_samples", len(applicable)),
+            ("samples_with_entry", len(applicable) - missing),
+            ("samples_missing_entry", missing),
+            ("completed", completed),
+            ("partial", states.get(STATE_PARTIAL, 0)),
+            ("not_analyzed", states.get(STATE_NOT_ANALYZED, 0)),
+            # of which: rejected TUs the compiler ALSO rejected (the model
+            # defect is carried by `compiler`; no gap of the tool's own)
+            ("not_analyzed_subsumed_by_compiler", subsumed),
+            ("tool_error", states.get(STATE_TOOL_ERROR, 0)),
+            ("timeout", states.get(STATE_TIMEOUT, 0)),
+            ("incomplete", len(applicable) - completed),
+            ("clean_completed", sum(
+                1 for r in applicable
+                if (r.get("tools") or {}).get(name) is not None
+                and entry_is_clean((r.get("tools") or {})[name]))),
+            ("findings", findings),
+            ("blocking", blocking),
+            ("low_confidence", low_confidence),
+        ])
+
+    tools_with_applicable = [n for n, t in per_tool.items() if t["applicable_samples"] > 0]
+    tools_completed_all = [
+        n for n, t in per_tool.items()
+        if t["applicable_samples"] > 0 and t["completed"] == t["applicable_samples"]
+    ]
+    tools_with_gaps = [
+        n for n, t in per_tool.items()
+        if (t["partial"] + t["not_analyzed"] + t["tool_error"] + t["timeout"]) > 0
+    ]
+    tools_with_missing = [n for n, t in per_tool.items() if t["samples_missing_entry"] > 0]
+
+    # LLOV: explicit race / clean / not-analyzed / error / timeout counts so a
+    # high "no finding" rate can never read as a high race-free rate
+    llov_classes: Counter = Counter()
+    if "llov" in expected_tools:
+        for record in records.values():
+            if not expected_tools["llov"].applies_to(record.get("execution_model", "")):
+                continue
+            entry = (record.get("tools") or {}).get("llov")
+            if entry is None:
+                llov_classes["missing_entry"] += 1
+                continue
+            state, _reason = framework.effective_tool_state(record, "llov")
+            if state == STATE_TIMEOUT:
+                llov_classes["timeout"] += 1
+            elif state == STATE_TOOL_ERROR:
+                llov_classes["tool_error"] += 1
+            elif int(entry.get("num_blocking", 0) or 0) > 0:
+                llov_classes["race_detected"] += 1
+            elif state == STATE_COMPLETED:
+                llov_classes["race_free_completed"] += 1
+            elif state == STATE_PARTIAL:
+                llov_classes["partial_not_analyzed"] += 1
+            else:
+                llov_classes["region_not_analyzed"] += 1
+
+    samples_with_gap = sum(1 for r in records.values() if record_analysis_gaps(r))
+
+    return OrderedDict([
+        ("schema_version", STATIC_SUMMARY_SCHEMA_VERSION),
+        ("tool_state_schema", TOOL_STATE_SCHEMA_VERSION),
+        ("model_id", model_id),
+        ("samples", len(records)),
+        ("samples_with_blocking", sum(1 for r in records.values() if record_has_blocking(r))),
+        ("samples_with_analysis_gap", samples_with_gap),
+        ("expected_tools", list(expected_tools)),
+        ("tools_with_applicable_samples", tools_with_applicable),
+        ("tools_completed_on_all_applicable", tools_completed_all),
+        ("tools_with_analysis_gaps", tools_with_gaps),
+        ("tools_with_missing_entries", tools_with_missing),
+        ("per_tool", per_tool),
+        # backwards-compatible views of the v1 fields, now derived from the
+        # merged records (never from one invocation)
+        ("findings_per_tool", OrderedDict((n, t["findings"]) for n, t in per_tool.items())),
+        ("blocking_per_tool", OrderedDict((n, t["blocking"]) for n, t in per_tool.items())),
+        ("low_confidence_per_tool", OrderedDict((n, t["low_confidence"]) for n, t in per_tool.items())),
+        ("llov_classes", OrderedDict(sorted(llov_classes.items()))),
+        ("invocations", invocations),
+        ("summary_semantics", "derived from the merged static_analysis.jsonl "
+                              "records against the config-enabled tool set; "
+                              "invocation order does not change it (timestamps "
+                              "and the invocation history aside)"),
+        ("created_at_utc", common.utc_now_iso()),
+    ])
+
+
+# ---------------------------------------------------------------------------
+# per-model run
+# ---------------------------------------------------------------------------
+
 def run_model(
     context: framework.EvaluationContext,
     intermediate_dir: Path,
@@ -167,10 +375,17 @@ def run_model(
     model_id: str,
     tool_settings: "dict[str, ToolSettings]",
     tools_skipped: "list[dict[str, str]] | None" = None,
+    expected_tools: "dict[str, ToolSettings] | None" = None,
+    replace_tool_entries: "list[str] | None" = None,
+    rerun_gaps: bool = False,
+    invocation_label: str | None = None,
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / "static_analysis.jsonl"
+    summary_path = output_path.parent / "static_analysis_summary.json"
 
     records = load_existing_records(output_path)
+    expected = expected_tools if expected_tools is not None else tool_settings
+    replace = set(replace_tool_entries or ())
 
     # main()'s environment gate already dropped unavailable tools (abort
     # when ALL are unavailable); this per-model check is a belt only
@@ -182,14 +397,23 @@ def run_model(
         else:
             print(f"[{model_id}] tool '{name}' unavailable in this environment, skipping.")
 
-    per_tool_findings: Counter = Counter()
-    per_tool_blocking: Counter = Counter()
+    ran_counter: Counter = Counter()
+    kept_counter: Counter = Counter()
     samples_seen = 0
-    samples_with_blocking = 0
+    legacy_pins = 0
 
-    for sample in framework.iter_assembled_samples(
+    # Fail-closed: verify ALL merges BEFORE writing anything, so a refused
+    # sample never leaves a half-updated file behind.
+    samples = list(framework.iter_assembled_samples(
         context.repo_root, intermediate_dir, run_id, model_id
-    ):
+    ))
+    source_hashes: dict[str, str | None] = {}
+    for sample in samples:
+        source_hashes[sample.sample_id] = provenance.sample_source_sha256(sample.source_path)
+        provenance.check_merge(records.get(sample.sample_id), sample.sample_id,
+                               source_hashes[sample.sample_id])
+
+    for sample in samples:
         samples_seen += 1
 
         record = records.get(sample.sample_id)
@@ -205,8 +429,14 @@ def run_model(
             }
             records[sample.sample_id] = record
 
+        if record.get("sample_source_sha256") is None and source_hashes[sample.sample_id]:
+            if record.get("tools"):
+                legacy_pins += 1
+            record["sample_source_sha256"] = source_hashes[sample.sample_id]
+
         record["created_at_utc"] = common.utc_now_iso()
         record["schema_version"] = STATIC_ANALYSIS_SCHEMA_VERSION
+        record["tool_state_schema"] = TOOL_STATE_SCHEMA_VERSION
 
         for tool in available_tools:
             settings = tool_settings[tool.name]
@@ -220,52 +450,92 @@ def run_model(
                 )
                 continue
 
+            condition = provenance.tool_execution_condition(
+                tool, settings, sample.execution_model, context.primary_compiler,
+                source_hashes[sample.sample_id],
+            )
+            fingerprint = provenance.tool_execution_fingerprint_sha256(condition)
+
+            existing = record["tools"].get(tool.name)
+            decision = provenance.check_tool_entry_merge(
+                existing, tool.name, sample.sample_id, fingerprint,
+                replace_allowed=tool.name in replace,
+            )
+
+            if decision == "keep":
+                if rerun_gaps and analysis_state_of(existing) in ANALYSIS_GAP_STATES:
+                    decision = "run"
+                else:
+                    kept_counter[tool.name] += 1
+                    continue
+
             result = tool.run(sample, context)
 
             num_low_confidence = mark_low_confidence(result.findings, settings)
 
             entry = result.to_dict()
             entry["num_low_confidence"] = num_low_confidence
+            entry["tool_execution_fingerprint_sha256"] = fingerprint
+            entry["tool_execution_condition"] = condition
             record["tools"][tool.name] = entry
-
-            per_tool_findings[tool.name] += len(result.findings)
-            per_tool_blocking[tool.name] += len(result.blocking_findings)
+            ran_counter[tool.name] += 1
 
         # Recompute over ALL tools in the record (merged across invocations).
         record["has_blocking_findings"] = record_has_blocking(record)
         record["low_confidence_count"] = record_low_confidence_count(record)
-        if record["has_blocking_findings"]:
-            samples_with_blocking += 1
+        record["analysis_gaps"] = record_analysis_gaps(record)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as file:
         for entry in records.values():
             file.write(json.dumps(entry) + "\n")
 
-    summary = {
-        "model_id": model_id,
-        "samples": samples_seen,
-        "samples_with_blocking": samples_with_blocking,
-        "findings_per_tool": dict(per_tool_findings),
-        "blocking_per_tool": dict(per_tool_blocking),
-        "tools_run": [t.name for t in available_tools],
-        # environment-gate drops: persisted so the gap is visible in the
-        # ARTIFACTS, not only in the terminal (2026-08-08)
-        "tools_skipped": tools_skipped or [],
-        "created_at_utc": common.utc_now_iso(),
-    }
-    common.write_json(
-        output_path.parent / "static_analysis_summary.json", summary
-    )
+    if legacy_pins:
+        print(
+            f"[{model_id}] WARNING: {legacy_pins} legacy record(s) had no "
+            "sample_source_sha256 - pinned now; their earlier tool entries "
+            "cannot be verified against the current source (historical "
+            "provenance limitation, recorded in the summary)."
+        )
+
+    previous = load_summary(summary_path)
+    invocations = list(previous.get("invocations") or [])
+    invocations.append(OrderedDict([
+        ("label", invocation_label),
+        ("created_at_utc", common.utc_now_iso()),
+        ("tools_requested", list(tool_settings)),
+        ("tools_run", [t.name for t in available_tools]),
+        ("tools_skipped", tools_skipped or []),
+        ("entries_run", OrderedDict(sorted(ran_counter.items()))),
+        ("entries_kept_idempotent", OrderedDict(sorted(kept_counter.items()))),
+        ("replace_tool_entries", sorted(replace)),
+        ("rerun_gaps", bool(rerun_gaps)),
+        ("legacy_records_pinned", legacy_pins),
+        ("primary_compiler", context.primary_compiler),
+    ]))
+
+    summary = summarize_records(model_id, records, expected, invocations)
+    # legacy v1 views kept for consumers that read them: the LAST invocation
+    # only (never the coverage statement - that is per_tool)
+    summary["tools_run"] = [t.name for t in available_tools]
+    summary["tools_skipped"] = tools_skipped or []
+    common.write_json(summary_path, summary)
 
     print(
         f"[{model_id}] samples: {samples_seen}, "
-        f"with blocking findings: {samples_with_blocking}"
+        f"with blocking findings: {summary['samples_with_blocking']}, "
+        f"with analysis gaps: {summary['samples_with_analysis_gap']}"
     )
     for name in summary["tools_run"]:
+        t = summary["per_tool"].get(name)
+        if t is None:
+            continue
         print(
-            f"    {name}: {per_tool_findings[name]} findings "
-            f"({per_tool_blocking[name]} blocking)"
+            f"    {name}: {t['findings']} findings ({t['blocking']} blocking); "
+            f"completed {t['completed']}/{t['applicable_samples']}, "
+            f"gaps partial={t['partial']} not_analyzed={t['not_analyzed']} "
+            f"error={t['tool_error']} timeout={t['timeout']}; "
+            f"run now {ran_counter[name]}, kept {kept_counter[name]}"
         )
     print(f"[{model_id}] output: {output_path}")
 
@@ -285,6 +555,9 @@ def main() -> None:
     register_default_tools(primary_compiler=args.primary_compiler, config=config)
 
     enabled_settings = resolve_enabled_tools(config, args.tools, "static_analysis")
+    # the config-enabled set is the coverage EXPECTATION of the summary,
+    # independent of which subset this container runs
+    expected_settings = resolve_enabled_tools(config, None, "static_analysis")
 
     # Only keep tools the registry actually knows; warn on the rest.
     known: dict[str, ToolSettings] = {}
@@ -302,7 +575,7 @@ def main() -> None:
     # host/container), never a legitimate state -> abort BEFORE records.
     # Individual unavailable tools stay a warning (legitimate: the
     # parcoach/llov container split requests subsets), but the drop is
-    # persisted per model as tools_skipped in the summary artifact.
+    # persisted per invocation in the summary artifact.
     unavailable = [
         name for name in known
         if not framework.get_tool(name).is_available()
@@ -323,8 +596,8 @@ def main() -> None:
     for name in unavailable:
         print(
             f"WARNING: tool '{name}' unavailable in this environment — "
-            "skipped for this ENTIRE run (recorded as tools_skipped in the "
-            "summary)."
+            "skipped for this invocation (recorded in the summary's "
+            "invocation history; coverage is judged from the merged records)."
         )
         tools_skipped.append({
             "tool": name,
@@ -358,22 +631,35 @@ def main() -> None:
     record_toolchain_versions(intermediate_dir, run_id)
 
     # freeze the run configuration / record config drift (run_manifest.py)
-    from thesis.evaluation.run_manifest import ensure_run_manifest
+    from thesis.evaluation.run_manifest import ensure_run_manifest, register_static_condition
 
     ensure_run_manifest(
         config, run_id, stage="static_analysis", profile=args.profile,
         primary_compiler=args.primary_compiler,
     )
+    condition = provenance.static_analysis_condition(config, args.primary_compiler)
+    register_static_condition(
+        config, run_id, provenance.static_analysis_condition_sha256(condition), condition,
+    )
 
     for model_config in models:
-        run_model(
-            context=context,
-            intermediate_dir=intermediate_dir,
-            run_id=run_id,
-            model_id=model_config["id"],
-            tool_settings=known,
-            tools_skipped=tools_skipped,
-        )
+        try:
+            run_model(
+                context=context,
+                intermediate_dir=intermediate_dir,
+                run_id=run_id,
+                model_id=model_config["id"],
+                tool_settings=known,
+                tools_skipped=tools_skipped,
+                expected_tools=expected_settings,
+                replace_tool_entries=args.replace_tool_entries,
+                rerun_gaps=args.rerun_gaps,
+                invocation_label="run_static_analysis --tools %s" % (
+                    " ".join(args.tools) if args.tools else "<config>"),
+            )
+        except provenance.StaticMergeConflict as conflict:
+            print("MERGE REFUSED (fail-closed): %s" % conflict)
+            sys.exit(3)
 
 
 if __name__ == "__main__":

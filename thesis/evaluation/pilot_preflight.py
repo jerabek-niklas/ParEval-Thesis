@@ -153,6 +153,10 @@ def main() -> int:
                     help="JSON with the ACTUAL captured runtime environment values")
     ap.add_argument("--skip-repo-check", action="store_true",
                     help="skip the repo-state gate check (testing only)")
+    ap.add_argument("--static-readiness",
+                    default=str(Path(__file__).resolve().parent / "static_repair_readiness.json"),
+                    help="artifact written by check_static_repair_readiness.py "
+                         "(tool-state wave); missing/stale -> UNRESOLVED")
     args = ap.parse_args()
 
     print("INVOCATION_SELF_DECLARED = true")
@@ -495,6 +499,60 @@ def main() -> int:
     print("SEMANTIC_GATE = %s"
           % ("UNRESOLVED" if sem_decisions is None or sem_registry is None
              else sem["gate"]))
+
+    # ---- 17. static/repair readiness (tool-state wave) ----
+    # check_static_repair_readiness.py MEASURES the tool infrastructure
+    # (internal tools + external images with minimal fixtures) and records
+    # the condition fingerprints it measured under. This preflight only
+    # verifies that the artifact exists, was produced under the CURRENT
+    # static/repair condition (tool code, config, drivers) and is READY.
+    print("STATIC_REPAIR_READINESS_CHECK")
+    readiness = load_json(args.static_readiness)
+    if readiness is None:
+        print("  UNRESOLVED (artifact missing: run "
+              "thesis/evaluation/check_static_repair_readiness.py first)")
+        print("STATIC_REPAIR_READINESS = UNRESOLVED")
+        cond_open()
+    else:
+        try:
+            from thesis.evaluation import static_provenance as _sp
+            cur_cfg = cfg if cfg is not None else repo_gate._load_yaml_config(inv["config_path"])
+            cur_static = _sp.static_analysis_condition_sha256(
+                _sp.static_analysis_condition(cur_cfg, "g++", None, False))
+            cur_repair = _sp.repair_condition_sha256(_sp.repair_condition(cur_cfg))
+        except Exception as exc:  # noqa: BLE001
+            cur_static = cur_repair = None
+            print("  UNRESOLVED (current static/repair condition not computable: %s)" % exc)
+            cond_open()
+        stale = []
+        if cur_static and readiness.get("static_analysis_condition_sha256") != cur_static:
+            stale.append("static_analysis_condition_sha256")
+        if cur_repair and readiness.get("repair_condition_sha256") != cur_repair:
+            stale.append("repair_condition_sha256")
+        print("  readiness artifact gate = %s (created %s)"
+              % (readiness.get("gate"), readiness.get("created_at_utc")))
+        print("  static_analysis_condition_sha256 = %s" % readiness.get("static_analysis_condition_sha256"))
+        print("  repair_condition_sha256 = %s" % readiness.get("repair_condition_sha256"))
+        for tool, block in (readiness.get("measured") or {}).items():
+            statuses = sorted({r.get("status") for r in (block.get("fixtures") or {}).values()})
+            print("  %s (%s): %s" % (tool, block.get("image"), ",".join(str(x) for x in statuses) or "not measured"))
+        if stale:
+            print("  STALE: the artifact was measured under another condition (%s) -"
+                  " re-run check_static_repair_readiness.py" % ", ".join(stale))
+            print("STATIC_REPAIR_READINESS = UNRESOLVED (stale)")
+            cond_open()
+        elif readiness.get("gate") == "READY":
+            print("STATIC_REPAIR_READINESS = READY")
+        elif readiness.get("gate") == "NOT_READY":
+            for problem in readiness.get("problems") or []:
+                print("  PROBLEM: %s" % problem)
+            print("STATIC_REPAIR_READINESS = NOT_READY")
+            cond_fail()
+        else:
+            for item in readiness.get("unresolved") or []:
+                print("  UNRESOLVED: %s" % item)
+            print("STATIC_REPAIR_READINESS = UNRESOLVED")
+            cond_open()
 
     # ---- verdict ----
     print("\nEXTERNAL_FINAL_GATE_CHECKS (NOT performed by this tool):"

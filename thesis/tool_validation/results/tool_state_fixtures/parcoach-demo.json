@@ -1,0 +1,189 @@
+{
+  "schema_version": "tool_state_fixtures.v1",
+  "tools": [
+    "parcoach"
+  ],
+  "primary_compiler": "g++",
+  "tool_identities": {
+    "parcoach": "Ubuntu LLVM version 15.0.7"
+  },
+  "hostname": "512d52ded360",
+  "fixtures": [
+    {
+      "name": "parcoach A unconditional collective",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 0.191,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "phase": "parcoach"
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach B rank-conditional collective (low confidence)",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": null,
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 0.141,
+      "num_findings": 1,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "parcoach-collective-ordering",
+          "line": 5,
+          "blocking": true,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "phase": "parcoach"
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach C same collective in both branches",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 0.107,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "phase": "parcoach"
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach std::sort without include (preamble regression)",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": null,
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "parcoach exceeded 60 s (measured bimodal: genuine hangs; a longer timeout rescues nothing); no verdict",
+      "exit_code": -1,
+      "error": "parcoach timed out",
+      "duration_seconds": 60.045,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "phase": "parcoach"
+      },
+      "note": "pilot_001 recorded this shape as a reduced-TU compile failure; with the preamble it compiles and PARCOACH then hits its own genuine timeout on the std::sort instantiation",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach std::array without include (preamble regression)",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 0.1,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "phase": "parcoach"
+      },
+      "note": "histogram/20 shape (cpu.cc includes <array>); pilot_001 recorded it as a reduced-TU compile failure",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach broken TU",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "reduced TU did not compile in the PARCOACH container: /tmp/tmpa47i1zs4/generated-code.hpp:2:3: error: invalid use of 'this' outside of a non-static member function",
+      "exit_code": 1,
+      "error": "clang -emit-llvm failed for the reduced TU",
+      "duration_seconds": 4.07,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "phase": "emit-llvm"
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach D timeout",
+      "tool": "parcoach",
+      "execution_model": "mpi",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "reduced-TU compile timed out",
+      "exit_code": -1,
+      "error": "clang -emit-llvm failed for the reduced TU",
+      "duration_seconds": 0.013,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "phase": "emit-llvm"
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "parcoach not applicable (omp)",
+      "tool": "parcoach",
+      "execution_model": "omp",
+      "expected_state": "NOT_APPLICABLE",
+      "measured_state": "NOT_APPLICABLE",
+      "tool_verdict": "NOT_APPLICABLE",
+      "gap_reason": null,
+      "exit_code": null,
+      "error": "not applicable: parcoach verifies MPI collectives (execution model is 'omp')",
+      "duration_seconds": 0.0,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {},
+      "note": "",
+      "passed": true,
+      "problems": []
+    }
+  ],
+  "parser_checks": [],
+  "passed": 8,
+  "failed": 0
+}

@@ -1,0 +1,280 @@
+{
+  "schema_version": "tool_state_fixtures.v1",
+  "tools": [
+    "llov"
+  ],
+  "primary_compiler": "g++",
+  "tool_identities": {
+    "llov": "clang version 7.1.0  (git@github.com-utpalbora:utpalbora/LLVMOMPVerify 93321be55c75b340df54c9a208d52e8ec5113dab)"
+  },
+  "hostname": "26ddb5241088",
+  "fixtures": [
+    {
+      "name": "llov race free",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 3.928,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 1,
+          "not_analyzed": 0
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov data race",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 4.039,
+      "num_findings": 1,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "llov-data-race",
+          "line": 5,
+          "blocking": true,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "regions": {
+          "race": 1,
+          "free": 0,
+          "not_analyzed": 0
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov region not analyzed (never race free)",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "NOT_ANALYZED",
+      "measured_state": "NOT_ANALYZED",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "all 1 OpenMP region(s) reported Region Not Analyzed - no race verdict exists",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 2.224,
+      "num_findings": 1,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "llov-region-not-analyzed",
+          "line": 3,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 0,
+          "not_analyzed": 1
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov mixed free + not analyzed (PARTIAL)",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "PARTIAL",
+      "measured_state": "PARTIAL",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "1 of 2 OpenMP region(s) not analyzed by LLOV (no race verdict for them)",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 2.197,
+      "num_findings": 1,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "llov-region-not-analyzed",
+          "line": 7,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 1,
+          "not_analyzed": 1
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov compile error",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "LLOV clang 7 could not compile the reduced TU (exit 1); the compiler tool carries the build verdict",
+      "exit_code": 1,
+      "error": "llov clang exited with 1",
+      "duration_seconds": 1.486,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 0,
+          "not_analyzed": 0
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov std::sort without include (preamble regression)",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 1.585,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 1,
+          "not_analyzed": 0
+        }
+      },
+      "note": "pilot_001 recorded this shape as an LLOV compile failure",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov no region verdict at all (tasks)",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "NOT_ANALYZED",
+      "measured_state": "NOT_ANALYZED",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "all 2 OpenMP region(s) reported Region Not Analyzed - no race verdict exists",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 1.86,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 0,
+          "not_analyzed": 2
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov timeout",
+      "tool": "llov",
+      "execution_model": "omp",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "LLOV plugin compile exceeded 0 s; no verdict",
+      "exit_code": -1,
+      "error": "llov timed out",
+      "duration_seconds": 0.009,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "regions": {
+          "race": 0,
+          "free": 0,
+          "not_analyzed": 0
+        }
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "llov not applicable (serial)",
+      "tool": "llov",
+      "execution_model": "serial",
+      "expected_state": "NOT_APPLICABLE",
+      "measured_state": "NOT_APPLICABLE",
+      "tool_verdict": "NOT_APPLICABLE",
+      "gap_reason": null,
+      "exit_code": null,
+      "error": "not applicable: llov verifies OpenMP data races (execution model is 'serial')",
+      "duration_seconds": 0.0,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {},
+      "note": "",
+      "passed": true,
+      "problems": []
+    }
+  ],
+  "parser_checks": [
+    {
+      "name": "llov parser counts 'Directive Not Analyzed' and line:col forms",
+      "passed": true,
+      "measured": {
+        "race": 1,
+        "free": 1,
+        "not_analyzed": 1
+      }
+    },
+    {
+      "name": "llov parser keeps line:col race and not-analyzed findings in the model file",
+      "passed": true,
+      "measured": [
+        [
+          "llov-data-race",
+          20
+        ],
+        [
+          "llov-region-not-analyzed",
+          16
+        ]
+      ]
+    }
+  ],
+  "passed": 11,
+  "failed": 0
+}

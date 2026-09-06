@@ -1,0 +1,863 @@
+{
+  "schema_version": "tool_state_fixtures.v1",
+  "tools": [
+    "compiler",
+    "gcc_analyzer",
+    "clang_tidy",
+    "cppcheck",
+    "infer"
+  ],
+  "primary_compiler": "g++",
+  "tool_identities": {
+    "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "gcc_analyzer": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "clang_tidy": "Ubuntu LLVM version 18.1.3",
+    "cppcheck": "Cppcheck 2.13.0",
+    "infer": "Infer version v1.1.0"
+  },
+  "hostname": "633cedfef408",
+  "fixtures": [
+    {
+      "name": "compiler clean",
+      "tool": "compiler",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 7.698,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "build_ok": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "compiler model compile error",
+      "tool": "compiler",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 1,
+      "error": null,
+      "duration_seconds": 8.701,
+      "num_findings": 3,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "error",
+          "line": 2,
+          "blocking": true,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wunused-parameter",
+          "line": 1,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wunused-parameter",
+          "line": 1,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "build_ok": false
+      },
+      "note": "the model's own build failure is a COMPLETED verdict",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "compiler timeout",
+      "tool": "compiler",
+      "execution_model": "serial",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "compile exceeded 0 s; no build verdict",
+      "exit_code": -1,
+      "error": "compile timed out",
+      "duration_seconds": 0.016,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {},
+      "note": "no synthetic compile-failed finding",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "compiler binary missing",
+      "tool": "compiler",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "compiler binary unavailable or not startable: command not found: [Errno 2] No such file or directory: '/nonexistent/bin/g++'",
+      "exit_code": -1,
+      "error": "compiler binary unavailable or not startable: command not found: [Errno 2] No such file or directory: '/nonexistent/bin/g++'",
+      "duration_seconds": 0.006,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "build_ok": false,
+        "toolchain_failure": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "gcc_analyzer clean",
+      "tool": "gcc_analyzer",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 5.09,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "too_complex_count": 0,
+        "too_complex_total": 0,
+        "bailed_out_early": false,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "gcc_analyzer multi-step null path",
+      "tool": "gcc_analyzer",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 6.679,
+      "num_findings": 1,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "-Wanalyzer-null-dereference",
+          "line": 11,
+          "blocking": true,
+          "path_events": 6
+        }
+      ],
+      "analysis_details": {
+        "too_complex_count": 0,
+        "too_complex_total": 0,
+        "bailed_out_early": false,
+        "tu_rejected": false
+      },
+      "note": "one defect = one finding with attached path events",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "gcc_analyzer too-complex (PARTIAL)",
+      "tool": "gcc_analyzer",
+      "execution_model": "serial",
+      "expected_state": "PARTIAL",
+      "measured_state": "PARTIAL",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "-Wanalyzer-too-complex on 19 program point(s) (10 in the model file): unanalyzed successors carry no verdict",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 8.684,
+      "num_findings": 10,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 8,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 8,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 8,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 8,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 6,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 6,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 6,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 6,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 6,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "-Wanalyzer-too-complex",
+          "line": 6,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "too_complex_count": 10,
+        "too_complex_total": 19,
+        "bailed_out_early": false,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "gcc_analyzer bail-out with planted defect never clean",
+      "tool": "gcc_analyzer",
+      "execution_model": "serial",
+      "expected_state": null,
+      "measured_state": "PARTIAL",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "gcc -fanalyzer bailed out early (analysis budget exhausted for the whole exploration); remaining paths of the model code carry no verdict",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 6.702,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "too_complex_count": 0,
+        "too_complex_total": 1,
+        "bailed_out_early": true,
+        "tu_rejected": false
+      },
+      "note": "measured false negative; must be PARTIAL or carry the finding",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "gcc_analyzer broken TU",
+      "tool": "gcc_analyzer",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "translation unit did not compile under g++ -fanalyzer (the compiler tool carries the build verdict)",
+      "exit_code": 1,
+      "error": "gcc -fanalyzer exited with 1",
+      "duration_seconds": 6.807,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "too_complex_count": 0,
+        "too_complex_total": 0,
+        "bailed_out_early": false,
+        "tu_rejected": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "gcc_analyzer timeout",
+      "tool": "gcc_analyzer",
+      "execution_model": "serial",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "gcc -fanalyzer exceeded 0 s; no analysis verdict",
+      "exit_code": -1,
+      "error": "gcc_analyzer timed out",
+      "duration_seconds": 0.014,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "too_complex_count": 0,
+        "too_complex_total": 0,
+        "bailed_out_early": false,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "clang_tidy clean",
+      "tool": "clang_tidy",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 18.899,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "frontend_parse_errors": 0,
+        "fixes_present": true,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "clang_tidy narrowing",
+      "tool": "clang_tidy",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 15.46,
+      "num_findings": 2,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "misc-const-correctness",
+          "line": 2,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "bugprone-narrowing-conversions",
+          "line": 2,
+          "blocking": true,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "frontend_parse_errors": 0,
+        "fixes_present": true,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "clang_tidy GCC-only builtin (front-end gap, not a defect)",
+      "tool": "clang_tidy",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "clang-diagnostic-error: use of undeclared identifier '__builtin_shuffle'",
+      "exit_code": 1,
+      "error": "clang front-end could not parse the translation unit",
+      "duration_seconds": 15.419,
+      "num_findings": 3,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "misc-const-correctness",
+          "line": 3,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "misc-const-correctness",
+          "line": 4,
+          "blocking": false,
+          "path_events": 0
+        },
+        {
+          "check_id": "clang-diagnostic-error",
+          "line": 5,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "frontend_parse_errors": 1,
+        "fixes_present": true,
+        "tu_rejected": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "clang_tidy broken TU",
+      "tool": "clang_tidy",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "clang-diagnostic-error: expected unqualified-id",
+      "exit_code": 1,
+      "error": "clang front-end could not parse the translation unit",
+      "duration_seconds": 9.573,
+      "num_findings": 1,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "clang-diagnostic-error",
+          "line": 2,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "frontend_parse_errors": 1,
+        "fixes_present": true,
+        "tu_rejected": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "clang_tidy timeout",
+      "tool": "clang_tidy",
+      "execution_model": "serial",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "clang-tidy exceeded 0 s; no verdict",
+      "exit_code": -1,
+      "error": "clang_tidy timed out",
+      "duration_seconds": 0.013,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "frontend_parse_errors": 0,
+        "fixes_present": false,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck clean",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 1.499,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "xml": "ok",
+        "tool_side_diagnostics": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck bounds",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 2.221,
+      "num_findings": 1,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "arrayIndexOutOfBounds",
+          "line": 3,
+          "blocking": true,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "xml": "ok",
+        "tool_side_diagnostics": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck broken TU (tool-side syntaxError)",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "PARTIAL",
+      "measured_state": "PARTIAL",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "1 cppcheck tool-side diagnostic(s) (syntax/preprocessor/internal): parts of the code were not analyzed",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 1.398,
+      "num_findings": 1,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "syntaxError",
+          "line": 2,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "xml": "ok",
+        "tool_side_diagnostics": 1,
+        "tu_rejected": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck genuine #error stays a defect",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 0.95,
+      "num_findings": 1,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "preprocessorErrorDirective",
+          "line": 2,
+          "blocking": true,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "xml": "ok",
+        "tool_side_diagnostics": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck prose apostrophe (lexer failure, not a defect)",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "PARTIAL",
+      "measured_state": "PARTIAL",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "1 cppcheck tool-side diagnostic(s) (syntax/preprocessor/internal): parts of the code were not analyzed",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 0.644,
+      "num_findings": 1,
+      "num_blocking": 0,
+      "findings": [
+        {
+          "check_id": "preprocessorErrorDirective",
+          "line": 3,
+          "blocking": false,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "xml": "ok",
+        "tool_side_diagnostics": 1,
+        "tu_rejected": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck malformed XML",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "cppcheck produced a malformed XML result block",
+      "exit_code": 0,
+      "error": "cppcheck produced a malformed XML result block",
+      "duration_seconds": 0.01,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "xml": "malformed",
+        "tool_side_diagnostics": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck no XML at all (CLI error)",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "cppcheck process failed: cppcheck: error: unrecognized command line option",
+      "exit_code": 1,
+      "error": "cppcheck exited with 1",
+      "duration_seconds": 0.01,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "xml": "missing",
+        "tool_side_diagnostics": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "cppcheck timeout",
+      "tool": "cppcheck",
+      "execution_model": "serial",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "cppcheck exceeded 0 s; no verdict",
+      "exit_code": -1,
+      "error": "cppcheck timed out",
+      "duration_seconds": 0.014,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "xml": "missing",
+        "tool_side_diagnostics": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "infer clean",
+      "tool": "infer",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "CLEAN",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 82.685,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "report_present": true,
+        "report_parse_ok": true,
+        "aborted_methods": [],
+        "bufferoverrun_dropped": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "infer OpenMP kernel: frontend abort is never clean",
+      "tool": "infer",
+      "execution_model": "omp",
+      "expected_state": "NOT_ANALYZED",
+      "measured_state": "NOT_ANALYZED",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "infer's clang-11 frontend aborted translation of 1 method(s) (luFactorize): those bodies were not analyzed (OpenMP captured statements unsupported); no verdict for them",
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 26.423,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "report_present": true,
+        "report_parse_ok": true,
+        "aborted_methods": [
+          "luFactorize"
+        ],
+        "bufferoverrun_dropped": 0,
+        "tu_rejected": false
+      },
+      "note": "infer's clang-11 drops the whole kernel method (measured on 130/130 pilot_001 OMP records)",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "infer null dereference",
+      "tool": "infer",
+      "execution_model": "serial",
+      "expected_state": "COMPLETED",
+      "measured_state": "COMPLETED",
+      "tool_verdict": "DEFECT_FOUND",
+      "gap_reason": null,
+      "exit_code": 0,
+      "error": null,
+      "duration_seconds": 19.045,
+      "num_findings": 1,
+      "num_blocking": 1,
+      "findings": [
+        {
+          "check_id": "NULL_DEREFERENCE",
+          "line": 4,
+          "blocking": true,
+          "path_events": 0
+        }
+      ],
+      "analysis_details": {
+        "report_present": true,
+        "report_parse_ok": true,
+        "aborted_methods": [],
+        "bufferoverrun_dropped": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "infer broken TU",
+      "tool": "infer",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "infer capture/analysis failed (its bundled clang did not accept the TU, or the analysis crashed); the compiler tool carries the build verdict",
+      "exit_code": 1,
+      "error": "infer exited with 1",
+      "duration_seconds": 2.249,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "report_present": false,
+        "report_parse_ok": true,
+        "aborted_methods": [],
+        "bufferoverrun_dropped": 0,
+        "tu_rejected": true
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "infer report missing",
+      "tool": "infer",
+      "execution_model": "serial",
+      "expected_state": "TOOL_ERROR",
+      "measured_state": "TOOL_ERROR",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "no report.json: nothing proves the analysis ran",
+      "exit_code": 0,
+      "error": "infer produced no report.json",
+      "duration_seconds": 0.01,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "report_present": false,
+        "report_parse_ok": true,
+        "aborted_methods": [],
+        "bufferoverrun_dropped": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    },
+    {
+      "name": "infer timeout",
+      "tool": "infer",
+      "execution_model": "serial",
+      "expected_state": "TIMEOUT",
+      "measured_state": "TIMEOUT",
+      "tool_verdict": "NO_TRUSTWORTHY_VERDICT",
+      "gap_reason": "infer exceeded 0 s; no verdict",
+      "exit_code": -1,
+      "error": "infer timed out",
+      "duration_seconds": 0.014,
+      "num_findings": 0,
+      "num_blocking": 0,
+      "findings": [],
+      "analysis_details": {
+        "report_present": false,
+        "report_parse_ok": true,
+        "aborted_methods": [],
+        "bufferoverrun_dropped": 0,
+        "tu_rejected": false
+      },
+      "note": "",
+      "passed": true,
+      "problems": []
+    }
+  ],
+  "parser_checks": [],
+  "passed": 29,
+  "failed": 0
+}

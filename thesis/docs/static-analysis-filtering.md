@@ -176,7 +176,8 @@ and `llov`, for an analogous reason:
 | `-Wanalyzer-*` prefix | Only diagnostics carrying an analyzer flag become findings. Ordinary warnings from this pass are dropped — the `compiler` tool already reports them, and counting them twice would inflate per-model finding rates. |
 | File attribution | `findings_in_model_file()` keeps only `generated-code.hpp`. This is what removes the OpenMPI C++ binding noise: on an MPI sample the pass emits ~56 analyzer warnings, **55 of them inside `openmpi/ompi/mpi/cxx/*.h`** (`use-of-uninitialized-value`, `possible-null-argument`) and one in `baseline.hpp` — **zero** in the model file. |
 | `-Wanalyzer-too-complex` | Deliberately **enabled**: it makes the analyzer's own give-up points visible instead of letting an unanalyzed sample look clean (same idea as LLOV's `region-not-analyzed`). Such findings are recorded **non-blocking** with severity `info` — there is no defect to repair. |
-| Fail-safe | A TU that does not compile, or an analyzer timeout, sets the tool `error`; GCC exits 0 when it only emits warnings, so the exit code is a reliable signal here. |
+| Fail-safe | A TU that does not compile -> `TOOL_ERROR` (NOT_ANALYZED when the authoritative compiler also failed), an analyzer timeout -> `TIMEOUT`; both set `error`. GCC exits 0 when it only emits warnings, so the exit code is a reliable signal here. |
+| Coverage state | `analysis bailed out early` (located in a libstdc++ header or the location-less `cc1plus:` form) or any `-Wanalyzer-too-complex` diagnostic - judged on the UNFILTERED output, before the model-file attribution - makes the run `PARTIAL`: findings on analyzed paths are real, "no finding" is no verdict. Measured (tool-state wave): a planted null dereference next to STL-heavy code is missed with only a header-located bail-out line, and 34 of 37 pilot_001 bail-out records carried no finding. The absence of the signal is necessary, not sufficient, for full coverage (the analyzer budget depends on the whole TU). |
 
 **Blocking:** every `-Wanalyzer-*` finding except the give-up warnings above is
 **blocking**. They are warnings syntactically but describe genuine defects
@@ -222,7 +223,39 @@ full run, the pipeline's existing mechanism applies without a code change —
 The tool always runs through **GCC** (`g++`, `mpicxx` for MPI) regardless of
 `--primary-compiler`: `-fanalyzer` is a GCC-only feature, and being the
 GCC-native method is the point. A non-GCC wrapper makes the compile fail, which
-is recorded as a tool error — never as a clean sample.
+is recorded as `TOOL_ERROR` — and, since the tool-state wave, treated as an
+analysis gap by every consumer (before the wave the `error` field was written
+but read by no consumer, so such a record counted as clean in the repair loop).
+
+### Tool states (tool_state.v1, Static/Repair tool-state wave)
+
+Every tool entry carries an explicit `analysis_state` next to its findings:
+
+| state | meaning | verdict when no blocking finding |
+| --- | --- | --- |
+| `NOT_APPLICABLE` | the tool's scope excludes the execution model | `NOT_APPLICABLE` |
+| `COMPLETED` | the tool ran to its own verdict | `CLEAN` |
+| `PARTIAL` | it ran, but declared coverage loss (gcc bail-out / too-complex, LLOV regions not analyzed next to analyzed ones, cppcheck lexer failures, infer frontend abort with findings elsewhere) | `NO_TRUSTWORTHY_VERDICT` |
+| `NOT_ANALYZED` | nothing of the model code was analyzed (LLOV no region verdict, infer frontend abort, or a front-end rejection subsumed by the compiler's own build failure) | `NO_TRUSTWORTHY_VERDICT` |
+| `TOOL_ERROR` | the tool/process failed (crash, missing binary, rejected TU on code the compiler builds, malformed output) | `NO_TRUSTWORTHY_VERDICT` |
+| `TIMEOUT` | the configured limit was hit | `NO_TRUSTWORTHY_VERDICT` |
+
+Rules: a state is never a finding and never reaches the repair LLM; "no
+findings" is `CLEAN` only for `COMPLETED`; the `compiler` failing on the
+model's code is `COMPLETED` with a blocking finding (the model's own build
+defect), whereas a compiler timeout, a missing binary or an internal compiler
+error is `TIMEOUT` / `TOOL_ERROR` with **no** synthetic `compile-failed`
+finding. The repair loop stops a sample whose required tools left a gap and
+that has nothing actionable as `stopped_analysis_incomplete` (never as
+`stopped_clean`); the per-sample gaps (tool, state, reason) are persisted in
+the repair state. Records written before the wave (pilot_001) are classified
+by `framework.legacy_analysis_state` from their persisted fields and raw
+output; the `static_analysis_summary.json` of a run describes the FINAL
+merged record state per tool (completed / partial / not_analyzed /
+tool_error / timeout / clean_completed), independent of the order in which
+the containers ran. Evidence: `thesis/evaluation/verify_tool_states.py`
+(fixtures per tool, run in each container) and
+`thesis/tool_validation/results/tool_state_fixtures/*.json`.
 
 ### `cppcheck`
 
@@ -277,10 +310,19 @@ full run.
 | `_parse_fixes` file guard | Additionally keeps only findings whose file basename is `generated-code.hpp`, which drops the always-exported `cpu.cc` main-file diagnostics. Belt-and-suspenders with `--header-filter`. |
 | Severity mapping | `Error`→error, `Warning`→warning, `Remark`→info, `Note`→note. |
 
-**`clang-diagnostic-error` safety net:** if clang-tidy reports a
-`clang-diagnostic-error` (the TU failed to parse), it is forced blocking so a
-parse failure can never be silently counted as a clean sample. Under the
-full-TU setup this should not occur; it guards against regressions.
+**`clang-diagnostic-error` (front-end rejection):** if clang-tidy's own
+front-end rejects the TU (a `clang-diagnostic-error` finding, or the stderr
+line `Found compiler error(s).` when clang located every error outside the
+model file) the run is `TOOL_ERROR`: clang analyzed nothing. The diagnostic
+stays in the record **non-blocking** — it is a statement about clang, not
+about the model (measured: `__builtin_shuffle` builds with the authoritative
+g++ and is rejected by clang; the reverse also occurred in pilot_001). When
+the compiler also failed, the record-level state is `NOT_ANALYZED` (subsumed
+by the compiler's blocking verdict). It did occur under the full-TU setup:
+23 base and 60 iteration findings in pilot_001, every one in a record whose
+compiler had already failed. On LLVM 18 the exit code is a reliable signal
+the other way round: check findings never change it; exit 1 means a rejected
+TU or a tool failure (an unwritable fixes file loses all findings).
 
 ### `infer` (Meta Infer)
 
@@ -400,7 +442,8 @@ scaffold and not attributable to the LLM anyway.
 | Warning parsing | Only `PARCOACH: <file>: warning: <Collective> line <N> ...` lines become findings; the `remark: No issues found.` line and LLVM noise are ignored. |
 | File attribution | `findings_in_model_file()` keeps only `generated-code.hpp` findings (a conditional collective inside `utilities.hpp` macros would be scaffold, not model code). |
 | Severity / blocking | All parsed warnings: `check_id = parcoach-collective-ordering`, severity `warning`, **blocking** (a collective possibly not reached by all ranks is a deadlock-class MPI defect). |
-| Crash safety | A non-zero parcoach exit or timeout sets the record's `error` field — a crashed analysis is never counted as a clean sample. |
+| Crash safety | A non-zero parcoach exit -> `TOOL_ERROR`, a timeout -> `TIMEOUT` (a compile-step timeout is a `TIMEOUT` too, not a compile failure). Since the tool-state wave these states are analysis gaps for the repair loop: before it, the `error` field was read by no consumer and a timed-out sample decided as clean (pilot_001: 19 timeouts + 30 reduced-TU failures in the base run). Measured: PARCOACH timeouts are deterministic (the same samples hang on re-run), so a persisted timeout is terminal and not re-run on resume. |
+| Reduced TU preamble | The reduced TU carries the benchmark's `cpu.cc` system-include preamble (like gcc_analyzer). Without it 22 pilot_001 samples that build with g++ failed in the reduced TU (`std::sort`, `std::array`, `std::stable_sort`); this was a harness gap, not a model defect. Method change: pilot_001 ran without the preamble. |
 
 PARCOACH contributes the **LLVM-dataflow MPI method** (control-flow reachability
 of collectives over the IR), independent of the AST-based `mpi-*` checks and
@@ -437,9 +480,9 @@ correctly, including `std::vector` code.
 | Filter | Effect |
 | --- | --- |
 | Applicability | serial/mpi samples are skipped (`ran=false`, "not applicable"). |
-| Verdict parsing | `Data Race detected.` blocks → **blocking** finding (`llov-data-race`, location from the `Source :` line). `Region Not Analyzed` blocks → **info** finding (`llov-region-not-analyzed`) so "could not analyze" is never conflated with "race free". `Region is Data Race Free.` → no finding. |
+| Verdict parsing | `Data Race detected.` blocks (both wordings, incl. `... due to shared variable`) → **blocking** finding (`llov-data-race`, location from the `Source :` line; `path:line` and `path:line:col` forms). `Region Not Analyzed` AND `Directive Not Analyzed` blocks → **info** finding (`llov-region-not-analyzed`) so "could not analyze" is never conflated with "race free". `Region is Data Race Free.` → no finding, but it is COUNTED: the run state is derived from the per-region counts (race → COMPLETED, free only → COMPLETED, free + not-analyzed → PARTIAL, not-analyzed only or no region verdict at all → NOT_ANALYZED). Before the tool-state wave the parser missed `Directive Not Analyzed` (28 pilot_001 records whose only output was that line were stored as 0 findings) and dropped `path:line:col` locations (2 records lost their only race verdict). |
 | File attribution | `findings_in_model_file()` keeps only `generated-code.hpp` findings. |
-| Crash safety | Non-zero clang exit or timeout sets the record's `error` field (the compile *is* the analysis). |
+| Crash safety | Non-zero clang exit -> `TOOL_ERROR`, timeout -> `TIMEOUT` (the compile *is* the analysis); verdict lines printed by a run that then crashes are discarded. The reduced TU carries the `cpu.cc` system-include preamble since the tool-state wave (22 of 28 pilot_001 LLOV errors were missing `<algorithm>`/`<array>` symbols). |
 
 *Known caveat:* on kernels with multiplied flattened
 indexing (`A[i*N+j]`, parameterized `N`) LLOV's polyhedral model may report

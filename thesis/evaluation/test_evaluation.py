@@ -143,7 +143,7 @@ def test_cppcheck_parser() -> None:
         '<location file="generated-code.hpp" line="3" column="9"/></error>'
         "</errors></results>"
     )
-    findings = CppcheckTool()._parse_xml(xml)
+    findings, _xml_state = CppcheckTool()._parse_xml(xml)
     check("two findings", len(findings) == 2)
     check("error blocking", findings[0].blocking and findings[0].line == 12)
     check("style not blocking", not findings[1].blocking)
@@ -532,7 +532,7 @@ def test_cppcheck_filtering() -> None:
         "</errors></results>"
     )
 
-    parsed = CppcheckTool()._parse_xml(xml)
+    parsed, _xml_state = CppcheckTool()._parse_xml(xml)
     check("three parsed before filtering", len(parsed) == 3)
 
     kept = findings_in_model_file(parsed, "generated-code.hpp")

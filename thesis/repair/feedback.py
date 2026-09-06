@@ -284,11 +284,35 @@ def render_finding(finding: Dict[str, Any], settings: Dict[str, Any]) -> str:
     line = finding.get("line")
     line_text = str(line) if line is not None else "?"
 
-    return "line %s: [%s] %s" % (
+    rendered = "line %s: [%s] %s" % (
         line_text,
         finding.get("check_id", "unknown"),
         finding.get("message", ""),
     )
+
+    # Tool-state wave: gcc -fanalyzer EVENT PATH. One finding, rendered with
+    # its trace (origin -> branch condition -> defect) so the model can see
+    # where the state came from. The path is capped deterministically at
+    # parse time (tools.cap_analyzer_path); events outside the model file
+    # are marked as context (driver/system) and never change attribution.
+    path = finding.get("path") or []
+    if path:
+        steps = []
+        for event in path:
+            n = event.get("n")
+            text = event.get("text") or ""
+            if n is None:
+                steps.append("      %s" % text)
+                continue
+            where = ""
+            if event.get("line") is not None:
+                where = "line %s" % event["line"]
+            if event.get("file") and event.get("file") != MODEL_FILE:
+                where = "%s (in %s, context)" % (where or "?", event["file"])
+            steps.append("      (%s) %s%s" % (n, text, (" @ " + where) if where else ""))
+        rendered += "\n    path:\n" + "\n".join(steps)
+
+    return rendered
 
 
 def _render_compressed_finding(finding: Dict[str, Any], max_chars: int) -> str:
