@@ -87,7 +87,12 @@ from thesis.evaluation.tools import register_default_tools  # noqa: E402
 # additive; v2 records stay readable (framework.analysis_state_of derives the
 # legacy state), so consumers use the accessors, never the raw fields.
 STATIC_ANALYSIS_SCHEMA_VERSION = "static_analysis.v3"
-STATIC_SUMMARY_SCHEMA_VERSION = "static_analysis_summary.v2"
+# v3 (Static/Repair.1): the invocation history renames `legacy_records_pinned`
+# to `pre_existing_records_pinned` (its meaning changed: a pre-existing record
+# WITHOUT tool results is now the only unpinned record a normal invocation may
+# initialize) and adds `legacy_records_fully_replaced` / `replace_legacy_record`.
+# An explicit bump - the field's semantics must never change silently.
+STATIC_SUMMARY_SCHEMA_VERSION = "static_analysis_summary.v3"
 
 # Container toolchain manifest (written at image build time). Phase-2
 # backfill compares its container against the phase-1 record
@@ -133,6 +138,18 @@ def parse_args() -> argparse.Namespace:
         help="EXPLICITLY replace existing entries of these tools even if they "
         "were recorded under a different execution condition (otherwise a "
         "condition mismatch is refused). Recorded in the invocation history.",
+    )
+    parser.add_argument(
+        "--replace-legacy-record",
+        action="store_true",
+        help="EXPLICITLY recompute whole legacy records (static_analysis.v2 "
+        "without sample_source_sha256 but WITH tool entries): every "
+        "historical tool entry is retired (archived in the record under "
+        "`superseded_legacy_tools`) before the requested tools run, so no "
+        "unverified result survives under the newly pinned source hash. "
+        "Without it such a record is refused (fail-closed); the safe "
+        "alternative is a fresh run_id. REQUIRES an explicit --run-id: the "
+        "profile default must never carry this into a historical run.",
     )
     parser.add_argument(
         "--rerun-gaps",
@@ -378,6 +395,7 @@ def run_model(
     expected_tools: "dict[str, ToolSettings] | None" = None,
     replace_tool_entries: "list[str] | None" = None,
     rerun_gaps: bool = False,
+    replace_legacy_record: bool = False,
     invocation_label: str | None = None,
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / "static_analysis.jsonl"
@@ -401,6 +419,8 @@ def run_model(
     kept_counter: Counter = Counter()
     samples_seen = 0
     legacy_pins = 0
+    # sample_id -> historical tool entries dropped by --replace-legacy-record
+    legacy_replaced: "dict[str, list[str]]" = {}
 
     # Fail-closed: verify ALL merges BEFORE writing anything, so a refused
     # sample never leaves a half-updated file behind.
@@ -411,12 +431,14 @@ def run_model(
     for sample in samples:
         source_hashes[sample.sample_id] = provenance.sample_source_sha256(sample.source_path)
         provenance.check_merge(records.get(sample.sample_id), sample.sample_id,
-                               source_hashes[sample.sample_id])
+                               source_hashes[sample.sample_id],
+                               replace_legacy_record=replace_legacy_record)
 
     for sample in samples:
         samples_seen += 1
 
         record = records.get(sample.sample_id)
+        pre_existing = record is not None
 
         if record is None:
             record = {
@@ -430,9 +452,34 @@ def run_model(
             records[sample.sample_id] = record
 
         if record.get("sample_source_sha256") is None and source_hashes[sample.sample_id]:
-            if record.get("tools"):
-                legacy_pins += 1
+            # Only two shapes reach this point (check_merge refuses the rest,
+            # including a source whose bytes cannot be read): a record without
+            # any tool result, or a legacy record whose FULL recomputation was
+            # explicitly requested. Retiring entries without pinning would
+            # leave a mangled record, so both happen together or not at all.
+            historical = provenance.unpinned_legacy_entries(record)
+            if historical:
+                # ARCHIVE, never delete: the historical entries lose their
+                # status as results (no consumer reads anything but
+                # record["tools"]) but the evidence itself is preserved
+                # verbatim inside the same record.
+                record["superseded_legacy_tools"] = record["tools"]
+                record["tools"] = {}
+                legacy_replaced[sample.sample_id] = historical
+                # the RECORD itself must say what it is: a v3 record born
+                # from an unpinned v2 one, not a natively provenanced record
+                record["legacy_entries_dropped"] = historical
+                record["provenance_note"] = (
+                    "recomputed from an unpinned static_analysis.v2 record "
+                    "(--replace-legacy-record): every historical tool entry "
+                    "was retired before re-analysis because it could not be "
+                    "tied to any candidate source bytes. The retired entries "
+                    "are preserved verbatim under `superseded_legacy_tools` "
+                    "and are NOT results: no consumer reads them."
+                )
             record["sample_source_sha256"] = source_hashes[sample.sample_id]
+            if pre_existing:
+                legacy_pins += 1
 
         record["created_at_utc"] = common.utc_now_iso()
         record["schema_version"] = STATIC_ANALYSIS_SCHEMA_VERSION
@@ -490,12 +537,26 @@ def run_model(
         for entry in records.values():
             file.write(json.dumps(entry) + "\n")
 
-    if legacy_pins:
+    if legacy_replaced:
+        dropped_tools: Counter = Counter()
+        for dropped in legacy_replaced.values():
+            dropped_tools.update(dropped)
+        examples = sorted(legacy_replaced)[:5]
         print(
-            f"[{model_id}] WARNING: {legacy_pins} legacy record(s) had no "
-            "sample_source_sha256 - pinned now; their earlier tool entries "
-            "cannot be verified against the current source (historical "
-            "provenance limitation, recorded in the summary)."
+            f"[{model_id}] --replace-legacy-record: dropped ALL historical "
+            f"tool entries of {len(legacy_replaced)} unpinned legacy "
+            f"record(s) ({sum(dropped_tools.values())} tool entries) before "
+            "re-analysis - they could not be tied to any candidate source "
+            "bytes. Per tool: "
+            + ", ".join("%s %d" % item for item in sorted(dropped_tools.items()))
+            + "; first samples: " + ", ".join(examples)
+            + (" ..." if len(legacy_replaced) > len(examples) else "")
+        )
+    elif legacy_pins:
+        print(
+            f"[{model_id}] {legacy_pins} pre-existing record(s) without tool "
+            "results were pinned to the current sample_source_sha256 "
+            "(nothing historical was legitimized by that)."
         )
 
     previous = load_summary(summary_path)
@@ -510,7 +571,17 @@ def run_model(
         ("entries_kept_idempotent", OrderedDict(sorted(kept_counter.items()))),
         ("replace_tool_entries", sorted(replace)),
         ("rerun_gaps", bool(rerun_gaps)),
-        ("legacy_records_pinned", legacy_pins),
+        # renamed in static_analysis_summary.v3 (see the schema comment):
+        # pre-existing records that had NO tool result and were initialized
+        ("pre_existing_records_pinned", legacy_pins),
+        ("legacy_records_fully_replaced", OrderedDict([
+            ("records", len(legacy_replaced)),
+            ("tool_entries", sum(len(d) for d in legacy_replaced.values())),
+            ("tools", OrderedDict(sorted(
+                Counter(t for d in legacy_replaced.values() for t in d).items()))),
+            ("first_sample_ids", sorted(legacy_replaced)[:5]),
+        ])),
+        ("replace_legacy_record", bool(replace_legacy_record)),
         ("primary_compiler", context.primary_compiler),
     ]))
 
@@ -548,6 +619,18 @@ def main() -> None:
     config = load_config(Path(args.config).resolve())
     profile = common.get_profile(config, args.profile)
     run_id = args.run_id or profile["run_id"]
+
+    if args.replace_legacy_record and not args.run_id:
+        # The `pilot` profile still carries the historical pilot_001 run id,
+        # so an implicit run id could carry a full recomputation into frozen
+        # evidence. Naming the run is part of the decision.
+        print(
+            "--replace-legacy-record requires an explicit --run-id (the "
+            "profile default resolves to '%s'). Name the run whose records "
+            "you intend to recompute; historical pilot evidence must not be "
+            "recomputed at all - use a fresh run_id instead." % run_id
+        )
+        sys.exit(2)
 
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     drivers_cpp_dir = REPO_ROOT / "drivers" / "cpp"
@@ -654,6 +737,7 @@ def main() -> None:
                 expected_tools=expected_settings,
                 replace_tool_entries=args.replace_tool_entries,
                 rerun_gaps=args.rerun_gaps,
+                replace_legacy_record=args.replace_legacy_record,
                 invocation_label="run_static_analysis --tools %s" % (
                     " ".join(args.tools) if args.tools else "<config>"),
             )

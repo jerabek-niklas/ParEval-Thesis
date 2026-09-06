@@ -112,6 +112,13 @@ import re
 import sys
 from pathlib import Path
 
+# The repository root must be importable BEFORE any thesis.* import: relying
+# on a sibling module's side effect made the static/repair section skip its
+# comparison silently when this script was started from another directory.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import check_cross_pilot_gate as repo_gate
 import check_semantic_decisions as semantic_gate
 
@@ -157,6 +164,16 @@ def main() -> int:
                     default=str(Path(__file__).resolve().parent / "static_repair_readiness.json"),
                     help="artifact written by check_static_repair_readiness.py "
                          "(tool-state wave); missing/stale -> UNRESOLVED")
+    ap.add_argument("--static-runtime", default=None,
+                    help="FRESH runtime provenance (JSON with a 'runtime' "
+                         "mapping, or the mapping itself) for hosts where this "
+                         "preflight cannot start containers itself. Without it "
+                         "the runtime is measured live via docker; a runtime "
+                         "that is neither supplied nor measurable is "
+                         "UNRESOLVED, never fresh.")
+    ap.add_argument("--skip-runtime-probe", action="store_true",
+                    help="do not measure the runtime (testing only; the "
+                         "static/repair readiness can then never be READY)")
     args = ap.parse_args()
 
     print("INVOCATION_SELF_DECLARED = true")
@@ -506,6 +523,10 @@ def main() -> int:
     # the condition fingerprints it measured under. This preflight only
     # verifies that the artifact exists, was produced under the CURRENT
     # static/repair condition (tool code, config, drivers) and is READY.
+    # Static/Repair.1: THREE conditions must match, and the runtime one is
+    # re-MEASURED here - the static semantic condition deliberately excludes
+    # per-tool runtime identities (so the three images can merge results under
+    # one condition), which means it cannot see an image or tool swap.
     print("STATIC_REPAIR_READINESS_CHECK")
     readiness = load_json(args.static_readiness)
     if readiness is None:
@@ -514,6 +535,9 @@ def main() -> int:
         print("STATIC_REPAIR_READINESS = UNRESOLVED")
         cond_open()
     else:
+        _sp = None
+        cur_cfg = cfg
+        cur_static = cur_repair = None
         try:
             from thesis.evaluation import static_provenance as _sp
             cur_cfg = cfg if cfg is not None else repo_gate._load_yaml_config(inv["config_path"])
@@ -521,21 +545,121 @@ def main() -> int:
                 _sp.static_analysis_condition(cur_cfg, "g++", None, False))
             cur_repair = _sp.repair_condition_sha256(_sp.repair_condition(cur_cfg))
         except Exception as exc:  # noqa: BLE001
-            cur_static = cur_repair = None
             print("  UNRESOLVED (current static/repair condition not computable: %s)" % exc)
             cond_open()
+
         stale = []
-        if cur_static and readiness.get("static_analysis_condition_sha256") != cur_static:
+        # A comparison that could NOT be performed is never a match.
+        if not cur_static:
+            stale.append("static_analysis_condition_sha256 (not recomputable)")
+        elif readiness.get("static_analysis_condition_sha256") != cur_static:
             stale.append("static_analysis_condition_sha256")
-        if cur_repair and readiness.get("repair_condition_sha256") != cur_repair:
+        if not cur_repair:
+            stale.append("repair_condition_sha256 (not recomputable)")
+        elif readiness.get("repair_condition_sha256") != cur_repair:
             stale.append("repair_condition_sha256")
+
+        try:
+            from thesis.evaluation import check_static_repair_readiness as _readiness_mod
+            expected_schema = _readiness_mod.READINESS_SCHEMA
+        except Exception:  # noqa: BLE001
+            expected_schema = None
+        if expected_schema and readiness.get("schema_version") != expected_schema:
+            stale.append("schema_version (%s, expected %s)"
+                         % (readiness.get("schema_version"), expected_schema))
         print("  readiness artifact gate = %s (created %s)"
               % (readiness.get("gate"), readiness.get("created_at_utc")))
         print("  static_analysis_condition_sha256 = %s" % readiness.get("static_analysis_condition_sha256"))
         print("  repair_condition_sha256 = %s" % readiness.get("repair_condition_sha256"))
+        print("  runtime_condition_sha256 = %s (recorded)" % readiness.get("runtime_condition_sha256"))
         for tool, block in (readiness.get("measured") or {}).items():
             statuses = sorted({r.get("status") for r in (block.get("fixtures") or {}).values()})
             print("  %s (%s): %s" % (tool, block.get("image"), ",".join(str(x) for x in statuses) or "not measured"))
+
+        # ---- runtime identity: recorded vs FRESHLY MEASURED ----
+        recorded_runtime = readiness.get("runtime_condition")
+        if _sp is None:
+            print("  RUNTIME: UNRESOLVED (static_provenance not importable - the "
+                  "runtime condition could not be recomputed)")
+            stale.append("runtime_condition_sha256 (not re-measured)")
+        elif not recorded_runtime or not readiness.get("runtime_condition_sha256"):
+            print("  RUNTIME: the artifact carries no runtime condition "
+                  "(schema %s predates Static/Repair.1) - re-run "
+                  "check_static_repair_readiness.py"
+                  % readiness.get("schema_version"))
+            stale.append("runtime_condition_sha256 (absent)")
+        else:
+            fresh_environments = None
+            source = None
+            if args.skip_runtime_probe:
+                print("  RUNTIME: probe skipped (--skip-runtime-probe) - a "
+                      "readiness proof is never accepted without fresh runtime "
+                      "evidence")
+                stale.append("runtime_condition_sha256 (not re-measured)")
+            elif args.static_runtime:
+                supplied = load_json(args.static_runtime)
+                if supplied is None:
+                    print("  RUNTIME: UNRESOLVED (supplied runtime provenance "
+                          "%s not readable)" % args.static_runtime)
+                    stale.append("runtime_condition_sha256 (not re-measured)")
+                else:
+                    fresh_environments = supplied.get("runtime") if isinstance(
+                        supplied.get("runtime"), dict) else supplied
+                    source = "supplied (%s)" % args.static_runtime
+            else:
+                try:
+                    from thesis.evaluation import check_static_repair_readiness as _readiness
+                    fresh_environments = _readiness.measure_runtime(
+                        cur_cfg if cur_cfg is not None
+                        else repo_gate._load_yaml_config(inv["config_path"]))
+                    source = "measured live (docker)"
+                except Exception as exc:  # noqa: BLE001
+                    print("  RUNTIME: UNRESOLVED (live measurement failed: %s)" % exc)
+                    stale.append("runtime_condition_sha256 (not re-measured)")
+
+            if fresh_environments:
+                fresh_condition = _sp.runtime_condition(
+                    fresh_environments,
+                    static_analysis_condition_sha256=cur_static,
+                    repair_condition_sha256=cur_repair)
+                fresh_sha = _sp.runtime_condition_sha256(fresh_condition)
+                print("  RUNTIME: %s -> %s (fully pinned: %s)"
+                      % (source, fresh_sha, fresh_condition["fully_pinned"]))
+                for name, environment in sorted((fresh_environments or {}).items()):
+                    print("      %-9s %s image=%s digests=%s"
+                          % (name, environment.get("image_ref"),
+                             (environment.get("image_id") or "UNKNOWN")[:19],
+                             ",".join(environment.get("repo_digests") or []) or "none"))
+                drift = _sp.runtime_drift(recorded_runtime, fresh_condition)
+                # the two semantic conditions are reported separately above
+                drift = [d for d in drift
+                         if d not in ("static_analysis_condition_sha256",
+                                      "repair_condition_sha256")]
+                if not fresh_condition["fully_pinned"]:
+                    print("      NOT FULLY PINNED: %s - no immutable image "
+                          "identity (a tag is not an identity)"
+                          % ", ".join(fresh_condition["unpinned_environments"]))
+                    stale.append("runtime_condition_sha256 (runtime not pinnable)")
+                if drift:
+                    print("      RUNTIME DRIFT since the readiness proof:")
+                    for item in drift:
+                        print("        - %s" % item)
+                    stale.append("runtime_condition_sha256")
+                elif fresh_sha == readiness.get("runtime_condition_sha256"):
+                    print("      runtime identity unchanged since the readiness proof")
+                else:
+                    # No single field differs, yet the content address does:
+                    # the artifact was produced under a DIFFERENT runtime
+                    # condition definition (an older field set). The
+                    # fingerprint is authoritative - never accept the older
+                    # proof just because the fields we know today agree.
+                    print("      RUNTIME: recorded fingerprint %s does not match the "
+                          "freshly measured %s although no known field differs - the "
+                          "artifact was produced under another runtime-condition "
+                          "definition; re-run check_static_repair_readiness.py"
+                          % (readiness.get("runtime_condition_sha256"), fresh_sha))
+                    stale.append("runtime_condition_sha256 (definition mismatch)")
+
         if stale:
             print("  STALE: the artifact was measured under another condition (%s) -"
                   " re-run check_static_repair_readiness.py" % ", ".join(stale))

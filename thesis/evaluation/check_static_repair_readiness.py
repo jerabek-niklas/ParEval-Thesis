@@ -20,6 +20,14 @@ alone where a measurement is possible):
   4. condition fingerprints: static_analysis_condition_sha256 and
      repair_condition_sha256 computed and recorded, so the preflight can
      detect drift between this readiness run and the actual pilot
+  5. RUNTIME condition (Static/Repair.1): the immutable identity of each of
+     the three container environments (image ID / RepoDigest) together with
+     the measured tool identities, the LLOV plugin hash and the PARCOACH
+     executable hash. The static SEMANTIC condition deliberately excludes
+     runtime identities so the three images can merge results under one
+     condition - which means it can NOT detect an image or tool swap. The
+     runtime condition can, and `runtime_condition_sha256` is what the pilot
+     preflight re-measures against.
 
 Run on the host (docker available) - it starts the containers itself:
 
@@ -33,6 +41,7 @@ the JSON artifact and treats a stale or missing one as UNRESOLVED.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -53,7 +62,10 @@ from thesis.evaluation.framework import TOOL_STATE_SCHEMA_VERSION  # noqa: E402
 from thesis.evaluation.tool_config import resolve_tool_settings, validate_repair_config  # noqa: E402
 from thesis.repair import orchestrator  # noqa: E402
 
-READINESS_SCHEMA = "static_repair_readiness.v1"
+# v2 (Static/Repair.1) adds runtime / runtime_condition /
+# runtime_condition_sha256. A v1 artifact carries no runtime proof at all and
+# is therefore treated as unusable by the pilot preflight, never as fresh.
+READINESS_SCHEMA = "static_repair_readiness.v2"
 DEFAULT_JSON = REPO_ROOT / "thesis" / "evaluation" / "static_repair_readiness.json"
 TOOLCHAIN_IMAGE = "pareval-thesis"
 INTERNAL_TOOLS = ("compiler", "gcc_analyzer", "clang_tidy", "cppcheck", "infer")
@@ -69,6 +81,120 @@ MINIMAL_FIXTURES = {
     "parcoach": ["parcoach A unconditional collective", "parcoach B rank-conditional collective (low confidence)"],
     "llov": ["llov race free", "llov data race"],
 }
+
+
+# role -> (tools measured by the probe, interpreter default)
+RUNTIME_ROLES = OrderedDict([
+    ("main", {"image": TOOLCHAIN_IMAGE, "interpreter": "python3",
+              "role_note": "internal static tools"}),
+    ("parcoach", {"tool": "parcoach", "role_note": "external static tool (MPI collectives)"}),
+    ("llov", {"tool": "llov", "role_note": "external static tool (OpenMP data races)"}),
+])
+
+PROBE = "thesis/evaluation/probe_runtime_identity.py"
+
+
+def docker_image_identity(image_ref: str) -> dict:
+    """Immutable identity of a local image: its image ID and, when the image
+    came from a registry, its RepoDigests. A TAG IS NOT AN IDENTITY - if
+    neither is obtainable the caller must not claim a pinned runtime."""
+    identity = OrderedDict([("image_ref", image_ref), ("image_id", None),
+                            ("repo_digests", []), ("rootfs_layers_sha256", None),
+                            ("rootfs_layer_count", None), ("inspect_error", None)])
+    argv = ["docker", "image", "inspect", image_ref, "--format",
+            "{{.Id}}\t{{join .RepoDigests \",\"}}\t{{join .RootFS.Layers \",\"}}"]
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as error:
+        identity["inspect_error"] = "docker image inspect failed: %s" % error
+        return identity
+    if proc.returncode != 0:
+        identity["inspect_error"] = (proc.stderr or proc.stdout or "").strip()[:300]
+        return identity
+    line = (proc.stdout or "").strip().split("\n")[0]
+    parts = line.split("\t")
+    identity["image_id"] = parts[0].strip() or None
+    digests = parts[1].strip() if len(parts) > 1 else ""
+    identity["repo_digests"] = sorted(d for d in digests.split(",") if d.strip())
+    layers = [l for l in (parts[2].strip() if len(parts) > 2 else "").split(",") if l.strip()]
+    if layers:
+        # ORDERED: the layer sequence is part of the identity
+        identity["rootfs_layers_sha256"] = hashlib.sha256(
+            "\n".join(layers).encode("utf-8")).hexdigest()
+        identity["rootfs_layer_count"] = len(layers)
+    return identity
+
+
+def probe_environment(name: str, image_ref: str, interpreter: str, host_repo: str,
+                      timeout: float = 300.0) -> dict:
+    """Measure one environment: immutable image identity (host side) plus the
+    in-container identity probe. Cheap - no fixtures, ~1 s per container."""
+    environment = OrderedDict(docker_image_identity(image_ref))
+    environment["role"] = RUNTIME_ROLES.get(name, {}).get("role_note")
+    environment["interpreter"] = interpreter
+    environment["tool_identities"] = OrderedDict()
+    environment["evidence"] = OrderedDict()
+    environment["probe_error"] = None
+
+    argv = ["docker", "run", "--rm", "-u", "0",
+            "-v", "%s:/workspace" % host_repo, "-w", "/workspace", image_ref,
+            interpreter, PROBE, "--role", name]
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError) as error:
+        environment["probe_error"] = "identity probe could not run: %s" % error
+        return environment
+
+    payload = None
+    for line in reversed((proc.stdout or "").splitlines()):
+        if line.strip().startswith("{"):
+            try:
+                payload = json.loads(line)
+            except ValueError:
+                payload = None
+            break
+    if payload is None:
+        environment["probe_error"] = (
+            "identity probe produced no JSON (exit %d): %s"
+            % (proc.returncode, ((proc.stderr or proc.stdout or "").strip()[-300:] or "no output")))
+        return environment
+
+    environment["tool_identities"] = payload.get("tool_identities") or {}
+    environment["evidence"] = payload.get("evidence") or {}
+    return environment
+
+
+def measure_runtime(config: dict, host_repo: "str | None" = None) -> dict:
+    """The measured runtime of all three environments (Static/Repair.1).
+
+    Shared by the readiness gate and the pilot preflight, so the preflight
+    re-measures with EXACTLY the same definition it later compares against.
+    """
+    host_repo = host_repo or host_repo_path(config)
+    repair = orchestrator.repair_settings(config)
+    templates = ((config.get("stages") or {}).get("repair") or {}).get(
+        "external_tool_commands") or {}
+
+    environments = OrderedDict()
+    environments["main"] = probe_environment(
+        "main", TOOLCHAIN_IMAGE, "python3", host_repo)
+
+    for name in ("parcoach", "llov"):
+        if name not in repair["external_tools"]:
+            continue
+        image, interpreter = parse_docker_template(templates.get(name) or "")
+        if not image:
+            environments[name] = OrderedDict([
+                ("image_ref", None), ("image_id", None), ("repo_digests", []),
+                ("role", RUNTIME_ROLES[name]["role_note"]),
+                ("probe_error", "no docker command template configured for %s" % name),
+                ("tool_identities", {}), ("evidence", {}),
+            ])
+            continue
+        environments[name] = probe_environment(
+            name, image, interpreter or "python3", host_repo)
+
+    return environments
 
 
 def host_repo_path(config: dict) -> str:
@@ -197,6 +323,38 @@ def evaluate(config: dict, config_path: str, skip_containers: bool = False) -> d
     # ---- 2./3. measured container checks -----------------------------------
     host_repo = host_repo_path(config)
     report["host_repo_path"] = host_repo
+
+    # ---- 5. measured RUNTIME condition -------------------------------------
+    if skip_containers:
+        unresolved.append("runtime identity not measured (--skip-containers): "
+                          "a readiness artifact without a runtime proof is never READY")
+    else:
+        environments = measure_runtime(config, host_repo)
+        report["runtime"] = environments
+        condition = static_provenance.runtime_condition(
+            environments,
+            static_analysis_condition_sha256=report.get("static_analysis_condition_sha256"),
+            repair_condition_sha256=report.get("repair_condition_sha256"),
+        )
+        report["runtime_condition"] = condition
+        report["runtime_condition_sha256"] = static_provenance.runtime_condition_sha256(condition)
+        report["runtime_fully_pinned"] = condition["fully_pinned"]
+        for name, environment in environments.items():
+            if environment.get("probe_error"):
+                # An identity probe that could not RUN is an unmeasurable
+                # condition, not a measured contradiction: it must not push
+                # the gate to NOT_READY (which the pilot preflight maps to a
+                # cross-pilot mismatch). A failed FIXTURE below still does.
+                unresolved.append("%s: identity probe did not run (%s)"
+                                  % (name, environment["probe_error"]))
+            if environment.get("inspect_error"):
+                unresolved.append("%s: image identity not obtainable (%s)"
+                                  % (name, environment["inspect_error"]))
+        for name in condition["unpinned_environments"]:
+            unresolved.append(
+                "%s: neither a RepoDigest nor an image ID could be measured - the "
+                "runtime is NOT fully pinned (a tag is not an immutable identity)"
+                % name)
     measured = OrderedDict()
     if skip_containers:
         unresolved.append("container checks skipped (--skip-containers)")
@@ -253,6 +411,16 @@ def main() -> int:
     print("  tool_state_schema = %s" % report["tool_state_schema"])
     print("  static_analysis_condition_sha256 = %s" % report.get("static_analysis_condition_sha256"))
     print("  repair_condition_sha256 = %s" % report.get("repair_condition_sha256"))
+    print("  runtime_condition_sha256 = %s (fully pinned: %s)"
+          % (report.get("runtime_condition_sha256"), report.get("runtime_fully_pinned")))
+    for name, environment in (report.get("runtime") or {}).items():
+        print("  runtime %-9s %s image=%s rootfs=%s digests=%s"
+              % (name, environment.get("image_ref"),
+                 (environment.get("image_id") or "UNKNOWN")[:19],
+                 (environment.get("rootfs_layers_sha256") or "UNKNOWN")[:12],
+                 ",".join(environment.get("repo_digests") or []) or "none"))
+        for tool, identity in (environment.get("tool_identities") or {}).items():
+            print("      %-14s %s" % (tool, identity))
     for tool, block in report["measured"].items():
         for fixture, row in (block.get("fixtures") or {}).items():
             print("  [%s] %s :: %s -> %s %s" % (

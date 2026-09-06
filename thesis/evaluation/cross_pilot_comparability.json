@@ -1498,7 +1498,10 @@
           "tool_state_schema": "tool_state.v1",
           "drivers_tree_sha256": "a6105f1d3b9b384ebb7c2f4fbe1e7a71277001cbcd5abedf0bef7092fcf72ee2",
           "tools_module_sha256": "9ed277a0bb3b74eaca64ccf5ab772f25589d513bc155a7dbe1311459d60465b6",
-          "pilot_001": "NONE RECORDED (fields did not exist); reconstructed condition: tools.py blob identical to the pilot commit 6846d689 for tools.py/framework.py/run_static_analysis.py/tool_config.py; orchestrator.py/feedback.py differed only by the BI handling; drivers changed after the pilot (utilities.hpp, harness-markers.hpp, 7 of 12 benchmark cpu.cc/baseline.hpp) - HISTORICAL_PROVENANCE_LIMITATION"
+          "pilot_001": "NONE RECORDED (fields did not exist); reconstructed condition: tools.py blob identical to the pilot commit 6846d689 for tools.py/framework.py/run_static_analysis.py/tool_config.py; orchestrator.py/feedback.py differed only by the BI handling; drivers changed after the pilot (utilities.hpp, harness-markers.hpp, 7 of 12 benchmark cpu.cc/baseline.hpp) - HISTORICAL_PROVENANCE_LIMITATION",
+          "runtime_condition_version": "static_repair_runtime.v1",
+          "static_repair_readiness_runtime_condition_sha256": "8c382160852cad24c9f2d6bb826c287f706cf07a321e75b3865635ea1a502c3b",
+          "static_repair_readiness_runtime_note": "Static/Repair.1: the readiness RUNTIME condition pins the MEASURED environment a READY proof rests on (per container: image id, RepoDigests, rootfs layer-set hash, measured tool identities, the LLOV plugin sha256 and the PARCOACH executable sha256 + program version). It is deliberately SEPARATE from static_analysis_condition_sha256, which excludes runtime identities so PARCOACH, LLOV and the main image can merge results under ONE static condition - and which therefore cannot see an image or tool swap. The runtime pin is a readiness/preflight artifact, not a merge condition, and it is host-local by construction. DESCRIPTIVE ONLY: check_cross_pilot_gate.py does not validate this value; the authoritative comparison is pilot_preflight.py re-measuring the runtime against thesis/evaluation/static_repair_readiness.json."
         },
         "evidence": [
           "thesis/evaluation/static_repair_pilot001_inventory.json (records read only)",
@@ -1506,7 +1509,34 @@
           "thesis/evaluation/static_repair_pilot002_readiness_report.md"
         ],
         "explicitly_not_marked_current_or_comparable": false,
-        "correctness_matrix_unchanged": "99 / 99 / 198 untouched: no static/repair code path feeds the normal correctness measurement (run_command, iter_assembled_samples, EvaluationContext byte-identical at the AST level)"
+        "correctness_matrix_unchanged": "99 / 99 / 198 untouched: no static/repair code path feeds the normal correctness measurement (run_command, iter_assembled_samples, EvaluationContext byte-identical at the AST level)",
+        "static_repair_1_provenance_wave": {
+          "wave": "static_repair_1_runtime_identity_and_legacy_merge",
+          "date": "2026-09-06",
+          "start_head": "2120f74a73ab299d3d12620775500f5872e6cf30",
+          "scope": "provenance and future-execution safety only - no static/repair methodology",
+          "changed": [
+            "readiness artifact schema static_repair_readiness.v2: runtime / runtime_condition / runtime_condition_sha256 / runtime_fully_pinned",
+            "pilot_preflight re-MEASURES the runtime (live docker probe, or a supplied fresh provenance file) and refuses a readiness proof that was obtained on a different runtime; it also no longer prints READY when a semantic condition could not be recomputed at all",
+            "static merge is fail-closed for legacy records: a static_analysis.v2 record without sample_source_sha256 that already carries tool entries can no longer be augmented and then pinned with the current source hash (LegacyRecordUnverified); only an empty legacy record may be initialized, and an explicit --replace-legacy-record drops ALL historical entries before re-analysis",
+            "static_analysis_summary.v3: legacy_records_pinned renamed to pre_existing_records_pinned (its meaning changed) plus bounded legacy_records_fully_replaced / replace_legacy_record"
+          ],
+          "unchanged_and_proven": {
+            "static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+            "repair_condition_sha256": "09a8e8a20a0582202e5b35496c47b17cdf8b4fdf5badc4b824035482bca9cd36",
+            "tool_state_schema": "tool_state.v1",
+            "per_tool_comparability_classes": "byte-identical (asserted by this script)",
+            "repair_comparability_class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+            "correctness_matrix": "99 / 99 / 198 untouched - no correctness code path involved",
+            "pilot_001_records": "not read-modified: 0 files under thesis/results changed; the read-only inventory reproduces byte-identically"
+          },
+          "pilot_001_environment_identity": "unchanged: TAG_ONLY, no image digest was ever recorded for pilot_001. The new runtime pin describes the CURRENT environment only and is NOT retroactively attributed to pilot_001 (its 1111 static records remain static_analysis.v2 without a source hash, and are now explicitly refused for augmentation rather than silently pinned).",
+          "evidence": [
+            "thesis/evaluation/static_repair_readiness.json (measured, schema v2)",
+            "thesis/evaluation/static_repair_runtime_provenance_addendum.md",
+            "thesis/evaluation/test_static_repair_provenance.py (runtime drift + legacy merge + preflight regression)"
+          ]
+        }
       }
     },
     "semantic_interlocks": {
@@ -1590,7 +1620,7 @@
     "ENVIRONMENT_RUNTIME_CHECK (pilot preflight; container is TAG_ONLY pinned)",
     "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
-  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change)",
-  "cross_pilot_fingerprint_sha256": "44821aee46ce3541984ea22894c153a6ef854100be1e1f8fdc78b5941e4fdb53",
+  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged",
+  "cross_pilot_fingerprint_sha256": "bfb09649c8c95bbaa5bb51f2c462b3f5963531889d852c9ccae9ec7149a7c666",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

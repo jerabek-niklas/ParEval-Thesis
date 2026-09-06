@@ -54,6 +54,46 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 STATIC_CONDITION_VERSION = "static_condition.v1"
 REPAIR_CONDITION_VERSION = "repair_condition.v1"
+# Static/Repair.1: the MEASURED runtime a readiness proof was obtained under.
+RUNTIME_CONDITION_VERSION = "static_repair_runtime.v1"
+
+# Per environment, exactly these fields are fingerprinted. An allowlist (not a
+# denylist) so a future extra measurement cannot silently destabilize the
+# fingerprint - adding a field is a deliberate act with a version bump.
+RUNTIME_ENVIRONMENT_FIELDS = (
+    "image_ref",           # configured reference (tag) - what the config asks for
+    "image_id",            # image ID of the local store (sha256:...)
+    "repo_digests",        # registry digests IF the image was pulled
+    "rootfs_layers_sha256",  # store-independent content id of the layer set
+    "tool_identities",     # measured `--version` identity per tool
+    "evidence",            # per-environment extra identity (plugin hash, ...)
+)
+
+# Why three image fields: `image_id` is exact but store-dependent (with the
+# containerd image store it is the OCI manifest digest, with the classic
+# store the config digest), and `repo_digests` is real pull provenance ONLY
+# for an image that came from a registry - a locally built image can carry a
+# RepoDigests entry that merely repeats its Id. `rootfs_layers_sha256`
+# (sha256 over the joined RootFS.Layers diff_ids) is the identity that
+# survives a store or host change, so all three are pinned together.
+#
+# DECIDED TRADE-OFF (adversarial review of this wave): pinning the
+# store-dependent `image_id` makes the fingerprint host-local by
+# construction - migrating the daemon's image store invalidates an older
+# readiness proof even for byte-identical images. That is accepted, because
+# a readiness proof IS a statement about one measured host, and the cost is
+# one re-run of check_static_repair_readiness.py. It is not misleading:
+# runtime_drift() names the field, so an operator sees an `image_id`-only
+# drift with identical layer sets and tool identities for what it is.
+
+# Facts a readiness artifact SHOULD document but that must never reach the
+# fingerprint: they differ between two runs of the same environment.
+VOLATILE_RUNTIME_KEYS = frozenset({
+    "measured_at_utc", "created_at_utc", "measured_on", "timestamp",
+    "hostname", "host", "container_name", "container_id",
+    "duration_seconds", "elapsed_seconds", "pid", "docker_context",
+    "stdout", "stderr", "log", "note",
+})
 
 # modules every static tool depends on (hashed as ONE shared component)
 SHARED_MODULES = (
@@ -88,6 +128,135 @@ def drivers_tree_sha256(root: Optional[Path] = None) -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def normalize_identity(value: Any) -> Any:
+    """Whitespace-normalized single-line form of a measured identity string.
+
+    Version output crosses a Windows-mounted volume and several shells, so
+    trailing CR, padding and multi-line output must not change the identity.
+    Non-strings pass through unchanged (None stays None - never invented).
+    """
+    if not isinstance(value, str):
+        return value
+    return " ".join(value.split())
+
+
+def _canonical_runtime_value(value: Any) -> Any:
+    """Recursively drop volatile keys and normalize identity strings."""
+    if isinstance(value, dict):
+        return OrderedDict(
+            (key, _canonical_runtime_value(item))
+            for key, item in sorted(value.items())
+            if key not in VOLATILE_RUNTIME_KEYS
+        )
+    if isinstance(value, (list, tuple)):
+        return sorted(
+            (_canonical_runtime_value(item) for item in value),
+            key=lambda item: json.dumps(item, sort_keys=True, default=str),
+        )
+    return normalize_identity(value)
+
+
+def environment_is_pinned(environment: "Dict[str, Any]") -> bool:
+    """An environment is pinned only by an IMMUTABLE identity: a registry
+    digest, the local image ID or the layer-set content id. A TAG alone is
+    never an identity."""
+    if not isinstance(environment, dict):
+        return False
+    return bool(
+        environment.get("image_id")
+        or environment.get("repo_digests")
+        or environment.get("rootfs_layers_sha256")
+    )
+
+
+def runtime_condition(
+    environments: "Dict[str, Dict[str, Any]]",
+    static_analysis_condition_sha256: Optional[str] = None,
+    repair_condition_sha256: Optional[str] = None,
+) -> "Dict[str, Any]":
+    """The measured runtime a static/repair readiness proof rests on.
+
+    `environments` maps an environment name (main / parcoach / llov) to the
+    measured facts; only RUNTIME_ENVIRONMENT_FIELDS are fingerprinted, and
+    volatile keys inside them are dropped. The two SEMANTIC conditions are
+    carried along so a single comparison answers both questions: same
+    semantics AND same measured runtime.
+    """
+    canonical = OrderedDict()
+    unpinned = []
+
+    for name, environment in sorted((environments or {}).items()):
+        environment = environment or {}
+        entry = OrderedDict()
+        for field in RUNTIME_ENVIRONMENT_FIELDS:
+            entry[field] = _canonical_runtime_value(environment.get(field))
+        canonical[name] = entry
+        if not environment_is_pinned(environment):
+            unpinned.append(name)
+
+    condition = OrderedDict()
+    condition["condition_version"] = RUNTIME_CONDITION_VERSION
+    condition["static_analysis_condition_sha256"] = static_analysis_condition_sha256
+    condition["repair_condition_sha256"] = repair_condition_sha256
+    condition["environments"] = canonical
+    condition["fully_pinned"] = not unpinned
+    condition["unpinned_environments"] = sorted(unpinned)
+    return condition
+
+
+def runtime_condition_sha256(condition: "Dict[str, Any]") -> str:
+    """Content address of a runtime condition. `fully_pinned` /
+    `unpinned_environments` are derived from the environments and are not
+    hashed twice."""
+    body = OrderedDict(
+        (key, value) for key, value in condition.items()
+        if key not in ("fully_pinned", "unpinned_environments")
+    )
+    return canonical_sha256(body)
+
+
+def runtime_drift(
+    recorded: "Optional[Dict[str, Any]]",
+    current: "Optional[Dict[str, Any]]",
+) -> "list":
+    """Dotted paths where two runtime conditions differ (empty = identical).
+
+    Used by the pilot preflight to say WHICH identity moved instead of only
+    that a hash changed.
+    """
+    recorded = recorded or {}
+    current = current or {}
+    drift = []
+
+    for key in ("condition_version", "static_analysis_condition_sha256",
+                "repair_condition_sha256"):
+        if recorded.get(key) != current.get(key):
+            drift.append(key)
+
+    recorded_envs = recorded.get("environments") or {}
+    current_envs = current.get("environments") or {}
+    for name in sorted(set(recorded_envs) | set(current_envs)):
+        if name not in recorded_envs:
+            drift.append("environments.%s (not in the readiness artifact)" % name)
+            continue
+        if name not in current_envs:
+            drift.append("environments.%s (not measured now)" % name)
+            continue
+        for field in RUNTIME_ENVIRONMENT_FIELDS:
+            before = (recorded_envs[name] or {}).get(field)
+            after = (current_envs[name] or {}).get(field)
+            if before == after:
+                continue
+            if isinstance(before, dict) and isinstance(after, dict):
+                for sub in sorted(set(before) | set(after)):
+                    if before.get(sub) != after.get(sub):
+                        drift.append("environments.%s.%s.%s" % (name, field, sub))
+            else:
+                drift.append("environments.%s.%s" % (name, field))
+
+    return drift
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -164,21 +333,68 @@ class StaticMergeConflict(RuntimeError):
     """Fail-closed merge refusal (source drift or tool-condition drift)."""
 
 
+class LegacyRecordUnverified(StaticMergeConflict):
+    """A pre-tool-state record that already carries tool results but no
+    pinned candidate source hash. Its historical entries cannot be tied to
+    any source bytes, so neither augmenting nor pinning it is honest."""
+
+
+def unpinned_legacy_entries(
+    existing_record: "Optional[Dict[str, Any]]",
+) -> "list":
+    """Tool names of a record that carries results without a pinned source
+    hash (empty for a pinned record, a record without results, or none)."""
+    if not existing_record or existing_record.get("sample_source_sha256") is not None:
+        return []
+    return sorted((existing_record.get("tools") or {}).keys())
+
+
 def check_merge(
     existing_record: "Optional[Dict[str, Any]]",
     sample_id: str,
     current_source_sha256: Optional[str],
+    replace_legacy_record: bool = False,
 ) -> None:
-    """Refuse to merge into a record whose candidate source changed."""
+    """Refuse to merge into a record whose candidate source changed, or into
+    a legacy record whose existing tool results have no provable source."""
+    if current_source_sha256 is None:
+        # The candidate bytes cannot be read, so NOTHING about this sample can
+        # be pinned or verified - and a record written under that condition
+        # would look "legacy" to the next container. Refuse before any write.
+        raise StaticMergeConflict(
+            "sample %s: the candidate source could not be read, so no "
+            "sample_source_sha256 can be pinned. Refusing to analyze or merge "
+            "an unverifiable sample - re-assemble it first." % sample_id
+        )
+
     if not existing_record:
         return
 
     recorded = existing_record.get("sample_source_sha256")
 
     if recorded is None:
-        # legacy record without a pinned source: cannot be verified; the
-        # caller pins the current hash and logs the limitation
-        return
+        unpinned = unpinned_legacy_entries(existing_record)
+
+        if not unpinned:
+            # legacy record WITHOUT any tool result: pinning the current
+            # source hash legitimizes nothing - initialization is safe
+            return
+
+        if replace_legacy_record:
+            # the caller drops EVERY historical entry before writing, so no
+            # unverified result survives under the newly pinned hash
+            return
+
+        raise LegacyRecordUnverified(
+            "sample %s: legacy record has existing unpinned tool results (%s); "
+            "source identity cannot be proven, so pinning the current source "
+            "hash would retroactively legitimize them. Use a fresh run_id, or "
+            "recompute the whole record explicitly (--replace-legacy-record, "
+            "which drops ALL historical tool entries). A partial "
+            "--replace-tool-entries does NOT satisfy this: the entries it "
+            "leaves behind stay unverified."
+            % (sample_id, ", ".join(unpinned))
+        )
 
     if current_source_sha256 != recorded:
         raise StaticMergeConflict(

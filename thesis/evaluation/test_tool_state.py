@@ -429,7 +429,8 @@ def test_merge_and_summary():
         world.run("order_b", ["clang_tidy"], invocation_label="inv1")
         world.run("order_b", ["compiler", "cppcheck"], invocation_label="inv2")
         a, b = world.summary("order_a"), world.summary("order_b")
-        check("summary schema v2", a.get("schema_version") == rsa.STATIC_SUMMARY_SCHEMA_VERSION)
+        check("summary carries the current schema version",
+              a.get("schema_version") == rsa.STATIC_SUMMARY_SCHEMA_VERSION)
         check("final summaries identical regardless of invocation order",
               comparable_summary(a) == comparable_summary(b))
         per_tool = a["per_tool"]
