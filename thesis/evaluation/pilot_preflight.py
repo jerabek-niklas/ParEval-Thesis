@@ -19,11 +19,12 @@ after-the-fact proof is a separate, later, read-only comparison of the
 ACTUAL pilot_002 run_manifest.json (frozen config, effective compiler, run
 identity, config drift, toolchain provenance) against the gate:
 
-    POST_RUN_MANIFEST_VERIFICATION = REQUIRED_NOT_IMPLEMENTED
+    POST_RUN_MANIFEST_VERIFICATION = REQUIRED_IMPLEMENTED
+    (thesis/evaluation/verify_pilot_run.py, section 18)
 
 This tool also does NOT check the external final-gate steps (pilot_002
 population decision, pilot_002 base-run-id configuration, reuse decision,
-publication policy, rendering of semantic disclosures). Those stay
+publication policy). Those stay
 external; a passing tool run reports
 "technical_cross_pilot_preflight_passed" and
 "final_pilot_gate_still_required" - never "pilot_002 fully authorized".
@@ -62,10 +63,14 @@ CHECKED DIMENSIONS (tool-owned)
     every former prompt/oracle interlock must carry a FINAL decision.
     SEMANTIC_DECISION_UNRESOLVED > 0 -> BLOCK; a deliberately accepted
     disclosure (SEMANTIC_DISCLOSURE_ACCEPTED) does NOT block, provided its
-    reporting requirement is machine-readable. Rendering the disclosure in
-    reports is a later reporting-wave obligation
-    (SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED) and is never claimed
-    here.
+    reporting requirement is machine-readable. Whether reports actually
+    render it (SEMANTIC_DISCLOSURE_RENDERING) is smoke-rendered against the
+    real renderer, never merely asserted.
+18. pilot_002 pre-run infrastructure: assembly provenance, timing contract,
+    reporting contracts, manifest architecture, the run-contract builder,
+    the T0 start guard and the post-run verification mechanism. This
+    section reports READINESS of the MECHANISMS; it decides nothing about
+    population, run_id, reuse or publication.
 11. primary compiler vs frozen expected value
 12. run timeout vs frozen expected value
 13. runtime compiler version compatible with the recorded toolchain
@@ -152,6 +157,63 @@ def tristate(value):
     return "UNRESOLVED" if value is None else str(bool(value)).lower()
 
 
+def prerun_infrastructure_lines() -> "list":
+    """Readiness of the pilot_002 pre-run mechanisms (assembly provenance,
+    timing contract, reporting contracts, manifest architecture, contract
+    builder, T0 guard, post-run verifier). Read-only; every value is
+    computed from the productive modules, never hard-coded."""
+    lines = []
+    try:
+        from thesis.analysis_overview import report_contracts
+        from thesis.assembly import assemble_sources, assembly_provenance
+        from thesis.evaluation import (manifest_fragments, pilot_run_contract,
+                                       timing_semantics, verify_pilot_run)
+        from thesis.config.load_config import load_config
+    except Exception as exc:  # noqa: BLE001
+        return ["PRE_RUN_INFRASTRUCTURE = UNRESOLVED (modules not importable: %s)" % exc]
+
+    config = load_config(REPO_ROOT / "thesis" / "config" / "config.yaml")
+    condition = assembly_provenance.assembly_condition(config)
+    lines.append("ASSEMBLY_SCHEMA_VERSION = %s" % assemble_sources.ASSEMBLY_SCHEMA_VERSION)
+    lines.append("ASSEMBLY_CONDITION_VERSION = %s" % condition["condition_version"])
+    lines.append("ASSEMBLY_CONDITION_SHA256 = %s"
+                 % assembly_provenance.assembly_condition_sha256(condition))
+    lines.append("ASSEMBLY_WRITER_NEWLINE_POLICY = %s"
+                 % assemble_sources.ASSEMBLY_WRITER_NEWLINE_POLICY)
+    lines.append("ASSEMBLY_ARTIFACT_HASH_POLICY = RAW_BYTES")
+    lines.append("CONDITION_HASH_POLICY = LF_NORMALIZED")
+    lines.append("GENERATION_CLEANING_COVERED_BY_CONDITION = true (%s)"
+                 % assembly_provenance.GENERATION_CLEANING_CONDITION_VERSION)
+    lines.append("TIMING_CONTRACT = %s (sha %s)"
+                 % (timing_semantics.TIMING_CONTRACT_VERSION,
+                    timing_semantics.timing_contract_sha256()))
+    lines.append("REPORT_CONTRACT = %s (report_condition_sha256 %s)"
+                 % (report_contracts.REPORT_CONTRACT_VERSION,
+                    report_contracts.report_condition_sha256()))
+    lines.append("MANIFEST_ARCHITECTURE = PER_WRITER_FRAGMENTS (%s; legacy runs with a "
+                 "shared run_manifest.json keep it and are never migrated)"
+                 % manifest_fragments.FRAGMENT_SCHEMA_VERSION)
+
+    contract = pilot_run_contract.build_contract(
+        REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot")
+    lines.append("CONTRACT_SCHEMA = %s" % pilot_run_contract.CONTRACT_SCHEMA_VERSION)
+    lines.append("CONTRACT_BUILDER = READY")
+    lines.append("CONTRACT_BUILDER_STATE = %s" % contract["status"])
+    for blocker in contract["blockers"]:
+        lines.append("  CONTRACT_BLOCKER: %s" % blocker)
+    lines.append("FINAL_PILOT002_CONTRACT = NOT_YET_CREATED (a contract can only be "
+                 "frozen once the population decision and the base run id are made)")
+    lines.append("T0_START_GUARD = READY (pilot_run_contract.t0_guard: rebuild + compare "
+                 "immediately before the first cost-causing request; drift -> START_REFUSED)")
+    lines.append("POST_RUN_VERIFICATION_MECHANISM = READY (%s)"
+                 % verify_pilot_run.VERIFIER_VERSION)
+    lines.append("PILOT_002_POST_RUN_VERIFIED = NOT_APPLICABLE_BEFORE_RUN")
+    lines.append("POST_RUN_VERIFICATION_REQUIRED_FOR_RESULT_ACCEPTANCE = true")
+    lines.append("SEMANTIC_DISCLOSURE_RENDERING = %s"
+                 % semantic_gate.disclosure_rendering_state())
+    return lines
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--invocation", required=True,
@@ -180,7 +242,8 @@ def main() -> int:
     print("PREFLIGHT_IS_DECLARATION_CHECK_NOT_ENFORCEMENT = true")
     print("(a passing preflight means the DECLARED planned invocation is"
           " compatible with the gate - it is not proof of the actual later"
-          " execution; POST_RUN_MANIFEST_VERIFICATION = REQUIRED_NOT_IMPLEMENTED)")
+          " execution; the after-the-fact proof is verify_pilot_run.py, see"
+          " section 18)")
 
     gate = load_json(GATE_PATH)
     if gate is None:
@@ -511,8 +574,8 @@ def main() -> int:
             print("  -> accepted-disclosure decisions do not block pilot_002;"
                   " their reporting requirements are machine-readable"
                   " (SEMANTIC_DISCLOSURE_ACCEPTED)")
-        print("SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED (reporting-wave"
-              " obligation; the requirement itself is verified above)")
+        print("SEMANTIC_DISCLOSURE_RENDERING = %s"
+              % semantic_gate.disclosure_rendering_state())
     print("SEMANTIC_GATE = %s"
           % ("UNRESOLVED" if sem_decisions is None or sem_registry is None
              else sem["gate"]))
@@ -678,14 +741,21 @@ def main() -> int:
             print("STATIC_REPAIR_READINESS = UNRESOLVED")
             cond_open()
 
+    # ---- 18. pilot_002 pre-run infrastructure (assembly/timing/reporting/
+    # post-run verification wave) ----
+    print("\n[18] PRE-RUN INFRASTRUCTURE")
+    for line in prerun_infrastructure_lines():
+        print(line)
+
     # ---- verdict ----
     print("\nEXTERNAL_FINAL_GATE_CHECKS (NOT performed by this tool):"
           " pilot_002_population_decided,"
           " pilot_002_base_run_id_configured, reuse_decision_ready,"
-          " publication_policy_ready, semantic_disclosure_rendering")
-    print("POST_RUN_MANIFEST_VERIFICATION = REQUIRED_NOT_IMPLEMENTED"
-          " (after the actual pilot_002, its run_manifest.json must be"
-          " compared read-only against this gate)")
+          " publication_policy_ready")
+    print("POST_RUN_MANIFEST_VERIFICATION = REQUIRED_IMPLEMENTED"
+          " (thesis/evaluation/verify_pilot_run.py: after the actual"
+          " pilot_002 its manifest, contract binding and evidence are"
+          " compared read-only against the frozen contract)")
     if mismatch:
         print("\nRESULT: pilot_002_not_authorized (mismatch ->"
               " CROSS_PILOT_GATE_STALE = true;"

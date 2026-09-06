@@ -1890,6 +1890,7 @@ class RepairLoop:
                 # the call so a crash mid-call is still accounted for
                 self.count_request_round([request["sample_id"]], target_iteration)
                 started = time.time()
+                started_perf = time.perf_counter()
 
                 try:
                     result = adapter.generate(
@@ -1933,7 +1934,7 @@ class RepairLoop:
                     record["status"]["error_message"] = str(error)
                     outcome = "error"
 
-                common.apply_direct_timing(record, started)
+                common.apply_direct_timing(record, started, started_perf)
                 common.append_jsonl(generations_path, record)
                 self.log(
                     "  [%d/%d] %s: %s"

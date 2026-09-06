@@ -1,0 +1,664 @@
+{
+  "schema_version": "newline_inventory.v1",
+  "run_prefix": "pilot_001",
+  "host_platform": "win32",
+  "files": 1111,
+  "LF": 715,
+  "CRLF": 396,
+  "MIXED": 0,
+  "OTHER": 0,
+  "without_trailing_newline": 0,
+  "runs": {
+    "pilot_001": {
+      "kind": "base",
+      "models": {
+        "claude_fable_5": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 36,
+          "LF": 0,
+          "CRLF": 36,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    },
+    "pilot_001__combined_feedback__iter1": {
+      "kind": "repair_iteration",
+      "models": {
+        "claude_fable_5": {
+          "files": 14,
+          "LF": 14,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 18,
+          "LF": 18,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 18,
+          "LF": 18,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 17,
+          "LF": 17,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 18,
+          "LF": 18,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 17,
+          "LF": 17,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 14,
+          "LF": 14,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 18,
+          "LF": 18,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 18,
+          "LF": 18,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 22,
+          "LF": 22,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    },
+    "pilot_001__combined_feedback__iter2": {
+      "kind": "repair_iteration",
+      "models": {
+        "claude_fable_5": {
+          "files": 6,
+          "LF": 6,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 8,
+          "LF": 8,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 14,
+          "LF": 14,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 10,
+          "LF": 10,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 14,
+          "LF": 14,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 10,
+          "LF": 10,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 8,
+          "LF": 8,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 14,
+          "LF": 14,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 9,
+          "LF": 9,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    },
+    "pilot_001__static_feedback__iter1": {
+      "kind": "repair_iteration",
+      "models": {
+        "claude_fable_5": {
+          "files": 12,
+          "LF": 12,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 13,
+          "LF": 13,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 17,
+          "LF": 17,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 12,
+          "LF": 12,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 16,
+          "LF": 16,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 12,
+          "LF": 12,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 17,
+          "LF": 17,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    },
+    "pilot_001__static_feedback__iter2": {
+      "kind": "repair_iteration",
+      "models": {
+        "claude_fable_5": {
+          "files": 3,
+          "LF": 3,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 5,
+          "LF": 5,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 11,
+          "LF": 11,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 10,
+          "LF": 10,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 9,
+          "LF": 9,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 8,
+          "LF": 8,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 8,
+          "LF": 8,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 3,
+          "LF": 3,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 5,
+          "LF": 5,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 7,
+          "LF": 7,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 7,
+          "LF": 7,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    },
+    "pilot_001__test_feedback__iter1": {
+      "kind": "repair_iteration",
+      "models": {
+        "claude_fable_5": {
+          "files": 6,
+          "LF": 6,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 6,
+          "LF": 6,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 10,
+          "LF": 10,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 8,
+          "LF": 8,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 7,
+          "LF": 7,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 10,
+          "LF": 10,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 7,
+          "LF": 7,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 8,
+          "LF": 8,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 12,
+          "LF": 12,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 9,
+          "LF": 9,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 15,
+          "LF": 15,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    },
+    "pilot_001__test_feedback__iter2": {
+      "kind": "repair_iteration",
+      "models": {
+        "claude_fable_5": {
+          "files": 5,
+          "LF": 5,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "claude_opus_5": {
+          "files": 4,
+          "LF": 4,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_flash": {
+          "files": 4,
+          "LF": 4,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "deepseek_v4_pro": {
+          "files": 6,
+          "LF": 6,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_31_pro": {
+          "files": 7,
+          "LF": 7,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "gemini_36_flash": {
+          "files": 9,
+          "LF": 9,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt55": {
+          "files": 7,
+          "LF": 7,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "openai_gpt56_sol": {
+          "files": 6,
+          "LF": 6,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen36_35b_a3b": {
+          "files": 6,
+          "LF": 6,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen37_max": {
+          "files": 5,
+          "LF": 5,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        },
+        "qwen3_coder_api": {
+          "files": 11,
+          "LF": 11,
+          "CRLF": 0,
+          "MIXED": 0,
+          "OTHER": 0,
+          "without_trailing_newline": 0
+        }
+      }
+    }
+  }
+}

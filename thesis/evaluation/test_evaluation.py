@@ -1105,6 +1105,12 @@ def test_run_manifest() -> None:
         stripped["config_drift"] = []
         manifest_file.write_text(
             json.dumps(stripped), encoding="utf-8")
+        # a LEGACY manifest is a shared file WITHOUT fragments (pilot_001's
+        # shape); new runs are fragment-based and derive run_manifest.json,
+        # so the fragments must go for this to be a legacy run
+        import shutil
+        shutil.rmtree(manifest_file.parent / "run_manifest.fragments",
+                      ignore_errors=True)
         backfilled = ensure_run_manifest(cfg_specs(), "run_s",
                                          stage="static_analysis",
                                          profile="pilot")

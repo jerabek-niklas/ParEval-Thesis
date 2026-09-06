@@ -1,0 +1,211 @@
+{
+  "schema_version": "assembly_byte_regression_summary.v1",
+  "gate": "GATE_1_PILOT001_ASSEMBLY_BYTE_REGRESSION",
+  "verdict": {
+    "ASSEMBLY_SEMANTICS_CHANGED": false,
+    "PILOT001_ASSEMBLED_BYTES_CHANGED": false,
+    "content_differences_total": 0,
+    "cleaning_flag_mismatches_total": 0,
+    "note": "each historical file re-assembles byte-identically on the host that originally produced it; the remaining differences are newline-only and cross-host (the writer is HOST_DEPENDENT, unchanged by this wave)"
+  },
+  "windows_host_run": {
+    "host": {
+      "platform": "win32",
+      "os_linesep": "'\\r\\n'",
+      "host_convention": "CRLF",
+      "python_version": "3.14.5"
+    },
+    "totals": {
+      "TOTAL": 1111,
+      "IDENTICAL": 396,
+      "DIFFERENT": 715,
+      "DIFFERENT_SAME_HOST": 0,
+      "DIFFERENT_CROSS_HOST_NEWLINE_ONLY": 715,
+      "DIFFERENT_CONTENT": 0,
+      "NOT_REPRODUCIBLE": 0,
+      "LF_NORMALIZED_EQUAL": 1111,
+      "FLAG_MISMATCHES": 0,
+      "UNEXPECTED_NEW_SOURCES": 0
+    },
+    "historical_tree_untouched": true,
+    "per_run": {
+      "pilot_001": {
+        "kind": "base",
+        "historical_files": 396,
+        "identical": 396,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "CRLF": 396
+        }
+      },
+      "pilot_001__combined_feedback__iter1": {
+        "kind": "repair_iteration",
+        "historical_files": 189,
+        "identical": 0,
+        "different": 189,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 189
+        }
+      },
+      "pilot_001__combined_feedback__iter2": {
+        "kind": "repair_iteration",
+        "historical_files": 123,
+        "identical": 0,
+        "different": 123,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 123
+        }
+      },
+      "pilot_001__static_feedback__iter1": {
+        "kind": "repair_iteration",
+        "historical_files": 159,
+        "identical": 0,
+        "different": 159,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 159
+        }
+      },
+      "pilot_001__static_feedback__iter2": {
+        "kind": "repair_iteration",
+        "historical_files": 76,
+        "identical": 0,
+        "different": 76,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 76
+        }
+      },
+      "pilot_001__test_feedback__iter1": {
+        "kind": "repair_iteration",
+        "historical_files": 98,
+        "identical": 0,
+        "different": 98,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 98
+        }
+      },
+      "pilot_001__test_feedback__iter2": {
+        "kind": "repair_iteration",
+        "historical_files": 70,
+        "identical": 0,
+        "different": 70,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 70
+        }
+      }
+    }
+  },
+  "linux_container_run": {
+    "host": {
+      "platform": "linux",
+      "os_linesep": "'\\n'",
+      "host_convention": "LF",
+      "python_version": "3.12.3"
+    },
+    "totals": {
+      "TOTAL": 1111,
+      "IDENTICAL": 715,
+      "DIFFERENT": 396,
+      "DIFFERENT_SAME_HOST": 0,
+      "DIFFERENT_CROSS_HOST_NEWLINE_ONLY": 396,
+      "DIFFERENT_CONTENT": 0,
+      "NOT_REPRODUCIBLE": 0,
+      "LF_NORMALIZED_EQUAL": 1111,
+      "FLAG_MISMATCHES": 0,
+      "UNEXPECTED_NEW_SOURCES": 0
+    },
+    "historical_tree_untouched": true,
+    "per_run": {
+      "pilot_001": {
+        "kind": "base",
+        "historical_files": 396,
+        "identical": 0,
+        "different": 396,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "CRLF": 396
+        }
+      },
+      "pilot_001__combined_feedback__iter1": {
+        "kind": "repair_iteration",
+        "historical_files": 189,
+        "identical": 189,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 189
+        }
+      },
+      "pilot_001__combined_feedback__iter2": {
+        "kind": "repair_iteration",
+        "historical_files": 123,
+        "identical": 123,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 123
+        }
+      },
+      "pilot_001__static_feedback__iter1": {
+        "kind": "repair_iteration",
+        "historical_files": 159,
+        "identical": 159,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 159
+        }
+      },
+      "pilot_001__static_feedback__iter2": {
+        "kind": "repair_iteration",
+        "historical_files": 76,
+        "identical": 76,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 76
+        }
+      },
+      "pilot_001__test_feedback__iter1": {
+        "kind": "repair_iteration",
+        "historical_files": 98,
+        "identical": 98,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 98
+        }
+      },
+      "pilot_001__test_feedback__iter2": {
+        "kind": "repair_iteration",
+        "historical_files": 70,
+        "identical": 70,
+        "different": 0,
+        "different_same_host": 0,
+        "not_reproducible": 0,
+        "historical_conventions": {
+          "LF": 70
+        }
+      }
+    }
+  }
+}

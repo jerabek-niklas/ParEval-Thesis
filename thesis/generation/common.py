@@ -737,10 +737,43 @@ def build_empty_record(
     }
 
 
-def apply_direct_timing(record: dict[str, Any], started_at: float) -> None:
-    """Direct mode: duration_seconds is the real request latency."""
+def apply_direct_timing(
+    record: dict[str, Any], started_at: float, started_perf: float | None = None
+) -> None:
+    """Direct mode: duration_seconds is the real request latency - the
+    end-to-end wall time around adapter.generate(), INCLUDING the client
+    retry loop, SDK-internal retries and adapter overhead, EXCLUDING the
+    inter-request sleep (timing contract: thesis/evaluation/timing_semantics.py).
+
+    Measured on the MONOTONIC clock (time.perf_counter) when the caller
+    passes started_perf - a host suspension or clock step can then no longer
+    inflate the value (pilot_001 carries one 70714 s wall-clock artifact in
+    an enhanced compile timer). Legacy callers without started_perf keep the
+    wall-clock difference; status.timing_clock records which one was used."""
     record["status"]["timing_mode"] = "direct"
-    record["status"]["duration_seconds"] = round(time.time() - started_at, 3)
+    if started_perf is not None:
+        record["status"]["duration_seconds"] = round(time.perf_counter() - started_perf, 3)
+        record["status"]["timing_clock"] = "perf_counter"
+    else:
+        record["status"]["duration_seconds"] = round(time.time() - started_at, 3)
+        record["status"]["timing_clock"] = "time"
+
+
+def iso_span_seconds(start_iso: str | None, end_iso: str | None) -> float | None:
+    """Seconds between two UTC ISO-8601 stamps ('...Z' or '+00:00'); None
+    when either is missing or unparsable. Never negative-clamped: a
+    negative span is a data error the validator must see."""
+    if not start_iso or not end_iso:
+        return None
+    try:
+        from datetime import datetime
+
+        def parse(value: str) -> datetime:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+        return round((parse(end_iso) - parse(start_iso)).total_seconds(), 3)
+    except (ValueError, TypeError):
+        return None
 
 
 def apply_batch_timing(
@@ -763,6 +796,12 @@ def apply_batch_timing(
     record["status"]["duration_seconds"] = None
     record["status"]["batch_submitted_at_utc"] = submitted_at_utc
     record["status"]["batch_completed_at_utc"] = completed_at_utc
+    # the JOB-level queue span (one submit stamp and one poll-side completion
+    # stamp per batch job, shared by every request in it): provider queue
+    # time, not model latency - named so it can never be read as one
+    record["status"]["batch_wall_clock_seconds"] = iso_span_seconds(
+        submitted_at_utc, completed_at_utc
+    )
 
 
 # Which usage field carries the reasoning tokens, per provider — measured
@@ -1363,6 +1402,7 @@ def run_generation(adapter: ProviderAdapter) -> None:
 
         for prompt, user_prompt, record in pending:
             started_at = time.time()
+            started_perf = time.perf_counter()
 
             try:
                 result = adapter.generate(
@@ -1398,7 +1438,7 @@ def run_generation(adapter: ProviderAdapter) -> None:
                     safe_model_dump(getattr(error, "raw_response", None)),
                 )
 
-            apply_direct_timing(record, started_at)
+            apply_direct_timing(record, started_at, started_perf)
             write_record(prompt, record, outcome)
 
             if sleep_seconds > 0:

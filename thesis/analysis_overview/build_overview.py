@@ -80,6 +80,8 @@ from thesis.evaluation.tool_config import (  # noqa: E402
 )
 from thesis.evaluation.run_enhanced_tests import derived_file_names  # noqa: E402
 from thesis.evaluation.run_manifest import load_manifest  # noqa: E402
+from thesis.evaluation import atomic_io  # noqa: E402
+from thesis.analysis_overview import report_contracts  # noqa: E402
 from thesis.repair import orchestrator  # noqa: E402
 from thesis.repair.run_backfill import (  # noqa: E402
     ENHANCED_MARKER,
@@ -1762,7 +1764,18 @@ def render_markdown(
     rows: "List[Dict[str, Any]]",
     config: Dict[str, Any],
     base_run_id: str,
+    config_source: "Optional[str]" = None,
+    manifest: "Optional[Dict[str, Any]]" = None,
 ) -> str:
+    """config is the EFFECTIVE config (manifest over live, see
+    report_contracts.effective_config); callers that pass the live config
+    get it resolved here so the report never documents a configuration the
+    run did not run under."""
+    if manifest is None:
+        manifest = load_manifest(config, base_run_id)
+    if config_source is None:
+        config, config_source = report_contracts.effective_config(config, manifest)
+
     variants = list(
         OrderedDict.fromkeys(r["variant"] for r in rows)
     )
@@ -1861,15 +1874,69 @@ def render_markdown(
     parts.append("")
     parts.extend(completeness_section(rows))
 
+    # ---- reporting contracts (pilot_002 pre-run wave) --------------------
+    # Result vs. analysis-provenance limitation vs. cross-pilot comparability
+    # vs. timing semantics vs. accepted semantic disclosure are rendered as
+    # separate, labelled blocks; aggregates that contain a disclosure-bearing
+    # benchmark are marked (never auto-excluded).
+    model_ids = list(OrderedDict.fromkeys(r["model"] for r in rows))
+    decisions_state = report_contracts.decisions_artifact_state()
+    disclosures = report_contracts.disclosure_decisions()
+    if decisions_state != "PRESENT":
+        print("WARNING: the semantic decision artifact is %s - accepted disclosures "
+              "cannot be rendered; the report marks every aggregate as UNVERIFIED "
+              "instead of claiming there are none." % decisions_state)
+
+    parts.append("")
+    parts.append("## Accepted semantic disclosures")
+    parts.append("")
+    parts.extend(report_contracts.disclosure_section(rows, disclosures, decisions_state))
+
+    static_tools = [t for t in enabled_pipeline_tools(config)
+                    if t in STAGE_TOOLS["static_analysis"]]
+    summaries: Dict[str, Dict[str, Any]] = {}
+    for model_id in model_ids:
+        summary_path = (Path(config["outputs"]["intermediate_dir"]) / base_run_id
+                        / model_id / "static_analysis_summary.json")
+        summary = report_contracts.load_json(summary_path)
+        if summary:
+            summaries[model_id] = summary
+    parts.append("")
+    parts.append("## Static analysis coverage (tool states, analysis-provenance limitation)")
+    parts.append("")
+    parts.extend(report_contracts.static_coverage_section(rows, static_tools, summaries))
+
+    parts.append("")
+    parts.append("## Repair final statuses (model outcomes vs. infrastructure states)")
+    parts.append("")
+    parts.extend(report_contracts.repair_status_section(rows))
+
+    parts.append("")
+    parts.append("## Cross-pilot comparability (consumed from the gate artifact)")
+    parts.append("")
+    parts.extend(report_contracts.cross_pilot_section(
+        report_contracts.load_json(report_contracts.CROSS_PILOT_PATH)))
+
+    parts.append("")
+    parts.append("## Timing semantics")
+    parts.append("")
+    parts.extend(report_contracts.timing_section(
+        config, config_source,
+        report_contracts.generation_timing_classes(config, base_run_id, model_ids)))
+
     # Config snapshot: FROZEN at run time via run_manifest.json whenever
     # available — the live config may have changed since the run and would
     # then document a configuration the run never ran under. Legacy runs
     # without a manifest fall back to the live config with an explicit
     # provenance note.
-    manifest = load_manifest(config, base_run_id)
-
     parts.append("")
     parts.append("## Effective config snapshot")
+    parts.append("")
+    parts.append("Config source for every table above: %s." % (
+        "run manifest (frozen at run time; the live config.yaml was NOT consulted "
+        "for stages/models)" if config_source == report_contracts.CONFIG_SOURCE_MANIFEST
+        else "LEGACY FALLBACK - no run manifest, the LIVE config was used and may "
+             "differ from what the run actually ran under"))
     parts.append("")
 
     if manifest is not None:
@@ -1937,6 +2004,20 @@ def render_markdown(
     parts.append("```json")
     parts.append(json.dumps(snapshot_stages.get("enhanced_tests") or {}, indent=2, sort_keys=True))
     parts.append("```")
+    parts.append("")
+    parts.append("### stages.correctness_tests")
+    parts.append("```json")
+    parts.append(json.dumps(snapshot_stages.get("correctness_tests") or {}, indent=2, sort_keys=True))
+    parts.append("```")
+
+    parts.append("")
+    parts.append("## Report provenance")
+    parts.append("")
+    parts.extend(report_contracts.render_provenance(
+        report_contracts.provenance_block(config, base_run_id, manifest, config_source, model_ids)))
+
+    parts = report_contracts.mark_aggregate_sections(
+        parts, report_contracts.disclosure_marker(rows, disclosures, decisions_state))
 
     return "\n".join(parts) + "\n"
 
@@ -1958,15 +2039,19 @@ def analysis_dir(config: Dict[str, Any], base_run_id: str) -> Path:
 def main() -> None:
     args = parse_args()
 
-    config = load_config(Path(args.config).resolve())
-    profile = common.get_profile(config, args.profile)
+    live_config = load_config(Path(args.config).resolve())
+    profile = common.get_profile(live_config, args.profile)
     base_run_id = profile["run_id"]
 
-    models = [
-        model for model in config.get("models", [])
-        if model.get("enabled", False)
-        and (args.model_id is None or model.get("id") == args.model_id)
-    ]
+    # the run MANIFEST is the source of truth for stages/models; the live
+    # config only contributes paths (legacy runs: explicit fallback)
+    manifest = load_manifest(live_config, base_run_id)
+    config, config_source = report_contracts.effective_config(live_config, manifest)
+    if config_source != report_contracts.CONFIG_SOURCE_MANIFEST:
+        print("WARNING: no run manifest for %s - LEGACY FALLBACK to the live config "
+              "(the report says so in its provenance block)" % base_run_id)
+
+    models = report_contracts.effective_models(config, args.model_id)
 
     if not models:
         raise ValueError("No enabled models matched the selection.")
@@ -1999,7 +2084,13 @@ def main() -> None:
         )
 
     write_csv(rows, csv_path)
-    md_path.write_text(render_markdown(rows, config, base_run_id), encoding="utf-8")
+    md_path.write_text(
+        render_markdown(rows, config, base_run_id, config_source=config_source,
+                        manifest=manifest),
+        encoding="utf-8")
+    provenance = report_contracts.provenance_block(
+        config, base_run_id, manifest, config_source, [m["id"] for m in models])
+    atomic_io.atomic_write_json(out_dir / "overview_provenance.json", provenance)
 
     complete = sum(1 for r in rows if r["data_complete"])
     print("Overview: %d rows (%d complete, %d incomplete)"

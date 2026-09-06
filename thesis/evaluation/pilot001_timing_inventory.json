@@ -1,0 +1,424 @@
+{
+  "schema_version": "timing_validation.v1",
+  "contract_version": "timing_semantics.v1",
+  "timing_contract_sha256": "1b4de2b3d1efa3cc667bb6cac41d8a01a513effe2a6cdf63bab7e2e190f3440e",
+  "run_id": "pilot_001",
+  "limits": {
+    "source": "MANIFEST",
+    "correctness_run_timeout_seconds": 120,
+    "enhanced_run_timeout_seconds": 60,
+    "build_timeout_seconds": 120.0
+  },
+  "models": {
+    "claude_fable_5": {
+      "generation": {
+        "direct": 0,
+        "batch": 36,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "BATCH_QUEUE_ONLY"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 108,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 684,
+        "without_duration": 36,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "claude_opus_5": {
+      "generation": {
+        "direct": 0,
+        "batch": 36,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "BATCH_QUEUE_ONLY"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 108,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 684,
+        "without_duration": 36,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 1
+    },
+    "deepseek_v4_flash": {
+      "generation": {
+        "direct": 36,
+        "batch": 0,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "DIRECT_LATENCY_AVAILABLE"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 100,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 644,
+        "without_duration": 76,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "deepseek_v4_pro": {
+      "generation": {
+        "direct": 36,
+        "batch": 0,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "DIRECT_LATENCY_AVAILABLE"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 100,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 646,
+        "without_duration": 74,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "gemini_31_pro": {
+      "generation": {
+        "direct": 0,
+        "batch": 36,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "BATCH_QUEUE_ONLY"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 108,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 684,
+        "without_duration": 36,
+        "run_timeouts": 20,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "gemini_36_flash": {
+      "generation": {
+        "direct": 0,
+        "batch": 36,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "BATCH_QUEUE_ONLY"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 108,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 684,
+        "without_duration": 36,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "openai_gpt55": {
+      "generation": {
+        "direct": 0,
+        "batch": 36,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "BATCH_QUEUE_ONLY"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 108,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 684,
+        "without_duration": 36,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "openai_gpt56_sol": {
+      "generation": {
+        "direct": 0,
+        "batch": 36,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "BATCH_QUEUE_ONLY"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 108,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 684,
+        "without_duration": 36,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "qwen36_35b_a3b": {
+      "generation": {
+        "direct": 36,
+        "batch": 0,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "DIRECT_LATENCY_AVAILABLE"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 100,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 648,
+        "without_duration": 72,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "qwen37_max": {
+      "generation": {
+        "direct": 36,
+        "batch": 0,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "DIRECT_LATENCY_AVAILABLE"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 104,
+        "run_timeouts": 0,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 664,
+        "without_duration": 56,
+        "run_timeouts": 0,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    },
+    "qwen3_coder_api": {
+      "generation": {
+        "direct": 36,
+        "batch": 0,
+        "unknown_mode": 0,
+        "direct_missing_duration": 0,
+        "clocks": {
+          "legacy_time": 36
+        },
+        "class": "DIRECT_LATENCY_AVAILABLE"
+      },
+      "correctness": {
+        "records": 36,
+        "compiles": 36,
+        "runs": 92,
+        "run_timeouts": 3,
+        "class": "TEST_RUNTIME_AVAILABLE"
+      },
+      "enhanced": {
+        "records": 720,
+        "with_duration": 612,
+        "without_duration": 108,
+        "run_timeouts": 26,
+        "build_groups": 345
+      },
+      "static": {
+        "records": 36,
+        "tool_entries": 252
+      },
+      "dynamic": {
+        "records": 36,
+        "tool_entries": 144
+      },
+      "violations": 0,
+      "anomalies": 0
+    }
+  },
+  "cross_model_latency_ranking": "NOT_AVAILABLE",
+  "violations": [],
+  "anomalies": [
+    {
+      "where": "enhanced.build",
+      "sample_id": "claude_opus_5__sort__40_sort_sort_an_array_of_complex_numbers_by_magnitude__omp__sample_0",
+      "what": "elapsed exceeds limit + slack without a timeout flag (wall-clock suspension / clock step suspected)",
+      "value": {
+        "elapsed": 70714.574,
+        "limit": 120.0
+      }
+    }
+  ],
+  "status": "PASS"
+}

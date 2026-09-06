@@ -376,9 +376,11 @@
         "reason": "Pure model-output -> candidate-source transformation semantics (fence extraction, prose stripping, signature dedup incl. NO_INLINE-patched variant, include relocation, comment/string-aware brace balance). No CLI, no IO, no reporting; clean_for_assembly is a pure function of (prompt_text, raw_text). Any byte diff is highly likely methodically relevant."
       },
       "thesis/assembly/assemble_sources.py": {
-        "sha256": "f610284d8836ec54f2b204037d5aafe5e3512ae3b3ac07860516d2f2c082fa24",
+        "sha256": "96bd2d95e8aa6f347334c00a8ffa12cae23550e53815c33c9ecd5688d7f04188",
         "granularity": "coarse",
-        "reason": "Contains the generated-code.hpp construction core (patch_signature_line, assemble_content, auto-close/brace-check block, ~50 of 335 lines) PLUS substantial CLI/IO/reporting code (argparse, jsonl bookkeeping, driver-path metadata, --export-pareval-json, manifest contact, print summaries). A byte diff requires inspecting whether the candidate-source construction is affected."
+        "reason": "Contains the generated-code.hpp construction core (patch_signature_line, assemble_content, auto-close/brace-check block, ~50 of 335 lines) PLUS substantial CLI/IO/reporting code (argparse, jsonl bookkeeping, driver-path metadata, --export-pareval-json, manifest contact, print summaries). A byte diff requires inspecting whether the candidate-source construction is affected. Refreshed 2026-09-06 (pilot_002 pre-run infrastructure wave): schema assembly.v2 adds per-sample provenance (assembly_input_sha256, raw source_sha256, newline_convention, byte_size, logical_source_path, assembly_condition_sha256), crash-safe writes and fail-closed refusals (duplicate sample_id, legacy in-place re-assembly, stale sources). The candidate-source construction (cleaning, layout, auto-close, writer newline behaviour) is UNCHANGED - proven by re-assembling all 1111 pilot_001 samples: byte-identical on their original host, 0 content diffs, 0 cleaning-flag diffs, on the Windows host AND in the Linux container.",
+        "change_classification": "PROVENANCE_ONLY",
+        "previous_sha256": "f610284d8836ec54f2b204037d5aafe5e3512ae3b3ac07860516d2f2c082fa24"
       }
     },
     "condition": {
@@ -1323,7 +1325,65 @@
         "evidence": "git diff --name-status between the pilot_001 manifest commit and HEAD over thesis/assembly/ and thesis/generation/ is EMPTY (verified with a positive control on a file known to have changed). The generation CONDITION hash is additionally unchanged (e22ce9be...).",
         "caveat": "The generation INPUT is not unchanged: the prompt text of 4 of 12 pilot benchmarks changed. Pipeline semantics and prompt text are separate axes and are reported separately.",
         "exclusions": [],
-        "disclosure_requirements": "none beyond the prompt-change set"
+        "disclosure_requirements": "none beyond the prompt-change set",
+        "pilot_002_prerun_infrastructure_wave": {
+          "wave": "pilot_002_prerun_infrastructure",
+          "date": "2026-09-06",
+          "start_head": "d56db25c6ee1cb063a25aae2cb28c787f16a5df0",
+          "scope": "assembly integrity/provenance, newline and hash discipline, cleaning provenance, timing semantics, reporting contracts, concurrent manifest safety, pre-run contract and post-run verification - mechanisms only",
+          "change_classification_per_area": {
+            "assembly": "PROVENANCE_ONLY",
+            "generation_cleaning": "PROVENANCE_ONLY",
+            "timing_metadata": "TIMING_METADATA_ONLY",
+            "reporting": "REPORTING_ONLY",
+            "run_manifest": "PROVENANCE_ONLY",
+            "execution_semantics": "UNCHANGED"
+          },
+          "changed": [
+            "assembly schema assembly.v2 (additive): assembly_input_sha256, source_sha256 (raw post-write bytes), newline_convention, byte_size, trailing_newline, logical_source_path, assembly_condition_sha256, execution_model, benchmark",
+            "assembly_condition.v1 (LF-normalized implementation hashes + policy + schema version) and generation_cleaning_condition.v1 (provider extraction + clean_generated_code/extract_code), closing the generation-side provenance gap",
+            "crash-safe writes (temp + fsync + os.replace) for sources, assembly.jsonl and manifest fragments; fail-closed refusals: duplicate sample_id, in-place re-assembly of a legacy assembly.v1 run, unverifiable sources",
+            "run manifest architecture: per-writer fragments with deterministic read-only merge (measured: the legacy shared read-modify-write loses 168-175 of 200 concurrent registrations on the real host mount and in the container)",
+            "timing_semantics.v1 contract + check_timing_semantics.py validator; direct generation/repair latency now measured on the monotonic clock and labelled (status.timing_clock); batch queue span named batch_wall_clock_seconds",
+            "reporting contracts: accepted-disclosure rendering (dense_la/00 BL-01) with aggregate marking, static coverage-limitation and repair infrastructure-status reporting, cross-pilot consumption, manifest-over-live config precedence, report provenance block + report_condition_sha256",
+            "pilot_run_contract.v1 builder + T0 start guard + verify_pilot_run.v1 post-run verifier (fixtures A-Q)"
+          ],
+          "not_changed": [
+            "generation prompts",
+            "semantic decisions",
+            "prompt/oracle interlock",
+            "dense_la/00 comparator and tolerance",
+            "correctness comparator semantics",
+            "K1-K6 methodology",
+            "enhanced frozen specs, spec_key, enhanced policy",
+            "static tool finding policy and tool-state semantics",
+            "PARCOACH confidence policy, LLOV semantics, InferBO filter",
+            "repair stop semantics, retry policy, variants, max_iterations",
+            "assembly cleaning output (clean_for_assembly, assemble_content, auto-close)",
+            "the writer's host-dependent newline behaviour",
+            "pilot_001 artifacts (read-only audit and regression only)",
+            "correctness 99/99/198 cell counts, comparability classification, candidate subset",
+            "reuse status, publication policy, pilot_002 population, pilot_002 base run id"
+          ],
+          "pilot_001_assembled_bytes_changed": false,
+          "assembly_semantics_changed": false,
+          "byte_regression": {
+            "total": 1111,
+            "host_identical": 396,
+            "host_cross_host_newline_only": 715,
+            "container_identical": 715,
+            "container_cross_host_newline_only": 396,
+            "content_differences": 0,
+            "not_reproducible": 0,
+            "flag_mismatches": 0,
+            "note": "each historical file is byte-identical when re-assembled on the host that originally produced it (pilot_001 base: Windows/CRLF; repair iterations: container/LF); the cross-host difference is newline-only and pre-existing, never a cleaning change"
+          },
+          "pilot_001_assembly_class": "LEGACY_UNPINNED_ASSEMBLY",
+          "condition_hash_rule_for_new_conditions": "LF_NORMALIZED (checkout-independent; verified equal on the Windows CRLF checkout and a fresh Linux LF clone)",
+          "artifact_hash_rule": "RAW_BYTES (source_sha256 is the hash of the bytes the compiler reads; never newline-normalized)",
+          "existing_condition_versions_unchanged": true,
+          "known_limitation_pre_existing": "the EXISTING gate/E3 hash rules are raw-byte and therefore checkout-dependent: a pure HEAD clone with LF endings already reports 15 STALE entries and E3_FROZEN_ARTIFACTS_REPRODUCIBLE = false at the unmodified start HEAD (measured control run). This wave does not change those condition versions."
+        }
       },
       "D_environment_toolchain": {
         "status": "UNKNOWN",
@@ -1621,6 +1681,6 @@
     "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
   "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged",
-  "cross_pilot_fingerprint_sha256": "bfb09649c8c95bbaa5bb51f2c462b3f5963531889d852c9ccae9ec7149a7c666",
+  "cross_pilot_fingerprint_sha256": "4957b9c323ffda63c95c06a53da13ee981ca4a608a6cf728d475f913bde6baa6",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

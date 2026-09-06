@@ -145,7 +145,41 @@ def _write_manifest(path: Path, data: "Dict[str, Any]") -> None:
         raise
 
 
+def _intermediate_dir(config: "Dict[str, Any]") -> Path:
+    return Path(config["outputs"]["intermediate_dir"])
+
+
+def uses_fragments(config: "Dict[str, Any]", run_id: str) -> bool:
+    """Fragment-based run (every new run; pilot_001 stays a legacy
+    shared-manifest run and is never migrated in place)."""
+    from thesis.evaluation import manifest_fragments
+
+    return manifest_fragments.uses_fragments(_intermediate_dir(config), run_id)
+
+
+def manifest_architecture(config: "Dict[str, Any]", run_id: str) -> str:
+    """PER_WRITER_FRAGMENTS | LEGACY_SHARED_MANIFEST | NONE"""
+    from thesis.evaluation import manifest_fragments
+
+    if manifest_fragments.fragments_dir(_intermediate_dir(config), run_id).is_dir():
+        return "PER_WRITER_FRAGMENTS"
+    if manifest_path(config, run_id).is_file():
+        return "LEGACY_SHARED_MANIFEST"
+    return "NONE"
+
+
 def load_manifest(config: "Dict[str, Any]", run_id: str) -> "Optional[Dict[str, Any]]":
+    """The run's manifest. For fragment-based runs this is the deterministic
+    MERGE of the fragments (the truth), not the snapshot file; legacy runs
+    return their shared run_manifest.json as before."""
+    from thesis.evaluation import manifest_fragments
+
+    intermediate_dir = _intermediate_dir(config)
+    if manifest_fragments.fragments_dir(intermediate_dir, run_id).is_dir():
+        try:
+            return manifest_fragments.merge_fragments(intermediate_dir, run_id)
+        except (json.JSONDecodeError, OSError):
+            return None
     path = manifest_path(config, run_id)
     if not path.exists():
         return None
@@ -154,6 +188,94 @@ def load_manifest(config: "Dict[str, Any]", run_id: str) -> "Optional[Dict[str, 
             return json.load(handle)
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def _register_via_fragment(config: "Dict[str, Any]", run_id: str, kind: str,
+                           owner: "Optional[str]", content: "Dict[str, Any]",
+                           fingerprint: "Optional[str]", writer: str,
+                           conflict_type: type) -> None:
+    """Fragment registration + snapshot refresh; a fingerprint conflict is
+    re-raised as the caller's documented exception type."""
+    from thesis.evaluation import manifest_fragments
+
+    intermediate_dir = _intermediate_dir(config)
+    try:
+        manifest_fragments.register_fragment(
+            intermediate_dir, run_id, kind, owner, content,
+            fingerprint=fingerprint, writer=writer)
+    except manifest_fragments.FragmentConflict as conflict:
+        raise conflict_type(str(conflict)) from conflict
+    manifest_fragments.write_snapshot(intermediate_dir, run_id)
+
+
+class AssemblySetMismatch(RuntimeError):
+    """The same run already registers a different assembly set for a model."""
+
+
+class RuntimeEvidenceMismatch(RuntimeError):
+    """The same run already registers different T0 runtime evidence."""
+
+
+class ContractMismatch(RuntimeError):
+    """The same run already registers a different frozen contract sha."""
+
+
+def register_assembly_set(config: "Dict[str, Any]", run_id: str, model_id: str,
+                          sample_count: int, assembly_set_sha256: str,
+                          assembly_condition_sha256: str,
+                          counts: "Optional[Dict[str, int]]" = None) -> None:
+    """Per-model assembly set: first registration records it, an identical
+    re-registration is idempotent, a DIFFERENT set for the same model under
+    the same run is a hard failure (never last-writer-wins). Legacy runs
+    without a fragments dir are left untouched (their manifest is frozen
+    history); the per-model assembly_summary.json still carries the set."""
+    if not uses_fragments(config, run_id):
+        return
+    content = {
+        "model_id": model_id,
+        "sample_count": int(sample_count),
+        "assembly_set_sha256": assembly_set_sha256,
+        "assembly_condition_sha256": assembly_condition_sha256,
+        "counts": dict(counts or {}),
+    }
+    fingerprint = _fingerprint({
+        "assembly_set_sha256": assembly_set_sha256,
+        "assembly_condition_sha256": assembly_condition_sha256,
+        "sample_count": int(sample_count),
+    })
+    _register_via_fragment(config, run_id, "assembly", model_id, content, fingerprint,
+                           "assembly", AssemblySetMismatch)
+
+
+def register_runtime_evidence(config: "Dict[str, Any]", run_id: str,
+                              evidence: "Dict[str, Any]") -> None:
+    """T0 runtime evidence (contract sha, main runtime sha, static/repair
+    runtime sha, compiler/MPI identities) bound to the run BEFORE any
+    cost-causing request; a different evidence set later is refused."""
+    if not uses_fragments(config, run_id):
+        raise RuntimeEvidenceMismatch(
+            "run %s is a legacy shared-manifest run; runtime evidence can only "
+            "be bound to a fragment-based run" % run_id)
+    _register_via_fragment(config, run_id, "runtime", "evidence", _jsonable(evidence),
+                           None, "t0_guard", RuntimeEvidenceMismatch)
+
+
+def register_contract(config: "Dict[str, Any]", run_id: str,
+                      contract_sha256: str, contract: "Dict[str, Any]") -> None:
+    """Bind the frozen pilot run contract sha to the run (T0)."""
+    if not uses_fragments(config, run_id):
+        raise ContractMismatch(
+            "run %s is a legacy shared-manifest run; a contract can only be bound "
+            "to a fragment-based run" % run_id)
+    content = {"contract_sha256": contract_sha256, "contract": _jsonable(contract)}
+    _register_via_fragment(config, run_id, "contract", None, content, contract_sha256,
+                           "t0_guard", ContractMismatch)
+
+
+def _fingerprint(obj: Any) -> str:
+    from thesis.evaluation.condition_hashing import canonical_sha256
+
+    return canonical_sha256(obj)
 
 
 ENHANCED_SPECS_DEFAULT = "thesis/results/cache/enhanced/specs.jsonl"
@@ -213,7 +335,19 @@ def _register_condition(config: "Dict[str, Any]", run_id: str, field: str,
     manifest. First contact writes it; a later contact with a DIFFERENT sha
     is a hard failure - the same run must not mix analysis conditions.
     Manifests that predate the field (pilot_001) are backfilled ONCE and the
-    backfill is recorded as a limitation, never silently."""
+    backfill is recorded as a limitation, never silently.
+
+    Fragment-based runs write their own fragment (static.condition.json /
+    repair.condition.json) instead of read-modify-writing the shared file;
+    the mismatch rule is identical."""
+    if uses_fragments(config, run_id):
+        if manifest_architecture(config, run_id) == "NONE":
+            return
+        name = field.replace("_sha256", "")
+        kind = "static" if name.startswith("static") else "repair"
+        _register_via_fragment(config, run_id, kind, "condition", {name: condition},
+                               sha, kind, AnalysisConditionMismatch)
+        return
     path = manifest_path(config, run_id)
     if not path.is_file():
         return
@@ -260,7 +394,18 @@ def register_model_execution(config: "Dict[str, Any]", run_id: str,
 
     A second model under the same run_id is therefore never blocked just
     because a first model registered earlier.
+
+    Fragment-based runs: one fragment per model (enhanced.<model_id>.json),
+    so two models registering concurrently can never lose each other.
     """
+    if uses_fragments(config, run_id):
+        if manifest_architecture(config, run_id) == "NONE":
+            return
+        _register_via_fragment(
+            config, run_id, "enhanced", model_id,
+            {"model_id": model_id, "enhanced_execution_fingerprint_sha256": fingerprint_sha},
+            fingerprint_sha, "enhanced_tests", EnhancedExecutionConditionMismatch)
+        return
     path = manifest_path(config, run_id)
     if not path.is_file():
         return
@@ -323,9 +468,20 @@ def ensure_run_manifest(
     from, plus status, benchmark count and derivation version. Stored at
     creation and backfilled ONCE into a manifest that lacks it — the same
     additive enrichment prompt_selection uses; the frozen fields stay
-    untouched. Stages that do not pass one are unaffected."""
+    untouched. Stages that do not pass one are unaffected.
+
+    Concurrency (pilot_002 pre-run wave): every NEW run is fragment-based -
+    the frozen snapshot, each enrichment, each drift record and each later
+    registration is its own atomically written file, merged read-only (see
+    manifest_fragments.py). Legacy runs with a shared run_manifest.json and
+    no fragments dir keep the read-modify-write path below, unchanged."""
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     path = manifest_path(config, run_id)
+
+    if uses_fragments(config, run_id):
+        return _ensure_run_manifest_fragments(
+            config, run_id, stage, profile, primary_compiler, prompt_selection,
+            enhanced_policy, enhanced_execution, enhanced_specs_path)
 
     existing = load_manifest(config, run_id)
 
@@ -444,6 +600,153 @@ def ensure_run_manifest(
             _write_manifest(path, existing)
 
     return existing
+
+
+def _ensure_run_manifest_fragments(
+    config: "Dict[str, Any]",
+    run_id: str,
+    stage: str,
+    profile: "Optional[str]",
+    primary_compiler: str,
+    prompt_selection: "Optional[Dict[str, Any]]",
+    enhanced_policy: "Optional[Dict[str, Any]]",
+    enhanced_execution: "Optional[Dict[str, Any]]",
+    enhanced_specs_path: "Optional[str]",
+) -> "Dict[str, Any]":
+    """Fragment-based ensure_run_manifest: same semantics as the legacy path
+    (frozen first contact, additive enrichment, recorded drift, hard gate on
+    the enhanced execution condition) without any read-modify-write."""
+    from thesis.evaluation import manifest_fragments as mf
+
+    intermediate_dir = _intermediate_dir(config)
+    specs_info = enhanced_specs_info(config, enhanced_specs_path)
+    global_path = mf.fragment_path(intermediate_dir, run_id, "global")
+    # E3.1: only the invocation that CREATES the run may pin the enhanced
+    # execution condition. A run that already exists without one has no
+    # evidence of the condition its records were produced under, so it is
+    # never backfilled-and-reused (identical to the legacy shared-manifest
+    # rule).
+    creating_run = not global_path.is_file()
+
+    if creating_run:
+        if specs_info is None:
+            print(
+                f"[{stage}] WARNING: enhanced spec file not found — "
+                "recording enhanced_specs: null in the manifest (runs "
+                "without the enhanced stage stay possible)."
+            )
+        frozen: "Dict[str, Any]" = {
+            "run_id": run_id,
+            "profile": profile,
+            "created_at_utc": _utc_now(),
+            "created_by_stage": stage,
+            **_git_info(),
+            "python_version": platform.python_version(),
+            "primary_compiler": primary_compiler,
+            "primary_compiler_version": _compiler_version(primary_compiler),
+            "toolchain_versions": _toolchain_versions_text(intermediate_dir, run_id),
+            "resolved_config": _jsonable(config),
+            "enhanced_specs": specs_info,
+            "manifest_architecture": "PER_WRITER_FRAGMENTS",
+        }
+        # the frozen snapshot is content-addressed by its CONFIG, so two
+        # processes creating the same run concurrently (same config) are
+        # idempotent, while a different config for the same fresh run_id is
+        # a conflict, not a silent last-writer-wins
+        fingerprint = _fingerprint({"resolved_config": frozen["resolved_config"],
+                                    "enhanced_specs": specs_info,
+                                    "primary_compiler": primary_compiler})
+        try:
+            mf.register_fragment(intermediate_dir, run_id, "global", None, frozen,
+                                 fingerprint=fingerprint, writer=stage)
+            print(f"[{stage}] run manifest frozen (fragments): {global_path.parent}")
+        except mf.FragmentConflict:
+            # another process froze a different config first: fall through
+            # and record OUR deviation as drift against the frozen one
+            pass
+
+    merged = mf.merge_fragments(intermediate_dir, run_id)
+
+    for field, value in (("prompt_selection", prompt_selection),
+                         ("enhanced_policy", enhanced_policy)):
+        if value is None:
+            continue
+        content = {field: _jsonable(value)}
+        try:
+            mf.register_fragment(intermediate_dir, run_id, "enrichment", field, content,
+                                 writer=stage)
+        except mf.FragmentConflict:
+            # legacy semantics: the first recorded value stays frozen; a
+            # deviating later value is RECORDED, not silently accepted
+            _register_drift_fragment(intermediate_dir, run_id, stage,
+                                     ["%s (conflicting later value)" % field])
+
+    if enhanced_execution is not None:
+        recorded_sha = (merged.get("enhanced_execution") or {}).get(
+            "enhanced_execution_fingerprint_sha256")
+        current_sha = enhanced_execution.get("enhanced_execution_fingerprint_sha256")
+        if recorded_sha is None and not creating_run:
+            raise EnhancedExecutionConditionMismatch(
+                "run manifest %s was frozen under enhanced execution fingerprint "
+                "<none recorded> but this invocation runs under %s. The two are "
+                "different experiments; use a fresh run_id. (A --force rerun does "
+                "not make them the same run.)" % (global_path.parent, current_sha))
+        if recorded_sha is not None and recorded_sha != current_sha:
+            raise EnhancedExecutionConditionMismatch(
+                "run manifest %s was frozen under enhanced execution "
+                "fingerprint %s but this invocation runs under %s. The two are "
+                "different experiments; use a fresh run_id. (A --force rerun "
+                "does not make them the same run.)"
+                % (global_path.parent, recorded_sha, current_sha))
+        try:
+            mf.register_fragment(intermediate_dir, run_id, "enhanced_execution", None,
+                                 _jsonable(enhanced_execution),
+                                 fingerprint=current_sha, writer=stage)
+        except mf.FragmentConflict as conflict:
+            raise EnhancedExecutionConditionMismatch(str(conflict)) from conflict
+
+    merged = mf.merge_fragments(intermediate_dir, run_id)
+
+    changed = config_key_diff(merged.get("resolved_config"), _jsonable(config))
+    specs_changed = config_key_diff(merged.get("enhanced_specs"), _jsonable(specs_info),
+                                    prefix="enhanced_specs")
+    if specs_changed:
+        print(
+            f"[{stage}] WARNING: enhanced spec file changed after run "
+            "start (%s) — the run's enhanced results no longer rest on "
+            "the pinned spec set; recorded in config_drift."
+            % ", ".join(specs_changed)
+        )
+    changed = changed + specs_changed
+    if changed:
+        if changed != specs_changed:
+            print(
+                f"[{stage}] WARNING: current config deviates from the run "
+                f"manifest frozen at {merged.get('created_at_utc')} — "
+                "continuation runs with a changed config are allowed but "
+                "RECORDED. Changed keys: " + ", ".join(changed)
+            )
+        _register_drift_fragment(intermediate_dir, run_id, stage, changed)
+
+    mf.write_snapshot(intermediate_dir, run_id)
+    return mf.merge_fragments(intermediate_dir, run_id)
+
+
+def _register_drift_fragment(intermediate_dir: Path, run_id: str, stage: str,
+                             changed: "List[str]") -> None:
+    """One drift record per distinct set of changed keys: content-keyed, so
+    the same deviation seen by many invocations (legacy rule: "exact
+    consecutive repeats are skipped") is recorded once, by the stage that
+    first saw it, and never read-modified-written."""
+    from thesis.evaluation import manifest_fragments as mf
+
+    key = _fingerprint({"changed_keys": changed})[:12]
+    content = {"detected_at_utc": _utc_now(), "stage": stage, "changed_keys": changed}
+    try:
+        mf.register_fragment(intermediate_dir, run_id, "drift", key,
+                             content, fingerprint=key, writer=stage, history=False)
+    except mf.FragmentConflict:
+        pass
 
 
 def _utc_now() -> str:

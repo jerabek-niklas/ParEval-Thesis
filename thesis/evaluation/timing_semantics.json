@@ -1,0 +1,504 @@
+{
+  "contract_version": "timing_semantics.v1",
+  "global_statements": {
+    "RUN_SECONDS_CROSS_EXECUTION_MODEL_COMPARABLE": false,
+    "CROSS_MODEL_LATENCY_RANKING": "AVAILABLE only among models whose generation ran in direct mode; NOT_AVAILABLE for a run that mixes direct and batch models",
+    "BATCH_QUEUE_TIME_IS_MODEL_LATENCY": false,
+    "STATIC_DURATION_IS_MODEL_SPEED": false,
+    "DYNAMIC_DURATION_IS_MODEL_SPEED": false,
+    "STATIC_AND_DYNAMIC_TOOL_DURATIONS_ARE_COMPARABLE": false,
+    "TIMEOUT_STORES_OBSERVED_ELAPSED_NOT_LIMIT": true,
+    "CONFIGURED_LIMITS_SOURCE": "run manifest resolved_config: stages.correctness_tests.run_timeout_seconds and stages.enhanced_tests.run_timeout_seconds; the build limit comes from stages.correctness_tests.build_timeout_seconds when configured, else the 120 s code default. An effective --run-timeout CLI override is NOT persisted by the producer and must be declared to the validator",
+    "PROVIDER_COST_RULE": "LLM usage tokens x configured price only; generation and repair responses counted once each; missing usage stays null",
+    "ABSOLUTE_CROSS_PILOT_RUNTIME_COMPARISON": "NOT_COMPARABLE unless host/container/compiler/grid/niter identities match the pinned runtime condition of both runs",
+    "MPI_RUN_SECONDS_INCLUDE_LAUNCHER_OVERHEAD": true,
+    "OMP_RUN_SECONDS_INCLUDE_RUNTIME_INITIALIZATION": true,
+    "SERIAL_RUN_SECONDS_INCLUDE_PROCESS_STARTUP": true
+  },
+  "constants": {
+    "timeout_epsilon_seconds": 0.002,
+    "wall_clock_anomaly_slack_seconds": 2.0,
+    "build_timeout_default_seconds": 120.0
+  },
+  "fields": [
+    {
+      "field": "generation.status.duration_seconds (timing_mode=direct)",
+      "producer": "thesis/generation/common.py:apply_direct_timing (generation main loop; repair: thesis/repair/orchestrator.py direct request loop)",
+      "unit": "seconds",
+      "meaning": "end-to-end request latency of ONE model call as seen by the client",
+      "clock_source": "time.perf_counter (monotonic) when status.timing_clock == 'perf_counter'; time.time (wall clock) for legacy records (pilot_001, timing_clock absent)",
+      "start_boundary": "immediately before adapter.generate()",
+      "end_boundary": "after the success/failure record fields are applied, before the record is written",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": false,
+      "includes": {
+        "adapter_overhead": true,
+        "build": false,
+        "client_retries": true,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": true,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": false,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": true
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": true,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": true
+      },
+      "allowed_aggregation": [
+        "median",
+        "percentiles",
+        "mean with n",
+        "per model",
+        "per benchmark"
+      ],
+      "on_timeout": "client timeout (generation_defaults.timeout_seconds) raises inside the retry loop; the final failure record still carries the observed elapsed",
+      "consumers": [
+        "validate_generations",
+        "build_overview generation effort/latency section"
+      ],
+      "notes": [
+        "the RETRY BACKOFF inside call_with_retries is inside the timer, and it uses generation_defaults.sleep_seconds_between_requests as its wait when that value is > 0 (otherwise an exponential backoff capped at 10 s); only the sleep AFTER the record is written is outside the timer. A retried request therefore carries its own backoff time",
+        "upper bound = timeout x (retry_attempts+1) x (sdk max_retries+1) plus the in-timer backoffs",
+        "model speed ranking only among DIRECT-mode models; a run that mixes direct and batch models has CROSS_MODEL_LATENCY_RANKING = NOT_AVAILABLE"
+      ]
+    },
+    {
+      "field": "generation.status.duration_seconds (timing_mode=batch)",
+      "producer": "thesis/generation/common.py:apply_batch_timing",
+      "unit": "seconds",
+      "meaning": "ALWAYS null: batch APIs expose no per-request inference time",
+      "clock_source": "n/a",
+      "start_boundary": "n/a",
+      "end_boundary": "n/a",
+      "available_in_direct_mode": false,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": false,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "none"
+      ],
+      "on_timeout": "n/a",
+      "consumers": [
+        "build_overview (must treat null as not available)"
+      ],
+      "notes": [
+        "a batch record with a non-null duration_seconds is a contract violation"
+      ]
+    },
+    {
+      "field": "generation.status.batch_wall_clock_seconds (= batch_completed_at_utc - batch_submitted_at_utc)",
+      "producer": "thesis/generation/common.py:apply_batch_timing (stamps: batch submit / completing poll)",
+      "unit": "seconds",
+      "meaning": "JOB-level provider queue span shared by every request of the job",
+      "clock_source": "two UTC wall-clock stamps (utc_now_iso) on the client side",
+      "start_boundary": "batch job submitted",
+      "end_boundary": "the poll that observed the job completed",
+      "available_in_direct_mode": false,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": true,
+        "process_startup": false,
+        "provider_queue_wait": true,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "per job only; never per request; never as a latency distribution"
+      ],
+      "on_timeout": "n/a (jobs expire provider-side; expired requests are re-submitted as new jobs)",
+      "consumers": [
+        "operational reporting only"
+      ],
+      "notes": [
+        "NOT model latency: dominated by provider queueing (pilot_001: 6108-23884 s per job)",
+        "pilot_001 records predate this derived field; the two stamps exist"
+      ]
+    },
+    {
+      "field": "generation.api_response.usage_normalized.{input_tokens,output_tokens,reasoning_tokens}",
+      "producer": "thesis/generation/common.py:normalize_usage (provider usage object)",
+      "unit": "tokens",
+      "meaning": "provider-reported usage; reasoning_tokens is the EFFORT measure (separate from any time field)",
+      "clock_source": "n/a (provider counter)",
+      "start_boundary": "n/a",
+      "end_boundary": "n/a",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": false,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": true,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": true,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "sum per model (cost)",
+        "median per model (effort)"
+      ],
+      "on_timeout": "n/a",
+      "consumers": [
+        "build_overview generation effort section",
+        "cost accounting"
+      ],
+      "notes": [
+        "provider cost = tokens x configured price per model; generation and repair responses are counted once each (never both a base record and its repair history); missing usage stays null and is never estimated"
+      ]
+    },
+    {
+      "field": "correctness.compile.duration_seconds",
+      "producer": "thesis/evaluation/framework.py:run_command (compile step of run_correctness)",
+      "unit": "seconds",
+      "meaning": "wall time of the compiler process for one sample",
+      "clock_source": "time.time (wall clock)",
+      "start_boundary": "before Popen of the compiler",
+      "end_boundary": "after the process exits or is killed",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": true,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "sum per stage (runtime cost)",
+        "per model diagnostics"
+      ],
+      "on_timeout": "observed elapsed stored + compile.timed_out=true (limit 120 s code default)",
+      "consumers": [
+        "build_overview runtime cost",
+        "check_timing_semantics"
+      ],
+      "notes": [
+        "build time, kept strictly separate from run time"
+      ]
+    },
+    {
+      "field": "correctness.runs[].duration_seconds",
+      "producer": "thesis/evaluation/framework.py:run_command (run grid of run_correctness)",
+      "unit": "seconds",
+      "meaning": "wall time of ONE timed benchmark process at one grid point (serial: 1; omp: OMP_NUM_THREADS in {1,2,4,8}; mpi: -np in {1,2,4,8})",
+      "clock_source": "time.time (wall clock)",
+      "start_boundary": "before Popen of the benchmark (or mpirun)",
+      "end_boundary": "after the process exits or is killed",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": true,
+        "local_queue_wait": false,
+        "process_startup": true,
+        "provider_queue_wait": false,
+        "runtime_initialization": true,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": true,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "median per (model, benchmark, execution_model, grid point)",
+        "never pooled across execution models"
+      ],
+      "on_timeout": "observed elapsed stored + runs[].timed_out=true. The limit is the manifest's stages.correctness_tests.run_timeout_seconds, BUT run_correctness.py accepts a --run-timeout override that is persisted nowhere; a run that used one must declare it (the validator takes it via --run-timeout-seconds), otherwise its legitimate timeout rows look inconsistent with the frozen limit",
+      "consumers": [
+        "build_overview",
+        "check_timing_semantics"
+      ],
+      "notes": [
+        "mpi: includes_launcher_overhead=true (mpirun -np N is the timed argv) and MPI_Init/teardown; omp: includes OpenMP runtime init and the omp driver's fixed timing iterations; serial: includes process startup",
+        "RUN_SECONDS_CROSS_EXECUTION_MODEL_COMPARABLE = false",
+        "cross-model comparison within one execution model requires: same host/container, same compiler, same grid point, same niter, sequential execution (correctness stage is sequential) and no wall-clock anomaly on the row"
+      ]
+    },
+    {
+      "field": "enhanced_build_groups.compile_seconds",
+      "producer": "thesis/evaluation/run_enhanced_tests.py (grouped build per (sample, spec group))",
+      "unit": "seconds",
+      "meaning": "wall time of one grouped enhanced build",
+      "clock_source": "time.time (wall clock)",
+      "start_boundary": "before the compiler Popen",
+      "end_boundary": "after exit/kill",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": true,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": true,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "sum per stage"
+      ],
+      "on_timeout": "observed elapsed is stored, but a build that hit the 120 s limit is recorded as build_status='build_failed' - INDISTINGUISHABLE from a compile error, so an enhanced build timeout is NOT detectable from the record alone (pre-existing producer behaviour, stated here rather than assumed away)",
+      "consumers": [
+        "build_overview enhanced_seconds",
+        "check_timing_semantics"
+      ],
+      "notes": [
+        "pilot_001 carries ONE wall-clock artifact: claude_opus_5 compile_seconds 70714.574 s (a host suspension mid-compile); the validator flags rows whose elapsed exceeds limit + 2 s without a timeout flag"
+      ]
+    },
+    {
+      "field": "enhanced_tests.duration_seconds",
+      "producer": "thesis/evaluation/run_enhanced_tests.py (per-spec run inside the worker thread)",
+      "unit": "seconds",
+      "meaning": "wall time of ONE enhanced spec execution (run only, build separate)",
+      "clock_source": "time.time (wall clock)",
+      "start_boundary": "inside the worker immediately before Popen",
+      "end_boundary": "after exit/kill",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": true,
+        "inter_request_sleep": false,
+        "launcher_overhead": true,
+        "local_queue_wait": false,
+        "process_startup": true,
+        "provider_queue_wait": false,
+        "runtime_initialization": true,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "sum per stage (runtime cost)"
+      ],
+      "on_timeout": "observed elapsed + status='timeout' (exit_code null); limit = manifest stages.enhanced_tests.run_timeout_seconds",
+      "consumers": [
+        "build_overview enhanced_seconds",
+        "check_timing_semantics"
+      ],
+      "notes": [
+        "thread pool over SAMPLES (pilot: serial jobs=2): local queue wait is outside the timer, CPU contention is inside; therefore not a speed measure",
+        "verdict-only specs legitimately carry no duration"
+      ]
+    },
+    {
+      "field": "static_analysis.tools[<tool>].duration_seconds",
+      "producer": "thesis/evaluation/tools.py (per tool; framework.run_command)",
+      "unit": "seconds",
+      "meaning": "wall time of the analysis tool invocation(s) for one sample; the SCOPE differs per tool (see notes), so the includes map below is the union and must not be read per tool",
+      "clock_source": "time.time (wall clock)",
+      "start_boundary": "before the tool process",
+      "end_boundary": "after exit/kill",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": true,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": true,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "sum per tool (analysis cost)"
+      ],
+      "on_timeout": "observed elapsed + analysis_state=TIMEOUT (v3) / error string (legacy pilot_001)",
+      "consumers": [
+        "build_overview runtime cost per tool"
+      ],
+      "notes": [
+        "STATIC_DURATION_IS_MODEL_SPEED = false: this is analysis cost, never a property of the model",
+        "per-tool scope: parcoach records ONLY the parcoach step on success and ONLY the emit-llvm step on compile failure (includes.build is false there); cppcheck and clang_tidy perform no build of their own (includes.build false); compiler and gcc_analyzer ARE the build; infer builds under its capture. The includes map is therefore the union over the tools, not a per-tool statement",
+        "per-tool timeouts (e.g. gcc_analyzer 300 s, parcoach 60 s) live in the manifest's stages.static_analysis.tools[<tool>] settings; the validator does not yet compare them, so a timeout row's elapsed is checked for finiteness and sign only",
+        "not-applicable entries carry 0.0 with ran=false"
+      ]
+    },
+    {
+      "field": "dynamic_analysis.tools[<tool>].duration_seconds",
+      "producer": "thesis/evaluation/dynamic_tools.py (per tool; framework.run_command)",
+      "unit": "seconds",
+      "meaning": "wall time of one dynamic tool's BUILD plus the SUM over its launch grid for one sample - a composite, not a single process",
+      "clock_source": "time.time (wall clock)",
+      "start_boundary": "before the instrumented build",
+      "end_boundary": "after the last grid launch exits or is killed",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": true,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": true,
+        "local_queue_wait": false,
+        "process_startup": true,
+        "provider_queue_wait": false,
+        "runtime_initialization": true,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "sum per tool (analysis cost)"
+      ],
+      "on_timeout": "observed elapsed of the timed-out step + the tool's error/state; the per-tool limit lives in the manifest's stages.dynamic_analysis.tools[<tool>] settings",
+      "consumers": [
+        "build_overview runtime cost per tool",
+        "check_timing_semantics"
+      ],
+      "notes": [
+        "DYNAMIC_DURATION_IS_MODEL_SPEED = false; the number aggregates build and every launch-grid point, so it is not comparable with the single-process static field",
+        "not-applicable entries carry 0.0 with ran=false"
+      ]
+    },
+    {
+      "field": "assembly (no timing field)",
+      "producer": "thesis/assembly/assemble_sources.py",
+      "unit": "n/a",
+      "meaning": "assembly records carry created_at_utc only; assembly is not timed",
+      "clock_source": "n/a",
+      "start_boundary": "n/a",
+      "end_boundary": "n/a",
+      "available_in_direct_mode": true,
+      "available_in_batch_mode": true,
+      "includes": {
+        "adapter_overhead": false,
+        "build": false,
+        "client_retries": false,
+        "cpu_contention_from_parallel_samples": false,
+        "inter_request_sleep": false,
+        "launcher_overhead": false,
+        "local_queue_wait": false,
+        "process_startup": false,
+        "provider_queue_wait": false,
+        "runtime_initialization": false,
+        "sdk_internal_retries": false
+      },
+      "suitable_for": {
+        "cost_accounting": false,
+        "cross_execution_model": false,
+        "cross_model_within_execution_model": false,
+        "cross_pilot_absolute_comparison": false,
+        "model_speed_ranking": false
+      },
+      "allowed_aggregation": [
+        "none"
+      ],
+      "on_timeout": "n/a",
+      "consumers": [],
+      "notes": []
+    }
+  ],
+  "generation_timing_classes": {
+    "DIRECT_LATENCY_AVAILABLE": "every generation record of the model is direct with a numeric duration",
+    "BATCH_QUEUE_ONLY": "every generation record of the model is batch (duration null, job stamps only)",
+    "MIXED_DIRECT_AND_BATCH": "the model's records mix both modes (latency distribution incomplete)",
+    "TIMING_PROVENANCE_INSUFFICIENT": "timing_mode missing/unknown or durations missing on direct records",
+    "TEST_RUNTIME_AVAILABLE": "correctness build and run timings present for the model"
+  },
+  "timing_contract_sha256": "6638398d5fb1bd6251a3d4b4abee2ac080a654c1ce2f75ab7911aa203be6ec6a"
+}
