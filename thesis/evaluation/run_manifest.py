@@ -248,7 +248,8 @@ def register_assembly_set(config: "Dict[str, Any]", run_id: str, model_id: str,
 
 
 def register_runtime_evidence(config: "Dict[str, Any]", run_id: str,
-                              evidence: "Dict[str, Any]") -> None:
+                              evidence: "Dict[str, Any]",
+                              fingerprint: "Optional[str]" = None) -> None:
     """T0 runtime evidence (contract sha, main runtime sha, static/repair
     runtime sha, compiler/MPI identities) bound to the run BEFORE any
     cost-causing request; a different evidence set later is refused."""
@@ -256,8 +257,11 @@ def register_runtime_evidence(config: "Dict[str, Any]", run_id: str,
         raise RuntimeEvidenceMismatch(
             "run %s is a legacy shared-manifest run; runtime evidence can only "
             "be bound to a fragment-based run" % run_id)
+    # the fingerprint is the METHODICAL identity of the measured runtime; the
+    # caller supplies it so volatile fields (probe timestamp/duration) cannot
+    # make two starters disagree about the same runtime
     _register_via_fragment(config, run_id, "runtime", "evidence", _jsonable(evidence),
-                           None, "t0_guard", RuntimeEvidenceMismatch)
+                           fingerprint, "t0_guard", RuntimeEvidenceMismatch)
 
 
 def register_contract(config: "Dict[str, Any]", run_id: str,

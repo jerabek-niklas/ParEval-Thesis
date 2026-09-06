@@ -725,6 +725,44 @@ def main() -> None:
         config, run_id, provenance.static_analysis_condition_sha256(condition), condition,
     )
 
+    # Pre-run enforcement (contracted runs only). Each runtime DOMAIN this
+    # invocation will actually produce findings in is stamped BEFORE the
+    # first record: the main container for the host-side tools, the PARCOACH
+    # container and the LLOV container for their own tools. A drift is
+    # STAGE_RUNTIME_DRIFT - a provenance failure before analysis, never a
+    # TOOL_ERROR and never a tool-state gap record.
+    from thesis.evaluation import stage_runtime
+
+    domain_stages = stage_runtime.static_stages_for_tools(list(known))
+    for domain_stage in domain_stages:
+        values = None
+        if domain_stage == "static.main":
+            values = {
+                "primary_compiler": {
+                    "value": args.primary_compiler,
+                    "source": "CLI" if args.primary_compiler != "g++" else "DEFAULT"},
+                "tools": {"value": sorted(known),
+                          "source": "CLI" if args.tools else "CONFIG"},
+                "replace_tool_entries": {"value": bool(args.replace_tool_entries),
+                                         "source": "CLI" if args.replace_tool_entries else "DEFAULT"},
+                "rerun_gaps": {"value": bool(args.rerun_gaps),
+                               "source": "CLI" if args.rerun_gaps else "DEFAULT"},
+                "replace_legacy_record": {"value": bool(args.replace_legacy_record),
+                                          "source": "CLI" if args.replace_legacy_record else "DEFAULT"},
+            }
+        enforcement = stage_runtime.enforce_stage(
+            config, run_id, domain_stage,
+            effective_values=values,
+            profile=args.profile,
+            model_scope=[model["id"] for model in models] if args.model_id else None,
+            writer="static_analysis")
+        if enforcement.get("enforced"):
+            print("Pre-run enforcement [%s]: stage runtime %s..."
+                  % (domain_stage, str(enforcement.get("stage_runtime_sha256"))[:12]))
+        else:
+            print("Pre-run enforcement [%s]: NOT_APPLICABLE (%s)"
+                  % (domain_stage, enforcement.get("reason")))
+
     for model_config in models:
         try:
             run_model(

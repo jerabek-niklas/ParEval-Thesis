@@ -1136,6 +1136,27 @@ class RepairLoop:
         run_id = self.paths.iter_run_id(iteration)
         intermediate_root = self.paths.intermediate_root
 
+        # Pre-run enforcement (contracted runs only): repair's EVALUATION
+        # side obeys the same stage-runtime rules as the base evaluation -
+        # the runtime that produces the iteration's records is stamped and
+        # compared against contract/T0 before any record is written. The
+        # repair stop semantics are untouched: a drift raises before
+        # analysis instead of producing a tool result or a stop reason.
+        from thesis.evaluation import stage_runtime
+
+        enforcement = stage_runtime.enforce_stage(
+            self.config, self.paths.base_run_id, "repair_evaluation",
+            effective_values={
+                "primary_compiler": {
+                    "value": self.primary_compiler,
+                    "source": "CLI" if self.primary_compiler != "g++" else "DEFAULT"},
+                "variant": {"value": self.variant, "source": "CLI"},
+            },
+            model_scope=[self.model_id],
+            writer="repair")
+        if not enforcement.get("enforced"):
+            self.log("pre-run enforcement: NOT_APPLICABLE (%s)" % enforcement.get("reason"))
+
         context = framework.EvaluationContext(
             repo_root=REPO_ROOT,
             drivers_cpp_dir=REPO_ROOT / "drivers" / "cpp",
@@ -1929,6 +1950,11 @@ class RepairLoop:
                     record["status"]["error_message"] = str(refusal)
                     record["output"]["finish_reason"] = "refusal"
                     outcome = "refused"
+                except common._pre_run_infrastructure_failure():
+                    # authorization/runtime failures are infrastructure, not
+                    # model behaviour: never written as a repair response and
+                    # never counted as a repair stop reason
+                    raise
                 except Exception as error:  # transport/API: retryable on rerun
                     record["status"]["error_type"] = type(error).__name__
                     record["status"]["error_message"] = str(error)

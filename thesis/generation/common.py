@@ -635,6 +635,14 @@ def safe_model_dump(obj: Any) -> dict[str, Any] | str | None:
     return repr(obj)
 
 
+def _pre_run_infrastructure_failure():
+    """The pre-run enforcement failure class, imported lazily so this module
+    stays importable without the evaluation package."""
+    from thesis.evaluation.run_authorization import PreRunInfrastructureFailure
+
+    return PreRunInfrastructureFailure
+
+
 def call_with_retries(
     fn: Callable[[], Any],
     retry_attempts: int,
@@ -648,7 +656,19 @@ def call_with_retries(
     errors, and httpx.TimeoutException underneath Gemini) is retried like
     any other transport failure. That is the intended behavior: a timeout
     should cost one retry, not the sample.
+
+    THIS IS THE DIRECT PROVIDER CHOKEPOINT. Every adapter hands its SDK call
+    in here as `fn=lambda: client...create(...)`, so no direct provider
+    request can happen without passing the run-authorization guard below - a
+    runner that forgets its own T0 call cannot spend money. The refusal is a
+    PRE_RUN_INFRASTRUCTURE_FAILURE and deliberately propagates instead of
+    being recorded as a model or API failure.
     """
+    from thesis.evaluation import run_authorization
+
+    run_authorization.require_provider_call(
+        run_authorization.CALL_KIND_DIRECT, label=label)
+
     last_error: Exception | None = None
 
     for attempt in range(retry_attempts + 1):
@@ -1429,6 +1449,13 @@ def run_generation(adapter: ProviderAdapter) -> None:
                 outcome = apply_failure(
                     record, summary, "ModelRefusal", str(refusal)
                 )
+
+            except _pre_run_infrastructure_failure():
+                # A missing/invalid run authorization or a runtime drift is a
+                # PRE_RUN_INFRASTRUCTURE_FAILURE, never a model or API
+                # failure: it must NOT be written as a generation record that
+                # looks like one. Abort the runner instead.
+                raise
 
             except Exception as error:
                 outcome = apply_failure(

@@ -158,7 +158,10 @@ def conditions_view(config: Dict[str, Any], primary_compiler: str) -> "OrderedDi
     from thesis.evaluation.check_cross_pilot_gate import (
         canon_sha256, evaluation_condition_projection, generation_condition_projection)
 
-    readiness = _load_json(READINESS_PATH) or {}
+    # `outputs.readiness_artifact` lets a fixture pin its own readiness proof;
+    # production has no such key and reads the repository artifact
+    readiness_path = ((config or {}).get("outputs") or {}).get("readiness_artifact")
+    readiness = _load_json(Path(readiness_path) if readiness_path else READINESS_PATH) or {}
     cross = _load_json(CROSS_PILOT_PATH) or {}
     decisions = _load_json(SEMANTIC_DECISIONS_PATH) or {}
     try:

@@ -269,7 +269,8 @@ def merge_fragments(intermediate_dir: Path, run_id: str,
     listed in `unexpected_fragments`. Nothing is written.
     """
     known_kinds = {"global", "enrichment", "drift", "enhanced_execution", "enhanced",
-                   "static", "repair", "assembly", "runtime", "contract"}
+                   "static", "repair", "assembly", "runtime", "contract",
+                   "authorization", "invocation"}
     fragments = load_fragments(intermediate_dir, run_id)
     names = [name for name, _ in fragments]
 
@@ -318,12 +319,31 @@ def merge_fragments(intermediate_dir: Path, run_id: str,
         merged["assembly_condition_sha256"] = sorted(shas)[0] if len(shas) == 1 else None
         if len(shas) > 1:
             merged["assembly_condition_conflict"] = sorted(str(s) for s in shas)
-    for owner, fragment in by_kind.get("runtime", []):
-        merged["runtime_evidence"] = fragment["content"]
-        merged["runtime_evidence_sha256"] = fragment["fingerprint_sha256"]
+    # runtime fragments: the T0 evidence (owner "evidence") and the per-stage
+    # stamps (owner "stage.<name>") are different evidence and never merge
+    stage_runtime = OrderedDict()
+    for owner, fragment in sorted(by_kind.get("runtime", []), key=lambda x: str(x[0])):
+        if owner == "evidence":
+            merged["runtime_evidence"] = fragment["content"]
+            merged["runtime_evidence_sha256"] = fragment["fingerprint_sha256"]
+        else:
+            stage_runtime[owner] = fragment["content"]
+    if stage_runtime:
+        merged["stage_runtime_evidence"] = stage_runtime
     for owner, fragment in by_kind.get("contract", []):
-        merged["contract"] = fragment["content"]
+        # the fragment wraps {contract_sha256, contract}: consumers want the
+        # CONTRACT itself under "contract", exactly as the frozen file has it
+        content = fragment["content"] or {}
+        merged["contract"] = content.get("contract", content)
         merged["contract_sha256"] = fragment["fingerprint_sha256"]
+    for owner, fragment in by_kind.get("authorization", []):
+        merged["authorization"] = fragment["content"]
+        merged["authorization_sha256"] = fragment["fingerprint_sha256"]
+    invocations = OrderedDict()
+    for owner, fragment in sorted(by_kind.get("invocation", []), key=lambda x: str(x[0])):
+        invocations[owner] = fragment["content"]
+    if invocations:
+        merged["stage_invocations"] = invocations
 
     missing = []
     if expected is not None:
@@ -363,6 +383,64 @@ def write_snapshot(intermediate_dir: Path, run_id: str) -> Path:
         if after["fragment_set_sha256"] == before["fragment_set_sha256"]:
             break
     return target
+
+
+def verify_fragment_integrity(intermediate_dir: Path, run_id: str) -> "List[Dict[str, Any]]":
+    """Fragments whose stored fingerprint no longer matches their content.
+
+    Registration fingerprints are either the canonical hash of the whole
+    content or a caller-supplied METHODICAL subset hash (authorization, stage
+    runtime, invocation). A hand edit of a methodical field therefore always
+    shows up here; a hand edit of a purely volatile field never does, by
+    design."""
+    problems = []
+    for name, fragment in load_fragments(intermediate_dir, run_id):
+        content = fragment.get("content")
+        stored = fragment.get("fingerprint_sha256")
+        kind, owner = _split(name)
+        if content is None or stored is None:
+            problems.append({"fragment": name, "problem": "fragment without content or fingerprint"})
+            continue
+        recomputed = _recompute_fingerprint(kind, owner, content)
+        if recomputed is None:
+            continue  # caller-supplied condition fingerprint: not recomputable here
+        if recomputed != stored:
+            problems.append({"fragment": name,
+                             "problem": "content does not match the registered fingerprint",
+                             "stored": stored, "recomputed": recomputed})
+    return problems
+
+
+def _recompute_fingerprint(kind: str, owner: "Optional[str]",
+                           content: "Dict[str, Any]") -> "Optional[str]":
+    """The fingerprint rule of the fragment kinds whose rule lives in this
+    repository. Kinds whose fingerprint is a caller-supplied condition sha
+    (static/repair/enhanced/assembly/global) are not independently
+    recomputable and are skipped rather than falsely reported."""
+    try:
+        if kind == "authorization":
+            from thesis.evaluation.run_authorization import authorization_fingerprint
+
+            return authorization_fingerprint(content)
+        if kind == "invocation":
+            from thesis.evaluation.effective_invocation import invocation_fingerprint
+
+            return invocation_fingerprint(content)
+        if kind == "runtime" and owner and owner.startswith("stage."):
+            from thesis.evaluation.stage_runtime import _evidence_fingerprint
+
+            return _evidence_fingerprint(content)
+        if kind == "runtime" and owner == "evidence":
+            from thesis.evaluation.run_authorization import t0_evidence_fingerprint
+
+            if content.get("evidence_version", "").startswith("t0_runtime_evidence.v2"):
+                return t0_evidence_fingerprint(content)
+            return canonical_sha256(content)
+        if kind == "contract":
+            return content.get("contract_sha256")
+    except Exception:  # noqa: BLE001 - an unverifiable fragment is not a false FAIL
+        return None
+    return None
 
 
 def merge_is_deterministic(intermediate_dir: Path, run_id: str) -> bool:

@@ -216,9 +216,11 @@
         "reason": "Declared single source of truth for compile and launch: base flags (-std=c++17 -O3), USE_* macros, compiler resolution (g++/mpicxx), -fopenmp, default launch grids (omp threads / mpi ranks 1,2,4,8). Essentially all content is measurement-condition semantics."
       },
       "thesis/evaluation/run_correctness.py": {
-        "sha256": "35a9a633da4689a4eb2a627730d0a0b810d4f71ae861515768990a4ade99350b",
+        "sha256": "59e26c6f0bbd6383c0f22c0affad856a94ccc010d92e96bf5fbd24735164136c",
         "granularity": "coarse",
-        "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected."
+        "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected. Refreshed 2026-09-06 (pre-run enforcement wave): the stage now stamps the runtime it actually runs under and registers its EFFECTIVE invocation before the first record (git diff --numstat: 32\t0\tthesis/evaluation/run_correctness.py; additions only, no verdict/measurement logic touched). Execution semantics unchanged.",
+        "previous_sha256": "35a9a633da4689a4eb2a627730d0a0b810d4f71ae861515768990a4ade99350b",
+        "change_classification": "ENFORCEMENT_ONLY"
       },
       "thesis/evaluation/framework.py": {
         "sha256": "0ef4956864b145fee21e470eb4524393d909dc1c67f5c3e5af804586bfda72aa",
@@ -233,9 +235,11 @@
         }
       },
       "thesis/evaluation/run_enhanced_tests.py": {
-        "sha256": "c415a9d3c4b2ba29d459ec6271a475fd103673d8e145a894aec80909e50497bd",
+        "sha256": "9346d9a14b6ff94ddecdc028af0c6493e73707207936db08af87a3abe3407053",
         "granularity": "coarse",
-        "reason": "Productive enhanced execution/verdict path (spec grouping, runtime-fill launches, enhanced verdicts) plus substantial runner/CLI/orchestration code."
+        "reason": "Productive enhanced execution/verdict path (spec grouping, runtime-fill launches, enhanced verdicts) plus substantial runner/CLI/orchestration code. Refreshed 2026-09-06 (pre-run enforcement wave): the stage now stamps the runtime it actually runs under and registers its EFFECTIVE invocation before the first record (git diff --numstat: 26\t0\tthesis/evaluation/run_enhanced_tests.py; additions only, no verdict/measurement logic touched). Execution semantics unchanged.",
+        "previous_sha256": "c415a9d3c4b2ba29d459ec6271a475fd103673d8e145a894aec80909e50497bd",
+        "change_classification": "ENFORCEMENT_ONLY"
       },
       "thesis/enhanced_tests/specs.py": {
         "sha256": "b0e337aae6c9b113c94ce276493fb11c43f4fb97e545825a56c75461c056016f",
@@ -1412,7 +1416,65 @@
         "changed_components": "none on the correctness side",
         "partial_gap_closure_since_the_last_freeze": "E3.1.1 now persists the EFFECTIVE run_timeout_seconds and the effective jobs map inside the enhanced execution fingerprint (component G). The documented gap 'the effective --run-timeout is persisted nowhere' is therefore closed for the ENHANCED stage and remains open for run_correctness.py.",
         "exclusions": [],
-        "disclosure_requirements": "EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED before pilot_002"
+        "disclosure_requirements": "EFFECTIVE_INVOCATION_RUNTIME_CHECK = REQUIRED before pilot_002",
+        "pre_run_enforcement_wave": {
+          "wave": "pre_run_infrastructure_1_enforcement",
+          "date": "2026-09-06",
+          "start_head": "636c370394f465a2b8ece7ea5c8920762af10178",
+          "scope": "provider chokepoint enforcement, T0 start authorization, fresh T0 runtime revalidation, per-stage runtime binding, effective invocation provenance, real batch resubmission guarding, post-run verification of that chain",
+          "change_classification_per_area": {
+            "provider_calls": "ENFORCEMENT_ONLY",
+            "stage_runners": "ENFORCEMENT_ONLY",
+            "repair_orchestrator": "ENFORCEMENT_ONLY",
+            "run_manifest_fragments": "PROVENANCE_ONLY",
+            "post_run_verifier": "PROVENANCE_ONLY",
+            "execution_semantics": "UNCHANGED"
+          },
+          "changed": [
+            "the direct provider chokepoint (thesis/generation/common.py::call_with_retries) and the batch chokepoint (thesis/generation/batch_api.py::submit_batch, plus poll_batch as a read-only validation) refuse every provider request without a valid run authorization",
+            "run_start_authorization.v1 with a methodical fingerprint (timestamps, pid, hostname and probe duration excluded), committed only after the contract and the T0 runtime evidence are bound, and read back before the first request",
+            "t0_runtime_evidence.v2: a FRESH probe of main/parcoach/llov at T0, compared against the readiness proof and the contract; a probe failure is PRE_RUN_RUNTIME_UNRESOLVED, never a provider failure",
+            "stage_runtime_evidence.v1: correctness, dynamic, enhanced, static.main, static.parcoach, static.llov and repair_evaluation stamp the runtime they actually run under and refuse to produce records on drift (STAGE_RUNTIME_DRIFT, never a TOOL_ERROR or a model failure)",
+            "effective_stage_invocation.v1: the REAL methodical CLI values (run timeout, primary compiler, tool/spec/model scope) with their source are persisted and checked against the frozen contract - ALLOWED_ONLY_IF_DECLARED_AND_PINNED",
+            "the post-run verifier checks the authorization chain, CONTRACT == T0 == STAGE per runtime domain (missing stamp -> UNRESOLVED) and the effective invocations",
+            "machine-readable inventories: provider_call_sites.v1 (UNGUARDED_PROVIDER_CALL_SITES = []) and cli_override_inventory.v1"
+          ],
+          "not_changed": [
+            "generation prompts and request content",
+            "semantic decisions",
+            "dense_la/00 tolerance and comparator",
+            "correctness verdict semantics",
+            "K1-K6 methodology",
+            "enhanced frozen specs, spec_key, enhanced policy",
+            "static finding semantics and tool-state semantics",
+            "PARCOACH confidence policy, LLOV semantics, InferBO policy",
+            "repair stop semantics, retry policy, variants, max_iterations",
+            "assembly cleaning semantics and the writer's newline policy",
+            "timing field semantics",
+            "reporting disclosure semantics",
+            "the per-writer manifest fragment architecture",
+            "cross-pilot classifications, correctness 99/99/198, comparability classes",
+            "pilot_001 artifacts (untouched)"
+          ],
+          "repair_condition_refresh": {
+            "reason": "the repair condition contains a raw hash of thesis/repair/orchestrator.py, and the repair evaluation now stamps its stage runtime",
+            "previous": "935430bbf628d11573fefdaa0860876a2cdc4c5adf23b0ba09832a54fd4015f9",
+            "proof": "recomputing the repair condition with the HEAD version of orchestrator.py reproduces the previous value exactly; the only differing field is orchestrator_sha256",
+            "static_analysis_condition_unchanged": true,
+            "current": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+            "previous_runtime_condition_sha256": "70c0f4890b23e20a95471c4d90b9c51fdfbe6473d3f938004680f328ee1ad12a",
+            "current_runtime_condition_sha256": "a2f46b1a5e35e60150fc7c77ef7c40185fd6d6b6aed51ddc02c9e524af53f446",
+            "static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+            "readiness_gate": "READY"
+          },
+          "provider_call_site_inventory": {
+            "schema": "provider_call_sites.v1",
+            "unguarded": 0,
+            "direct_chokepoint": "thesis/generation/common.py::call_with_retries",
+            "batch_chokepoint": "thesis/generation/batch_api.py::submit_batch"
+          },
+          "api_calls_made": 0
+        }
       },
       "F_static_repair": {
         "status": "REEVALUATED_STATIC_REPAIR_WAVE",
@@ -1681,6 +1743,6 @@
     "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
   "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged",
-  "cross_pilot_fingerprint_sha256": "4957b9c323ffda63c95c06a53da13ee981ca4a608a6cf728d475f913bde6baa6",
+  "cross_pilot_fingerprint_sha256": "c523648b8fa18287a68ced74679fbd54043d34feedf8ae722a0485f27a4daf80",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

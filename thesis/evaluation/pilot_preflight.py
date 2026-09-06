@@ -205,6 +205,38 @@ def prerun_infrastructure_lines() -> "list":
                  "frozen once the population decision and the base run id are made)")
     lines.append("T0_START_GUARD = READY (pilot_run_contract.t0_guard: rebuild + compare "
                  "immediately before the first cost-causing request; drift -> START_REFUSED)")
+    # ---- provider chokepoint enforcement (measured, not asserted) --------
+    from thesis.evaluation import (effective_invocation, provider_call_sites,
+                                   run_authorization, stage_runtime)
+
+    inventory = provider_call_sites.build_inventory()
+    unguarded = inventory["UNGUARDED_PROVIDER_CALL_SITES"]
+    lines.append("PROVIDER_CALL_SITES = %d (cost-causing %d, submit %d)"
+                 % (inventory["counts"]["provider_call_sites"],
+                    inventory["counts"]["cost_causing"], inventory["counts"]["submit_sites"]))
+    lines.append("PROVIDER_DIRECT_CHOKEPOINT = %s" % inventory["chokepoints"]["direct"])
+    lines.append("PROVIDER_BATCH_CHOKEPOINT = %s" % inventory["chokepoints"]["batch_submit"])
+    lines.append("UNGUARDED_PROVIDER_CALL_SITES = %s"
+                 % ("[]" if not unguarded else ", ".join(
+                     "%s:%d" % (s["file"], s["line"]) for s in unguarded)))
+    lines.append("T0_START_GUARD_ENFORCED_BY_PROVIDER_CHOKEPOINT = %s"
+                 % ("true" if not unguarded else "false"))
+    lines.append("AUTHORIZATION_SCHEMA = %s (policy %s)"
+                 % (run_authorization.AUTHORIZATION_SCHEMA_VERSION,
+                    run_authorization.AUTHORIZATION_POLICY_VERSION))
+    lines.append("AUTHORIZATION_VOLATILE_FIELDS_EXCLUDED_FROM_FINGERPRINT = %s"
+                 % str(run_authorization.AUTHORIZATION_VOLATILE_FIELDS_EXCLUDED_FROM_FINGERPRINT
+                       ).lower())
+    lines.append("T0_RUNTIME_EVIDENCE = %s" % run_authorization.T0_RUNTIME_EVIDENCE_VERSION)
+    lines.append("T0_REQUIRES_DOCKER_AND_ALL_THREE_IMAGES = %s (%s)"
+                 % (str(run_authorization.T0_REQUIRES_DOCKER_AND_ALL_THREE_IMAGES).lower(),
+                    ", ".join(run_authorization.REQUIRED_RUNTIME_DOMAINS)))
+    lines.append("PER_STAGE_RUNTIME_BINDING = READY (%s; stages: %s)"
+                 % (stage_runtime.STAGE_RUNTIME_EVIDENCE_VERSION,
+                    ", ".join(stage_runtime.STAGE_DOMAINS)))
+    lines.append("EFFECTIVE_INVOCATION_PROVENANCE = READY (%s; policy %s)"
+                 % (effective_invocation.EFFECTIVE_INVOCATION_VERSION,
+                    effective_invocation.OVERRIDE_POLICY))
     lines.append("POST_RUN_VERIFICATION_MECHANISM = READY (%s)"
                  % verify_pilot_run.VERIFIER_VERSION)
     lines.append("PILOT_002_POST_RUN_VERIFIED = NOT_APPLICABLE_BEFORE_RUN")

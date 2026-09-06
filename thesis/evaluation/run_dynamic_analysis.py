@@ -480,6 +480,31 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
+    # Pre-run enforcement (contracted runs only): the dynamic stage stamps
+    # the main-container runtime it actually runs under before any record.
+    from thesis.evaluation import stage_runtime
+
+    enforcement = stage_runtime.enforce_stage(
+        config, run_id, "dynamic",
+        effective_values={
+            "primary_compiler": {
+                "value": args.primary_compiler,
+                "source": "CLI" if args.primary_compiler != "g++" else "DEFAULT"},
+            "tools": {"value": sorted(known), "source": "CLI" if args.tools else "CONFIG"},
+            "skip_unavailable_tools": {"value": bool(getattr(args, "skip_unavailable_tools", False)),
+                                       "source": "CLI" if getattr(args, "skip_unavailable_tools", False)
+                                       else "DEFAULT"},
+        },
+        profile=args.profile,
+        model_scope=[model["id"] for model in models] if args.model_id else None,
+        writer="dynamic_analysis")
+    if enforcement.get("enforced"):
+        print("Pre-run enforcement: stage runtime %s..., invocation %s..."
+              % (str(enforcement.get("stage_runtime_sha256"))[:12],
+                 str(enforcement.get("invocation_sha256"))[:12]))
+    else:
+        print("Pre-run enforcement: NOT_APPLICABLE (%s)" % enforcement.get("reason"))
+
     print(f"Dynamic analysis | run {run_id} | tools: " + ", ".join(f"{n}[{chr(47).join(s.execution_models)}]" for n, s in known.items()))
     print("=" * 40)
 

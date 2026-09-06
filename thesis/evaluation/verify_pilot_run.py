@@ -148,6 +148,15 @@ def check_identity(report: Report, run_id: str, contract: "Optional[Dict[str, An
                    {"manifest": bound, "frozen": contract.get("contract_sha256")})
 
 
+def _t0_runtime_sha(manifest: "Optional[Dict[str, Any]]") -> "Optional[str]":
+    """The runtime condition T0 bound to the run. t0_runtime_evidence.v2
+    records the freshly probed sha; the v1 shape carried the readiness sha
+    under its own name."""
+    evidence = (manifest or {}).get("runtime_evidence") or {}
+    return (evidence.get("fresh_runtime_condition_sha256")
+            or evidence.get("static_repair_runtime_condition_sha256"))
+
+
 def check_conditions(report: Report, contract: "Optional[Dict[str, Any]]",
                      manifest: "Optional[Dict[str, Any]]") -> None:
     """Every condition the contract pins and the run can register must match.
@@ -162,8 +171,7 @@ def check_conditions(report: Report, contract: "Optional[Dict[str, Any]]",
         ("repair_condition_sha256", m.get("repair_condition_sha256")),
         ("assembly_condition_sha256", m.get("assembly_condition_sha256")),
         ("enhanced_frozen_specs_sha256", (m.get("enhanced_specs") or {}).get("sha256")),
-        ("static_repair_runtime_condition_sha256",
-         (m.get("runtime_evidence") or {}).get("static_repair_runtime_condition_sha256")),
+        ("static_repair_runtime_condition_sha256", _t0_runtime_sha(m)),
     ]
     mismatches = []
     unresolved = []
@@ -193,6 +201,164 @@ def check_conditions(report: Report, contract: "Optional[Dict[str, Any]]",
         report.add("profile_matches_contract",
                    PASS if recorded_profile == contract["profile"] else FAIL,
                    "manifest profile %r vs contract %r" % (recorded_profile, contract["profile"]))
+
+
+def check_authorization(report: Report, config: Dict[str, Any], run_id: str,
+                        contract: "Optional[Dict[str, Any]]",
+                        manifest: "Optional[Dict[str, Any]]") -> None:
+    """The run must carry the start authorization that let the first
+    cost-causing provider request happen, and it must belong to THIS run and
+    contract."""
+    from thesis.evaluation import manifest_fragments as mf
+    from thesis.evaluation import run_authorization as ra
+
+    intermediate_dir = Path(config["outputs"]["intermediate_dir"])
+    tampered = mf.verify_fragment_integrity(intermediate_dir, run_id)
+    report.add("run_provenance_integrity", PASS if not tampered else FAIL,
+               "%d fragment(s) whose content no longer matches their registered "
+               "fingerprint" % len(tampered), {"tampered": tampered[:10]})
+
+    state = ra.authorization_state(config, run_id)
+    if not state["present"]:
+        report.add("start_authorization_present", UNRESOLVED,
+                   "the run carries no start authorization - it cannot be shown that the "
+                   "first cost-causing request passed the T0 guard")
+        return
+    report.add("start_authorization_present", PASS, "authorization %s..."
+               % str(state["authorization_sha256"])[:12])
+    report.add("start_authorization_allowed",
+               PASS if state["decision"] == ra.DECISION_ALLOWED else FAIL,
+               "decision %r" % state["decision"])
+    report.add("start_authorization_fingerprint_consistent",
+               PASS if state["authorization_sha256"] == state["recomputed_sha256"] else FAIL,
+               "stored %s... vs recomputed %s..."
+               % (str(state["authorization_sha256"])[:12], str(state["recomputed_sha256"])[:12]))
+    if contract is not None:
+        report.add("start_authorization_matches_contract",
+                   PASS if state["frozen_contract_sha256"] == contract.get("contract_sha256")
+                   else FAIL,
+                   "authorization contract %s... vs frozen %s..."
+                   % (str(state["frozen_contract_sha256"])[:12],
+                      str(contract.get("contract_sha256"))[:12]))
+    evidence = (manifest or {}).get("runtime_evidence") or {}
+    if not evidence:
+        report.add("t0_runtime_evidence_present", UNRESOLVED,
+                   "no T0 runtime evidence bound to the run")
+        return
+    report.add("t0_runtime_evidence_present", PASS,
+               "T0 evidence %s (%s)" % (evidence.get("evidence_version"),
+                                        evidence.get("probe_status")))
+    report.add("t0_fresh_runtime_matched_readiness",
+               PASS if evidence.get("fresh_runtime_condition_sha256")
+               == evidence.get("readiness_runtime_condition_sha256") else FAIL,
+               "fresh %s... vs readiness %s..."
+               % (str(evidence.get("fresh_runtime_condition_sha256"))[:12],
+                  str(evidence.get("readiness_runtime_condition_sha256"))[:12]))
+    report.add("t0_authorization_runtime_consistent",
+               PASS if evidence.get("fresh_runtime_condition_sha256")
+               == state["fresh_t0_runtime_condition_sha256"] else FAIL,
+               "evidence %s... vs authorization %s..."
+               % (str(evidence.get("fresh_runtime_condition_sha256"))[:12],
+                  str(state["fresh_t0_runtime_condition_sha256"])[:12]))
+    domains = evidence.get("domains") or {}
+    missing_identities = []
+    for domain in evidence.get("required_runtime_domains") or []:
+        entry = domains.get(domain) or {}
+        if not entry.get("tool_identities"):
+            missing_identities.append(domain)
+        elif not (entry.get("image_id") or entry.get("repo_digests")
+                  or entry.get("rootfs_layers_sha256")):
+            missing_identities.append("%s (no immutable image identity)" % domain)
+    report.add("t0_required_identities_present",
+               PASS if not missing_identities else UNRESOLVED,
+               "domains without a complete identity: %s" % (", ".join(missing_identities) or "none"))
+
+
+def check_stage_runtime(report: Report, contract: "Optional[Dict[str, Any]]",
+                        manifest: "Optional[Dict[str, Any]]") -> "List[OrderedDict]":
+    """CONTRACT == T0 == STAGE per runtime domain. A missing stamp is
+    UNRESOLVED - never PASS because result files exist."""
+    from thesis.evaluation import stage_runtime as sr
+
+    if contract is None:
+        report.add("stage_runtime_matrix", UNRESOLVED,
+                   "no frozen contract: the expected result-producing stages are unknown")
+        return []
+    matrix = sr.runtime_matrix(manifest, contract)
+    stamps = sr.registered_stage_runtimes(manifest)
+    t0_sha = ((manifest or {}).get("runtime_evidence") or {}).get(
+        "fresh_runtime_condition_sha256")
+    for row in matrix:
+        stage = row["stage"]
+        owner, _domains = sr.STAGE_DOMAINS[stage]
+        stamp = stamps.get(owner)
+        check_id = "stage_runtime:%s.%s" % (stage, row["domain"])
+        if stamp is None:
+            report.add(check_id, UNRESOLVED,
+                       "no stage runtime stamp for %s - the runtime that produced these "
+                       "records is unproven (result files do not substitute for it, and a "
+                       "retrospective probe now never does)" % stage)
+            continue
+        if stamp.get("contract_sha256") != contract.get("contract_sha256"):
+            report.add(check_id, FAIL,
+                       "the stage runtime stamp belongs to contract %s..., not %s..."
+                       % (str(stamp.get("contract_sha256"))[:12],
+                          str(contract.get("contract_sha256"))[:12]))
+            continue
+        domain_entry = (stamp.get("domains") or {}).get(row["domain"]) or {}
+        expected = domain_entry.get("expected_t0_domain_sha256")
+        observed = domain_entry.get("observed_domain_sha256")
+        if not expected or not observed:
+            report.add(check_id, UNRESOLVED,
+                       "the stamp carries no comparable identity for domain %s" % row["domain"])
+            continue
+        if expected != observed:
+            report.add(check_id, FAIL, "T0 %s... vs stage %s..."
+                       % (expected[:12], observed[:12]))
+            continue
+        stamped_t0 = stamp.get("expected_t0_runtime_condition_sha256")
+        if t0_sha and stamped_t0 and stamped_t0 != t0_sha:
+            report.add(check_id, FAIL,
+                       "the stamp was taken against another T0 runtime (%s... vs %s...)"
+                       % (str(stamped_t0)[:12], str(t0_sha)[:12]))
+            continue
+        report.add(check_id, PASS, "contract == T0 == stage (%s, %s)"
+                   % (row["domain"], stamp.get("observation_mode")))
+    return matrix
+
+
+def check_effective_invocation(report: Report, contract: "Optional[Dict[str, Any]]",
+                               manifest: "Optional[Dict[str, Any]]") -> None:
+    """The EFFECTIVE stage invocation (the real CLI values) must match the
+    contract - a frozen config that agrees with the contract proves nothing
+    about the value the stage actually ran with."""
+    from thesis.evaluation import effective_invocation as ei
+    from thesis.evaluation import stage_runtime as sr
+
+    if contract is None:
+        return
+    invocations = ei.registered_invocations(manifest)
+    for stage in sr.expected_stages(contract):
+        invocation = invocations.get(stage)
+        check_id = "effective_invocation:%s" % stage
+        if invocation is None:
+            report.add(check_id, UNRESOLVED,
+                       "no effective invocation registered for %s - a methodical CLI "
+                       "override cannot be excluded" % stage)
+            continue
+        problems = ei.check_against_contract(invocation, contract)
+        recomputed = ei.invocation_fingerprint(invocation)
+        if recomputed != invocation.get("invocation_sha256"):
+            problems.append("the invocation fragment does not match its own fingerprint")
+        report.add(check_id, PASS if not problems else FAIL,
+                   "; ".join(problems) if problems else
+                   "effective values match the contract (%s)"
+                   % ", ".join("%s=%s[%s]" % (name, (entry or {}).get("value"),
+                                              (entry or {}).get("source"))
+                               for name, entry in sorted(
+                                   (invocation.get("effective_values") or {}).items())),
+                   {"effective_values": invocation.get("effective_values"),
+                    "override_policy": invocation.get("override_policy")})
 
 
 def check_invocation(report: Report, contract: "Optional[Dict[str, Any]]",
@@ -539,8 +705,7 @@ def check_runtime(report: Report, manifest: "Optional[Dict[str, Any]]",
     mismatches = []
     if evidence.get("contract_sha256") != contract.get("contract_sha256"):
         mismatches.append("contract_sha256")
-    if evidence.get("static_repair_runtime_condition_sha256") != \
-            conditions.get("static_repair_runtime_condition_sha256"):
+    if _t0_runtime_sha(manifest) != conditions.get("static_repair_runtime_condition_sha256"):
         mismatches.append("static_repair_runtime_condition_sha256")
     report.add("runtime_evidence_bound_at_t0", PASS if not mismatches else FAIL,
                "runtime evidence %s" % ("matches the contract" if not mismatches
@@ -579,6 +744,9 @@ def verify(config: Dict[str, Any], run_id: str,
     check_identity(report, run_id, contract, manifest)
     check_invocation(report, contract, manifest)
     check_conditions(report, contract, manifest)
+    check_authorization(report, config, run_id, contract, manifest)
+    runtime_matrix = check_stage_runtime(report, contract, manifest)
+    check_effective_invocation(report, contract, manifest)
 
     raw_run = raw / run_id
     observed_models = sorted(p.name for p in raw_run.iterdir()
@@ -613,6 +781,8 @@ def verify(config: Dict[str, Any], run_id: str,
         ("status", report.status()),
         ("counts", report.counts()),
         ("models", models),
+        ("runtime_matrix", runtime_matrix),
+        ("retrospective_runtime_substitution_allowed", False),
         ("checks", report.checks),
     ])
 

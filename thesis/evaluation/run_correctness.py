@@ -794,6 +794,38 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
+    # Pre-run enforcement (contracted runs only): the runtime this stage
+    # ACTUALLY runs under is measured and bound now, and the EFFECTIVE
+    # invocation (the real --run-timeout / --primary-compiler / model scope,
+    # not the frozen config) is checked against the contract. Both happen
+    # BEFORE the first correctness record is written; drift aborts the stage
+    # without producing records.
+    from thesis.evaluation import stage_runtime
+
+    enforcement = stage_runtime.enforce_stage(
+        config, run_id, "correctness",
+        effective_values={
+            "effective_run_timeout_seconds": {
+                "value": run_timeout,
+                "source": "CLI" if args.run_timeout is not None else (
+                    "CONFIG" if stage.get("run_timeout_seconds") is not None else "DEFAULT"),
+            },
+            "primary_compiler": {
+                "value": args.primary_compiler,
+                "source": "CLI" if args.primary_compiler != "g++" else "DEFAULT",
+            },
+            "output_file_name": {"value": output_file_name, "source": "CONFIG"},
+        },
+        profile=args.profile,
+        model_scope=[model["id"] for model in models] if args.model_id else None,
+        writer="correctness_tests")
+    if enforcement.get("enforced"):
+        print("Pre-run enforcement: stage runtime %s..., invocation %s..."
+              % (str(enforcement.get("stage_runtime_sha256"))[:12],
+                 str(enforcement.get("invocation_sha256"))[:12]))
+    else:
+        print("Pre-run enforcement: NOT_APPLICABLE (%s)" % enforcement.get("reason"))
+
     print(f"Correctness tests | run {run_id} | niter={niter} | run timeout {run_timeout}s")
     print("=" * 40)
 

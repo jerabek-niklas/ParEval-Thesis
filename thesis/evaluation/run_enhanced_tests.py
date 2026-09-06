@@ -879,6 +879,32 @@ def main() -> None:
     if not models:
         raise ValueError("No enabled models matched the selection.")
 
+    # Pre-run enforcement (contracted runs only): stamp the runtime this
+    # stage actually runs under and pin the effective invocation BEFORE the
+    # first enhanced record.
+    from thesis.evaluation import stage_runtime
+
+    enforcement = stage_runtime.enforce_stage(
+        config, run_id, "enhanced",
+        effective_values={
+            "specs_path": {"value": str(args.specs), "source": "CLI"},
+            "jobs": {"value": ",".join("%s=%d" % (m, jobs[m]) for m in execution_models),
+                     "source": "CLI" if args.jobs else "CONFIG"},
+            "effective_enhanced_run_timeout_seconds": {
+                "value": run_timeout,
+                "source": "CONFIG" if stage.get("run_timeout_seconds") is not None
+                else "DEFAULT"},
+        },
+        profile=args.profile,
+        model_scope=[model["id"] for model in models] if args.model_id else None,
+        writer="enhanced_tests")
+    if enforcement.get("enforced"):
+        print("Pre-run enforcement: stage runtime %s..., invocation %s..."
+              % (str(enforcement.get("stage_runtime_sha256"))[:12],
+                 str(enforcement.get("invocation_sha256"))[:12]))
+    else:
+        print("Pre-run enforcement: NOT_APPLICABLE (%s)" % enforcement.get("reason"))
+
     print(
         f"Enhanced tests | run {run_id} | target {target_cases} specs/benchmark "
         f"| execution models: {'/'.join(execution_models)} "

@@ -54,6 +54,42 @@ def sample_id(benchmark, index=0):
     return "%s__%s__%s__serial__sample_%d" % (MODEL, benchmark[0], benchmark[1], index)
 
 
+def fake_environment(name, tools, extra=None):
+    """A pinned runtime domain exactly as the readiness probe reports one."""
+    return OrderedDict([
+        ("image_ref", "%s-image" % name),
+        ("image_id", "sha256:%s" % (name * 8)[:64]),
+        ("repo_digests", ["%s@sha256:%s" % (name, (name * 8)[:64])]),
+        ("rootfs_layers_sha256", ("%s%s" % (name, "0" * 64))[:64]),
+        ("tool_identities", OrderedDict(sorted(tools.items()))),
+        ("evidence", OrderedDict(sorted((extra or {}).items()))),
+        ("probe_error", None),
+    ])
+
+
+def fake_environments(**overrides):
+    environments = OrderedDict([
+        ("main", fake_environment("main", {
+            "compiler": "g++ 13.3.0", "mpi": "mpirun (Open MPI) 4.1.6",
+            "gcc_analyzer": "gcc 13.3.0", "clang_tidy": "clang-tidy 18.1.3",
+            "cppcheck": "cppcheck 2.13.0", "infer": "infer 1.1.0"},
+            {"toolchain_stamp": "2026-07-31"})),
+        ("parcoach", fake_environment("parcoach", {"parcoach": "PARCOACH 2.4.0"},
+                                      {"executable_sha256": "1bad6752" + "0" * 56,
+                                       "llvm_backend": "LLVM 15.0.7"})),
+        ("llov", fake_environment("llov", {"llov": "clang 7.1.0"},
+                                  {"plugin_sha256": "19bbc86b" + "0" * 56,
+                                   "clang_identity": "clang version 7.1.0"})),
+    ])
+    for domain, mutate in (overrides or {}).items():
+        environments[domain] = mutate(environments[domain])
+    return environments
+
+
+def fake_prober(config):
+    return fake_environments()
+
+
 def generation_record(benchmark, prompt_text, raw_text):
     return {
         "sample_id": sample_id(benchmark),
@@ -83,15 +119,18 @@ class World:
         self.config_path = self.root / "config.yaml"
         self.contract_path = self.root / "frozen_contract.json"
         self.prompts_path = self.root / "prompts.json"
+        self.readiness_path = self.root / "readiness.json"
         self._write_prompts()
         self._write_config()
         from thesis.config.load_config import load_config
 
         self.config = load_config(self.config_path)
+        self._write_readiness()
         self._write_generations()
         self._freeze_contract(contract_run_id)
         self._assemble()
         self._bind_contract()
+        self.stamp_stages()
         self._write_stage_records()
 
     # ---- construction -------------------------------------------------
@@ -103,11 +142,28 @@ class World:
              "parallelism_model": "serial", "prompt": PROMPT_TEXT2},
         ])
 
+    def _write_readiness(self):
+        """The fixture's own readiness proof: the runtime condition of the
+        fake environments, computed by the PRODUCTIVE measurement path."""
+        from thesis.evaluation import run_authorization as ra
+
+        fresh = ra.measure_fresh_runtime(self.config, prober=fake_prober)
+        atomic_io.atomic_write_json(self.readiness_path, {
+            "schema_version": "static_repair_readiness.v2",
+            "gate": "READY",
+            "static_analysis_condition_sha256": fresh["static_analysis_condition_sha256"],
+            "repair_condition_sha256": fresh["repair_condition_sha256"],
+            "runtime_condition_sha256": fresh["sha256"],
+            "runtime_condition": fresh["condition"],
+            "runtime_fully_pinned": True,
+        })
+
     def _write_config(self):
         config = {
             "outputs": {"raw_dir": (self.root / "raw").as_posix(),
                         "intermediate_dir": (self.root / "intermediate").as_posix(),
-                        "root": (self.root / "results").as_posix()},
+                        "root": (self.root / "results").as_posix(),
+                        "readiness_artifact": self.readiness_path.as_posix()},
             "prompts": {"path": self.prompts_path.as_posix(), "prompt_field": "prompt",
                         "execution_models": ["serial"], "problem_types": None},
             "profiles": {"fixture": {"run_id": self.run_id, "selection": "prefix",
@@ -167,8 +223,20 @@ class World:
                                             {"id": model}, False, register_manifest=True)
 
     def _bind_contract(self, contract=None, sha=None, runtime=True):
-        run_manifest.register_contract(self.config, self.run_id,
-                                       sha or self.contract_sha, contract or self.contract)
+        """T0: authorize the run through the PRODUCTIVE path (contract
+        integrity, rebuild, fresh runtime probe, contract binding, evidence
+        binding, atomic authorization, read-back) with an injected runtime
+        prober, then stamp the expected measurement stages."""
+        from thesis.evaluation import run_authorization as ra
+
+        if runtime:
+            ra.clear_context()
+            ra.authorize_start(self.config, self.config_path, "fixture", self.run_id,
+                               self.contract_path, prober=fake_prober,
+                               allow_draft_contract=True)
+        else:
+            run_manifest.register_contract(self.config, self.run_id,
+                                           sha or self.contract_sha, contract or self.contract)
         # the analysis stages register their conditions during a real run
         conditions = self.contract.get("conditions") or {}
         run_manifest.register_static_condition(
@@ -177,15 +245,29 @@ class World:
         run_manifest.register_repair_condition(
             self.config, self.run_id, conditions["repair_condition_sha256"],
             {"fixture": "repair"})
-        if runtime:
-            conditions = self.contract.get("conditions") or {}
-            run_manifest.register_runtime_evidence(self.config, self.run_id, OrderedDict([
-                ("evidence_version", "t0_runtime_evidence.v1"),
-                ("contract_sha256", self.contract_sha),
-                ("static_repair_runtime_condition_sha256",
-                 conditions.get("static_repair_runtime_condition_sha256")),
-                ("main_image_identity_live", {"image_id": "sha256:fixture"}),
-            ]))
+
+    def stamp_stages(self):
+        """Every result-producing stage the contract expects stamps the
+        runtime it runs under and pins its effective invocation."""
+        from thesis.evaluation import stage_runtime
+
+        stage_runtime.reset_cache()
+        stage_runtime.enforce_stage(
+            self.config, self.run_id, "correctness",
+            effective_values={
+                "effective_run_timeout_seconds": {"value": 120, "source": "CONFIG"},
+                "primary_compiler": {"value": "g++", "source": "DEFAULT"},
+            },
+            profile="fixture", prober=fake_prober, writer="correctness_tests")
+        stage_runtime.enforce_stage(
+            self.config, self.run_id, "enhanced",
+            effective_values={"specs_path": {"value": "frozen", "source": "CLI"}},
+            profile="fixture", prober=fake_prober, writer="enhanced_tests")
+        stage_runtime.enforce_stage(
+            self.config, self.run_id, "static.main",
+            effective_values={"primary_compiler": {"value": "g++", "source": "DEFAULT"},
+                              "tools": {"value": ["compiler"], "source": "CONFIG"}},
+            profile="fixture", prober=fake_prober, writer="static_analysis")
 
     def _write_stage_records(self):
         for model in self.models:
@@ -464,7 +546,7 @@ def main():
         path = mf.fragment_path(Path(world.config["outputs"]["intermediate_dir"]),
                                 world.run_id, "runtime", "evidence")
         fragment = json.loads(path.read_text(encoding="utf-8"))
-        fragment["content"]["static_repair_runtime_condition_sha256"] = "9" * 64
+        fragment["content"]["fresh_runtime_condition_sha256"] = "9" * 64
         atomic_io.atomic_write_json(path, fragment)
         mf.write_snapshot(Path(world.config["outputs"]["intermediate_dir"]), world.run_id)
 

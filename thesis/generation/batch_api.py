@@ -101,7 +101,20 @@ def submit_batch(
     requests: List[Tuple[str, str]],
 ) -> Dict[str, Any]:
     """Submit one batch job; returns provider info incl. batch_id.
-    `requests` is an ordered [(sample_id, request_text), ...]."""
+    `requests` is an ordered [(sample_id, request_text), ...].
+
+    THIS IS THE BATCH PROVIDER CHOKEPOINT. Every provider-specific submit
+    helper is private and reachable only from here, so a new batch job -
+    including a BatchResponseMissing resubmission - can never be created
+    without a valid run authorization, a revalidated contract and a fresh
+    runtime that still matches T0. The refusal is a
+    PRE_RUN_INFRASTRUCTURE_FAILURE, never a provider failure."""
+    from thesis.evaluation import run_authorization
+
+    run_authorization.require_provider_call(
+        run_authorization.CALL_KIND_BATCH_SUBMIT,
+        label="%s batch submit (%d request(s))" % (provider, len(requests or [])))
+
     if provider == "anthropic":
         return _anthropic_submit(model_config, generation_defaults, system_prompt, requests)
     if provider == "openai":
@@ -125,6 +138,16 @@ def poll_batch(
     model_config: Dict[str, Any],
     batch_info: Dict[str, Any],
 ) -> BatchStatus:
+    """Status read of an ALREADY authorized job. It is not a new submission:
+    it validates the existing authorization (fail-closed) but creates no
+    authorization and re-probes no runtime. A resubmission triggered by the
+    poll's result goes through submit_batch and is fully revalidated there."""
+    from thesis.evaluation import run_authorization
+
+    run_authorization.require_provider_call(
+        run_authorization.CALL_KIND_BATCH_POLL,
+        label="%s batch poll (%s)" % (provider, (batch_info or {}).get("batch_id")))
+
     if provider == "anthropic":
         return _anthropic_poll(model_config, batch_info)
     if provider in ("openai", "openai_compatible"):
