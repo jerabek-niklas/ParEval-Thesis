@@ -57,6 +57,125 @@ CONTRACT_EXPECTATIONS = OrderedDict([
     ("primary_compiler", "primary_compiler"),
 ])
 
+# ---------------------------------------------------------------------------
+# machine-readable coupling to the CLI inventory
+# ---------------------------------------------------------------------------
+#
+# An invocation fragment may only carry values that are METHODICAL CLI
+# overrides of THAT stage. Anything else is misleading provenance: a reader
+# would take it for a pinned methodical value although it changes nothing
+# that is measured. `output_file_name` was exactly that case - the CLI
+# inventory classifies it as NON_METHODICAL ("name of the stage's own output
+# file - the measured content is unchanged"), yet the correctness stage
+# registered it.
+
+# invocation field -> the CLI dest whose effective value it is
+INVOCATION_FIELD_TO_CLI_DEST = OrderedDict([
+    ("effective_run_timeout_seconds", "run_timeout"),
+    ("effective_enhanced_run_timeout_seconds", "run_timeout"),
+    ("primary_compiler", "primary_compiler"),
+    ("model_scope", "model_id"),
+    ("tools", "tools"),
+    ("specs", "specs"),
+    ("jobs", "jobs"),
+    ("variant", "variant"),
+    ("replace_tool_entries", "replace_tool_entries"),
+    ("replace_legacy_record", "replace_legacy_record"),
+    ("rerun_gaps", "rerun_gaps"),
+    ("skip_unavailable_tools", "skip_unavailable_tools"),
+])
+
+# measurement stage -> the runner stage of the CLI inventory
+STAGE_TO_INVENTORY_STAGE = OrderedDict([
+    ("correctness", "correctness"),
+    ("dynamic", "dynamic"),
+    ("enhanced", "enhanced"),
+    ("static.main", "static"),
+    ("static.parcoach", "static"),
+    ("static.llov", "static"),
+    ("repair_evaluation", "repair"),
+])
+
+_INVENTORY_CACHE = {}
+
+
+def _inventory():
+    if "inventory" not in _INVENTORY_CACHE:
+        from thesis.evaluation import cli_override_inventory as coi
+
+        _INVENTORY_CACHE["inventory"] = coi.build_inventory()
+    return _INVENTORY_CACHE["inventory"]
+
+
+def cli_dest_for(field: str) -> str:
+    """The canonical CLI dest an invocation field is the effective value of."""
+    return INVOCATION_FIELD_TO_CLI_DEST.get(field, field)
+
+
+def field_classification(stage: str, field: str) -> "OrderedDict[str, Any]":
+    """Is this invocation field a METHODICAL CLI override of `stage`?"""
+    inventory_stage = STAGE_TO_INVENTORY_STAGE.get(stage)
+    dest = cli_dest_for(field)
+    if inventory_stage is None:
+        # fail-closed: an unmapped stage cannot prove its field is methodical
+        return OrderedDict([("field", field), ("cli_dest", dest), ("stage", stage),
+                            ("methodical", False),
+                            ("reason", "no CLI inventory stage is mapped for %r, so the "
+                                       "field cannot be shown to be methodical" % stage)])
+    inventory = _inventory()
+    methodical = {e["dest"] for e in
+                  inventory["METHODICAL_CLI_OVERRIDES_BY_STAGE"].get(inventory_stage, [])}
+    non_methodical = {e["dest"]: e.get("reason") for e in
+                      inventory["NON_METHODICAL_CLI_OPTIONS_BY_STAGE"].get(inventory_stage, [])}
+    if dest in methodical:
+        return OrderedDict([("field", field), ("cli_dest", dest), ("stage", inventory_stage),
+                            ("methodical", True), ("reason", None)])
+    if dest in non_methodical:
+        return OrderedDict([("field", field), ("cli_dest", dest), ("stage", inventory_stage),
+                            ("methodical", False), ("reason", non_methodical[dest])])
+    from thesis.evaluation import cli_override_inventory as coi
+
+    if dest in coi.NON_METHODICAL_REASONS:
+        # the option exists in the pipeline and is classified NON_METHODICAL -
+        # it is not a CLI option of THIS runner either way
+        return OrderedDict([("field", field), ("cli_dest", dest), ("stage", inventory_stage),
+                            ("methodical", False), ("reason", coi.NON_METHODICAL_REASONS[dest])])
+    if field in CONTRACT_EXPECTATIONS:
+        # A methodical value the FROZEN CONTRACT pins. It is declared and
+        # pinned even where the runner exposes no CLI option for it (the
+        # enhanced run timeout comes from the config, and the contract pins
+        # enhanced_run_timeout_seconds), so persisting its EFFECTIVE value is
+        # exactly what the override policy requires.
+        return OrderedDict([("field", field), ("cli_dest", dest), ("stage", inventory_stage),
+                            ("methodical", True),
+                            ("reason", "contract-pinned methodical value (%s)"
+                                       % CONTRACT_EXPECTATIONS[field])])
+    return OrderedDict([("field", field), ("cli_dest", dest), ("stage", inventory_stage),
+                        ("methodical", False),
+                        ("reason", "neither a methodical CLI override of this stage "
+                                   "(%s) nor a contract-pinned value (%s)"
+                                   % (", ".join(sorted(methodical)),
+                                      ", ".join(CONTRACT_EXPECTATIONS)))])
+
+
+def non_methodical_fields(stage: str, effective_values: "Dict[str, Any]") -> "List[str]":
+    """Registered fields that carry no methodical meaning for `stage`.
+
+    Every invocation field must be either the effective value of an option in
+    METHODICAL_CLI_OVERRIDES_BY_STAGE[stage] - under the option's own dest or
+    under an explicitly declared canonical name (INVOCATION_FIELD_TO_CLI_DEST)
+    - or a value the frozen contract pins (CONTRACT_EXPECTATIONS). Anything
+    else is misleading provenance: it reads as a pinned methodical override
+    although it changes nothing that is measured."""
+    problems = []
+    for field in sorted(effective_values or {}):
+        verdict = field_classification(stage, field)
+        if verdict["methodical"] is False:
+            problems.append("%s (CLI dest %r is not a methodical override of stage %s: %s)"
+                            % (field, verdict["cli_dest"], verdict["stage"],
+                               verdict["reason"]))
+    return problems
+
 
 class InvocationRefused(RuntimeError):
     """The effective invocation contradicts the frozen contract - the stage
@@ -108,6 +227,12 @@ def build_invocation(run_id: str, stage: str, profile: "Optional[str]",
             "the invocation fragment must not duplicate config-only methodical values "
             "(%s): they already have an authoritative owner in the evaluation condition"
             % ", ".join(duplicates))
+    misleading = non_methodical_fields(stage, effective_values)
+    if misleading:
+        raise InvocationRefused(
+            "the invocation fragment must not carry NON_METHODICAL values (%s): they read "
+            "as pinned methodical overrides although they change nothing that is measured"
+            % "; ".join(misleading))
     invocation = OrderedDict([
         ("schema_version", EFFECTIVE_INVOCATION_VERSION),
         ("run_id", run_id),
@@ -204,16 +329,69 @@ def register_effective_invocation(config: "Dict[str, Any]", run_id: str, stage: 
                                 % (stage, "; ".join(problems)))
     intermediate_dir = Path(config["outputs"]["intermediate_dir"])
     try:
-        mf.register_fragment(intermediate_dir, run_id, "invocation", stage, invocation,
+        mf.register_fragment(intermediate_dir, run_id, "invocation",
+                             invocation_owner(stage, model_scope, effective_values),
+                             invocation,
                              fingerprint=invocation["invocation_sha256"],
                              writer=writer or stage)
     except mf.FragmentConflict as conflict:
         raise InvocationRefused(
             "EFFECTIVE_INVOCATION_DRIFT (%s): this run already registered a DIFFERENT "
-            "effective invocation for the stage: %s" % (stage, conflict))
+            "effective invocation for the stage%s: %s"
+            % (stage, "" if not model_scope else " and model scope %s"
+               % ", ".join(_as_list(model_scope)), conflict))
     mf.write_snapshot(intermediate_dir, run_id)
     return invocation
 
 
+# Effective values that say WHICH SUBSET OF THE WORK an invocation covers,
+# rather than under which condition it runs. A stage may legitimately be
+# invoked several times per run with different values here - the repair loop
+# runs once per (model, variant), the static stage once per tool subset and
+# container - so they belong in the fragment OWNER. Everything else (timeouts,
+# compiler, flags) stays fingerprint-only, so a CONTRADICTING condition under
+# the SAME scope is still a HARD FAIL.
+INVOCATION_SCOPE_FIELDS = ("variant", "tools")
+
+
+def invocation_owner(stage: str, model_scope: "Optional[Any]" = None,
+                     effective_values: "Optional[Dict[str, Any]]" = None) -> str:
+    """The invocation fragment's owner: stage + the invocation's SCOPE.
+
+    A stage that is invoked per model and per variant - the PARCOACH/LLOV
+    containers and the repair loop (11 models x 3 variants) - produces one
+    genuinely different effective invocation per scope. Keying the fragment by
+    the stage alone made the second model, and then the second variant, a HARD
+    FAIL that stopped the run. Putting the scope in the owner keeps the
+    per-writer fragment architecture intact: same stage + same scope stays
+    idempotent, and a CHANGED invocation under the same scope is still
+    refused."""
+    parts = []
+    scope = _as_list(model_scope)
+    if scope:
+        parts.append("+".join(sorted(str(item) for item in scope)))
+    for field in INVOCATION_SCOPE_FIELDS:
+        entry = (effective_values or {}).get(field)
+        if entry is None:
+            continue
+        value = entry.get("value") if isinstance(entry, dict) else entry
+        if value is None:
+            continue
+        rendered = ("+".join(sorted(str(item) for item in value))
+                    if isinstance(value, (list, tuple, set)) else str(value))
+        parts.append("%s-%s" % (field, rendered))
+    if not parts:
+        return stage
+    return "%s@%s" % (stage, "@".join(parts))
+
+
 def registered_invocations(manifest: "Optional[Dict[str, Any]]") -> "Dict[str, Any]":
     return (manifest or {}).get("stage_invocations") or {}
+
+
+def invocations_for_stage(manifest: "Optional[Dict[str, Any]]",
+                          stage: str) -> "List[Dict[str, Any]]":
+    """Every registered invocation of `stage`, across model scopes."""
+    return [invocation for owner, invocation in sorted(registered_invocations(manifest).items())
+            if (invocation or {}).get("stage") == stage
+            or owner == stage or owner.startswith(stage + "@")]

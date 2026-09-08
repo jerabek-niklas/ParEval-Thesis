@@ -1243,7 +1243,31 @@ def batch_info_path(generations_path: Path) -> Path:
     return generations_path.parent / "generation_batch.json"
 
 
+# The exit code a provider runner uses for a PRE_RUN_INFRASTRUCTURE_FAILURE.
+# Re-exported from run_authorization so the orchestrator and the runner agree
+# without importing the evaluation package eagerly.
+EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE = 3
+
+
 def run_generation(adapter: ProviderAdapter) -> None:
+    """Provider runner entry point.
+
+    A missing/invalid run authorization or a runtime drift is a
+    PRE_RUN_INFRASTRUCTURE_FAILURE: it leaves the runner with a DISTINCT exit
+    code instead of a traceback that the orchestrator would read as an
+    ordinary model failure.
+    """
+    try:
+        _run_generation(adapter)
+    except _pre_run_infrastructure_failure() as failure:
+        print()
+        print("PRE_RUN_INFRASTRUCTURE_FAILURE (%s): %s" % (type(failure).__name__, failure))
+        print("This is NOT a model or API failure: no generation record was written for "
+              "it, and the run must not continue with a partially authorized population.")
+        raise SystemExit(EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
+
+
+def _run_generation(adapter: ProviderAdapter) -> None:
     # Imported lazily so common.py has no hard dependency on the repo layout.
     from thesis.config.load_config import load_config
 
@@ -1277,6 +1301,37 @@ def run_generation(adapter: ProviderAdapter) -> None:
     api_key = get_api_key(model_config, adapter.default_api_key_env)
 
     generations_path, summary_path = get_output_paths(config, profile, model_config)
+
+    api_mode, fallback_note = resolve_api_mode(generation_defaults, adapter.provider)
+
+    if api_mode != "batch" and args.poll:
+        # documented no-op - and it must STAY one: running the bootstrap here
+        # would probe the runtime and persist a START_ALLOWED authorization
+        # for a command that does nothing
+        print("--poll has no effect in direct mode; nothing to do.")
+        return
+
+    # ---- cross-process run bootstrap --------------------------------------
+    # This runner is a NEW process (generate.py starts it via subprocess), so
+    # the parent's authorization context is not inherited. The PERSISTED run
+    # provenance is the source of truth: an already authorized run is
+    # rehydrated and revalidated here, an unauthorized one performs the full
+    # first start. A pure batch poll - and any invocation that finds batch
+    # bookkeeping from an EARLIER submission - rehydrates only: it neither
+    # probes the runtime nor creates an authorization, so a job submitted
+    # outside the policy is never retro-authorized. The chokepoints stay
+    # unchanged and fail-closed; this only installs a VALIDATED context.
+    #
+    # It runs BEFORE --restart deletes anything: a fail-closed refusal must
+    # not first destroy the run's measurement data.
+    from thesis.evaluation import run_authorization
+
+    prior_submission = (api_mode == "batch"
+                        and batch_info_path(generations_path).is_file())
+    bootstrap = run_authorization.bootstrap_provider_run(
+        config, config_path, args.profile, run_id,
+        pure_poll=bool(args.poll) and api_mode == "batch",
+        prior_submission=prior_submission)
 
     if args.restart and generations_path.exists():
         generations_path.unlink()
@@ -1331,8 +1386,13 @@ def run_generation(adapter: ProviderAdapter) -> None:
         },
     }
 
-    api_mode, fallback_note = resolve_api_mode(generation_defaults, adapter.provider)
     summary["api_mode"] = api_mode
+    summary["run_authorization"] = {
+        "mode": bootstrap["mode"],
+        "authorization_sha256": bootstrap["authorization_sha256"],
+        "contract_discovery": bootstrap["contract_discovery"],
+        "fresh_runtime_probed": bootstrap["fresh_runtime_probed"],
+    }
 
     print(f"{adapter.provider.capitalize()} generation")
     print("=" * 20)
@@ -1342,6 +1402,13 @@ def run_generation(adapter: ProviderAdapter) -> None:
     print(f"Prompts:   {len(prompts)}")
     print(f"Samples:   {num_samples_per_prompt} per prompt")
     print(f"API mode:  {api_mode}")
+    print(
+        "Run auth:  %s (%s..., contract via %s, fresh runtime probe: %s)"
+        % (bootstrap["mode"], str(bootstrap["authorization_sha256"])[:12],
+           bootstrap["contract_discovery"], bootstrap["fresh_runtime_probed"])
+    )
+    if bootstrap.get("note"):
+        print(f"NOTE:      {bootstrap['note']}")
     print(f"Output:    {generations_path}")
 
     if fallback_note:
@@ -1416,10 +1483,7 @@ def run_generation(adapter: ProviderAdapter) -> None:
             # process — the summary is written on the poll that completes it
             return
     else:
-        if args.poll:
-            print("--poll has no effect in direct mode; nothing to do.")
-            return
-
+        # direct mode + --poll already returned before the bootstrap
         for prompt, user_prompt, record in pending:
             started_at = time.time()
             started_perf = time.perf_counter()

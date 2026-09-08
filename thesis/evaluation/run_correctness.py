@@ -814,7 +814,9 @@ def main() -> None:
                 "value": args.primary_compiler,
                 "source": "CLI" if args.primary_compiler != "g++" else "DEFAULT",
             },
-            "output_file_name": {"value": output_file_name, "source": "CONFIG"},
+            # NOT output_file_name: the CLI inventory classifies the stage's
+            # own output file name as NON_METHODICAL (the measured content is
+            # unchanged), so it must not appear as a pinned methodical value.
         },
         profile=args.profile,
         model_scope=[model["id"] for model in models] if args.model_id else None,

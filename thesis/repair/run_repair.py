@@ -249,7 +249,47 @@ def dry_run_aggregate(loops, summaries) -> None:
         )
 
 
+def bootstrap_run_authorization(args: argparse.Namespace, loops) -> None:
+    """Cross-process run bootstrap for the repair loop.
+
+    The repair loop runs in its OWN python process and reaches the same two
+    provider chokepoints as generation (common.call_with_retries and
+    batch_api.submit_batch/poll_batch). Its authorization therefore has to
+    come from the PERSISTED run provenance of the base run, not from a parent
+    process' RAM. --status and --dry-run never reach a chokepoint and are
+    deliberately not bootstrapped (no authorization, no runtime probe);
+    --poll rehydrates read-only.
+    """
+    from thesis.evaluation import run_authorization
+
+    loop = loops[0]
+    bootstrap = run_authorization.bootstrap_provider_run(
+        loop.config, args.config, args.profile, loop.paths.base_run_id,
+        pure_poll=bool(args.poll))
+    print("Run authorization: %s (%s..., contract via %s, fresh runtime probe: %s)"
+          % (bootstrap["mode"], str(bootstrap["authorization_sha256"])[:12],
+             bootstrap["contract_discovery"], bootstrap["fresh_runtime_probed"]))
+
+
 def main() -> None:
+    """The repair CLI. A PRE_RUN_INFRASTRUCTURE_FAILURE - at the bootstrap or
+    later, when a chokepoint revalidation refuses mid-wave - leaves this
+    process with the same distinct exit code the provider runners use, never
+    with a traceback that a caller would read as a repair/model failure."""
+    from thesis.evaluation.run_authorization import (
+        EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE, PreRunInfrastructureFailure)
+
+    try:
+        _main()
+    except PreRunInfrastructureFailure as failure:
+        print()
+        print("PRE_RUN_INFRASTRUCTURE_FAILURE (%s): %s" % (type(failure).__name__, failure))
+        print("This is NOT a model, provider or repair failure: the refused request was "
+              "not sent, and the refusal must not be recorded as a repair outcome.")
+        raise SystemExit(EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
+
+
+def _main() -> None:
     args = parse_args()
     loops = build_loops(args)
 
@@ -261,6 +301,8 @@ def main() -> None:
         summaries = [s for s in (loop.dry_run() for loop in loops) if s]
         dry_run_aggregate(loops, summaries)
         return
+
+    bootstrap_run_authorization(args, loops)
 
     if args.poll:
         for loop in loops:

@@ -90,6 +90,26 @@ def fake_prober(config):
     return fake_environments()
 
 
+def write_readiness_artifact(config, path):
+    """A fixture's own readiness proof: the runtime condition of the fake
+    environments UNDER THIS CONFIG, computed by the PRODUCTIVE measurement
+    path. Each fixture world needs its own, because the runtime condition
+    covers the static/repair condition of its config."""
+    from thesis.evaluation import run_authorization as ra
+
+    fresh = ra.measure_fresh_runtime(config, prober=fake_prober)
+    atomic_io.atomic_write_json(Path(path), {
+        "schema_version": "static_repair_readiness.v2",
+        "gate": "READY",
+        "static_analysis_condition_sha256": fresh["static_analysis_condition_sha256"],
+        "repair_condition_sha256": fresh["repair_condition_sha256"],
+        "runtime_condition_sha256": fresh["sha256"],
+        "runtime_condition": fresh["condition"],
+        "runtime_fully_pinned": True,
+    })
+    return fresh
+
+
 def generation_record(benchmark, prompt_text, raw_text):
     return {
         "sample_id": sample_id(benchmark),
@@ -111,10 +131,19 @@ class World:
 
     def __init__(self, root: Path, run_id: str = RUN_ID,
                  contract_run_id: "str | None" = None,
-                 models=(MODEL,), samples=(BENCHMARK, BENCHMARK2)):
+                 models=(MODEL,), samples=(BENCHMARK, BENCHMARK2),
+                 extra_models=(), stage_overrides=None,
+                 execution_models=("serial",), skip_stamps=()):
         self.root = Path(root)
         self.run_id = run_id
         self.models = list(models)
+        # models that exist in the CONFIG (and therefore in the contract's
+        # model set) but carry no generations - a provider child process
+        # started for one of them has real pending work
+        self.extra_models = [dict(m) for m in extra_models]
+        self.stage_overrides = dict(stage_overrides or {})
+        self.execution_models = list(execution_models)
+        self.skip_stamps = tuple(skip_stamps)
         self.samples = list(samples)
         self.config_path = self.root / "config.yaml"
         self.contract_path = self.root / "frozen_contract.json"
@@ -130,7 +159,7 @@ class World:
         self._freeze_contract(contract_run_id)
         self._assemble()
         self._bind_contract()
-        self.stamp_stages()
+        self.stamp_stages(skip=self.skip_stamps)
         self._write_stage_records()
 
     # ---- construction -------------------------------------------------
@@ -143,20 +172,7 @@ class World:
         ])
 
     def _write_readiness(self):
-        """The fixture's own readiness proof: the runtime condition of the
-        fake environments, computed by the PRODUCTIVE measurement path."""
-        from thesis.evaluation import run_authorization as ra
-
-        fresh = ra.measure_fresh_runtime(self.config, prober=fake_prober)
-        atomic_io.atomic_write_json(self.readiness_path, {
-            "schema_version": "static_repair_readiness.v2",
-            "gate": "READY",
-            "static_analysis_condition_sha256": fresh["static_analysis_condition_sha256"],
-            "repair_condition_sha256": fresh["repair_condition_sha256"],
-            "runtime_condition_sha256": fresh["sha256"],
-            "runtime_condition": fresh["condition"],
-            "runtime_fully_pinned": True,
-        })
+        write_readiness_artifact(self.config, self.readiness_path)
 
     def _write_config(self):
         config = {
@@ -165,11 +181,16 @@ class World:
                         "root": (self.root / "results").as_posix(),
                         "readiness_artifact": self.readiness_path.as_posix()},
             "prompts": {"path": self.prompts_path.as_posix(), "prompt_field": "prompt",
-                        "execution_models": ["serial"], "problem_types": None},
+                        "execution_models": list(self.execution_models),
+                        "problem_types": None},
             "profiles": {"fixture": {"run_id": self.run_id, "selection": "prefix",
                                      "prompt_limit": 2, "num_samples_per_prompt": 1}},
-            "models": [{"id": model, "enabled": True} for model in self.models],
-            "generation_defaults": {"timeout_seconds": 300, "retry_attempts": 2},
+            "models": [{"id": model, "enabled": True, "provider": "mock",
+                        "model_name": model, "api_key_env": "PAREVAL_FIXTURE_API_KEY"}
+                       for model in self.models] + list(self.extra_models),
+            "generation_defaults": {"timeout_seconds": 300, "retry_attempts": 2,
+                                    "system_prompt": "fixture system prompt",
+                                    "max_output_tokens": 128, "api_mode": "direct"},
             "stages": {
                 "assembly": {"enabled": True, "auto_close_single_brace": True,
                              "output_file_name": "assembly.jsonl"},
@@ -193,6 +214,8 @@ class World:
                            "variants": ["static_feedback"]},
             },
         }
+        for stage, override in self.stage_overrides.items():
+            config["stages"][stage] = override
         self.config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
         (self.root / "specs.jsonl").write_text("", encoding="utf-8")
 
@@ -246,28 +269,60 @@ class World:
             self.config, self.run_id, conditions["repair_condition_sha256"],
             {"fixture": "repair"})
 
-    def stamp_stages(self):
+    # Every expected runtime stage, with the effective invocation the real
+    # runner registers for it. Static analysis is deliberately modelled as
+    # THREE separate invocations (main container, PARCOACH container, LLOV
+    # container), each with its own fragment owner - exactly how a split
+    # container run produces its findings.
+    STAGE_INVOCATIONS = OrderedDict([
+        ("correctness", ({"effective_run_timeout_seconds": {"value": 120,
+                                                            "source": "CONFIG"},
+                          "primary_compiler": {"value": "g++", "source": "DEFAULT"}},
+                         "correctness_tests")),
+        ("dynamic", ({"primary_compiler": {"value": "g++", "source": "DEFAULT"},
+                      "tools": {"value": ["asan_ubsan"], "source": "CONFIG"},
+                      "skip_unavailable_tools": {"value": False, "source": "DEFAULT"}},
+                     "dynamic_analysis")),
+        ("enhanced", ({"specs": {"value": "frozen", "source": "CLI"},
+                       "jobs": {"value": "serial=1", "source": "CONFIG"},
+                       "effective_enhanced_run_timeout_seconds": {"value": None,
+                                                                  "source": "DEFAULT"}},
+                      "enhanced_tests")),
+        ("static.main", ({"primary_compiler": {"value": "g++", "source": "DEFAULT"},
+                          "tools": {"value": ["compiler"], "source": "CONFIG"},
+                          "replace_tool_entries": {"value": False, "source": "DEFAULT"},
+                          "rerun_gaps": {"value": False, "source": "DEFAULT"},
+                          "replace_legacy_record": {"value": False, "source": "DEFAULT"}},
+                         "static_analysis")),
+        ("static.parcoach", ({"primary_compiler": {"value": "g++", "source": "DEFAULT"},
+                              "tools": {"value": ["parcoach"], "source": "CLI"}},
+                             "static_analysis")),
+        ("static.llov", ({"primary_compiler": {"value": "g++", "source": "DEFAULT"},
+                          "tools": {"value": ["llov"], "source": "CLI"}},
+                         "static_analysis")),
+        ("repair_evaluation", ({"primary_compiler": {"value": "g++", "source": "DEFAULT"},
+                                "variant": {"value": "static_feedback", "source": "CLI"}},
+                               "repair")),
+    ])
+
+    def stamp_stages(self, only=None, skip=()):
         """Every result-producing stage the contract expects stamps the
         runtime it runs under and pins its effective invocation."""
         from thesis.evaluation import stage_runtime
 
         stage_runtime.reset_cache()
-        stage_runtime.enforce_stage(
-            self.config, self.run_id, "correctness",
-            effective_values={
-                "effective_run_timeout_seconds": {"value": 120, "source": "CONFIG"},
-                "primary_compiler": {"value": "g++", "source": "DEFAULT"},
-            },
-            profile="fixture", prober=fake_prober, writer="correctness_tests")
-        stage_runtime.enforce_stage(
-            self.config, self.run_id, "enhanced",
-            effective_values={"specs_path": {"value": "frozen", "source": "CLI"}},
-            profile="fixture", prober=fake_prober, writer="enhanced_tests")
-        stage_runtime.enforce_stage(
-            self.config, self.run_id, "static.main",
-            effective_values={"primary_compiler": {"value": "g++", "source": "DEFAULT"},
-                              "tools": {"value": ["compiler"], "source": "CONFIG"}},
-            profile="fixture", prober=fake_prober, writer="static_analysis")
+        stamped = []
+        for stage in stage_runtime.expected_stages(self.contract, self.config):
+            if only is not None and stage not in only:
+                continue
+            if stage in skip:
+                continue
+            effective_values, writer = self.STAGE_INVOCATIONS[stage]
+            stage_runtime.enforce_stage(
+                self.config, self.run_id, stage, effective_values=dict(effective_values),
+                profile="fixture", prober=fake_prober, writer=writer)
+            stamped.append(stage)
+        return stamped
 
     def _write_stage_records(self):
         for model in self.models:

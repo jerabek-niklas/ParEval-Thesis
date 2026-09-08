@@ -35,7 +35,7 @@ from thesis.evaluation import manifest_fragments as mf  # noqa: E402
 from thesis.evaluation import provider_call_sites  # noqa: E402
 from thesis.evaluation import run_authorization as ra  # noqa: E402
 from thesis.evaluation.test_post_run_verification import (  # noqa: E402
-    World, fake_environments, fake_prober)
+    World, fake_environments, fake_prober, write_readiness_artifact)
 from thesis.generation import batch_api, common  # noqa: E402
 
 FAILURES = []
@@ -404,15 +404,17 @@ def test_new_submission_revalidation(world: World):
 
 def test_real_batch_response_missing_resubmission():
     print("== the REAL BatchResponseMissing resubmission path ==")
+    import yaml
+
     from thesis.generation import test_generation as tg
 
     with tempfile.TemporaryDirectory() as tmp:
         world = World(Path(tmp), run_id="pilot_002_batch")
         ra.clear_context()
-        ra.authorize_start(world.config, world.config_path, "fixture", world.run_id,
-                           world.contract_path, prober=fake_prober, allow_draft_contract=True)
-
-        config_path, out_dir, adapter = _batch_world(world)
+        config_path, out_dir, adapter, batch_config, batch_run_id, batch_contract = \
+            _batch_world(world)
+        ra.authorize_start(batch_config, config_path, "unit", batch_run_id,
+                           batch_contract, prober=fake_prober, allow_draft_contract=True)
         submits = []
         polls = {"n": 0}
 
@@ -450,17 +452,23 @@ def test_real_batch_response_missing_resubmission():
 
             # B: contract drift -> refused, no new provider job
             (out_dir / "generation_batch.json").unlink(missing_ok=True)
-            text = Path(world.config_path).read_text(encoding="utf-8")
-            Path(world.config_path).write_text(
-                text.replace("run_timeout_seconds: 120", "run_timeout_seconds: 45"),
-                encoding="utf-8")
+            text = Path(config_path).read_text(encoding="utf-8")
+            drifted = yaml.safe_load(text)
+            drifted["generation_defaults"]["timeout_seconds"] = 999
+            Path(config_path).write_text(yaml.safe_dump(drifted, sort_keys=False),
+                                         encoding="utf-8")
             try:
                 _run_generation(config_path, adapter)
                 check("B: contract drift -> resubmission REFUSED", False)
-            except ra.ProviderCallRefused:
+            except ra.PreRunInfrastructureFailure:
                 check("B: contract drift -> resubmission REFUSED", True)
+            except SystemExit as exit_:
+                # only the pre-run infrastructure exit code counts as a
+                # refusal - a plain exit(0) would mean "nothing to do"
+                check("B: contract drift -> resubmission REFUSED",
+                      exit_.code == ra.EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
             check("B2: no new provider job", len(submits) == 2)
-            Path(world.config_path).write_text(text, encoding="utf-8")
+            Path(config_path).write_text(text, encoding="utf-8")
 
             # C: runtime drift -> refused, no new provider job
             context = ra.current_context()
@@ -468,8 +476,11 @@ def test_real_batch_response_missing_resubmission():
             try:
                 _run_generation(config_path, adapter)
                 check("C: runtime drift -> resubmission REFUSED", False)
-            except ra.ProviderCallRefused:
+            except ra.PreRunInfrastructureFailure:
                 check("C: runtime drift -> resubmission REFUSED", True)
+            except SystemExit as exit_:
+                check("C: runtime drift -> resubmission REFUSED",
+                      exit_.code == ra.EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
             check("C2: no new provider job", len(submits) == 2)
             ra._install_context(context)
         finally:
@@ -494,25 +505,44 @@ class AnthropicFakeAdapter(object):
         raise AssertionError("batch mode must not call generate()")
 
 
-def _batch_world(world: World):
-    """A generation world (batch mode, anthropic) on top of the fixture run."""
+def _batch_world(world: World, run_id: "str | None" = None):
+    """A generation world (batch mode, anthropic) on top of the fixture run.
+
+    It carries its OWN run id, its own frozen contract at the CANONICAL run
+    location and its own authorization, because the cross-process bootstrap
+    revalidates the live contract rebuild from the config/profile the runner
+    actually uses - a generation config that rebuilds to a different contract
+    than the authorized one is drift, by design."""
     import yaml
 
+    from thesis.evaluation import pilot_run_contract as prc
     from thesis.generation import test_generation as tg
 
+    run_id = run_id or (world.run_id + "_gen")
     gen_dir = Path(world.root) / "gen"
     gen_dir.mkdir(parents=True, exist_ok=True)
     config_path, _raw = tg.write_world(gen_dir, api_mode="batch")
-    # the generation config must write into the same run/output tree as the
-    # authorized fixture run, so the guard sees the same run provenance
+    # the generation config writes into the same output tree as the fixture
+    # run (same readiness proof, same intermediate dir) under its own run id
     config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
     config["outputs"] = {k: v for k, v in world.config["outputs"].items()}
-    config["profiles"]["unit"]["run_id"] = world.run_id
+    config["outputs"]["readiness_artifact"] = (gen_dir / "readiness.json").as_posix()
+    config["profiles"]["unit"]["run_id"] = run_id
     for model in config.get("models", []):
         model["provider"] = "anthropic"
     Path(config_path).write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
-    out_dir = Path(config["outputs"]["raw_dir"]) / world.run_id / "fake_model"
-    return config_path, out_dir, AnthropicFakeAdapter()
+
+    from thesis.config.load_config import load_config
+
+    batch_config = load_config(Path(config_path))
+    # its own readiness proof: the runtime condition covers the static/repair
+    # condition of THIS config, which differs from the fixture world's
+    write_readiness_artifact(batch_config, gen_dir / "readiness.json")
+    contract = prc.build_contract(config_path, "unit", run_id)
+    contract_path = ra.canonical_contract_path(batch_config, run_id)
+    prc.freeze_contract(contract, contract_path, allow_draft=True)
+    out_dir = Path(config["outputs"]["raw_dir"]) / run_id / "fake_model"
+    return config_path, out_dir, AnthropicFakeAdapter(), batch_config, run_id, contract_path
 
 
 def _run_generation(config_path, adapter, extra=()):
@@ -552,6 +582,11 @@ def test_infrastructure_failure_is_not_a_model_failure():
         except ra.PreRunInfrastructureFailure as failure:
             check("the direct runner ABORTS instead of writing a failure record",
                   failure.failure_class == "PRE_RUN_INFRASTRUCTURE_FAILURE")
+        except SystemExit as exit_:
+            # the runner classifies it with its OWN exit code, so the
+            # generation orchestrator can tell it apart from a model failure
+            check("the direct runner ABORTS instead of writing a failure record",
+                  exit_.code == ra.EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
         records = list((Path(raw) / "unit_run" / "fake_model").glob("generations.jsonl"))
         written = []
         if records:

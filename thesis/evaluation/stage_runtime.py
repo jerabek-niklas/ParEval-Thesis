@@ -463,20 +463,141 @@ def static_stages_for_tools(tools: "List[str]") -> "List[str]":
     return stages
 
 
-def expected_stages(contract: "Optional[Dict[str, Any]]") -> "List[str]":
-    """The result-producing stages a contract expects, mapped to the runtime
-    stages that must therefore carry a stamp."""
+EXPECTED_RUNTIME_STAGE_POLICY = "expected_runtime_stages.v2"
+
+# Static tools that run in their OWN container, with the execution model that
+# makes them applicable at all. A tool is only EXPECTED when the contract
+# enables it AND its effective scope intersects the contracted population -
+# PARCOACH is MPI-relevant, LLOV is OpenMP-relevant, so a serial-only
+# population must not produce a false requirement.
+SPLIT_CONTAINER_TOOLS = OrderedDict([
+    ("parcoach", ("static.parcoach", DOMAIN_PARCOACH)),
+    ("llov", ("static.llov", DOMAIN_LLOV)),
+])
+
+
+def _contracted_execution_models(contract: "Optional[Dict[str, Any]]") -> "List[str]":
+    models = (contract or {}).get("execution_models")
+    if models is None:
+        models = ((contract or {}).get("population") or {}).get("execution_models")
+    return list(models or [])
+
+
+def _static_toolset(contract: "Optional[Dict[str, Any]]",
+                    config: "Optional[Dict[str, Any]]" = None) -> "OrderedDict[str, Any]":
+    """The contracted static toolset. The FROZEN contract decides; the live
+    config is only a fallback for a run whose contract predates v2 (and is
+    marked as such by the caller)."""
+    toolset = (contract or {}).get("static_toolset")
+    if isinstance(toolset, dict) and toolset and "error" not in toolset:
+        return OrderedDict(sorted(toolset.items()))
+    if config is None:
+        return OrderedDict()
+    from thesis.evaluation.tool_config import resolve_tool_settings
+
+    try:
+        settings = resolve_tool_settings(config, "static_analysis")
+    except Exception:  # noqa: BLE001 - an unusable config yields no expectation
+        return OrderedDict()
+    return OrderedDict((name, OrderedDict([("enabled", settings[name].enabled),
+                                           ("execution_models",
+                                            list(settings[name].execution_models))]))
+                       for name in sorted(settings))
+
+
+def expected_runtime_stages(contract: "Optional[Dict[str, Any]]",
+                            config: "Optional[Dict[str, Any]]" = None
+                            ) -> "List[OrderedDict]":
+    """The runtime stages a FROZEN CONTRACT expects, each with the reason.
+
+    Derived from the frozen contract's expected stages, its static toolset,
+    the applicable execution models and its repair plan - never from the
+    result files that happen to lie on disk (result files never imply a
+    runtime). Every entry must carry a stage runtime stamp; everything not
+    listed is NOT_APPLICABLE and is never required."""
     stages = list((contract or {}).get("expected_stages") or [])
-    required = []
+    population = _contracted_execution_models(contract)
+    expected: "List[OrderedDict]" = []
+
+    def add(stage, reason):
+        owner, domains = STAGE_DOMAINS[stage]
+        expected.append(OrderedDict([
+            ("stage", stage), ("owner", owner), ("domains", list(domains)),
+            ("reason", reason)]))
+
     if "correctness_tests" in stages:
-        required.append("correctness")
+        add("correctness", "the contract expects the correctness stage")
     if "dynamic_analysis" in stages:
-        required.append("dynamic")
+        add("dynamic", "the contract expects the dynamic analysis stage")
     if "enhanced_tests" in stages:
-        required.append("enhanced")
+        add("enhanced", "the contract expects the enhanced test stage")
+
     if "static_analysis" in stages:
-        required.append("static.main")
-    return required
+        toolset = _static_toolset(contract, config)
+        main_tools = [name for name, entry in toolset.items()
+                      if name not in SPLIT_CONTAINER_TOOLS and (entry or {}).get("enabled")
+                      and _applicable((entry or {}).get("execution_models"), population)]
+        if main_tools:
+            add("static.main", "the contract expects static analysis with main-container "
+                               "tools (%s)" % ", ".join(main_tools))
+        elif not toolset:
+            # a contract without a toolset view (pre-v2, or a resolver error at
+            # freeze time): the historical behaviour, so a missing main stamp
+            # is still reported
+            add("static.main", "the contract expects static analysis (no frozen toolset "
+                               "view: main-container expectation assumed)")
+        for tool, (stage, _domain) in SPLIT_CONTAINER_TOOLS.items():
+            if not toolset:
+                # applicability is UNRESOLVED, not proven inapplicable: without
+                # a frozen toolset we cannot claim the tool was not contracted,
+                # so it is demanded fail-closed and the reason says why
+                add(stage, "the contract expects static analysis but carries no frozen "
+                           "static toolset (pre-v2 contract or a toolset resolution "
+                           "error), so %s applicability is UNRESOLVED and the stamp is "
+                           "required fail-closed" % tool)
+                continue
+            entry = toolset.get(tool) or {}
+            if not entry.get("enabled"):
+                continue
+            scope = entry.get("execution_models")
+            if not _applicable(scope, population):
+                continue
+            overlap = sorted(set(scope or []) & set(population)) or list(scope or []) \
+                or ["(scope unknown)"]
+            add(stage, "the contract enables %s for execution model(s) %s, which the "
+                       "contracted population contains" % (tool, ", ".join(overlap)))
+
+    if "repair" in stages:
+        plan = (contract or {}).get("repair_plan")
+        if plan is None:
+            add("repair_evaluation", "the contract expects the repair stage (no frozen "
+                                     "repair plan: evaluation expectation assumed)")
+        elif plan.get("enabled") and plan.get("evaluates_repair_candidates"):
+            add("repair_evaluation", "the contract expects a repair loop that evaluates "
+                                     "repair candidates with the base evaluation stages")
+    return expected
+
+
+def _applicable(scope: "Optional[List[str]]", population: "List[str]") -> bool:
+    """A tool is applicable when its effective execution-model scope meets the
+    contracted population.
+
+    An UNKNOWN scope (None - the contract does not say) or an unknown
+    population cannot prove non-applicability, so it stays applicable
+    (fail-closed). An EMPTY scope is different: the tool provably cannot
+    analyse any execution model (the config narrowed it outside the tool's
+    hard capabilities), so it is not applicable and must not be required."""
+    if scope is not None and len(scope) == 0:
+        return False
+    if not scope or not population:
+        return True
+    return bool(set(scope) & set(population))
+
+
+def expected_stages(contract: "Optional[Dict[str, Any]]",
+                    config: "Optional[Dict[str, Any]]" = None) -> "List[str]":
+    """The stage names of expected_runtime_stages (compatibility view)."""
+    return [entry["stage"] for entry in expected_runtime_stages(contract, config)]
 
 
 def registered_stage_runtimes(manifest: "Optional[Dict[str, Any]]") -> "Dict[str, Any]":
@@ -484,38 +605,127 @@ def registered_stage_runtimes(manifest: "Optional[Dict[str, Any]]") -> "Dict[str
 
 
 def runtime_matrix(manifest: "Optional[Dict[str, Any]]",
-                   contract: "Optional[Dict[str, Any]]") -> "List[OrderedDict]":
-    """CONTRACT == T0 == STAGE per domain, machine-readable."""
+                   contract: "Optional[Dict[str, Any]]",
+                   config: "Optional[Dict[str, Any]]" = None) -> "List[OrderedDict]":
+    """CONTRACT == T0 == STAGE per expected runtime domain, machine-readable.
+
+    ONE status ladder for the matrix and the post-run verifier, so a row and
+    its check can never disagree:
+
+        no stamp                      -> UNRESOLVED (result files never imply
+                                         a runtime, and a retrospective probe
+                                         never substitutes for one)
+        stamp of another contract     -> FAIL
+        no comparable identity        -> UNRESOLVED
+        T0 domain != stage domain     -> FAIL
+        stamp taken against other T0  -> FAIL
+        otherwise                     -> PASS
+
+    Every expected (stage, domain) produces a row; nothing silently vanishes.
+    """
     evidence = (manifest or {}).get("runtime_evidence") or {}
-    contract_sha = ((contract or {}).get("conditions") or {}).get(
+    contract_runtime_sha = ((contract or {}).get("conditions") or {}).get(
         "static_repair_runtime_condition_sha256")
+    contract_sha = (contract or {}).get("contract_sha256")
     t0_sha = evidence.get("fresh_runtime_condition_sha256")
     stamps = registered_stage_runtimes(manifest)
     rows = []
-    for stage in expected_stages(contract):
-        owner, domains = STAGE_DOMAINS[stage]
+    for entry in expected_runtime_stages(contract, config):
+        stage = entry["stage"]
+        owner = entry["owner"]
         stamp = stamps.get(owner)
-        for domain in domains:
-            observed = None
-            status = "UNRESOLVED"
-            if stamp:
-                observed = ((stamp.get("domains") or {}).get(domain) or {}).get(
-                    "observed_domain_sha256")
-                expected = ((stamp.get("domains") or {}).get(domain) or {}).get(
-                    "expected_t0_domain_sha256")
-                if observed and expected and observed == expected \
-                        and stamp.get("contract_sha256") == (contract or {}).get("contract_sha256"):
-                    status = "PASS"
-                elif observed and expected and observed != expected:
-                    status = "FAIL"
-                elif stamp.get("contract_sha256") != (contract or {}).get("contract_sha256"):
-                    status = "FAIL"
+        for domain in entry["domains"]:
+            domain_entry = ((stamp or {}).get("domains") or {}).get(domain) or {}
+            expected_sha = domain_entry.get("expected_t0_domain_sha256")
+            observed = domain_entry.get("observed_domain_sha256")
+            stamped_t0 = (stamp or {}).get("expected_t0_runtime_condition_sha256")
+            if stamp is None:
+                status, detail = "UNRESOLVED", (
+                    "no stage runtime stamp for %s - the runtime that produced these "
+                    "records is unproven (result files do not substitute for it, and a "
+                    "retrospective probe now never does)" % stage)
+            elif contract_sha is not None and stamp.get("contract_sha256") != contract_sha:
+                status, detail = "FAIL", (
+                    "the stage runtime stamp belongs to contract %s..., not %s..."
+                    % (str(stamp.get("contract_sha256"))[:12], str(contract_sha)[:12]))
+            elif not expected_sha or not observed:
+                status, detail = "UNRESOLVED", (
+                    "the stamp carries no comparable identity for domain %s" % domain)
+            elif expected_sha != observed:
+                status, detail = "FAIL", ("T0 %s... vs stage %s..."
+                                          % (expected_sha[:12], observed[:12]))
+            elif t0_sha and stamped_t0 and stamped_t0 != t0_sha:
+                status, detail = "FAIL", (
+                    "the stamp was taken against another T0 runtime (%s... vs %s...)"
+                    % (str(stamped_t0)[:12], str(t0_sha)[:12]))
+            else:
+                status, detail = "PASS", ("contract == T0 == stage (%s, %s)"
+                                          % (domain, stamp.get("observation_mode")))
             rows.append(OrderedDict([
                 ("stage", stage),
                 ("domain", domain),
-                ("contract", contract_sha),
+                ("owner", owner),
+                ("expected_because", entry["reason"]),
+                ("contract", contract_runtime_sha),
                 ("t0", t0_sha),
+                ("stage_expected", expected_sha),
                 ("stage_observed", observed),
                 ("status", status),
+                ("detail", detail),
             ]))
     return rows
+
+
+def not_expected_runtime_stages(contract: "Optional[Dict[str, Any]]",
+                                config: "Optional[Dict[str, Any]]" = None
+                                ) -> "List[OrderedDict]":
+    """Stages the contract does NOT expect, with the reason - so a missing
+    stamp there is visibly NOT_APPLICABLE instead of silently absent."""
+    expected = {entry["stage"] for entry in expected_runtime_stages(contract, config)}
+    stages = list((contract or {}).get("expected_stages") or [])
+    toolset = _static_toolset(contract, config)
+    population = _contracted_execution_models(contract)
+    reasons = OrderedDict()
+    for stage in STAGE_DOMAINS:
+        if stage in expected:
+            continue
+        if stage == "correctness":
+            reason = "the contract does not expect the correctness stage"
+        elif stage == "dynamic":
+            reason = "the contract does not expect the dynamic analysis stage"
+        elif stage == "enhanced":
+            reason = "the contract does not expect the enhanced test stage"
+        elif stage == "repair_evaluation":
+            reason = ("the contract does not expect a repair loop"
+                      if "repair" not in stages else "the frozen repair plan is disabled")
+        elif stage == "static.main":
+            reason = ("the contract does not expect static analysis" if "static_analysis"
+                      not in stages else "no main-container static tool is contracted")
+        else:
+            tool = "parcoach" if stage.endswith("parcoach") else "llov"
+            entry = toolset.get(tool) or {}
+            scope = entry.get("execution_models")
+            if "static_analysis" not in stages:
+                reason = "the contract does not expect static analysis"
+            elif not toolset:
+                # never claim "not enabled" when the contract simply does not
+                # say - that would be a false assertion in the report
+                reason = ("UNRESOLVED: the contract carries no frozen static toolset, so "
+                          "%s applicability cannot be determined" % tool)
+            elif not entry.get("enabled"):
+                reason = "%s is not enabled in the frozen static toolset" % tool
+            elif scope is not None and len(scope) == 0:
+                reason = ("%s has an EMPTY effective execution-model scope (the config "
+                          "narrowed it outside the tool's hard capabilities), so it can "
+                          "analyse no sample" % tool)
+            else:
+                reason = ("%s is applicable to %s only, which the contracted population "
+                          "(%s) does not contain"
+                          % (tool, ", ".join(scope or ["(scope unknown)"]),
+                             ", ".join(population) or "(unknown)"))
+        reasons[stage] = reason
+    return [OrderedDict([("stage", stage),
+                         ("status", "UNRESOLVED" if reason.startswith("UNRESOLVED")
+                          else "NOT_APPLICABLE"),
+                         ("reason", reason)])
+            for stage, reason in reasons.items()]

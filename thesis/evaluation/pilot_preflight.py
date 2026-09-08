@@ -237,6 +237,34 @@ def prerun_infrastructure_lines() -> "list":
     lines.append("EFFECTIVE_INVOCATION_PROVENANCE = READY (%s; policy %s)"
                  % (effective_invocation.EFFECTIVE_INVOCATION_VERSION,
                     effective_invocation.OVERRIDE_POLICY))
+    # ---- cross-process authorization + complete expected runtime matrix ----
+    lines.append("CROSS_PROCESS_AUTHORIZATION = READY (%s; persistent run provenance is "
+                 "authoritative, the process context is a validated cache)"
+                 % run_authorization.REHYDRATION_POLICY_VERSION)
+    lines.append("AUTHORIZATION_REHYDRATION_CHECKS = %s"
+                 % ", ".join(run_authorization.REHYDRATION_CHECKS))
+    lines.append("FROZEN_CONTRACT_DISCOVERY = %s (canonical per-run location: "
+                 "<intermediate_dir>/<run_id>/%s)"
+                 % (" > ".join(run_authorization.CONTRACT_DISCOVERY_ORDER),
+                    run_authorization.CANONICAL_CONTRACT_NAME))
+    lines.append("PROVIDER_CHILD_PROCESS_NEEDS_PARENT_RAM_CONTEXT = false")
+    lines.append("PRE_RUN_INFRASTRUCTURE_FAILURE_EXIT_CODE = %d (the generation "
+                 "orchestrator stops on it even with --continue-on-error: an "
+                 "unauthorized model is never skipped as a model failure)"
+                 % run_authorization.EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
+    expected_rows = stage_runtime.expected_runtime_stages(contract, config)
+    lines.append("EXPECTED_RUNTIME_STAGE_POLICY = %s"
+                 % stage_runtime.EXPECTED_RUNTIME_STAGE_POLICY)
+    lines.append("EXPECTED_RUNTIME_STAGES = %s"
+                 % (", ".join("%s[%s]" % (row["stage"], "/".join(row["domains"]))
+                              for row in expected_rows) or "none"))
+    for row in stage_runtime.not_expected_runtime_stages(contract, config):
+        lines.append("  RUNTIME_STAGE_NOT_APPLICABLE: %s (%s)"
+                     % (row["stage"], row["reason"]))
+    lines.append("RESULT_FILES_SUBSTITUTE_FOR_RUNTIME_STAMP = false")
+    lines.append("INVOCATION_NON_METHODICAL_FIELDS = [] (every registered effective value "
+                 "is a METHODICAL CLI override of its stage, checked against "
+                 "cli_override_inventory)")
     lines.append("POST_RUN_VERIFICATION_MECHANISM = READY (%s)"
                  % verify_pilot_run.VERIFIER_VERSION)
     lines.append("PILOT_002_POST_RUN_VERIFIED = NOT_APPLICABLE_BEFORE_RUN")

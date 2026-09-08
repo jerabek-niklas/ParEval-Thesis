@@ -49,7 +49,14 @@ from thesis.config.load_config import load_config  # noqa: E402
 from thesis.evaluation import atomic_io  # noqa: E402
 from thesis.evaluation import condition_hashing as ch  # noqa: E402
 
-CONTRACT_SCHEMA_VERSION = "pilot_run_contract.v1"
+# v2 adds the two derivation inputs the EXPECTED RUNTIME STAGE MATRIX needs -
+# `static_toolset` (which static tools are contracted, with their effective
+# execution-model scope) and `repair_plan`. Before v2 the post-run verifier
+# could only derive `static.main` from `static_analysis`, so a contracted
+# PARCOACH/LLOV/repair-evaluation run without a runtime stamp was never
+# reported as UNRESOLVED. Both fields are FROZEN with the contract, so a later
+# config edit is contract drift instead of a silently changed expectation.
+CONTRACT_SCHEMA_VERSION = "pilot_run_contract.v2"
 POST_RUN_VERIFIER_VERSION = "verify_pilot_run.v1"
 
 CROSS_PILOT_PATH = REPO_ROOT / "thesis" / "evaluation" / "cross_pilot_comparability.json"
@@ -223,6 +230,52 @@ def expected_stages(config: Dict[str, Any]) -> "List[str]":
     return result
 
 
+def static_toolset_view(config: Dict[str, Any]) -> "OrderedDict[str, Any]":
+    """The contracted static toolset with each tool's EFFECTIVE execution-model
+    scope (config ∩ hard capabilities), read through the productive resolver
+    so the contract cannot disagree with the runner about what is enabled."""
+    from thesis.evaluation.tool_config import resolve_tool_settings
+
+    view: "OrderedDict[str, Any]" = OrderedDict()
+    try:
+        settings = resolve_tool_settings(config, "static_analysis")
+    except Exception as exc:  # noqa: BLE001 - surfaces as a contract blocker
+        return OrderedDict([("error", "%s: %s" % (type(exc).__name__, exc))])
+    for name in sorted(settings):
+        tool = settings[name]
+        view[name] = OrderedDict([
+            ("enabled", bool(tool.enabled)),
+            ("execution_models", list(tool.execution_models)),
+        ])
+    return view
+
+
+def repair_plan_view(config: Dict[str, Any]) -> "OrderedDict[str, Any]":
+    """Whether the contract expects a repair loop AND therefore a repair
+    EVALUATION (the loop re-runs correctness/static on repair candidates, so
+    it produces records under a runtime that has to be stamped)."""
+    repair = (config.get("stages") or {}).get("repair") or {}
+    enabled = bool(repair.get("enabled", False))
+    plan = OrderedDict([("enabled", enabled)])
+    if not enabled:
+        plan["evaluates_repair_candidates"] = False
+        return plan
+    try:
+        from thesis.repair import orchestrator
+
+        settings = orchestrator.repair_settings(config)
+        plan["variants"] = list(settings.get("variants") or [])
+        plan["max_iterations"] = settings.get("max_iterations")
+        plan["api_mode"] = settings.get("api_mode")
+        plan["external_tools"] = list(settings.get("external_tools") or [])
+    except Exception as exc:  # noqa: BLE001 - surfaces as a contract blocker
+        plan["error"] = "%s: %s" % (type(exc).__name__, exc)
+    # the repair loop always analyses its candidates with the base evaluation
+    # stages; that is what makes a repair_evaluation runtime stamp mandatory
+    plan["evaluates_repair_candidates"] = True
+    return plan
+
+
 def build_contract(config_path: Path, profile_name: str,
                    run_id_override: "Optional[str]" = None,
                    primary_compiler: str = "g++") -> "OrderedDict[str, Any]":
@@ -253,6 +306,9 @@ def build_contract(config_path: Path, profile_name: str,
     contract["generation_timeout_seconds"] = (config.get("generation_defaults") or {}).get("timeout_seconds")
     contract["conditions"] = conditions
     contract["expected_stages"] = expected_stages(config)
+    # frozen derivation inputs of the EXPECTED RUNTIME STAGE MATRIX
+    contract["static_toolset"] = static_toolset_view(config)
+    contract["repair_plan"] = repair_plan_view(config)
     contract["policy_state"] = OrderedDict([
         ("population_status", population_policy.get("status")),
         ("expected_base_run_status", base_run_policy.get("status")),
@@ -291,6 +347,15 @@ def build_contract(config_path: Path, profile_name: str,
             blockers.append("condition pin missing: %s" % key)
     if (conditions["semantic_decisions_counts"].get("unresolved") or 0) > 0:
         blockers.append("semantic decisions unresolved: %s" % conditions["semantic_decisions_counts"]["unresolved"])
+    # without a resolvable static toolset the expected runtime stage matrix
+    # cannot decide whether PARCOACH/LLOV are contracted - a contract must
+    # never be frozen in that state
+    if not contract["static_toolset"] or "error" in contract["static_toolset"]:
+        blockers.append("static toolset not resolvable: %s"
+                        % (contract["static_toolset"].get("error")
+                           if contract["static_toolset"] else "no tools configured"))
+    if contract["repair_plan"].get("error"):
+        blockers.append("repair plan not resolvable: %s" % contract["repair_plan"]["error"])
 
     contract["status"] = STATUS_NOT_READY if blockers else STATUS_READY
     contract["blockers"] = blockers
@@ -446,7 +511,14 @@ def main() -> int:
             print("  BLOCKER: %s" % blocker)
         if args.command == "freeze":
             if not args.out:
-                parser.error("--out is required for freeze")
+                # the canonical per-run location, so a provider CHILD PROCESS
+                # discovers the same contract without a new CLI parameter
+                from thesis.config.load_config import load_config
+                from thesis.evaluation.run_authorization import canonical_contract_path
+
+                args.out = str(canonical_contract_path(
+                    load_config(Path(args.config).resolve()), contract["run_id"]))
+                print("FREEZE_TARGET = %s (canonical run location)" % args.out)
             try:
                 sha = freeze_contract(contract, Path(args.out), allow_draft=args.allow_draft)
             except ContractNotReady as err:

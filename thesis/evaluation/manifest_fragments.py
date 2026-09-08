@@ -194,6 +194,22 @@ class _exclusive:
             try:
                 self.lock.mkdir()
                 return self
+            except PermissionError as error:
+                # Windows: a concurrent rmdir/mkdir of the SAME lock directory
+                # fails with a sharing violation (WinError 5 / 32) instead of
+                # FileExistsError. Measured at ~1.4% with six processes
+                # registering one key. Retrying is the same bounded policy
+                # atomic_io._replace already uses for renames; without it a
+                # concurrent per-model start would die with an UNCLASSIFIED
+                # PermissionError that the orchestrator reads as a model
+                # failure. POSIX never takes this path.
+                if getattr(error, "winerror", None) not in (None, 5, 32):
+                    raise
+                if time.monotonic() > deadline:
+                    raise FragmentConflict(
+                        "could not acquire the registration lock %s within %.0fs (%s)"
+                        % (self.lock, LOCK_WAIT_SECONDS, error))
+                time.sleep(0.005)
             except FileExistsError:
                 try:
                     age = time.time() - self.lock.stat().st_mtime

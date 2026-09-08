@@ -285,45 +285,33 @@ def check_stage_runtime(report: Report, contract: "Optional[Dict[str, Any]]",
                    "no frozen contract: the expected result-producing stages are unknown")
         return []
     matrix = sr.runtime_matrix(manifest, contract)
-    stamps = sr.registered_stage_runtimes(manifest)
-    t0_sha = ((manifest or {}).get("runtime_evidence") or {}).get(
-        "fresh_runtime_condition_sha256")
+    not_expected = sr.not_expected_runtime_stages(contract)
+    # The expected set itself is evidence: which runtime stages the FROZEN
+    # contract demands, and why each other stage is NOT_APPLICABLE. Without
+    # it a missing PARCOACH/LLOV/repair stamp would be indistinguishable from
+    # "that stage was never contracted".
+    unresolved_applicability = [row["stage"] for row in not_expected
+                                if row["status"] == "UNRESOLVED"]
+    report.add("stage_runtime_expected_set",
+               UNRESOLVED if unresolved_applicability else PASS,
+               ("the contract does not determine the applicability of %s, so the expected "
+                "runtime stage set is not provable"
+                % ", ".join(unresolved_applicability)) if unresolved_applicability else
+               "%d expected runtime stage/domain row(s) derived from the frozen contract "
+               "(%s): %s" % (len(matrix), sr.EXPECTED_RUNTIME_STAGE_POLICY,
+                             ", ".join("%s/%s" % (r["stage"], r["domain"]) for r in matrix)
+                             or "none"),
+               {"expected": [OrderedDict([("stage", r["stage"]), ("domain", r["domain"]),
+                                          ("reason", r["expected_because"])])
+                             for r in matrix],
+                "not_applicable": not_expected,
+                "policy": sr.EXPECTED_RUNTIME_STAGE_POLICY,
+                "result_files_substitute_for_runtime_stamp": False})
     for row in matrix:
-        stage = row["stage"]
-        owner, _domains = sr.STAGE_DOMAINS[stage]
-        stamp = stamps.get(owner)
-        check_id = "stage_runtime:%s.%s" % (stage, row["domain"])
-        if stamp is None:
-            report.add(check_id, UNRESOLVED,
-                       "no stage runtime stamp for %s - the runtime that produced these "
-                       "records is unproven (result files do not substitute for it, and a "
-                       "retrospective probe now never does)" % stage)
-            continue
-        if stamp.get("contract_sha256") != contract.get("contract_sha256"):
-            report.add(check_id, FAIL,
-                       "the stage runtime stamp belongs to contract %s..., not %s..."
-                       % (str(stamp.get("contract_sha256"))[:12],
-                          str(contract.get("contract_sha256"))[:12]))
-            continue
-        domain_entry = (stamp.get("domains") or {}).get(row["domain"]) or {}
-        expected = domain_entry.get("expected_t0_domain_sha256")
-        observed = domain_entry.get("observed_domain_sha256")
-        if not expected or not observed:
-            report.add(check_id, UNRESOLVED,
-                       "the stamp carries no comparable identity for domain %s" % row["domain"])
-            continue
-        if expected != observed:
-            report.add(check_id, FAIL, "T0 %s... vs stage %s..."
-                       % (expected[:12], observed[:12]))
-            continue
-        stamped_t0 = stamp.get("expected_t0_runtime_condition_sha256")
-        if t0_sha and stamped_t0 and stamped_t0 != t0_sha:
-            report.add(check_id, FAIL,
-                       "the stamp was taken against another T0 runtime (%s... vs %s...)"
-                       % (str(stamped_t0)[:12], str(t0_sha)[:12]))
-            continue
-        report.add(check_id, PASS, "contract == T0 == stage (%s, %s)"
-                   % (row["domain"], stamp.get("observation_mode")))
+        report.add("stage_runtime:%s.%s" % (row["stage"], row["domain"]),
+                   row["status"], row["detail"],
+                   {"expected_because": row["expected_because"],
+                    "t0": row["t0"], "stage_observed": row["stage_observed"]})
     return matrix
 
 
@@ -337,28 +325,38 @@ def check_effective_invocation(report: Report, contract: "Optional[Dict[str, Any
 
     if contract is None:
         return
-    invocations = ei.registered_invocations(manifest)
     for stage in sr.expected_stages(contract):
-        invocation = invocations.get(stage)
+        # a stage invoked per model (the PARCOACH/LLOV containers, the repair
+        # loop) registers ONE invocation per model scope - every one of them
+        # must match the contract
+        invocations = ei.invocations_for_stage(manifest, stage)
         check_id = "effective_invocation:%s" % stage
-        if invocation is None:
+        if not invocations:
             report.add(check_id, UNRESOLVED,
                        "no effective invocation registered for %s - a methodical CLI "
                        "override cannot be excluded" % stage)
             continue
-        problems = ei.check_against_contract(invocation, contract)
-        recomputed = ei.invocation_fingerprint(invocation)
-        if recomputed != invocation.get("invocation_sha256"):
-            problems.append("the invocation fragment does not match its own fingerprint")
+        problems = []
+        rendered = []
+        for invocation in invocations:
+            scope = invocation.get("model_scope")
+            prefix = "" if not scope else "%s: " % ",".join(
+                scope if isinstance(scope, (list, tuple)) else [str(scope)])
+            problems += [prefix + problem
+                         for problem in ei.check_against_contract(invocation, contract)]
+            if ei.invocation_fingerprint(invocation) != invocation.get("invocation_sha256"):
+                problems.append(prefix + "the invocation fragment does not match its own "
+                                         "fingerprint")
+            rendered.append(prefix + ", ".join(
+                "%s=%s[%s]" % (name, (entry or {}).get("value"), (entry or {}).get("source"))
+                for name, entry in sorted((invocation.get("effective_values") or {}).items())))
         report.add(check_id, PASS if not problems else FAIL,
                    "; ".join(problems) if problems else
-                   "effective values match the contract (%s)"
-                   % ", ".join("%s=%s[%s]" % (name, (entry or {}).get("value"),
-                                              (entry or {}).get("source"))
-                               for name, entry in sorted(
-                                   (invocation.get("effective_values") or {}).items())),
-                   {"effective_values": invocation.get("effective_values"),
-                    "override_policy": invocation.get("override_policy")})
+                   "effective values match the contract in %d invocation(s): %s"
+                   % (len(invocations), " | ".join(rendered)),
+                   {"invocations": len(invocations),
+                    "effective_values": [i.get("effective_values") for i in invocations],
+                    "override_policy": invocations[0].get("override_policy")})
 
 
 def check_invocation(report: Report, contract: "Optional[Dict[str, Any]]",

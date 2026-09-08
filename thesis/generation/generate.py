@@ -35,6 +35,21 @@ from thesis.config.load_config import load_config  # noqa: E402
 
 DEFAULT_CONFIG_PATH = REPO_ROOT / "thesis" / "config" / "config.yaml"
 
+# A provider child process exits with this code when it could not be
+# authorized (no/invalid run authorization, contract drift, runtime drift).
+# It is deliberately distinct from the generic failure code so this
+# orchestrator can tell a PRE-RUN INFRASTRUCTURE failure apart from a
+# provider/model failure — see run_authorization.EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE.
+EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE = 3
+
+
+class PreRunInfrastructureStop(RuntimeError):
+    """A child process failed pre-run enforcement. Never skipped by
+    --continue-on-error: it is not a model failure, and a contracted run must
+    not continue with a partially authorized population."""
+
+    failure_class = "PRE_RUN_INFRASTRUCTURE_FAILURE"
+
 
 PROVIDER_SCRIPT_MAP = {
     "openai": "generate-openai.py",
@@ -309,6 +324,20 @@ def main() -> None:
 
             return_code = run_command(command, dry_run=args.dry_run)
 
+            if return_code == EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE:
+                # A missing/invalid run authorization, a contract drift or a
+                # runtime drift is NOT a model failure: --continue-on-error
+                # must not turn it into "one model less". For a contracted
+                # pilot run that would produce a silently partial population
+                # in which some models ran under a different (or no)
+                # authorization, so the whole orchestration stops here.
+                raise PreRunInfrastructureStop(
+                    f"PRE_RUN_INFRASTRUCTURE_FAILURE in the provider process for model "
+                    f"'{model_id}' (exit code {return_code}). This is not a model or API "
+                    f"failure and is never skipped: continuing would produce a partially "
+                    f"authorized run. See the child process output above."
+                )
+
             if return_code != 0:
                 failures.append((model_id, return_code))
 
@@ -317,6 +346,9 @@ def main() -> None:
                         f"Generation failed for model '{model_id}' "
                         f"with return code {return_code}."
                     )
+
+        except PreRunInfrastructureStop:
+            raise
 
         except Exception as error:
             failures.append((model_id, repr(error)))

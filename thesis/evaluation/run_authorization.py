@@ -103,6 +103,13 @@ REQUIRED_RUNTIME_DOMAINS = ("main", "parcoach", "llov")
 T0_REQUIRES_DOCKER_AND_ALL_THREE_IMAGES = True
 
 
+# A provider child process signals a pre-run infrastructure failure with its
+# OWN exit code, so the generation orchestrator can tell it apart from a
+# provider/model failure and stop the whole contracted run instead of
+# continuing with a silently incomplete population.
+EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE = 3
+
+
 class PreRunInfrastructureFailure(RuntimeError):
     """Never a model failure, an API error or a generation failure."""
 
@@ -294,15 +301,24 @@ def authorize_start(config: "Dict[str, Any]", config_path: "Any", profile: str,
         raise StartRefused("the contract pins runtime %s... but the fresh probe measures %s..."
                            % (str(contracted_sha)[:12], fresh["sha256"][:12]))
 
-    # 7. bind the contract
-    run_manifest.ensure_run_manifest(config, run_id, stage=stage, profile=profile,
-                                     primary_compiler=frozen.get("primary_compiler") or "g++")
-    run_manifest.register_contract(config, run_id, frozen_sha, frozen)
+    # 7./8. bind the contract and the T0 runtime evidence. A conflict here is
+    # a PRE_RUN_INFRASTRUCTURE_FAILURE like any other - it must never escape
+    # unclassified, or the orchestrator would read it as a model failure.
+    try:
+        run_manifest.ensure_run_manifest(
+            config, run_id, stage=stage, profile=profile,
+            primary_compiler=frozen.get("primary_compiler") or "g++")
+        run_manifest.register_contract(config, run_id, frozen_sha, frozen)
 
-    # 8. bind the T0 runtime evidence
-    evidence = t0_runtime_evidence(run_id, frozen_sha, readiness_sha, fresh)
-    run_manifest.register_runtime_evidence(config, run_id, evidence,
-                                           fingerprint=t0_evidence_fingerprint(evidence))
+        evidence = t0_runtime_evidence(run_id, frozen_sha, readiness_sha, fresh)
+        run_manifest.register_runtime_evidence(
+            config, run_id, evidence, fingerprint=t0_evidence_fingerprint(evidence))
+    except PreRunInfrastructureFailure:
+        raise
+    except Exception as error:  # noqa: BLE001 - classified, never a model failure
+        raise StartRefused(
+            "the contract/T0 runtime evidence could not be bound to run %s: %s: %s"
+            % (run_id, type(error).__name__, error))
 
     # 9. validate the merged state BEFORE authorizing
     merged = run_manifest.load_manifest(config, run_id) or {}
@@ -343,6 +359,12 @@ def authorize_start(config: "Dict[str, Any]", config_path: "Any", profile: str,
         # contradicting authorization
         raise StartRefused("a different start authorization already exists for run %s: %s"
                            % (run_id, conflict))
+    except PreRunInfrastructureFailure:
+        raise
+    except Exception as error:  # noqa: BLE001 - an IO/lock failure is still
+        # a pre-run infrastructure failure, never a model failure
+        raise StartRefused("the start authorization for run %s could not be written: "
+                           "%s: %s" % (run_id, type(error).__name__, error))
     mf.write_snapshot(intermediate_dir, run_id)
 
     # 11. read back from the run provenance and validate
@@ -443,6 +465,22 @@ def require_provider_call(kind: str, *, label: "Optional[str]" = None) -> "Dict[
 
     Refuses unless a valid authorization exists for this process' run and
     still matches the live state under the policy for `kind`."""
+    try:
+        return _require_provider_call(kind, label=label)
+    except PreRunInfrastructureFailure:
+        raise
+    except Exception as error:  # noqa: BLE001
+        # The guard's OWN revalidation failing (a contract rebuild raising, an
+        # unreadable fragment, a probe crashing) is a pre-run infrastructure
+        # failure, never a provider/model failure - otherwise the runner would
+        # write it into the population as a generation error record.
+        raise ProviderCallRefused(
+            "PRE_RUN_INFRASTRUCTURE_FAILURE: the run-authorization revalidation for a "
+            "%s provider call%s failed and the request is therefore refused: %s: %s"
+            % (kind, ": %s" % label if label else "", type(error).__name__, error))
+
+
+def _require_provider_call(kind: str, *, label: "Optional[str]" = None) -> "Dict[str, Any]":
     if kind not in REVALIDATION_POLICY:
         raise ProviderCallRefused("unknown provider call kind %r" % kind)
     context = current_context()
@@ -496,6 +534,361 @@ def require_provider_call(kind: str, *, label: "Optional[str]" = None) -> "Dict[
                 "%s...)" % (stored["fresh_t0_runtime_condition_sha256"][:12],
                             fresh["sha256"][:12]))
     return stored
+
+
+# ---------------------------------------------------------------------------
+# cross-process bootstrap: persistent run provenance is authoritative
+# ---------------------------------------------------------------------------
+#
+# `_CONTEXT` is process-local, but the productive generation orchestrator
+# starts every provider runner as a NEW process (generate.py -> subprocess ->
+# generate-<provider>.py -> common.run_generation -> adapter.generate ->
+# call_with_retries -> require_provider_call). Python RAM does not cross that
+# boundary, so a child of an authorized parent used to be refused at its first
+# request although a valid authorization was persisted.
+#
+#     PERSISTENT RUN PROVENANCE IS AUTHORITATIVE;
+#     THE PROCESS CONTEXT IS ONLY A VALIDATED CACHE.
+#
+# The fix is NOT a weaker chokepoint - `require_provider_call` still refuses
+# whenever no valid context is installed, and it never reads a file with
+# implicit defaults on failure. The fix is that a productive process installs
+# a context that was VALIDATED against the persisted provenance:
+#
+#     pure poll            -> hydrate + validate the existing authorization
+#     authorization exists -> hydrate + validate (never a second authorization)
+#     no authorization     -> full first-start authorize_start(...)
+#
+# Rehydration checks the same methodical identities the chokepoint needs; on
+# tamper or drift it REFUSES instead of installing a context.
+
+REHYDRATION_POLICY_VERSION = "authorization_rehydration.v1"
+
+MODE_FIRST_START = "FIRST_START"
+MODE_REHYDRATED = "REHYDRATED_FROM_RUN_PROVENANCE"
+MODE_PROCESS_CACHE = "PROCESS_CONTEXT_CACHE"
+# a run with no frozen contract anywhere is not a contracted pilot run (smoke
+# run, unit fixture, the historical pilot_001). The bootstrap installs NO
+# context for it, so the unchanged chokepoint still refuses every provider
+# request - legacy behaviour is classified, never silently authorized.
+MODE_UNCONTRACTED = "UNCONTRACTED_RUN_NO_AUTHORIZATION_INSTALLED"
+
+# A batch job whose bookkeeping predates the authorization policy carries no
+# authorization at all. For a contracted pilot run that is fail-closed, never
+# a silently invented authorization.
+LEGACY_UNAUTHORIZED_BATCH_PROVENANCE = "LEGACY_UNAUTHORIZED_BATCH_PROVENANCE"
+
+# The canonical per-run frozen contract. Deterministic from config + run id,
+# so a child process finds the SAME contract as its parent without a hidden
+# global, an inherited Python context or a hand-set test hook.
+CANONICAL_CONTRACT_NAME = "run_contract.json"
+CONTRACT_DISCOVERY_ORDER = ("explicit_contract_path", "canonical_run_location",
+                            "bound_run_provenance")
+
+# What rehydration verifies before it installs a context.
+REHYDRATION_CHECKS = (
+    "authorization_fragment_present", "run_provenance_integrity",
+    "decision_is_start_allowed", "run_id_exact", "authorization_fingerprint_exact",
+    "contract_bound_to_run_exact", "t0_runtime_evidence_present",
+    "t0_evidence_belongs_to_same_contract", "authorization_runtime_sha_equals_t0",
+    "frozen_contract_file_unchanged", "live_contract_rebuild_without_drift",
+)
+
+
+def canonical_contract_path(config: "Dict[str, Any]", run_id: str) -> Path:
+    """<intermediate_dir>/<run_id>/run_contract.json"""
+    return Path(config["outputs"]["intermediate_dir"]) / run_id / CANONICAL_CONTRACT_NAME
+
+
+def discover_frozen_contract(config: "Dict[str, Any]", run_id: str,
+                             contract_path: "Optional[Any]" = None
+                             ) -> "OrderedDict[str, Any]":
+    """Deterministic frozen-contract discovery for a fresh process.
+
+    In CONTRACT_DISCOVERY_ORDER: an explicitly passed path, the canonical
+    per-run location, and - for an already authorized run - the contract that
+    is bound in the run provenance itself. No hidden global, no parent
+    context, no implicit default."""
+    from thesis.evaluation import run_manifest
+
+    candidates = OrderedDict()
+    if contract_path is not None:
+        candidates["explicit_contract_path"] = Path(contract_path)
+    candidates["canonical_run_location"] = canonical_contract_path(config, run_id)
+    for source, path in candidates.items():
+        if path.is_file():
+            return OrderedDict([("source", source), ("path", path), ("contract", None)])
+    manifest = run_manifest.load_manifest(config, run_id) or {}
+    bound = manifest.get("contract")
+    if bound:
+        return OrderedDict([("source", "bound_run_provenance"), ("path", None),
+                            ("contract", bound)])
+    return OrderedDict([("source", None), ("path", None), ("contract", None),
+                        ("searched", [str(p) for p in candidates.values()])])
+
+
+def load_and_validate_run_authorization(config: "Dict[str, Any]", run_id: str, *,
+                                        config_path: "Any", profile: str,
+                                        contract_path: "Optional[Any]" = None
+                                        ) -> "OrderedDict[str, Any]":
+    """Load the PERSISTED run authorization and validate it against the same
+    methodical identities the provider chokepoint needs.
+
+    Never "the file exists -> install a context": every check in
+    REHYDRATION_CHECKS must hold. Raises StartRefused otherwise.
+
+    EVERY failure here is classified. The run provenance layer can raise
+    outside this module's hierarchy - a torn fragment makes json.loads raise
+    inside the integrity check, a sibling fragment with a foreign run id makes
+    merge_fragments raise FragmentConflict - and an unclassified exception
+    would leave the runner with a traceback and exit code 1, which the
+    generation orchestrator reads as an ordinary model failure and skips under
+    --continue-on-error. That is exactly the hole this wave closes."""
+    try:
+        return _load_and_validate_run_authorization(
+            config, run_id, config_path=config_path, profile=profile,
+            contract_path=contract_path)
+    except PreRunInfrastructureFailure:
+        raise
+    except Exception as error:  # noqa: BLE001
+        raise StartRefused(
+            "the run provenance of %s could not be validated (%s: %s) - a provider "
+            "request is refused until it can be" % (run_id, type(error).__name__, error))
+
+
+def _load_and_validate_run_authorization(config: "Dict[str, Any]", run_id: str, *,
+                                         config_path: "Any", profile: str,
+                                         contract_path: "Optional[Any]" = None
+                                         ) -> "OrderedDict[str, Any]":
+    from thesis.evaluation import manifest_fragments as mf
+    from thesis.evaluation import pilot_run_contract as prc
+    from thesis.evaluation import run_manifest
+
+    intermediate_dir = Path(config["outputs"]["intermediate_dir"])
+
+    stored = load_authorization(config, run_id)
+    if stored is None:
+        raise StartRefused(
+            "%s: no run authorization is persisted for run %s - a cost-causing provider "
+            "call in a fresh process cannot be authorized retrospectively"
+            % (LEGACY_UNAUTHORIZED_BATCH_PROVENANCE, run_id))
+
+    # fail-closed: ANY fragment whose content no longer matches its registered
+    # fingerprint invalidates the run provenance this rehydration is about to
+    # trust - not only the ones whose name happens to start with a known kind
+    tampered = mf.verify_fragment_integrity(intermediate_dir, run_id)
+    if tampered:
+        raise StartRefused("the run provenance of %s was tampered with: %s"
+                           % (run_id, "; ".join("%s (%s)" % (p.get("fragment"), p.get("problem"))
+                                                for p in tampered)))
+    if stored.get("decision") != DECISION_ALLOWED:
+        raise StartRefused("the persisted run authorization for %s is %r"
+                           % (run_id, stored.get("decision")))
+    if stored.get("run_id") != run_id:
+        raise StartRefused("the persisted authorization belongs to run %r, not %r"
+                           % (stored.get("run_id"), run_id))
+    recomputed = authorization_fingerprint(stored)
+    if recomputed != stored.get("authorization_sha256"):
+        raise StartRefused(
+            "the persisted authorization does not match its own methodical fingerprint "
+            "(stored %s... vs recomputed %s...)"
+            % (str(stored.get("authorization_sha256"))[:12], recomputed[:12]))
+
+    manifest = run_manifest.load_manifest(config, run_id) or {}
+    frozen_sha = stored.get("frozen_contract_sha256")
+    if manifest.get("contract_sha256") != frozen_sha:
+        raise StartRefused("the run provenance binds contract %s..., the authorization %s..."
+                           % (str(manifest.get("contract_sha256"))[:12], str(frozen_sha)[:12]))
+
+    evidence = manifest.get("runtime_evidence") or {}
+    if not evidence:
+        raise StartRefused("the authorized run carries no T0 runtime evidence")
+    if evidence.get("contract_sha256") != frozen_sha:
+        raise StartRefused("the T0 runtime evidence belongs to contract %s..., not %s..."
+                           % (str(evidence.get("contract_sha256"))[:12], str(frozen_sha)[:12]))
+    if evidence.get("run_id") not in (None, run_id):
+        raise StartRefused("the T0 runtime evidence belongs to run %r, not %r"
+                           % (evidence.get("run_id"), run_id))
+    t0_sha = evidence.get("fresh_runtime_condition_sha256")
+    if t0_sha != stored.get("fresh_t0_runtime_condition_sha256"):
+        raise StartRefused(
+            "the authorization pins T0 runtime %s... but the run's T0 evidence records %s..."
+            % (str(stored.get("fresh_t0_runtime_condition_sha256"))[:12], str(t0_sha)[:12]))
+
+    discovery = discover_frozen_contract(config, run_id, contract_path)
+    if discovery.get("path") is not None:
+        frozen = prc.load_frozen(discovery["path"])
+        if frozen.get("contract_sha256") != frozen_sha:
+            raise StartRefused(
+                "the frozen contract at %s is %s..., the authorization was granted for %s..."
+                % (discovery["path"], str(frozen.get("contract_sha256"))[:12],
+                   str(frozen_sha)[:12]))
+        if frozen.get("run_id") != run_id:
+            raise StartRefused("the frozen contract at %s is for run %r, not %r"
+                               % (discovery["path"], frozen.get("run_id"), run_id))
+
+    rebuilt = prc.build_contract(config_path, profile, run_id)
+    rebuilt_sha = prc.contract_sha256(rebuilt)
+    if rebuilt_sha != frozen_sha:
+        raise StartRefused(
+            "contract drift in a fresh process: the authorization was granted for %s... but "
+            "the live state rebuilds to %s... - a provider request under a changed contract "
+            "is refused" % (str(frozen_sha)[:12], rebuilt_sha[:12]))
+
+    return OrderedDict([
+        ("authorization", stored),
+        ("contract_discovery", discovery.get("source")),
+        ("contract_path", str(discovery["path"]) if discovery.get("path") else None),
+        ("rebuilt_contract_sha256", rebuilt_sha),
+        ("checks", list(REHYDRATION_CHECKS)),
+    ])
+
+
+def hydrate_authorized_run_context(config: "Dict[str, Any]", run_id: str, *,
+                                   config_path: "Any", profile: str,
+                                   contract_path: "Optional[Any]" = None,
+                                   prober: "Optional[Any]" = None
+                                   ) -> "OrderedDict[str, Any]":
+    """Validate the persisted authorization and install it as this process'
+    context. The context carries validated PERSISTED provenance only: it
+    creates no authorization, rewrites no historical one, and the persisted
+    fragments stay the source of truth."""
+    validated = load_and_validate_run_authorization(
+        config, run_id, config_path=config_path, profile=profile,
+        contract_path=contract_path)
+    stored = validated["authorization"]
+    _install_context(OrderedDict([
+        ("config", config),
+        ("config_path", str(config_path)),
+        ("profile", profile),
+        ("run_id", run_id),
+        ("contract_path", validated["contract_path"]),
+        ("authorization_sha256", stored["authorization_sha256"]),
+        ("frozen_contract_sha256", stored["frozen_contract_sha256"]),
+        ("fresh_t0_runtime_condition_sha256", stored["fresh_t0_runtime_condition_sha256"]),
+        ("prober", prober),
+        ("hydrated_from_persistent_provenance", True),
+        ("rehydration_policy_version", REHYDRATION_POLICY_VERSION),
+    ]))
+    return validated
+
+
+def bootstrap_provider_run(config: "Dict[str, Any]", config_path: "Any", profile: str,
+                           run_id: str, *, contract_path: "Optional[Any]" = None,
+                           pure_poll: bool = False,
+                           prior_submission: bool = False,
+                           prober: "Optional[Any]" = None,
+                           stage: str = "provider_bootstrap"
+                           ) -> "OrderedDict[str, Any]":
+    """The central bootstrap every productive provider process runs BEFORE it
+    can reach a chokepoint.
+
+        if pure_poll:              hydrate the existing authorization only
+        elif authorization exists: hydrate + validate
+        else:                      authorize the first start
+
+    A pure poll neither probes the runtime nor creates an authorization.
+
+    EVERY failure is classified as a PreRunInfrastructureFailure - a corrupt
+    frozen contract, an unreadable fragment, a lock that cannot be taken - so
+    a provider process never ends with a bare traceback that its orchestrator
+    would mistake for a model failure."""
+    try:
+        return _bootstrap_provider_run(
+            config, config_path, profile, run_id, contract_path=contract_path,
+            pure_poll=pure_poll, prior_submission=prior_submission, prober=prober,
+            stage=stage)
+    except PreRunInfrastructureFailure:
+        raise
+    except Exception as error:  # noqa: BLE001
+        raise StartRefused(
+            "the run bootstrap for %s failed (%s: %s) - no provider request is made"
+            % (run_id, type(error).__name__, error))
+
+
+def _bootstrap_provider_run(config: "Dict[str, Any]", config_path: "Any", profile: str,
+                            run_id: str, *, contract_path: "Optional[Any]" = None,
+                            pure_poll: bool = False,
+                            prior_submission: bool = False,
+                            prober: "Optional[Any]" = None,
+                            stage: str = "provider_bootstrap"
+                            ) -> "OrderedDict[str, Any]":
+    context = current_context()
+    if context is not None and context.get("run_id") == run_id:
+        # the process cache is only valid after the same validation
+        validated = load_and_validate_run_authorization(
+            config, run_id, config_path=config_path, profile=profile,
+            contract_path=contract_path)
+        return OrderedDict([
+            ("mode", MODE_PROCESS_CACHE),
+            ("run_id", run_id),
+            ("authorization_sha256", validated["authorization"]["authorization_sha256"]),
+            ("contract_discovery", validated["contract_discovery"]),
+            ("fresh_runtime_probed", False),
+        ])
+
+    stored = load_authorization(config, run_id)
+    if stored is None:
+        discovery = discover_frozen_contract(config, run_id, contract_path)
+        if discovery.get("path") is not None and (pure_poll or prior_submission):
+            # A CONTRACTED run with EVIDENCE of an earlier provider submission
+            # (a poll, or existing batch bookkeeping) but no authorization: that
+            # submission happened outside the authorization policy. Classify it
+            # - never invent an authorization for legacy batch provenance, and
+            # never let a poll or a resume retro-authorize one.
+            raise StartRefused(
+                "%s: run %s carries %s but no persisted start authorization, so this "
+                "process must not authorize it retrospectively. A poll or a resume never "
+                "creates an authorization - authorize the run "
+                "(thesis/evaluation/pilot_run_contract.py t0) and re-submit."
+                % (LEGACY_UNAUTHORIZED_BATCH_PROVENANCE, run_id,
+                   "a batch poll request" if pure_poll else "batch bookkeeping from an "
+                   "earlier submission"))
+        if discovery.get("path") is None:
+            # No frozen contract anywhere: this is not a contracted pilot run
+            # (a smoke run, a unit fixture, the historical pilot_001). The
+            # bootstrap does NOT invent an authorization and installs NO
+            # context - so every cost-causing provider request still hits the
+            # unchanged, fail-closed chokepoint and is refused there. A
+            # CONTRACTED run always has its contract at the canonical location
+            # and therefore never takes this path.
+            return OrderedDict([
+                ("mode", MODE_UNCONTRACTED),
+                ("run_id", run_id),
+                ("authorization_sha256", None),
+                ("contract_discovery", None),
+                ("fresh_runtime_probed", False),
+                ("searched", discovery.get("searched")),
+                ("note", "no frozen run contract for run %s (searched: %s). No "
+                         "authorization is installed: any provider request will be "
+                         "REFUSED by the chokepoint. Freeze the contract first "
+                         "(pilot_run_contract.py freeze --out %s)."
+                         % (run_id, ", ".join(discovery.get("searched") or []),
+                            canonical_contract_path(config, run_id))),
+            ])
+        authorization = authorize_start(config, config_path, profile, run_id,
+                                        discovery["path"], prober=prober, stage=stage)
+        return OrderedDict([
+            ("mode", MODE_FIRST_START),
+            ("run_id", run_id),
+            ("authorization_sha256", authorization["authorization_sha256"]),
+            ("contract_discovery", discovery["source"]),
+            ("fresh_runtime_probed", True),
+        ])
+
+    validated = hydrate_authorized_run_context(
+        config, run_id, config_path=config_path, profile=profile,
+        contract_path=contract_path, prober=prober)
+    return OrderedDict([
+        ("mode", MODE_REHYDRATED),
+        ("run_id", run_id),
+        ("authorization_sha256", validated["authorization"]["authorization_sha256"]),
+        ("contract_discovery", validated["contract_discovery"]),
+        # a rehydration never probes: only a NEW cost-causing submission does,
+        # and that happens at the chokepoint under REVALIDATION_POLICY
+        ("fresh_runtime_probed", False),
+        ("pure_poll", bool(pure_poll)),
+    ])
 
 
 def authorization_state(config: "Dict[str, Any]", run_id: str) -> "OrderedDict[str, Any]":

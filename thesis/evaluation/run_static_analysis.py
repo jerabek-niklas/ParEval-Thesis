@@ -734,22 +734,25 @@ def main() -> None:
     from thesis.evaluation import stage_runtime
 
     domain_stages = stage_runtime.static_stages_for_tools(list(known))
+    # ONE CLI invocation, projected onto every runtime domain it stamps: the
+    # PARCOACH and LLOV container invocations carry the SAME effective values
+    # as the main one (they are the same command line). Registering them for
+    # the main domain only would leave every contracted PARCOACH/LLOV run
+    # without an effective invocation - post-run permanently UNRESOLVED.
     for domain_stage in domain_stages:
-        values = None
-        if domain_stage == "static.main":
-            values = {
-                "primary_compiler": {
-                    "value": args.primary_compiler,
-                    "source": "CLI" if args.primary_compiler != "g++" else "DEFAULT"},
-                "tools": {"value": sorted(known),
-                          "source": "CLI" if args.tools else "CONFIG"},
-                "replace_tool_entries": {"value": bool(args.replace_tool_entries),
-                                         "source": "CLI" if args.replace_tool_entries else "DEFAULT"},
-                "rerun_gaps": {"value": bool(args.rerun_gaps),
-                               "source": "CLI" if args.rerun_gaps else "DEFAULT"},
-                "replace_legacy_record": {"value": bool(args.replace_legacy_record),
-                                          "source": "CLI" if args.replace_legacy_record else "DEFAULT"},
-            }
+        values = {
+            "primary_compiler": {
+                "value": args.primary_compiler,
+                "source": "CLI" if args.primary_compiler != "g++" else "DEFAULT"},
+            "tools": {"value": sorted(known),
+                      "source": "CLI" if args.tools else "CONFIG"},
+            "replace_tool_entries": {"value": bool(args.replace_tool_entries),
+                                     "source": "CLI" if args.replace_tool_entries else "DEFAULT"},
+            "rerun_gaps": {"value": bool(args.rerun_gaps),
+                           "source": "CLI" if args.rerun_gaps else "DEFAULT"},
+            "replace_legacy_record": {"value": bool(args.replace_legacy_record),
+                                      "source": "CLI" if args.replace_legacy_record else "DEFAULT"},
+        }
         enforcement = stage_runtime.enforce_stage(
             config, run_id, domain_stage,
             effective_values=values,

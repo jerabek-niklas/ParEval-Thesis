@@ -93,10 +93,19 @@ def group_frozen_artifacts():
     import inspect
     from thesis.evaluation import run_enhanced_tests as runner
     source = inspect.getsource(runner.parse_args)
+    # checked on the RESOLVED default, not on a substring of the source: the
+    # default lives in the module constant DEFAULT_SPECS_PATH (so the
+    # effective-invocation provenance can tell a real --specs override from
+    # the default), and what matters is the value the parser actually uses
+    default = runner.parse_args.__globals__["DEFAULT_SPECS_PATH"]
     check("the runner defaults --specs to the frozen artifact",
-          "frozen" in source and "e3_final_specs.jsonl" in source)
+          default.parent.name == "frozen"
+          and default.name == "e3_final_specs.jsonl" and default.is_file())
+    check("the parser really uses that default",
+          "DEFAULT_SPECS_PATH" in source and str(default) == str(FINAL))
     check("the runner no longer defaults to the gitignored cache",
-          "results\" / \"cache\"" not in source)
+          "results\" / \"cache\"" not in source
+          and "cache" not in str(default))
 
 
 # ---------------------------------------------------------------------------

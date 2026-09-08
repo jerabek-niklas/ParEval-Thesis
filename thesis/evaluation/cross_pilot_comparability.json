@@ -216,11 +216,12 @@
         "reason": "Declared single source of truth for compile and launch: base flags (-std=c++17 -O3), USE_* macros, compiler resolution (g++/mpicxx), -fopenmp, default launch grids (omp threads / mpi ranks 1,2,4,8). Essentially all content is measurement-condition semantics."
       },
       "thesis/evaluation/run_correctness.py": {
-        "sha256": "59e26c6f0bbd6383c0f22c0affad856a94ccc010d92e96bf5fbd24735164136c",
+        "sha256": "b2eb43e56e8e9b37207866d6192d0e7df86e09d614fde7ba7f84b44f4acda754",
         "granularity": "coarse",
-        "reason": "Contains real verdict semantics (authenticated parser, HarnessTransportError, BI classification, run/sample verdict priority, process-state/validation merge) PLUS unrelated runner code (CLI, config loading, logging, output capping, resume/orchestration). A byte diff requires inspecting whether the verdict semantics are affected. Refreshed 2026-09-06 (pre-run enforcement wave): the stage now stamps the runtime it actually runs under and registers its EFFECTIVE invocation before the first record (git diff --numstat: 32\t0\tthesis/evaluation/run_correctness.py; additions only, no verdict/measurement logic touched). Execution semantics unchanged.",
-        "previous_sha256": "35a9a633da4689a4eb2a627730d0a0b810d4f71ae861515768990a4ade99350b",
-        "change_classification": "ENFORCEMENT_ONLY"
+        "reason": "Refreshed 2026-09-07 (pre-run enforcement wave 1.1): the stage no longer registers `output_file_name` as an effective invocation value - the CLI inventory classifies the stage's own output file name as NON_METHODICAL (the measured content is unchanged), so it must not read as a pinned methodical override. Nothing but that one entry of the effective_values dict was touched; no verdict, parser, timing or measurement logic. Execution semantics unchanged.",
+        "previous_sha256": "59e26c6f0bbd6383c0f22c0affad856a94ccc010d92e96bf5fbd24735164136c",
+        "change_classification": "PROVENANCE_ONLY",
+        "diff_numstat_vs_head": "3\t1\tthesis/evaluation/run_correctness.py"
       },
       "thesis/evaluation/framework.py": {
         "sha256": "0ef4956864b145fee21e470eb4524393d909dc1c67f5c3e5af804586bfda72aa",
@@ -235,11 +236,12 @@
         }
       },
       "thesis/evaluation/run_enhanced_tests.py": {
-        "sha256": "9346d9a14b6ff94ddecdc028af0c6493e73707207936db08af87a3abe3407053",
+        "sha256": "b95b8058220ce0d442dde8973081e29dad3e7beec3a3c78fad9f3a37b4214e2c",
         "granularity": "coarse",
-        "reason": "Productive enhanced execution/verdict path (spec grouping, runtime-fill launches, enhanced verdicts) plus substantial runner/CLI/orchestration code. Refreshed 2026-09-06 (pre-run enforcement wave): the stage now stamps the runtime it actually runs under and registers its EFFECTIVE invocation before the first record (git diff --numstat: 26\t0\tthesis/evaluation/run_enhanced_tests.py; additions only, no verdict/measurement logic touched). Execution semantics unchanged.",
-        "previous_sha256": "c415a9d3c4b2ba29d459ec6271a475fd103673d8e145a894aec80909e50497bd",
-        "change_classification": "ENFORCEMENT_ONLY"
+        "reason": "Refreshed 2026-09-07 (pre-run enforcement wave 1.1): PROVENANCE ONLY. (a) the effective invocation field `specs_path` was renamed to its canonical CLI dest `specs` (--specs) so every registered invocation field is machine-checkable against METHODICAL_CLI_OVERRIDES_BY_STAGE; (b) its `source` now reports DEFAULT instead of CLI when the argparse default was used (a false provenance statement); (c) that default was extracted into the module constant DEFAULT_SPECS_PATH - same path, same value. No spec selection, oracle, gate, policy or measurement logic was touched. Execution semantics unchanged.",
+        "previous_sha256": "a15624a1c5f1397f7e25ef1667e357959f852e661c9482ee339165be24a7c1dd",
+        "change_classification": "PROVENANCE_ONLY",
+        "diff_numstat_vs_head": "15\t3\tthesis/evaluation/run_enhanced_tests.py"
       },
       "thesis/enhanced_tests/specs.py": {
         "sha256": "b0e337aae6c9b113c94ce276493fb11c43f4fb97e545825a56c75461c056016f",
@@ -1474,6 +1476,49 @@
             "batch_chokepoint": "thesis/generation/batch_api.py::submit_batch"
           },
           "api_calls_made": 0
+        },
+        "cross_process_authorization_wave": {
+          "wave": "pre_run_infrastructure_1_1_cross_process_authorization",
+          "date": "2026-09-07",
+          "start_head": "690f4d414b0bd959a1fcc136b49cc081a3ae4bc0",
+          "scope": "cross-process authorization bootstrap/rehydration for provider child processes (generation, batch submit, batch poll, real BatchResponseMissing resubmission, repair), the COMPLETE expected runtime stage matrix (static main/PARCOACH/LLOV + repair evaluation) and the removal of a NON_METHODICAL field from the correctness effective invocation",
+          "change_classification_per_area": {
+            "provider_calls": "ENFORCEMENT_ONLY",
+            "stage_runners": "PROVENANCE_ONLY",
+            "run_contract_builder": "PROVENANCE_ONLY",
+            "post_run_verifier": "PROVENANCE_ONLY",
+            "execution_semantics": "UNCHANGED"
+          },
+          "changed": [
+            "the run authorization is rehydrated from the PERSISTED run provenance in every new process (run_authorization.bootstrap_provider_run / load_and_validate_run_authorization / hydrate_authorized_run_context); the in-process context is only a validated cache",
+            "the frozen contract is discovered deterministically (explicit_contract_path > canonical_run_location <intermediate_dir>/<run_id>/run_contract.json > bound_run_provenance) - no new CLI parameter, no hidden global, no parent RAM context",
+            "a provider runner classifies a pre-run infrastructure failure with its own exit code (3), and the generation orchestrator stops on it even with --continue-on-error instead of skipping the model",
+            "pilot_run_contract.v2 freezes the two derivation inputs of the expected runtime stage matrix: static_toolset (per tool: enabled + effective execution models) and repair_plan",
+            "expected_runtime_stages.v2 derives static.main, static.parcoach, static.llov and repair_evaluation from the frozen contract and the contracted population; the post-run verifier and the runtime matrix use ONE status ladder (missing stamp -> UNRESOLVED, foreign contract -> FAIL)",
+            "the correctness effective invocation no longer carries output_file_name, and every registered invocation field is checked against METHODICAL_CLI_OVERRIDES_BY_STAGE"
+          ],
+          "not_changed": [
+            "generation prompts, generation request content and cleaning output",
+            "correctness verdict semantics, launch grids, niter, timeouts",
+            "assembly semantics and the assembly writer newline policy",
+            "timing semantics, reporting semantics",
+            "enhanced frozen specs and enhanced policy",
+            "static finding semantics, tool-state semantics, PARCOACH confidence policy, LLOV semantics, InferBO policy",
+            "repair stop semantics, repair retry policy, repair variants, max_iterations",
+            "runtime identity definitions, the provider chokepoint definitions, the per-writer fragment architecture and the override policy (ALLOWED_ONLY_IF_DECLARED_AND_PINNED)",
+            "the 99/99/198 correctness comparability, the enhanced comparability and the static/repair comparability",
+            "pilot_001 artifacts (no authorization, no stage runtime stamp and no effective invocation is added retrospectively)"
+          ],
+          "evidence": {
+            "defect_reproduced": "a provider child process started exactly as generate.py starts one (subprocess -> common.run_generation -> adapter.generate -> call_with_retries -> require_provider_call) begins with NO authorization context and was refused although a valid authorization was persisted for the run",
+            "tests": [
+              "thesis/evaluation/test_cross_process_authorization.py",
+              "thesis/evaluation/test_stage_enforcement.py",
+              "thesis/evaluation/test_provider_chokepoint.py",
+              "thesis/evaluation/test_post_run_verification.py"
+            ],
+            "api_calls": 0
+          }
         }
       },
       "F_static_repair": {
@@ -1743,6 +1788,6 @@
     "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
   ],
   "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged",
-  "cross_pilot_fingerprint_sha256": "c523648b8fa18287a68ced74679fbd54043d34feedf8ae722a0485f27a4daf80",
+  "cross_pilot_fingerprint_sha256": "57436c61d1cbf46fcbb09f1a873c5455eef337a0aa51b3230bd70a64effba46d",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

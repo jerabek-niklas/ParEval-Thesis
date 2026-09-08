@@ -153,6 +153,12 @@ BUILD_TIMEOUT = 120.0
 DEFAULT_RUN_TIMEOUT = 30.0
 
 
+# the FROZEN E3 execution artifact: the --specs default, kept as a constant so
+# the effective invocation can tell a real CLI override from the default
+DEFAULT_SPECS_PATH = (REPO_ROOT / "thesis" / "enhanced_tests" / "frozen"
+                      / "e3_final_specs.jsonl")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run enhanced differential tests.")
     parser.add_argument("--config", required=True)
@@ -164,8 +170,7 @@ def parse_args() -> argparse.Namespace:
         # gitignored generator cache. A fresh clone can run the enhanced stage
         # with no local cache and no LLM. The mutable cache stays the
         # GENERATOR's output; pass it explicitly to regenerate from it.
-        default=str(REPO_ROOT / "thesis" / "enhanced_tests" / "frozen"
-                    / "e3_final_specs.jsonl"),
+        default=str(DEFAULT_SPECS_PATH),
         help="Enhanced seed spec JSONL (default: the frozen E3 execution "
              "artifact; static base set + mutations always run).",
     )
@@ -887,7 +892,14 @@ def main() -> None:
     enforcement = stage_runtime.enforce_stage(
         config, run_id, "enhanced",
         effective_values={
-            "specs_path": {"value": str(args.specs), "source": "CLI"},
+            # canonical name of the --specs CLI override (cli_override_inventory
+            # dest "specs"), so the invocation field is machine-checkable. The
+            # source is CLI only when the value really came from the command
+            # line - the frozen default is a DEFAULT, and claiming otherwise
+            # would be a false provenance statement.
+            "specs": {"value": str(args.specs),
+                      "source": "CLI" if str(args.specs) != str(DEFAULT_SPECS_PATH)
+                      else "DEFAULT"},
             "jobs": {"value": ",".join("%s=%d" % (m, jobs[m]) for m in execution_models),
                      "source": "CLI" if args.jobs else "CONFIG"},
             "effective_enhanced_run_timeout_seconds": {
