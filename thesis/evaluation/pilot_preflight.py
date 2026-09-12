@@ -265,6 +265,37 @@ def prerun_infrastructure_lines() -> "list":
     lines.append("INVOCATION_NON_METHODICAL_FIELDS = [] (every registered effective value "
                  "is a METHODICAL CLI override of its stage, checked against "
                  "cli_override_inventory)")
+    # ---- repair scope completeness (post-run verifier) ----
+    from thesis.evaluation import repair_scope
+
+    repair_expected = repair_scope.expected_repair_loops(contract)
+    lines.append("REPAIR_SCOPE_VERIFICATION = READY (%s)" % repair_scope.REPAIR_MATRIX_VERSION)
+    lines.append("REPAIR_EXPECTED_SET_POLICY = %s (%s)"
+                 % (repair_scope.REPAIR_EXPECTED_SET_RULE, repair_scope.REPAIR_EXPECTED_SET_POLICY))
+    lines.append("REPAIR_TERMINALITY_POLICY = %s (terminal(loop) := state.jsonl exists AND no "
+                 "sample is STATUS_ACTIVE; run_backfill.loop_state_terminality)"
+                 % repair_scope.REPAIR_TERMINALITY_POLICY)
+    lines.append("REPAIR_LOOP_STATE_SOURCE_OF_TRUTH = %s"
+                 % repair_scope.REPAIR_LOOP_STATE_SOURCE_OF_TRUTH)
+    # which variants analyse ITERATION 0 themselves - i.e. register their
+    # repair_evaluation invocation without ever analysing an iteration >= 1
+    # (orchestrator.step() -> _to_analyzed(0) covers whatever the base run
+    # did not). Pre-run evidence for the post-run coverage rule.
+    lines.append("REPAIR_ITERATION_ZERO_INVOCATION_POLICY = %s"
+                 % repair_scope.ITERATION_ZERO_INVOCATION_POLICY)
+    for variant in repair_expected["variants"]:
+        zero = repair_scope.iteration_zero_analysis(contract, config, variant)
+        lines.append("  REPAIR_ITERATION_ZERO_ANALYSIS: %s = %s (%s)"
+                     % (variant, "REGISTERS_INVOCATION_AT_ITERATION_0" if zero["certain"]
+                        else "BASE_RUN_COVERS_ITERATION_0_BY_CONTRACT",
+                        ", ".join(zero["missing_internal_stages"]) or zero["reason"]))
+    lines.append("REPAIR_EXPECTED_LOOPS (contract view of the current config) = %d (%s; %d "
+                 "model(s) x %d variant(s): %s)"
+                 % (len(repair_expected["loops"]), repair_expected["status"],
+                    len(repair_expected["model_ids"]), len(repair_expected["variants"]),
+                    ", ".join(repair_expected["variants"]) or "-"))
+    lines.append("RUNTIME_STAMP_SUBSTITUTES_MISSING_REPAIR_LOOP = false")
+    lines.append("POST_RUN_REPAIR_COMPLETENESS_REQUIRED = true")
     lines.append("POST_RUN_VERIFICATION_MECHANISM = READY (%s)"
                  % verify_pilot_run.VERIFIER_VERSION)
     lines.append("PILOT_002_POST_RUN_VERIFIED = NOT_APPLICABLE_BEFORE_RUN")

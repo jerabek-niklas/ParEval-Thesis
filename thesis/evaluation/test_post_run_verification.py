@@ -50,8 +50,9 @@ def check(label, condition):
         FAILURES.append(label)
 
 
-def sample_id(benchmark, index=0):
-    return "%s__%s__%s__serial__sample_%d" % (MODEL, benchmark[0], benchmark[1], index)
+def sample_id(benchmark, index=0, execution_model="serial", model=MODEL):
+    return "%s__%s__%s__%s__sample_%d" % (model, benchmark[0], benchmark[1],
+                                          execution_model, index)
 
 
 def fake_environment(name, tools, extra=None):
@@ -110,11 +111,11 @@ def write_readiness_artifact(config, path):
     return fresh
 
 
-def generation_record(benchmark, prompt_text, raw_text):
+def generation_record(benchmark, prompt_text, raw_text, execution_model="serial"):
     return {
-        "sample_id": sample_id(benchmark),
+        "sample_id": sample_id(benchmark, execution_model=execution_model),
         "prompt": {"problem_type": benchmark[0], "name": benchmark[1],
-                   "parallelism_model": "serial", "language": "cpp",
+                   "parallelism_model": execution_model, "language": "cpp",
                    "prompt_text": prompt_text},
         "output": {"raw_text": raw_text, "cleaned_code": raw_text},
         "status": {"success": True, "truncated": False, "error_type": None,
@@ -133,7 +134,10 @@ class World:
                  contract_run_id: "str | None" = None,
                  models=(MODEL,), samples=(BENCHMARK, BENCHMARK2),
                  extra_models=(), stage_overrides=None,
-                 execution_models=("serial",), skip_stamps=()):
+                 execution_models=("serial",), skip_stamps=(),
+                 execution_model="serial", repair_loops=True,
+                 repair_sample_status=None, repair_iteration=1,
+                 unsuccessful_generations=()):
         self.root = Path(root)
         self.run_id = run_id
         self.models = list(models)
@@ -144,6 +148,20 @@ class World:
         self.stage_overrides = dict(stage_overrides or {})
         self.execution_models = list(execution_models)
         self.skip_stamps = tuple(skip_stamps)
+        # the execution model of the fixture SAMPLES (the population above is
+        # what the contract admits; this is what the two prompts are)
+        self.execution_model = execution_model
+        # repair loops: written for every contracted (model, variant) through
+        # the PRODUCTIVE orchestrator writers, all samples terminal
+        self.repair_loops = repair_loops
+        self.repair_sample_status = repair_sample_status
+        self.repair_iteration = repair_iteration
+        # (model, benchmark) pairs whose generation the provider never
+        # delivered: the productive assembler then SKIPS them, and the repair
+        # loop's own bootstrap marks them repair_unusable at iteration 0
+        self.unsuccessful_generations = {tuple(pair) for pair in unsuccessful_generations}
+        self.skip_repair_invocations = set()
+        self.skip_static_invocations = set()
         self.samples = list(samples)
         self.config_path = self.root / "config.yaml"
         self.contract_path = self.root / "frozen_contract.json"
@@ -161,14 +179,16 @@ class World:
         self._bind_contract()
         self.stamp_stages(skip=self.skip_stamps)
         self._write_stage_records()
+        if self.repair_loops:
+            self.write_repair_loops()
 
     # ---- construction -------------------------------------------------
     def _write_prompts(self):
         atomic_io.atomic_write_json(self.prompts_path, [
             {"problem_type": BENCHMARK[0], "name": BENCHMARK[1], "language": "cpp",
-             "parallelism_model": "serial", "prompt": PROMPT_TEXT},
+             "parallelism_model": self.execution_model, "prompt": PROMPT_TEXT},
             {"problem_type": BENCHMARK2[0], "name": BENCHMARK2[1], "language": "cpp",
-             "parallelism_model": "serial", "prompt": PROMPT_TEXT2},
+             "parallelism_model": self.execution_model, "prompt": PROMPT_TEXT2},
         ])
 
     def _write_readiness(self):
@@ -227,7 +247,15 @@ class World:
             for benchmark, prompt_text, raw in ((BENCHMARK, PROMPT_TEXT, RAW),
                                                 (BENCHMARK2, PROMPT_TEXT2, RAW2)):
                 if benchmark in self.samples:
-                    common.append_jsonl(path, generation_record(benchmark, prompt_text, raw))
+                    record = generation_record(benchmark, prompt_text, raw, self.execution_model)
+                    record["sample_id"] = sample_id(benchmark, execution_model=self.execution_model,
+                                                    model=model)
+                    if (model, benchmark) in self.unsuccessful_generations:
+                        record["status"] = dict(record["status"], success=False,
+                                                error_type="APITimeoutError")
+                        record["output"] = dict(record["output"], raw_text="",
+                                                cleaned_code=None)
+                    common.append_jsonl(path, record)
 
     def _freeze_contract(self, contract_run_id):
         contract = pilot_run_contract.build_contract(
@@ -318,6 +346,32 @@ class World:
             if stage in skip:
                 continue
             effective_values, writer = self.STAGE_INVOCATIONS[stage]
+            if stage in ("static.parcoach", "static.llov"):
+                # the container commands run once per model (--model-id), so
+                # production registers one invocation per model
+                for model in self.models + [m["id"] for m in self.extra_models]:
+                    if (stage, model) in self.skip_static_invocations:
+                        continue
+                    stage_runtime.enforce_stage(
+                        self.config, self.run_id, stage,
+                        effective_values=dict(effective_values), profile="fixture",
+                        model_scope=[model], prober=fake_prober, writer=writer)
+                stamped.append(stage)
+                continue
+            if stage == "repair_evaluation":
+                # the productive repair loop registers ONE invocation per
+                # (model, variant): model_scope=[model], variant in the values
+                for model, variant in self.expected_repair_loops():
+                    if (model, variant) in self.skip_repair_invocations:
+                        continue
+                    values = dict(effective_values)
+                    values["variant"] = {"value": variant, "source": "CLI"}
+                    stage_runtime.enforce_stage(
+                        self.config, self.run_id, stage, effective_values=values,
+                        profile="fixture", model_scope=[model], prober=fake_prober,
+                        writer=writer)
+                stamped.append(stage)
+                continue
             stage_runtime.enforce_stage(
                 self.config, self.run_id, stage, effective_values=dict(effective_values),
                 profile="fixture", prober=fake_prober, writer=writer)
@@ -331,28 +385,86 @@ class World:
                 sid = entry["sample_id"]
                 common.append_jsonl(model_dir / "correctness.jsonl", {
                     "schema_version": "correctness.v2", "sample_id": sid, "model_id": model,
-                    "run_id": self.run_id, "execution_model": "serial", "verdict": "pass",
+                    "run_id": self.run_id,
+                    "execution_model": entry.get("execution_model") or "serial", "verdict": "pass",
                     "compile": {"ok": True, "exit_code": 0, "timed_out": False,
                                 "duration_seconds": 2.0},
                     "runs": [{"argv": ["b.out", "1"], "exit_code": 0, "timed_out": False,
                               "duration_seconds": 0.01, "verdict": "pass"}]})
                 common.append_jsonl(model_dir / "static_analysis.jsonl", {
                     "schema_version": "static_analysis.v3", "sample_id": sid,
-                    "model_id": model, "run_id": self.run_id, "execution_model": "serial",
-                    "tools": {"compiler": self.tool_entry("COMPLETED")}})
+                    "model_id": model, "run_id": self.run_id,
+                    "execution_model": entry.get("execution_model") or "serial",
+                    "tools": self.static_tools_for(entry)})
                 for spec in self.expected_specs(entry):
                     common.append_jsonl(model_dir / "enhanced_tests.jsonl", {
                         "schema_version": "enhanced.v3", "sample_id": sid, "model_id": model,
-                        "run_id": self.run_id, "execution_model": "serial",
+                        "run_id": self.run_id,
+                        "execution_model": entry.get("execution_model") or "serial",
                         "benchmark": entry.get("benchmark"), "spec": spec,
                         "status": "pass", "exit_code": 0, "duration_seconds": 0.01})
             self.register_enhanced_fingerprint(model)
 
-    def tool_entry(self, state, error=None):
-        return {"tool": "compiler", "ran": True, "exit_code": 0, "num_findings": 0,
+    def tool_entry(self, state, error=None, tool="compiler"):
+        return {"tool": tool, "ran": True, "exit_code": 0, "num_findings": 0,
                 "num_blocking": 0, "num_low_confidence": 0, "duration_seconds": 0.5,
                 "findings": [], "error": error, "analysis_state": state,
                 "tool_state_schema": "tool_state.v1"}
+
+    def static_tools_for(self, entry):
+        """One COMPLETED entry per static tool the fixture config enables for
+        the sample's execution model - exactly the coverage the verifier's
+        check_static requires (compiler only in the default world)."""
+        from thesis.evaluation.tool_config import resolve_tool_settings
+
+        settings = resolve_tool_settings(self.config, "static_analysis")
+        execution_model = entry.get("execution_model") or "serial"
+        return {name: self.tool_entry("COMPLETED", tool=name)
+                for name, tool in settings.items()
+                if tool.enabled and execution_model in tool.execution_models}
+
+    # ---- repair loops (productive orchestrator writers) ---------------
+    def repair_loop(self, model, variant):
+        """The productive loop object for (model, variant): its writers
+        (append_sample_state / save_wave_state) produce the real state
+        schema, so the verifier reads exactly what a run would leave."""
+        from thesis.repair import orchestrator
+
+        model_config = next(m for m in self.config["models"] if m["id"] == model)
+        return orchestrator.RepairLoop(
+            config=self.config, config_path=str(self.config_path), profile_name="fixture",
+            profile=self.config["profiles"]["fixture"], model_config=model_config,
+            variant=variant)
+
+    def expected_repair_loops(self):
+        plan = self.contract.get("repair_plan") or {}
+        if not plan.get("enabled"):
+            return []
+        return [(model, variant) for model in self.contract.get("model_ids") or []
+                for variant in plan.get("variants") or []]
+
+    def write_repair_loops(self, status=None, iteration=None, only=None, skip=()):
+        """Every contracted (model, variant) loop: one terminal state record
+        per assembled sample (default stopped_clean) and a `done` wave state."""
+        from thesis.repair import orchestrator
+
+        status = status or self.repair_sample_status or orchestrator.STATUS_CLEAN
+        iteration = self.repair_iteration if iteration is None else iteration
+        written = []
+        for model, variant in self.expected_repair_loops():
+            if only is not None and (model, variant) not in only:
+                continue
+            if (model, variant) in skip:
+                continue
+            loop = self.repair_loop(model, variant)
+            if loop.paths.state_path.exists():
+                loop.paths.state_path.unlink()
+            for entry in self.assembled(model):
+                loop.append_sample_state(entry["sample_id"], iteration, status,
+                                         "fixture: %s at iteration %d" % (status, iteration))
+            loop.save_wave_state(iteration, "done")
+            written.append((model, variant))
+        return written
 
     def expected_specs(self, entry):
         return build_benchmark_specs(entry.get("benchmark"), [], self.config)

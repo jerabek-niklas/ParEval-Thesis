@@ -439,6 +439,65 @@ def plan_run(
 # ---------------------------------------------------------------------------
 
 
+def loop_state_terminality(state_path: Path) -> Dict[str, Any]:
+    """THE sample-level terminality of one (base run, model, variant) loop.
+
+        terminal(loop) := state.jsonl exists AND no sample is STATUS_ACTIVE
+
+    This is the productive definition `loops_terminated` has always used
+    (held-out ordering: enhanced tests may only run once every loop is
+    terminal). The post-run verifier consumes the SAME function, so there is
+    exactly one repair-terminality semantics in the repository. No single
+    per-loop "terminal reason" is derived - a loop has many samples, and they
+    stop for different reasons at different iterations; what is reported is
+    the per-status breakdown of the LATEST record of every sample (the
+    orchestrator's own read rule, load_sample_states) plus the highest
+    iteration any sample reached.
+    """
+    if not state_path.exists():
+        return {
+            "state_present": False,
+            "terminal": False,
+            "samples_total": 0,
+            "samples_active": 0,
+            "terminal_breakdown": {},
+            "unknown_statuses": {},
+            "max_iteration_observed": None,
+            "invalid_iterations": 0,
+        }
+
+    states = orchestrator.load_sample_states(state_path)
+    breakdown: Dict[str, int] = {}
+    unknown: Dict[str, int] = {}
+    active = 0
+    max_iteration = None
+    invalid_iterations = 0
+    for record in states.values():
+        status = record.get("status")
+        if status == orchestrator.STATUS_ACTIVE:
+            active += 1
+        elif status in orchestrator.TERMINAL_STATUSES:
+            breakdown[status] = breakdown.get(status, 0) + 1
+        else:
+            unknown[str(status)] = unknown.get(str(status), 0) + 1
+        iteration = record.get("iteration")
+        if isinstance(iteration, int) and not isinstance(iteration, bool):
+            max_iteration = iteration if max_iteration is None else max(max_iteration, iteration)
+        else:
+            invalid_iterations += 1
+
+    return {
+        "state_present": True,
+        "terminal": active == 0,
+        "samples_total": len(states),
+        "samples_active": active,
+        "terminal_breakdown": dict(sorted(breakdown.items())),
+        "unknown_statuses": dict(sorted(unknown.items())),
+        "max_iteration_observed": max_iteration,
+        "invalid_iterations": invalid_iterations,
+    }
+
+
 def loops_terminated(
     config: Dict[str, Any], base_run_id: str, model_id: str
 ) -> "Tuple[bool, List[str]]":
@@ -450,20 +509,15 @@ def loops_terminated(
 
     for variant in orchestrator.repair_settings(config)["variants"]:
         paths = orchestrator.LoopPaths(config, base_run_id, model_id, variant)
+        terminality = loop_state_terminality(paths.state_path)
 
-        if not paths.state_path.exists():
+        if not terminality["state_present"]:
             reasons.append("%s: loop has not run (no state.jsonl)" % variant)
             continue
 
-        states = orchestrator.load_sample_states(paths.state_path)
-        active = [
-            s for s, record in states.items()
-            if record.get("status") == orchestrator.STATUS_ACTIVE
-        ]
-
-        if active:
+        if terminality["samples_active"]:
             reasons.append(
-                "%s: %d sample(s) still active" % (variant, len(active))
+                "%s: %d sample(s) still active" % (variant, terminality["samples_active"])
             )
 
     return (not reasons), reasons

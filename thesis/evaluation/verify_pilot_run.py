@@ -686,6 +686,140 @@ def check_repair(report: Report, config: Dict[str, Any], intermediate: Path, run
                 "variants": settings.get("variants")})
 
 
+def reconcile_repair_evaluation_expectation(report: Report,
+                                            matrix: "Optional[Dict[str, Any]]") -> None:
+    """The global expectation and the per-loop rule must not contradict each
+    other.
+
+    stage_runtime.expected_runtime_stages demands a repair_evaluation runtime
+    stamp (and effective invocation) for every contracted repair plan, because
+    a repair loop normally analyses candidates. The repair matrix can PROVE
+    that no contracted loop of THIS run ever analysed anything - every loop
+    stopped at iteration 0 with base records the loop did not have to produce -
+    and in that case the productive orchestrator registers no repair_evaluation
+    invocation at all, so the two generic checks would report UNRESOLVED on a
+    complete, correct run.
+
+    The downgrade is deliberately narrow: it needs a PASS matrix with at least
+    one expected loop, EVERY row not requiring an invocation and none present,
+    and it only rewrites an UNRESOLVED verdict - if any loop required one, or
+    anything else about the repair scope is unresolved or failed, both checks
+    stand exactly as they were."""
+    from thesis.evaluation import repair_scope as rs
+
+    if not matrix or matrix.get("status") != rs.PASS:
+        return
+    rows = matrix.get("rows") or []
+    if not rows or not all(not row.get("invocation_required")
+                           and not row.get("invocation_count") for row in rows):
+        return
+    reason = ("the repair matrix proves that none of the %d contracted loop(s) analysed an "
+              "iteration, so the productive orchestrator registers no %s at all "
+              "(repair_scope_matrix.v1)" % (len(rows), rs.STAGE))
+    for check in report.checks:
+        if check["check"] in ("stage_runtime:%s.main" % rs.STAGE,
+                              "effective_invocation:%s" % rs.STAGE) \
+                and check["status"] == UNRESOLVED:
+            check["status"] = rs.NOT_APPLICABLE
+            check["detail"] = "%s - NOT_APPLICABLE: %s" % (check["detail"], reason)
+            check["evidence"] = dict(check.get("evidence") or {},
+                                     reconciled_with="repair_scope_complete")
+
+
+def check_repair_scope(report: Report, contract: "Optional[Dict[str, Any]]",
+                       config: Dict[str, Any], run_id: str,
+                       manifest: "Optional[Dict[str, Any]]",
+                       assembled_by_model: "Optional[Dict[str, List[str]]]" = None,
+                       known_by_model: "Optional[Dict[str, List[str]]]" = None
+                       ) -> "OrderedDict[str, Any]":
+    """WERE ALL CONTRACTED (model_id x variant) REPAIR LOOPS ACTUALLY AND
+    COMPLETELY EVIDENCED? The expected set comes from the FROZEN contract
+    only (no repair_plan -> UNRESOLVED, never a live-config fallback); every
+    expected loop needs its own invocation, its own state file and
+    sample-level terminality (run_backfill.loop_state_terminality). A valid
+    global repair_evaluation runtime stamp never substitutes for a loop."""
+    from thesis.evaluation import repair_scope as rs
+
+    matrix = rs.build_repair_matrix(contract, config, run_id, manifest, assembled_by_model,
+                                    known_by_model)
+    expected = matrix["expected_set"]
+    report.add("repair_expected_set",
+               PASS if expected["status"] == rs.NOT_APPLICABLE else expected["status"],
+               "%s (%s): %s" % (expected["policy"], expected["rule"], expected["reason"]),
+               {"model_ids": expected["model_ids"], "variants": expected["variants"],
+                "max_iterations": expected["max_iterations"],
+                "expected_loop_count": matrix["expected_loop_count"]})
+    if matrix["status"] == rs.NOT_APPLICABLE:
+        # the report knows PASS/FAIL/UNRESOLVED only; NOT_APPLICABLE is kept
+        # verbatim in the evidence and in report["repair_scope"]
+        report.add("repair_scope_complete", PASS,
+                   "NOT_APPLICABLE: %s" % matrix["detail"],
+                   {"aggregate": rs.NOT_APPLICABLE, "expected_loop_count": 0,
+                    "observed_loop_count": matrix["observed_loop_count"]})
+        return matrix
+    if expected["status"] != PASS:
+        # no usable expected set (missing or invalid frozen repair plan):
+        # nothing below is decidable, and the aggregate carries the verdict
+        report.add("repair_scope_complete", matrix["status"], matrix["detail"],
+                   {"expected_loop_count": 0, "observed_loop_count": matrix["observed_loop_count"],
+                    "runtime_stamp_substitutes_missing_repair_loop": False})
+        return matrix
+    invocations = matrix["invocations"]
+    report.add("repair_invocation_membership", invocations["membership"],
+               "%d observed repair invocation scope(s); unexpected %d, duplicate %d, "
+               "unkeyable %d, contradicting %d"
+               % (invocations["observed_scope_count"], len(invocations["unexpected_scopes"]),
+                  len(invocations["duplicate_scopes"]), len(invocations["unkeyable"]),
+                  len(invocations["contradicting_contract"])),
+               {"unexpected": invocations["unexpected_scopes"],
+                "duplicate": invocations["duplicate_scopes"],
+                "unkeyable": invocations["unkeyable"],
+                "contradicting": invocations["contradicting_contract"]})
+    report.add("repair_invocation_coverage", invocations["coverage"],
+               "%d/%d expected repair invocation scope(s) present, %d not required "
+               "(the loop analysed nothing), %d required and absent%s"
+               % (invocations["present_scope_count"], invocations["expected_scope_count"],
+                  invocations["not_required_scope_count"], len(invocations["missing_scopes"]),
+                  ("; " + matrix["narrowing"]["reason"]) if matrix["narrowing"]["narrowed"]
+                  else ""),
+               {"missing": invocations["missing_scopes"], "narrowing": matrix["narrowing"]})
+    for row in matrix["rows"]:
+        report.add("repair_loop:%s/%s" % (row["model_id"], row["variant"]), row["status"],
+                   row["detail"],
+                   {"terminal": row["terminal"], "samples_total": row["samples_total"],
+                    "samples_active": row["samples_active"],
+                    "terminal_breakdown": row["terminal_breakdown"],
+                    "max_iteration_observed": row["max_iteration_observed"],
+                    "limitations": row["limitations"]})
+    if matrix["iteration_identity_violations"]:
+        report.add("repair_iteration_identity", FAIL,
+                   "; ".join(matrix["iteration_identity_violations"][:10]),
+                   {"violations": matrix["iteration_identity_violations"]})
+    else:
+        report.add("repair_iteration_identity", PASS,
+                   "%d iteration artifact run(s) bound to contracted (model, variant, iteration) "
+                   "identities" % len(matrix["iteration_artifacts"]))
+    totals = matrix["sample_totals"]
+    report.add("repair_scope_complete", matrix["status"], matrix["detail"], {
+        "expected_loop_count": matrix["expected_loop_count"],
+        "observed_loop_count": matrix["observed_loop_count"],
+        "pass_loop_count": matrix["pass_loop_count"],
+        "unresolved_loop_count": matrix["unresolved_loop_count"],
+        "fail_loop_count": matrix["fail_loop_count"],
+        "terminal_loop_count": matrix["terminal_loop_count"],
+        "missing": matrix["missing"], "unexpected": matrix["unexpected"],
+        "duplicate": matrix["duplicate"], "unkeyable": matrix["unkeyable"],
+        # SAMPLE-level, deliberately separate from the LOOP counts above
+        "total_repair_samples": totals["total_repair_samples"],
+        "terminal_repair_samples": totals["terminal_repair_samples"],
+        "active_repair_samples": totals["active_repair_samples"],
+        "sample_terminal_breakdown": totals["sample_terminal_breakdown"],
+        "limitations": matrix["limitations"],
+        "runtime_stamp_substitutes_missing_repair_loop": False,
+    })
+    return matrix
+
+
 def check_runtime(report: Report, manifest: "Optional[Dict[str, Any]]",
                   contract: "Optional[Dict[str, Any]]") -> None:
     evidence = (manifest or {}).get("runtime_evidence")
@@ -754,6 +888,10 @@ def verify(config: Dict[str, Any], run_id: str,
     models = sorted(set(models) | set(observed_models)) if contract else observed_models
 
     assembled_by_model: "Dict[str, List[str]]" = {}
+    # every sample the base run has an assembly ENTRY for, assembled or not:
+    # _decide(0)'s bootstrap marks the skipped ones repair_unusable, so they
+    # belong in the repair loop's state and must not read as fabricated
+    known_by_model: "Dict[str, List[str]]" = {}
     for model_id in models:
         check_population(report, raw, run_id, model_id, contract)
         records = list(_iter_jsonl(raw / run_id / model_id / "generations.jsonl"))
@@ -762,6 +900,15 @@ def verify(config: Dict[str, Any], run_id: str,
                                    generation_sample_ids=generation_ids or None)
         check_evaluated_population(report, model_id, records, assembled, contract)
         assembled_by_model[model_id] = [e["sample_id"] for e in assembled]
+        try:
+            from thesis.assembly import assembly_provenance as _ap
+
+            known_by_model[model_id] = [
+                e.get("sample_id") for e in _ap.load_assembly_entries(
+                    intermediate / run_id / model_id / "assembly.jsonl")
+                if e.get("sample_id")]
+        except Exception:  # noqa: BLE001 - reported by check_assembly already
+            known_by_model[model_id] = list(assembled_by_model[model_id])
         check_correctness(report, intermediate, run_id, model_id, assembled)
         check_static(report, config, intermediate, run_id, model_id, assembled)
         if not skip_enhanced:
@@ -769,6 +916,9 @@ def verify(config: Dict[str, Any], run_id: str,
                            contract, manifest)
     if intermediate.is_dir():
         check_repair(report, config, intermediate, run_id, models, assembled_by_model)
+    repair_matrix = check_repair_scope(report, contract, config, run_id, manifest,
+                                       assembled_by_model, known_by_model)
+    reconcile_repair_evaluation_expectation(report, repair_matrix)
     check_runtime(report, manifest, contract)
 
     return OrderedDict([
@@ -781,6 +931,16 @@ def verify(config: Dict[str, Any], run_id: str,
         ("models", models),
         ("runtime_matrix", runtime_matrix),
         ("retrospective_runtime_substitution_allowed", False),
+        ("repair_matrix", repair_matrix),
+        ("repair_scope", OrderedDict([
+            ("status", repair_matrix["status"]),
+            ("expected_loop_count", repair_matrix["expected_loop_count"]),
+            ("observed_loop_count", repair_matrix["observed_loop_count"]),
+            ("pass_loop_count", repair_matrix["pass_loop_count"]),
+            ("unresolved_loop_count", repair_matrix["unresolved_loop_count"]),
+            ("fail_loop_count", repair_matrix["fail_loop_count"]),
+            ("sample_totals", repair_matrix["sample_totals"]),
+        ])),
         ("checks", report.checks),
     ])
 
@@ -801,6 +961,19 @@ def main() -> int:
     print("POST_RUN_VERIFICATION run=%s status=%s (PASS %d / FAIL %d / UNRESOLVED %d)"
           % (args.run_id, report["status"], report["counts"][PASS],
              report["counts"][FAIL], report["counts"][UNRESOLVED]))
+    from thesis.evaluation import repair_scope as _rs
+
+    scope = report.get("repair_scope") or {}
+    print("REPAIR_SCOPE_COMPLETE = %s (expected loops %s, observed %s, PASS %s, UNRESOLVED %s, "
+          "FAIL %s)" % (scope.get("status"), scope.get("expected_loop_count"),
+                        scope.get("observed_loop_count"), scope.get("pass_loop_count"),
+                        scope.get("unresolved_loop_count"), scope.get("fail_loop_count")))
+    totals = scope.get("sample_totals") or {}
+    print("REPAIR_SAMPLES total=%s terminal=%s active=%s breakdown=%s"
+          % (totals.get("total_repair_samples"), totals.get("terminal_repair_samples"),
+             totals.get("active_repair_samples"), dict(totals.get("sample_terminal_breakdown") or {})))
+    for line in _rs.matrix_table(report.get("repair_matrix") or {}):
+        print("  " + line)
     for check in report["checks"]:
         if check["status"] != PASS:
             print("  %-10s %s: %s" % (check["status"], check["check"], check["detail"]))

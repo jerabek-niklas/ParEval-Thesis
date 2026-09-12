@@ -789,3 +789,599 @@ Open and unchanged by this wave (not blocking): population
 `NOT_YET_DECIDED`, base run id `NOT_YET_CONFIGURED`, reuse `UNDECIDED`,
 publication open, TSan/ASLR `OPEN_FOR_FINAL_ENVIRONMENT_GATE`, pilot_002 not
 run and therefore not post-run verified.
+
+---
+
+# Wave 1.2 — Repair scope completeness, sample-level terminality, fail-closed expected set, post-run repair verification
+
+Start HEAD `dd23092522655c42b7c88af698cff073fa630243` (parent `690f4d4…`,
+branch `thesis-static-analysis`, clean working tree, 0 untracked). Change
+class: **VERIFIER_COMPLETENESS_ONLY**.
+
+## 1.2.1 The gap
+
+The frozen contract pins every model, every repair variant, `max_iterations`
+and the repair plan, and the invocation infrastructure registers one
+`repair_evaluation` invocation per `(model_id, variant)`. The post-run
+verifier, however, only checked that *at least one* repair invocation
+existed, that the *present* invocations did not contradict the contract, and
+that iteration artifacts did not leak into the base population. It never
+asked whether **all contracted (model_id × variant) loops were actually and
+completely evidenced**. Concretely: 33 expected loops, 1 model × static_feedback
+present with a correct invocation and a valid global `repair_evaluation`
+runtime stamp — PASS. That is the false PASS this wave closes.
+
+## 1.2.2 Repair loop state source of truth
+
+    REPAIR_LOOP_STATE_SOURCE_OF_TRUTH =
+        <intermediate_dir>/<base_run_id>/<model_id>/repair/<variant>/state.jsonl
+        schema   orchestrator.STATE_SCHEMA_VERSION (repair_state.v2)
+        writer   orchestrator.RepairLoop.append_sample_state
+        reader   orchestrator.load_sample_states  (latest record per sample_id)
+
+Audit of the productive state machine (`thesis/repair/orchestrator.py`):
+`state.jsonl` is append-only, one record per status change with `run_id`,
+`model_id`, `variant`, `sample_id`, `iteration`, `status`; `load_sample_states`
+keeps the latest record per sample. `wave_state.json` caches the phase
+pointer (`PHASES`; `submitted` is persisted only in batch mode with the
+`batch` bookkeeping) and `pending_external.txt` exists while the loop waits
+for container tools (phase `analyzed_waiting_external`). Iteration artifacts
+live under `<base>__<variant>__iter<N>` (`LoopPaths.iter_run_id`; iteration 0
+is the base run). Nothing is inferred from directory names alone, from
+summaries, from Markdown or from invocation fragments.
+
+## 1.2.3 Sample-level terminality — one definition
+
+    terminal(loop) := state.jsonl exists AND no sample is STATUS_ACTIVE
+
+This is exactly the productive definition `run_backfill.loops_terminated`
+has always applied (held-out ordering: enhanced tests may run only once
+every loop is terminal). The wave extracts it into
+`run_backfill.loop_state_terminality(state_path)` and makes
+`loops_terminated` call it, so the verifier and the backfill share ONE
+function — no second, independently maintained terminality semantics. The
+helper returns `state_present`, `terminal`, `samples_total`,
+`samples_active`, `terminal_breakdown` (keyed by
+`orchestrator.TERMINAL_STATUSES`), `unknown_statuses` and
+`max_iteration_observed` (the maximum iteration any sample reached). No
+single per-loop `terminal_reason` is invented and `current_iteration` is not
+used as a loop field: a loop has many samples that stop for different reasons
+at different iterations. `orchestrator.py` itself is untouched (its raw hash
+is part of the repair condition).
+
+## 1.2.4 Expected repair set — frozen contract only, fail-closed
+
+`repair_scope.expected_repair_loops(contract)` (`repair_expected_set.v1`,
+rule `FROZEN_CONTRACT_FAIL_CLOSED`):
+
+| case | condition | result |
+|---|---|---|
+| A | `repair_plan` absent (pre-v2, incomplete, damaged) | **UNRESOLVED**, empty set, reason "frozen contract carries no repair_plan" — never a live-config fallback |
+| B | `enabled = true` and variants missing/empty/non-distinct, `repair_plan.error`, `max_iterations` not a non-negative int, `model_ids` empty/duplicated, or `repair` missing from `expected_stages` | **FAIL** — never an empty PASS set |
+| C | `enabled = false` | `[]` and **NOT_APPLICABLE** — the only legitimate empty set |
+| — | enabled and usable | `model_ids × variants`, sorted, each with `max_iterations`, `expected = true` and a reason |
+
+`api_mode` and `external_tools` are carried for the contradiction checks but
+never change the set size. Measured on the productive config's contract
+view: **33 = 11 enabled models × 3 configured variants** (static_feedback,
+test_feedback, combined_feedback — read from the config/contract, not
+hardcoded).
+
+## 1.2.5 Actual loops, identity and categories
+
+`loop_inventory` discovers loops where `LoopPaths` places them and resolves
+each to its logical identity **from the state records' own consistent claim**
+(`model_id`, `variant`, `run_id`). Categories: `expected_and_present`,
+`expected_missing`, `unexpected_extra` (model or variant outside the
+contract → FAIL), `duplicate_identity` (two locations resolving to one
+logical loop → FAIL), `unkeyable` (records disagreeing among themselves,
+missing `sample_id`, or a non-productive variant name → FAIL). A location
+whose records claim another model/variant/run is a contradiction (FAIL) but
+still resolves, which is what makes duplicates visible instead of silently
+vanishing.
+
+Per actual loop: `model_id`, `variant`, `state_path`, `state_present`,
+`terminal`, `samples_total`, `samples_active`, `terminal_breakdown`,
+`max_iteration_observed`, `wave_phase`, `pending_batch` (phase `submitted`),
+`pending_external` (`pending_external.txt` or phase
+`analyzed_waiting_external`), iteration artifacts and `contradictions`.
+
+## 1.2.6 Missing loops: narrowing vs unexplained absence
+
+A missing expected loop is **FAIL** only with evidence of a *deliberate*
+narrowing (`REPAIR_SCOPE_NARROWED_BELOW_CONTRACT`): the repair CLI narrows
+with a single `--model-id` and/or `--variant`, so a deliberate narrowing
+always leaves a **rectangle** of invocations (models′ × variants′) that is a
+strict subset of the contract product set, with no state at all for the loops
+outside it. Anything else — no invocations, a non-rectangular subset, states
+without invocations — is unexplained evidence (run aborted, artifact never
+written, output lost) and stays **UNRESOLVED**; never PASS, never a
+speculated FAIL. (The repair orchestrator always writes `variant` with source
+`CLI` and `model_scope=[model]`, so the invocation's `source` field alone is
+NOT narrowing evidence; the rectangle shape is.)
+
+## 1.2.7 Invocation membership AND coverage
+
+`expected_repair_invocation_scopes(contract)` = the product set;
+`observed_repair_invocation_scopes(manifest)` resolves every
+`repair_evaluation` invocation to exactly one model (`model_scope` must name
+one) and one variant (`effective_values.variant`). **Membership**: every
+observed scope is contracted (unexpected → FAIL; duplicate for one scope →
+FAIL; contract contradiction or fingerprint mismatch → FAIL; unkeyable →
+FAIL). **Coverage**: every expected scope has exactly one invocation (missing
+→ UNRESOLVED, or FAIL under proven narrowing). Membership without coverage
+was precisely the old false PASS.
+
+A valid global `repair_evaluation` runtime stamp is runtime provenance; it
+is not asked to exist 33 times, and
+`RUNTIME_STAMP_SUBSTITUTES_MISSING_REPAIR_LOOP = false` is asserted by a
+fixture (stamp PASS, 5/6 loops → `repair_scope_complete ≠ PASS`).
+
+## 1.2.8 Iteration bound and pending contradictions
+
+The orchestrator decides `stopped_budget` **at** `iteration >= max_iterations`
+(`decide()`), so a recorded sample iteration may equal but never exceed the
+bound: `max_iteration_observed <= repair_plan.max_iterations` (iteration 0
+being the base analysis). Over the bound → FAIL; `stopped_budget` within the
+bound is legitimate; "exactly max_iterations" is never demanded. Iteration
+artifact directories are validated the same way (foreign variant, foreign
+model, invalid or over-bound `N`, unparseable `<base>__…` names, duplicate
+`(model, variant, N)` → `repair_iteration_identity` FAIL), and the existing
+base/repair separation check stays in place.
+
+Pending batch: terminal + `submitted` → FAIL; non-terminal + `submitted`
+with `api_mode = batch` → UNRESOLVED (legitimately unfinished); any pending
+batch when the frozen plan allows no batch path (`api_mode = direct`) → FAIL
+even if non-terminal. Pending external: `external_tools = []` + pending →
+FAIL; enabled + non-terminal + pending → UNRESOLVED; terminal + pending →
+FAIL. Unknown sample status → FAIL.
+
+## 1.2.9 Infrastructure terminal states
+
+`stopped_analysis_incomplete` and `stopped_api_exhausted` (and
+`stopped_baseline_incompatible`) are `orchestrator.NON_MODEL_TERMINAL_STATUSES`:
+the loop is complete with a limitation, which the row and the aggregate
+report as `limitations`; `repair_unusable` is terminal and reported in the
+breakdown. None of them is reclassified as a model failure, a missing loop or
+a scope FAIL. No publication decision is taken here.
+
+## 1.2.10 The repair matrix and the aggregate
+
+`build_repair_matrix` (`repair_scope_matrix.v1`) produces one row per
+expected loop (`model_id, variant, expected, invocation_status,
+state_status, terminal, samples_total, samples_active, terminal_breakdown,
+max_iteration_observed, max_iterations_contract, pending_batch,
+pending_external, status, detail`) and the aggregate
+`repair_scope_complete` with `expected_loop_count`, `observed_loop_count`,
+`pass/unresolved/fail_loop_count`, `missing`, `unexpected`, `duplicate`,
+`unkeyable`, and — as SEPARATE fields — `total_repair_samples`,
+`terminal_repair_samples`, `active_repair_samples`,
+`sample_terminal_breakdown`. LOOP counts and SAMPLE counts are never
+conflated ("6/6 loops terminal" vs "stopped_clean: 12 samples").
+
+Aggregate precedence: disabled → NOT_APPLICABLE (a loop on disk anyway →
+FAIL); expected set UNRESOLVED → UNRESOLVED; expected set invalid → FAIL;
+any unexpected/duplicate/unkeyable loop or invocation, iteration violation
+or FAIL row → FAIL; any UNRESOLVED row → UNRESOLVED; only all-PASS → PASS.
+The verifier emits `repair_expected_set`, `repair_invocation_membership`,
+`repair_invocation_coverage`, `repair_loop:<model>/<variant>` per expected
+loop, `repair_iteration_identity` and `repair_scope_complete`, embeds
+`repair_matrix` and `repair_scope` in the report, and prints the matrix table
+in its own output only.
+
+`FUTURE_REPORTING_REQUIREMENT` (documented, **not rendered**): "33/33
+expected repair loops reached a terminal state" (loop level) plus the
+separately labelled sample-level terminal breakdown. `report_contracts.py`
+and the overview renderer are untouched — `REPORTING_SEMANTICS_CHANGED = false`.
+
+## 1.2.11 PARCOACH / LLOV membership vs coverage — measured, not fixed
+
+The same membership-vs-coverage effect exists for `static.parcoach` and
+`static.llov`, because those containers run once per model. Measured with a
+reproducible fixture (`test_repair_scope.py::measure_static_split_gap`: two
+contracted models with applicable mpi/omp samples, the second model's
+container invocation removed):
+
+| sub-case | static_coverage:m2 | effective_invocation | run |
+|---|---|---|---|
+| container never ran (no PARCOACH/LLOV entries for m2) | FAIL | PASS | FAIL |
+| records present, invocation fragment missing | PASS | PASS | **PASS** |
+
+    STATIC_SPLIT_INVOCATION_COVERAGE_GAP[parcoach] = OPEN_TECHNICAL_FINDING
+    STATIC_SPLIT_INVOCATION_COVERAGE_GAP[llov]     = OPEN_TECHNICAL_FINDING
+
+Static coverage catches a container that never ran; it cannot catch a
+container whose findings exist but whose invocation provenance was never
+registered. Affected stages: `static.parcoach`, `static.llov`
+(`effective_invocation:<stage>` checks membership only). Per the wave's
+scope this is documented with its reproducer and **not closed here**; no
+static split-container code was changed for the measurement (only the
+fixture registers per-model container invocations, mirroring the productive
+`--model-id` container commands).
+
+## 1.2.12 Tests
+
+New `thesis/evaluation/test_repair_scope.py` (every fixture a real mini run
+through the productive contract builder, manifest fragments and orchestrator
+state writers): expected-set cases A/B/C with edge inputs; the
+productive-config expected count; the terminality definition (all terminal,
+one active, no state, unknown status, breakdown sums, shared function);
+6/6 PASS; 5/6 without narrowing UNRESOLVED; `--variant` and `--model-id`
+narrowing FAIL; missing invocation UNRESOLVED; missing state UNRESOLVED;
+unexpected variant/model FAIL; duplicate FAIL; unkeyable FAIL (two ways);
+iteration bound at/over max; `stopped_budget`; terminal + pending batch
+FAIL; non-terminal + pending batch in batch mode UNRESOLVED; pending batch in
+direct mode FAIL; terminal + pending external FAIL; non-terminal + pending
+external UNRESOLVED; pending external with `external_tools = []` FAIL;
+iteration identity violations; the three infrastructure terminal states;
+runtime-stamp substitution; legacy/invalid/disabled plans; unexpected loop
+despite disabled; the PARCOACH/LLOV measurement. The World fixture now
+writes terminal repair loops for every contracted `(model, variant)` through
+`RepairLoop.append_sample_state` / `save_wave_state`, registers one
+`repair_evaluation` invocation per `(model, variant)` and one container
+invocation per model (as production does), and can carry mpi/omp samples.
+
+## 1.2.13 Unchanged
+
+`orchestrator.py`, `feedback.py`, prompts, semantic decisions (E3.2 not
+recorded, not decided), comparator, enhanced specs/policy, static finding
+code, runtime identities, authorization, override policy and the reporting
+renderer are untouched; the repair condition sha equals the readiness
+artifact's value; cross-pilot stays CURRENT with no artifact update (no
+tracked file changed); pilot_001 artifacts unchanged.
+
+## 1.2.13a Review findings on this wave, and their fixes
+
+An adversarial review of the wave's own work (six independent reviewers,
+each finding put to three refuters) raised five points that were confirmed by
+reading the code and fixed before the wave closed:
+
+* **`api_mode_overrides` were not frozen (MEDIUM).** `batch_possible` was
+  derived from the global `api_mode` only, so a frozen per-provider override
+  to batch would have made a legitimately pending batch job a FAIL. The
+  contract builder now freezes `repair_plan.api_mode_overrides`, and a batch
+  path counts as possible when the global mode or any frozen override is
+  batch (the contract does not map models to providers, so the check is per
+  plan; documented limit).
+* **A disabled plan tolerated some repair evidence (MEDIUM).** With
+  `NOT_APPLICABLE` only keyable loops and unexpected invocations were
+  checked; unkeyable invocations and iteration artifact directories were
+  ignored. Now ANY repair evidence under a disabled plan is FAIL.
+* **The builder could freeze a self-contradictory contract (MEDIUM).**
+  `expected_stages()` treats a present `stages.repair` section without
+  `enabled` as enabled, `repair_plan_view()` treated it as disabled. Both use
+  the same default now, and the expected-set derivation also refuses an
+  enabled plan whose contract does not list `repair` among its expected
+  stages.
+* **Variants the orchestrator refuses counted as usable (LOW).**
+  `RepairLoop.__init__` refuses any variant outside `orchestrator.VARIANTS`;
+  a frozen plan naming one is now an unusable plan (FAIL).
+* **`max_iterations = 0` with `evaluates_repair_candidates = true` (LOW).**
+  `decide()` stops every sample as `stopped_budget` at iteration 0, so no
+  candidate can exist; the plan contradicts its own assertion and is FAIL.
+  Without the evaluation claim an iteration-0-only plan stays usable.
+
+The review's second round found a further set of real defects, each fixed
+and covered by a fixture:
+
+* **Every legitimate run with a repair iteration would have FAILed (HIGH,
+  three independent reviewers).** The iteration-artifact scan read the
+  iteration run's own `run_manifest.fragments/` directory as a "foreign
+  model". The scan now recognises model directories only, and a fixture
+  builds the productive iteration layout (model dir + per-writer manifest).
+* **In-flight loops were FAIL instead of UNRESOLVED (HIGH).** An iteration
+  directory is created (assembled) before its samples are analysed and
+  decided, so on an in-flight loop it legitimately exceeds the recorded
+  iterations; only a TERMINAL loop must have reached every iteration it
+  produced.
+* **Loops that stop at iteration 0 have no invocation — by design (MEDIUM).**
+  `_run_analysis_stages` (which registers the `repair_evaluation` invocation
+  and stamp) runs only when an iteration's internal stage records are
+  missing, i.e. for iterations ≥ 1. A loop whose samples all stop at
+  iteration 0 is complete without one; `invocation_status` is then
+  `NOT_APPLICABLE` and `invocation_required = false`, while a loop that
+  analysed iteration ≥ 1 still requires exactly one. (Related, out of this
+  wave's scope and noted honestly: the per-stage runtime rule of wave 1.1
+  expects a `repair_evaluation` stamp whenever repair is contracted, so a
+  pilot in which every loop stops at iteration 0 would report that stamp
+  UNRESOLVED.)
+* **A malformed `state.jsonl` crashed the verifier (MEDIUM).** The productive
+  reader raises on a torn line; the verifier now turns that into an
+  unkeyable loop with a FAIL verdict instead of a traceback.
+* **A record without a valid iteration bypassed the bound (MEDIUM).** The
+  shared helper counts `invalid_iterations`; any such record is a
+  contradiction (FAIL).
+* **A base run id containing `__` broke iteration parsing (MEDIUM).** The
+  iteration-run regex was backtracking into the base id; parsing is now
+  anchored on the known base run id.
+* **A loop with all samples terminal but not finalized was PASS (MEDIUM).**
+  The orchestrator's own completion marker is `wave_state.phase == done`; a
+  terminal loop without it (interrupted between `decided` and `done`, or no
+  wave state) is UNRESOLVED. Loop states are also compared with the model's
+  assembled base samples: missing samples → UNRESOLVED, a sample that is not
+  an assembled base sample → FAIL.
+* **Invocation keyability and run binding (LOW).** Keyability is no longer
+  inferred from problem text; an invocation fragment naming another run is a
+  membership FAIL; the narrowing inference treats any state *location*
+  (keyable or not) on a missing scope as "not no state".
+* **Membership fixtures (MEDIUM/LOW gaps).** Unexpected-model invocation,
+  duplicate invocation for one scope, foreign-run invocation, verifier-level
+  unknown-status and STATUS_ACTIVE cases are now executed fixtures; the
+  unreachable "duplicate iteration identity" check was removed.
+
+* **An expected loop whose only state location is unusable read as "no
+  state" (fixture-driven fix).** A malformed or misclaimed `state.jsonl`
+  under an expected loop's location made the aggregate FAIL (unkeyable
+  location) while that loop's own row said "no repair state" (UNRESOLVED).
+  The row now carries the contradiction itself: `state_status = FAIL` with
+  the location's problems, never "absent".
+
+The review's final confirmed finding (MEDIUM, in scope): the top-level
+`repair_invocation_coverage` check still counted every expected scope without
+an invocation as missing, ignoring the per-row `invocation_required` rule —
+so a legitimately complete run in which one loop stopped every sample at
+iteration 0 had all rows PASS and `repair_scope_complete` PASS, yet the
+whole report stayed UNRESOLVED on that one check. My fixture had asserted
+only the aggregate, not the overall verdict. Coverage is now derived from
+the rows (only a required-and-absent invocation is missing; a loop with NO
+state at all cannot claim it stopped at iteration 0, so its invocation stays
+required — fixture C's narrowing FAIL depends on exactly that), and a mixed
+fixture — five loops at iteration 1 with invocations, one loop stopped at
+iteration 0 without — asserts `report["status"] == PASS`. The pre-existing
+wave-1.1 checks (`effective_invocation:repair_evaluation` and the
+`repair_evaluation` runtime stamp) still report UNRESOLVED when NO loop of
+a run ever analysed an iteration ≥ 1; that coupling is outside this wave and
+is recorded as an open observation, not changed.
+
+A targeted re-review of the final coverage logic (two reviewers, three
+refuters per finding, every claim executed against the productive wave
+machine) confirmed one more HIGH false-UNRESOLVED and it is fixed: the
+`invocation_required` rule keyed on "reached iteration ≥ 1"
+(`max_iteration_observed`, or an iteration directory), but the orchestrator
+writes `repair_unusable`@N after a refusal / exhausted reasoning budget /
+unusable response (`mark_unusable` in `_finish_responses`) and
+`stopped_api_exhausted`@N after a transport failure (`exhaust_request_rounds`)
+BEFORE any analysis of N, `_assemble(N)` still creates the iteration
+directory, and with nothing assemblable the loop finishes `done` without
+`_run_analysis_stages` ever running — so no invocation can exist for a
+legitimately complete loop. `invocation_required` now follows EVIDENCE OF
+ANALYSIS: a state record at iteration ≥ 1 whose status the orchestrator
+produces only by deciding an analysed iteration (`active` or a terminal
+status other than `repair_unusable` / `stopped_api_exhausted`), scanned over
+all records so an analysed iteration followed by a later refusal still
+counts. Fixtures: `repair_unusable`@1 and `stopped_api_exhausted`@1 without
+analysis (with the iteration directory present) → overall PASS with
+`invocation_status = NOT_APPLICABLE`; an `active`@1 record followed by
+`repair_unusable`@2 → invocation still required.
+
+A third refutation-focused review round (every claim executed against the
+productive machine) confirmed the mirror-image false PASS of the same rule
+and it is fixed: the premise "`_run_analysis_stages` runs only for iterations
+≥ 1" is false. `step()` enters a fresh loop in phase `start` and calls
+`_to_analyzed(0)`, which runs the analysis stages — and with them
+`enforce_stage(..., "repair_evaluation", ...)` — whenever
+`missing_internal_stages(0)` is non-empty. Iteration 0 IS the base run, so
+those records normally come from the BASE evaluation, but only for stages the
+base run actually ran; `missing_internal_stages` compares against what the
+variant's FEEDBACK needs (`needs_tests` / `needs_dynamic` via
+`feedback.strategy_sources`, plus static unconditionally). In any run whose
+contract does not expect a stage a variant needs, the loop analyses iteration
+0 itself, registers its invocation there, and leaves ONLY iteration-0
+records — so the old rule called the invocation not required and a deleted
+or lost fragment came out as `NOT_APPLICABLE`, row PASS, `repair_scope_complete`
+PASS.
+
+The first version of the rule read this off the frozen contract's stage LIST
+alone. That was refuted in the same wave (see below) and the rule now asks the
+productive `missing_internal_stages(0)` as well, so the description that
+follows is the CORRECTED one: `repair_scope.iteration_zero_analysis(contract,
+config, variant, base_run_id, model_id)` decides per (model, variant) and
+fail-closed (`ITERATION_ZERO_INVOCATION_POLICY =
+CONTRACT_STAGE_COVERAGE_FAIL_CLOSED`):
+
+* a stage the variant needs is NOT contracted → the base run cannot have
+  written its records → the invocation is REQUIRED even with no analysed
+  iteration ≥ 1;
+* the base run's iteration-0 records do not cover that model's assembled
+  samples NOW — asked through the productive `missing_internal_stages(0)`
+  itself — → likewise REQUIRED;
+* an unknown `expected_stages` list, feedback sources that cannot be resolved,
+  or a probe that cannot run → likewise REQUIRED;
+* every needed stage contracted AND the records complete → the base run
+  covered iteration 0, and a loop that stops there legitimately has no
+  invocation (`NOT_APPLICABLE`).
+
+The feedback sources are resolved exactly as the orchestrator resolves them
+(`feedback.strategy_sources`, which REPLACES the defaults when the config
+narrows `stages.repair.strategies`); `DEFAULT_STRATEGY_SOURCES` is only a
+fallback for a variant that cannot be resolved at all. The expected loop SET
+still comes from the frozen contract alone, and no repair semantics are
+touched. `invocation_required` is the disjunction of four fail-closed reasons
+(no state at all / an analysed iteration ≥ 1 / a wave phase proving an
+analysed iteration ≥ 1 / iteration 0 analysed by the loop); each row carries
+`analysed_iterations`, `wave_proves_analysis`,
+`iteration_zero_analysis_certain` and the full determination, the matrix
+carries it per (model, variant), and the pre-run preflight prints
+`REPAIR_ITERATION_ZERO_INVOCATION_POLICY` plus one
+`REPAIR_ITERATION_ZERO_ANALYSIS` line per contracted variant — labelled
+`BASE_RUN_COVERS_ITERATION_0_BY_CONTRACT`, because before the run there are no
+records to probe. For the productive pilot config all three variants report
+that contract leg clean (`static_analysis`, `correctness_tests` and
+`dynamic_analysis` are all contracted), so the real run keeps the legitimate
+`NOT_APPLICABLE` path whenever its base records are complete.
+
+A fourth review round (five reviewers, one adversarial refuter per claim,
+every claim executed) attacked exactly this rule and confirmed twelve
+findings, three of them the same HIGH defect: **the contract's stage LIST is
+not evidence of the base run's record COVERAGE**. `missing_internal_stages(0)`
+does not ask which stages were contracted; it asks whether a record exists for
+every assembled sample of that MODEL (and, for static, whether it carries every
+internally required tool). A contracted `dynamic_analysis` stage that produced
+no records — the normal residue of an interrupted dynamic run, and invisible to
+the verifier, which has no `check_dynamic` — makes the productive loop analyse
+iteration 0 and register its invocation, while the stage-name proxy called it
+covered and excused the missing fragment as `NOT_APPLICABLE`, whole run PASS.
+
+The determination now asks the productive function itself. `repair_scope.
+productive_missing_internal_stages(config, base_run_id, model_id, variant)`
+constructs an `orchestrator.RepairLoop` for that loop and returns
+`missing_internal_stages(0)` — read-only, no re-implementation, and per
+(model, variant) rather than per variant, because the base run can be complete
+for one model and partial for another. `iteration_zero_analysis` now carries
+two independent legs, either of which makes iteration-0 analysis certain:
+`contract_missing_stages` (a needed stage the frozen contract never expected)
+and `records_missing_stages` (the productive probe). A probe that cannot run
+at all counts as missing, so nothing is excused on an unanswered question.
+
+The records leg is sound in exactly the direction the contract leg cannot
+reach: a loop that advanced past phase `start` passed `_to_analyzed(0)`, which
+RAISES if a stage is still missing afterwards, so incomplete iteration-0
+records mean the loop either analysed them itself or the artifacts contradict
+the productive writer — both keep the invocation required. What that leg alone cannot see is
+the opposite direction: records that are complete TODAY do not say WHO
+completed them, because `_run_analysis_stages(0)` writes into the base run's
+own stage files and the records carry no writer provenance. The fifth review
+round below closes most of that gap with the static invocation LABEL, which
+the loop appends and never rewrites away; the remainder is recorded there.
+
+Five further confirmed findings are fixed in the same pass, all verifier-only:
+
+* **Feedback sources are REPLACED, not unioned.** `feedback.strategy_sources`
+  returns the config's `stages.repair.strategies.<variant>.sources` INSTEAD of
+  the defaults, so the earlier union demanded records a narrowed plan never
+  asks for — a complete run could never reach PASS. The verifier now resolves
+  the sources exactly as the orchestrator does and falls back to
+  `DEFAULT_STRATEGY_SOURCES` only when the variant cannot be resolved at all.
+* **The persisted wave phase is evidence.** A loop interrupted between
+  `_to_analyzed(N)` and `_decide(N)` has no decided record for N, yet its
+  invocation exists. `wave_proves_analysis(phase, iteration)` reads the two
+  phases the orchestrator writes inside `_to_analyzed` (`analyzed`,
+  `analyzed_waiting_external`) as proof for that iteration, and the phases it
+  writes for an iteration it has only STARTED (`decided`, `requests_built`,
+  `submitted`, `responses_merged`, `assembled`, `done` — including the "no
+  assemblable responses" branch, which persists `decided` for an unanalysed
+  iteration) as proof only from iteration 2 on.
+* **`finalized` no longer downgrades a terminal loop.** Under
+  `REPAIR_TERMINALITY_POLICY = SAMPLE_STATE_BASED` the sample states decide;
+  a wave left in phase `decided` by the documented `--max-wave N` run is
+  complete in substance (`step()` would only rewrite it to `done` on its next
+  call). Only a phase with OUTSTANDING work — or no wave bookkeeping at all —
+  still contradicts terminal samples.
+* **`max_iterations = 0` no longer destroys the expected set.** The plan is
+  runnable (every sample stops as `stopped_budget` AT iteration 0); its
+  contradiction with the builder's constant `evaluates_repair_candidates` is
+  reported as a note on a PASS set instead of a FAIL that throws away all
+  evidence.
+* **Two crash paths.** A state line that is not a JSON object, or a record
+  whose `status` is not a string, no longer escapes as a traceback but makes
+  the loop unkeyable (fail-closed); a damaged frozen contract whose
+  `variants` hold unhashable entries, or whose `api_mode_overrides` is not a
+  mapping, now returns the documented CASE B FAIL instead of crashing before
+  any check is recorded.
+* **The verifier's own evidence stopped lying.** A `NOT_APPLICABLE` row said
+  "invocation present" and the coverage line counted required-and-absent
+  scopes as present; both now report what is actually there
+  (`present_scope_count`, `not_required_scope_count`), and fixtures pin the
+  strings.
+
+Every one of these is pinned by a fixture that fails when the mechanism is
+neutralised (verified by monkeypatching each in turn); three reviewer claims
+were refuted and are recorded as such rather than acted on.
+
+A FIFTH review round attacked the corrected rule itself (five reviewers, one
+adversarial refuter per claim, every claim executed) and confirmed eight more
+findings; three were refuted and are recorded as refuted. All eight are fixed,
+all verifier-only:
+
+* **The records leg was self-erasing (HIGH, false PASS).** A reviewer drove
+  the PRODUCTIVE loop over a base run with one missing static record: the loop
+  analysed iteration 0, registered its `repair_evaluation` invocation, and
+  filled the gap — so afterwards `missing_internal_stages(0)` is empty again
+  and deleting the fragment verified PASS. The fix is POSITIVE PROVENANCE:
+  `_run_analysis_stages` passes
+  `invocation_label = "repair <model>/<variant> iteration <n> (internal
+  static)"` into `run_static_analysis.run_model`, which APPENDS it to the
+  model's `static_analysis_summary.json` — an artifact the loop never rewrites
+  away. `repair_scope.repair_labelled_static_invocations` reads those labels
+  and reports the iterations of THIS loop; any hit makes the invocation
+  required, whatever the records say. A fixture pins that the constant the
+  verifier matches is the literal the orchestrator writes.
+* **A base sample the assembler SKIPPED made every loop of that model FAIL
+  (HIGH, false FAIL).** `_decide(0)`'s bootstrap marks every non-assembled
+  base sample `repair_unusable` by design, so the loop state legitimately
+  covers the model's WHOLE assembly set. The row compared it against the
+  ASSEMBLED subset, so a single provider timeout would have failed that
+  model's three loops on an otherwise complete run. The verifier now passes
+  the full assembly-entry id set (`known_by_model`) and fails only for an id
+  with no assembly entry at all; the "covers only n of m assembled samples"
+  leg is unchanged.
+* **`finalized` still downgraded two documented stops (MEDIUM, false
+  UNRESOLVED).** `samples_active == 0` already proves nothing is left to
+  decide, so only an UNDECIDED iteration contradicts terminal samples:
+  `PHASES_WITH_OUTSTANDING_WORK` is now `("start", "analyzed")`, and the
+  `--poll` / `--max-wave` stops at `decided`, `responses_merged` or
+  `assembled` verify PASS.
+* **The wave iteration was evidence but was never validated (MEDIUM, both
+  directions).** It now has to be a non-negative integer (else a
+  contradiction) and it is bound by the contracted `max_iterations` exactly
+  like the sample states, so a loop whose own bookkeeping proves it drove past
+  the budget FAILs instead of PASSing next to "max iteration 0 <= 0".
+* **A `wave_state.json` that is valid JSON but not an object crashed the whole
+  verifier (MEDIUM).** `_read_json` got the same shape guard `_read_records`
+  received, so the shape is a contradiction on that row instead of an
+  `AttributeError` before any check is recorded.
+* **The global expectation contradicted the per-loop rule (HIGH, false
+  UNRESOLVED).** `stage_runtime.expected_runtime_stages` demands a
+  `repair_evaluation` stamp for every contracted repair plan, so a run whose
+  every loop legitimately stops at iteration 0 — blessed by the matrix — was
+  still dragged to UNRESOLVED by `stage_runtime:repair_evaluation.main` and
+  `effective_invocation:repair_evaluation`. `verify_pilot_run.
+  reconcile_repair_evaluation_expectation` now downgrades exactly those two
+  checks to NOT_APPLICABLE, and only when the matrix is PASS, has at least one
+  expected loop, and NO row requires or carries an invocation. As soon as one
+  loop analysed anything, the missing stamp is unresolved again (both pinned
+  by fixtures).
+
+The residual is now narrower than the fourth round's: what remains
+unattributable is an iteration-0 analysis whose ONLY missing stage was
+correctness or dynamic, because `run_correctness` / `run_dynamic_analysis` are
+called from `_run_analysis_stages` WITHOUT an invocation label (static is the
+only labelled one). The static leg is checked unconditionally for every
+variant, so the unlabelled case needs a base run that was complete for static
+but incomplete for correctness/dynamic for that model, a loop that stopped at
+iteration 0, and a lost fragment. It is recorded as
+`ITERATION_ZERO_COVERAGE_RESIDUAL = CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE`,
+non-blocking; closing it means giving those two runner calls the same label,
+which is a PRODUCTIVE writer change and therefore out of scope here
+(`FUTURE_PROVENANCE_REQUIREMENT`).
+
+The readiness gate: three re-measurement attempts in this session failed
+with "No such image: pareval-thesis" on the FIRST local-tag inspect after a
+Docker Desktop idle period, while the identical call succeeds immediately
+afterwards; warming the daemon with one manual inspect and running the gate
+right away measured READY with the runtime condition `a2f46b1a…` and zero
+non-volatile differences to the committed artifact. The committed artifact
+was therefore kept byte-identical; the first-call-after-idle behaviour is
+recorded as a measurement-infrastructure observation for the final
+environment gate, not changed here.
+
+## 1.2.14 Readiness
+
+| statement | value |
+|---|---|
+| `REPAIR_SCOPE_VERIFICATION_READY` | true |
+| `REPAIR_EXPECTED_SET_POLICY` | FROZEN_CONTRACT_FAIL_CLOSED |
+| `REPAIR_TERMINALITY_POLICY` | SAMPLE_STATE_BASED |
+| `POST_RUN_REPAIR_COMPLETENESS_REQUIRED` | true |
+| `RUNTIME_STAMP_SUBSTITUTES_MISSING_REPAIR_LOOP` | false |
+| `ITERATION_ZERO_INVOCATION_POLICY` | CONTRACT_STAGE_COVERAGE_FAIL_CLOSED |
+| `ITERATION_ZERO_COVERAGE_RESIDUAL` | CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE (non-blocking) |
+| `STATIC_SPLIT_INVOCATION_COVERAGE_GAP` | OPEN_TECHNICAL_FINDING (parcoach, llov) |
+| `SAFE_TO_PROCEED_TO_E3_2_DECISION` | true |
+
+Next step after this wave: **E3.2 re-freeze / accepted-disclosure decision**
+(deliberately still OPEN — nothing is entered as ACCEPTED_DISCLOSURE for
+OMPI_SKIP_MPICXX or the MPI finding-set effects here); only after that the
+pilot_002 population freeze. Population `NOT_YET_DECIDED`, base run id
+`NOT_YET_CONFIGURED`, reuse `UNDECIDED`, publication open, TSan/ASLR
+`OPEN_FOR_FINAL_ENVIRONMENT_GATE`, pilot_002 not run.

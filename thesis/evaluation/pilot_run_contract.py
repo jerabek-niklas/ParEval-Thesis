@@ -254,8 +254,13 @@ def repair_plan_view(config: Dict[str, Any]) -> "OrderedDict[str, Any]":
     """Whether the contract expects a repair loop AND therefore a repair
     EVALUATION (the loop re-runs correctness/static on repair candidates, so
     it produces records under a runtime that has to be stamped)."""
-    repair = (config.get("stages") or {}).get("repair") or {}
-    enabled = bool(repair.get("enabled", False))
+    section = (config.get("stages") or {}).get("repair")
+    repair = section if isinstance(section, dict) else {}
+    # the SAME default as expected_stages(): a present stage section without
+    # `enabled` is enabled, an absent section is not - otherwise the builder
+    # could freeze a contract that lists 'repair' among its expected stages
+    # while its own repair plan says disabled
+    enabled = isinstance(section, dict) and bool(section.get("enabled", True))
     plan = OrderedDict([("enabled", enabled)])
     if not enabled:
         plan["evaluates_repair_candidates"] = False
@@ -267,6 +272,11 @@ def repair_plan_view(config: Dict[str, Any]) -> "OrderedDict[str, Any]":
         plan["variants"] = list(settings.get("variants") or [])
         plan["max_iterations"] = settings.get("max_iterations")
         plan["api_mode"] = settings.get("api_mode")
+        # per-provider overrides decide the EFFECTIVE provider mode, so they
+        # are frozen too: the verifier's pending-batch contradiction check
+        # must know whether any batch path exists under this plan
+        plan["api_mode_overrides"] = OrderedDict(sorted(
+            (str(k), v) for k, v in (settings.get("api_mode_overrides") or {}).items()))
         plan["external_tools"] = list(settings.get("external_tools") or [])
     except Exception as exc:  # noqa: BLE001 - surfaces as a contract blocker
         plan["error"] = "%s: %s" % (type(exc).__name__, exc)
