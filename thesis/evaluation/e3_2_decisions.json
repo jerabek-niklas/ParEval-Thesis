@@ -1,0 +1,2578 @@
+{
+ "schema_version": "e3_2_decisions.v1",
+ "source_head": "c7a6dbc41d9c54786ec3c23db451d35f756054c1",
+ "why_a_separate_file": "semantic_decisions_pilot002.json is the frozen per-benchmark prompt/oracle decision registry (validated by check_semantic_decisions.py, LF-hashed into the frozen contract and the report condition); E3.2 items are static/enhanced/condition/hash-rule items with a different schema, and writing them into that registry would move the report condition and the contract input without any benchmark semantic changing. This file is the E3.2 decision artifact; the registry is referenced, not modified.",
+ "semantic_decisions_registry": {
+  "path": "thesis/evaluation/semantic_decisions_pilot002.json",
+  "sha256_lf_normalized": "90dfec3e65f5f18e31bd3642251b613c4c764a5b77a7b89238354e744b291172",
+  "modified_by_this_wave": false
+ },
+ "evidence_artifact": {
+  "path": "thesis/evaluation/e3_2_evidence.json",
+  "evidence_artifact_sha256": "5de7565669a31e69d908b5048065805cab8f601b6cac90434f19fc81e88a3c16"
+ },
+ "E3_2_DECISION": "ACCEPTED_PENDING_AUTHOR_CONFIRMATION",
+ "decided_items": [
+  {
+   "id": "E32-04",
+   "short_name": "catalog e2b_size_zero reason strings superseded by the prompt sentences (geometry/12,13,14; scan/34)",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "enhanced_policy.json byte-identical (policy sha unchanged); the superseded reason strings stay, with this artifact recording that the prompt sentences supersede them; rewording is queued for the next catalog/policy wave, which re-freezes the policy anyway. Conditional: valid under E32-03 A; under E32-03 B/C the policy is re-frozen and the strings are reworded in that step.",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "provenance text only; the enforced policy values are identical; none of the four benchmarks is in the pilot_001 population"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "METADATA_ONLY",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: a text correction without semantic content; rewording now would move the policy SHA, the E3 manifest hashes and the execution fingerprint (component B) for zero result effect"
+  },
+  {
+   "id": "E32-05",
+   "short_name": "raw-byte (checkout-dependent) hash rule of the OLD condition versions",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "the old condition versions keep their raw-byte definition and values (static 327b235a..., repair e6f5c32b..., cross-pilot shared_state); no re-versioning before pilot_002; the known checkout-dependence stays documented as a portability limitation of the OLD versions",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "hash representation only; no measurement changes"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: representation only - the bytes the pipeline hashes are the same on the host and in every container of the pilot_002 execution environment (measured equal), so the values are stable for the run; re-versioning would cascade into readiness/cross-pilot/E3 re-freezes with zero semantic content. Third-party reproduction on an LF clone must compare the LF-normalized values (documented)."
+  },
+  {
+   "id": "E32-06",
+   "short_name": "not_applicable_entry written without fingerprint / outside the per-tool merge check (528 pilot_001 entries)",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "run_static_analysis.py merge semantics unchanged for pilot_002; NOT_APPLICABLE placeholders stay unfingerprinted; the gap is documented and only reachable by re-running a NARROWED tool scope over an existing record set, which pilot_002 (a fresh run_id, fixed scope) does not do",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "placeholders carry no measurement; pilot_001 records are static_analysis.v2 without any fingerprints anyway"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "METADATA_ONLY",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: a provenance nicety with no finding, coverage or verdict content; fixing it is a static-merge code change that belongs to a static-condition re-freeze and would have to be verified against the legacy-merge tests, none of which pilot_002 needs"
+  },
+  {
+   "id": "E32-10",
+   "short_name": "search/37 n = 0 deliberately not decided (technically excluded)",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "no n = 0 convention; the input stays outside every pilot_002 stage by the technical constraint",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "benchmark not in pilot_001; input unreachable"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: an input that no stage can produce needs no contract sentence; adding one would be untestable and would require a third prompt regeneration"
+  }
+ ],
+ "pending_author_items": [
+  {
+   "id": "E32-01",
+   "short_name": "OMPI_SKIP_MPICXX for gcc_analyzer (MPI)",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: gcc_analyzer compile argv unchanged (no -DOMPI_SKIP_MPICXX), static_analysis_condition_sha256 unchanged. OPTION B: -DOMPI_SKIP_MPICXX appended to the gcc_analyzer reduced-TU compile (tools.py), static condition re-frozen, readiness re-measured.",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED (cells keep the recorded class COMPARABLE_WITH_LIMITATIONS)",
+    "under_option_B": "INCOMPARABLE for the gcc_analyzer MPI cells (finding counts AND analysis-state/coverage counts), LIMITED_WITH_DISCLOSURE for the MPI static_feedback/combined_feedback repair cells (already METHOD_CHANGED)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ],
+    "unaffected": "serial and omp cells of every tool; compiler/clang_tidy/cppcheck/infer/parcoach/llov MPI cells; correctness, enhanced, timing"
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "MULTIPLE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "Shall pilot_002's gcc_analyzer compile the reduced MPI translation unit with -DOMPI_SKIP_MPICXX (as PARCOACH does), or keep pilot_001's compile (OpenMPI C++ binding headers included)?",
+    "options": [
+     {
+      "option": "A",
+      "description": "keep pilot_001 behaviour: no -DOMPI_SKIP_MPICXX for gcc_analyzer (FREEZE_AS_IS)",
+      "measured_consequence": "finding sets identical to pilot_001 (measured: 396/396 gcc_analyzer entries semantically equal between the current tool and the historical records); 49 of 132 MPI samples carry blocking gcc_analyzer findings (147 blocking in total), 45 of them only through Phase-0 FP-class signatures (see E32-09)",
+      "pilot_001_comparability_consequence": "UNAFFECTED: gcc_analyzer MPI cells keep COMPARABLE_WITH_LIMITATIONS",
+      "pilot_002_methodology_consequence": "the analyzer explores the TU with the exploration budget the OpenMPI C++ binding headers leave it; the recorded PARTIAL/COMPLETED coverage states keep their pilot_001 meaning",
+      "repair_consequence": "unchanged repair input for MPI samples"
+     },
+     {
+      "option": "B",
+      "description": "append -DOMPI_SKIP_MPICXX to the gcc_analyzer compile at the default analyzer budget (CHANGE_THEN_FREEZE; static condition re-frozen)",
+      "measured_consequence": "51 of 132 MPI finding sets change; blocking 147 -> 75; 21 samples go from blocking to clean, 0 from clean to blocking; vanished blocking findings by family: {\"-Wanalyzer-malloc-leak\": 4, \"-Wanalyzer-null-dereference\": 45, \"-Wanalyzer-out-of-bounds\": 1, \"-Wanalyzer-possible-null-dereference\": 19, \"-Wanalyzer-too-complex\": 464, \"-Wanalyzer-use-of-uninitialized-value\": 3}; by Phase-0 signature: {\"NO_SIGNATURE\": 6, \"T1\": 19, \"T3\": 2, \"T5\": 45}. Mechanism (review measurement adversarial review wf_13b0152d-caf, verifier agents (executed in pareval-thesis over all 132 pilot_001 MPI samples)): the define removes the C++ binding supernodes from the TU and with them shrinks GCC's whole-exploration budget (supernodes x analyzer-bb-explosion-factor), so the analyzer stops exploring the IDENTICAL model function earlier - too-complex give-ups vanish (464) because exploration ends before reaching those program points, whole-exploration bail-outs rise (whole-exploration bail-outs 18 -> 72 (54 new, none removed; 40 recorded as PARTIAL, 32 silent because GCC suppresses the system-header-located bail-out line) in one reproduction, 10/132 -> 40/132 with -Wsystem-headers in the other), and the 2 PARTIAL->COMPLETED transitions are silent bail-outs recorded as COMPLETED/CLEAN (their historical blocking finding returns at --param=analyzer-bb-explosion-factor=20, which restores every historical blocking set: -DOMPI_SKIP_MPICXX + --param=analyzer-bb-explosion-factor=20 reproduces the historical blocking sets 40/40 on the samples that changed)",
+      "pilot_001_comparability_consequence": "INCOMPARABLE for the 12 x mpi x static_analysis x gcc_analyzer cells (finding counts AND analysis-state/coverage counts); LIMITED_WITH_DISCLOSURE for the MPI static_feedback/combined_feedback repair cells",
+      "pilot_002_methodology_consequence": "a coverage LOSS presented by the records as a gain: fewer findings and 2 false COMPLETED states; the PARTIAL/COMPLETED state model would need an MPI caveat; a 'flag + explicit analyzer budget' variant is a NEW configuration that would need its own readiness measurement (not measured here)",
+      "repair_consequence": "21 MPI samples would start static_feedback/combined_feedback as clean instead of active because the analyzer no longer reaches their findings, not because the findings are wrong"
+     }
+    ],
+    "recommendation": "A",
+    "recommendation_rationale": "the adversarial review refuted the noise-removal reading of the flag: the vanished findings are model-line program points the analyzer no longer REACHES (budget truncation), not header noise (file attribution already removes header findings) - 66 of 72 vanished blocking findings do carry the Phase-0 FP-class signature, but that class is handled by E32-09 without cutting coverage. B as measured trades 51 finding sets and the MPI coverage states for nothing the methodology wants; PARCOACH's use of the define is unrelated (robustness of a tool that cannot model the C++ bindings).",
+    "residual_risk": "under A the analyzer keeps spending budget on unused binding headers (documented, pilot_001-identical); a future 'flag + explicit budget' configuration could recover the same coverage on a smaller TU but is unmeasured and would be a separate CHANGE_THEN_FREEZE with its own readiness proof",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-02",
+   "short_name": "infer configured scope on OpenMP",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: infer execution_models [serial, omp, mpi] (as pilot_001), static condition unchanged. OPTION B: infer execution_models [serial, mpi]; omp entries become NOT_APPLICABLE; config-only in code, but CHANGE_THEN_FREEZE WITH a static-condition re-freeze: static_analysis_condition_sha256 327b235a8014cb68 -> cf54ff519c477c23 (measured), readiness artifact re-measured, runtime condition re-pinned before T0.",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED incrementally (infer/omp cells already METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; repair omp cells already METHOD_CHANGED)",
+    "under_option_B": "UNAFFECTED incrementally for the infer/omp static cells (historical: silent clean; pilot_002: not applicable); LIMITED_WITH_DISCLOSURE for the omp static_feedback/combined_feedback repair cells: the class stays METHOD_CHANGED but the stored disclosure table (clean_stops_reassessed_under_tool_state, gap:infer rows) must be re-derived with infer not required on omp (review correction); test_feedback UNAFFECTED",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "COVERAGE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "Shall infer stay configured for OpenMP samples in pilot_002 (recording NOT_ANALYZED on every omp kernel and vetoing clean stops), or be narrowed to serial/mpi?",
+    "options": [
+     {
+      "option": "A",
+      "description": "keep infer execution_models [serial, omp, mpi] (FREEZE_AS_IS)",
+      "measured_consequence": "pilot_001: 130 omp infer entries NOT_ANALYZED (132 of 132 omp records abort in the frontend); current image, 12 omp samples re-run: {\"NOT_ANALYZED\": 12}",
+      "pilot_001_comparability_consequence": "UNAFFECTED incrementally (infer/omp already METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; the stored disclosure table stays valid)",
+      "pilot_002_methodology_consequence": "every omp record documents the coverage gap explicitly (NOT_ANALYZED with the frontend reason); infer produces no OpenMP verdict; static condition unchanged",
+      "repair_consequence": "issue-free omp samples end stopped_analysis_incomplete instead of stopped_clean (orchestrator.evaluate_stop; measured on the 132 pilot_001 omp base records: 52 active, 80 issue-free, all 80 incomplete under A); no feedback text changes"
+     },
+     {
+      "option": "B",
+      "description": "narrow infer to execution_models [serial, mpi] (CHANGE_THEN_FREEZE WITH static-condition re-freeze: the configured scope is hashed into static_analysis_condition_sha256)",
+      "measured_consequence": "config-only in code (tool_config narrows by intersection, tools.py untouched), but static_analysis_condition_sha256 327b235a8014cb68 -> cf54ff519c477c23 (measured in memory), the readiness artifact goes stale and the runtime condition moves: readiness must be re-measured before T0. On the pilot_001 omp base records: 25 of the 80 issue-free samples would stop clean, 55 stay incomplete because of llov (55) and gcc_analyzer (11) gaps; the 52 active samples, their feedback and blocking sets are identical under A and B",
+      "pilot_001_comparability_consequence": "UNAFFECTED incrementally for the infer/omp static cells (already METHOD_CHANGED, no verdict to compare); LIMITED_WITH_DISCLOSURE for the 12 x omp x repair x {static_feedback, combined_feedback} cells: the class stays METHOD_CHANGED, but the stored disclosure table (clean_stops_reassessed_under_tool_state: gap:infer rows) must be re-derived with infer not required on omp; test_feedback cells UNAFFECTED",
+      "pilot_002_methodology_consequence": "the OpenMP static toolset becomes compiler + gcc_analyzer + clang_tidy + cppcheck + llov; the gap is stated by configuration instead of per record; the llov region-not-analyzed gap persists",
+      "repair_consequence": "25 of 80 issue-free omp samples can stop clean; the terminal-status population of the omp arm becomes comparable in kind with serial/mpi (a repair OUTCOME effect, not a feedback effect)"
+     }
+    ],
+    "recommendation": "B",
+    "recommendation_rationale": "132/132 pilot_001 OpenMP infer records abort in infer's clang-11 frontend and the current image reproduces it on every re-run sample; a tool that cannot analyse any OpenMP kernel contributes no verdict but, if required, vetoes every clean stop of the omp arm. Narrowing states the limitation once in the frozen configuration and recovers 25 of 80 issue-free clean stops; the remaining 55 are vetoed by llov's region-not-analyzed semantics, which is a deliberate tool-state decision, not an infer question. The cost is a static-condition re-freeze (same class as E32-09 B).",
+    "residual_risk": "narrowing hides the gap from the per-record view (NOT_APPLICABLE instead of NOT_ANALYZED); a future infer with OpenMP support would need a re-freeze; the reporting must state that infer covers serial/mpi only; the E32-06 placeholder remains unfingerprinted",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-03",
+   "short_name": "geometry/12,13,14 degenerate-input contract: prompt convention (return 0) vs precondition + min_size",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: freeze the regenerated prompts as they are (explicit 'return 0' / 'area 0' conventions), e2b_size_zero DISALLOWED / min_size 1 kept on freeze-stability grounds, E3 artifact unchanged. OPTION B: precondition contract (n>=2 for /13,/14; n>=3 for /12) with min_size 2/3 - requires an enhanced regeneration (E3 re-freeze: 4 frozen seeds invalidated, 23 productive keys replaced) and a second prompt regeneration. OPTION C (added by the adversarial review): frozen convention + size 0 re-ALLOWED (the prompts now state the n = 0 answer, so the DISALLOWED reason no longer holds) + E3 re-freeze.",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "none of the three benchmarks is in the pilot_001 population; no cross-pilot cell exists"
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "Under which degenerate-input contract shall geometry/12, /13 and /14 be frozen: the explicit convention now in the prompts ('return 0' / 'area 0') with size 0 still DISALLOWED, the same convention with size 0 re-allowed (the reason for DISALLOWED no longer holds), or the precondition contract (n >= 3 / n >= 2 plus enforced min_size) that the decision artifact calls the preferred long-term contract?",
+    "options": [
+     {
+      "option": "A",
+      "description": "freeze the regenerated prompts as they are; e2b_size_zero stays DISALLOWED / min_size 1 on freeze-stability grounds; E3 artifact unchanged (FREEZE_AS_IS)",
+      "measured_consequence": "no change; the frozen E3 seeds at sizes 1/2 keep exercising the degenerate branch; correctness stage unaffected (n<2 / n<3 unreachable at TEST_SIZE 1024). NOTE: the catalog reason for DISALLOWED ('the frozen prompt does not state') is factually superseded - A keeps the VALUE for freeze stability only",
+      "pilot_001_comparability_consequence": "UNAFFECTED (benchmarks not in pilot_001)",
+      "pilot_002_methodology_consequence": "the contract is the oracle's own behaviour made explicit; every stage tests it consistently; size 0 - now a stated answer - is not exercised",
+      "repair_consequence": "none"
+     },
+     {
+      "option": "B",
+      "description": "precondition contract + min_size 3 (/12) and 2 (/13, /14); enhanced regeneration (E3 re-freeze) and a further prompt regeneration (CHANGE_THEN_FREEZE)",
+      "measured_consequence": "frozen seeds invalidated: /12 2, /13 1, /14 1; productive keys replaced: /12 12, /13 6, /14 5 (measured on the frozen artifact)",
+      "pilot_001_comparability_consequence": "UNAFFECTED (benchmarks not in pilot_001)",
+      "pilot_002_methodology_consequence": "the degenerate inputs leave the tested domain instead of being graded against a sentinel; /12 additionally needs a catalog field able to express a semantic min_size 3 (none exists today)",
+      "repair_consequence": "none"
+     },
+     {
+      "option": "C",
+      "description": "frozen convention + e2b_size_zero ALLOWED / min_size 0 for geometry/12, /13, /14 (the prompts now state the n = 0 answer) + E3 re-freeze (CHANGE_THEN_FREEZE)",
+      "measured_consequence": "review measurement (adversarial review wf_13b0152d-caf (in-memory simulation, enhanced_policy.json untouched)): size 0 re-allowed for geometry/12,13,14: 3 pre-E3 size-0 seed rows re-validated; verifier partition 272/199 -> 275/196; productive keys replaced 7/6/3 with the frozen seeds (7/6/4 with the re-validated seeds); 1-2 size-0 specs per productive suite",
+      "pilot_001_comparability_consequence": "UNAFFECTED (benchmarks not in pilot_001)",
+      "pilot_002_methodology_consequence": "the size-0 case the prompt now defines is exercised by the enhanced stage; E3 artifact, manifest and execution fingerprint re-frozen",
+      "repair_consequence": "none"
+     }
+    ],
+    "recommendation": "A",
+    "recommendation_rationale": "all three contracts are consistent with the oracle and the correctness stage cannot reach the degenerate branch; A keeps the E3 freeze, the prompt regeneration set and the readiness proofs intact, while B re-opens the enhanced freeze (4 seeds, 23 productive keys) plus a catalog schema change, and C re-opens it for a size-0 case of no measured discriminative value; both the precondition and the size-0 re-allowance can be adopted at the next enhanced regeneration without touching pilot_002",
+    "residual_risk": "under A the prompt grades a sentinel convention (return 0) that some readers may consider inventive, and the catalog keeps a DISALLOWED value whose stated reason no longer holds (E32-04 records the superseded text; the VALUE is decided here)",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-07",
+   "short_name": "static-base / LLM spec_key collision in the enhanced mutation frontier",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: frozen E3 suite unchanged (collision tolerated: it lengthens the pre-shuffle mutation list only). OPTION B: canonicalize static+LLM identities together and re-freeze E3 (10 benchmarks re-shuffled, incl. pilot_001's reduce/25).",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED incrementally (enhanced cells are already not directly comparable across the E3 freeze)",
+    "under_option_B": "UNAFFECTED incrementally for the same reason; reduce/25's enhanced cells would change composition once more",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "enhanced_tests",
+      "tool": "-"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "enhanced_tests",
+      "tool": "-"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "enhanced_tests",
+      "tool": "-"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "Shall the enhanced mutation frontier keep the frozen E3 suite (static-base and LLM seed identities not collapsed against each other), or be canonicalized jointly and re-frozen?",
+    "options": [
+     {
+      "option": "A",
+      "description": "keep the frozen E3 suite (FREEZE_AS_IS)",
+      "measured_consequence": "no change; 12 benchmarks carry 38 colliding identities that only lengthen the pre-shuffle mutation list",
+      "pilot_001_comparability_consequence": "UNAFFECTED incrementally (enhanced cells already not directly comparable across the E3 freeze)",
+      "pilot_002_methodology_consequence": "emission already dedupes on spec_key, so the collision creates no fake diversity; the frontier's seed order is a documented, deterministic quirk",
+      "repair_consequence": "none"
+     },
+     {
+      "option": "B",
+      "description": "collapse static/LLM identities before mutation and re-freeze E3 (CHANGE_THEN_FREEZE)",
+      "measured_consequence": "productive key sets change for 10 benchmarks (dense_la/01_dense_la_solve, graph/16_graph_largest_component, graph/17_graph_highest_degree, graph/18_graph_count_components, graph/19_graph_shortest_path, histogram/23_histogram_first_letter_counts, reduce/25_reduce_xor, sort/43_sort_sort_an_array_of_structs_by_key, sort/44_sort_sort_non-zero_elements, sparse_la/49_sparse_la_sparse_lu_decomp); frozen artifact, E3 manifest and execution fingerprint re-frozen",
+      "pilot_001_comparability_consequence": "UNAFFECTED incrementally; reduce/25's enhanced suite (a pilot_001 benchmark) changes composition once more",
+      "pilot_002_methodology_consequence": "identity purity of the frontier; suite composition churn for 10 benchmarks without a measured diversity gain",
+      "repair_consequence": "none"
+     }
+    ],
+    "recommendation": "A",
+    "recommendation_rationale": "the collision is not a defect of the frozen suite (no duplicate emission, no invalid seed) but a property of two deterministic generators; collapsing it re-composes 10 benchmarks' suites for no measurable benefit and would force an E3 re-freeze right before pilot_002",
+    "residual_risk": "a reader may find the frontier definition inelegant; the provenance report documents it",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-08",
+   "short_name": "assembly writer newline policy HOST_DEPENDENT x clang_tidy byte-offset conversion: CRLF sources shift clang_tidy line/column identities",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: HOST_DEPENDENT writer + tools.py unchanged (defect frozen in, pilot_001-identical). OPTION B: writer pinned to LF (assembly condition and raw artifact hashes move). OPTION C: clang-tidy FileOffset converted against the raw bytes in tools.py (static condition re-freeze), optionally with B.",
+   "pilot_001_comparability": {
+    "value": "LIMITED_WITH_DISCLOSURE",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ],
+    "reason": "pilot_001 base clang_tidy locations are shifted (identity field), iteration records are correct; counts, check_ids, blocking flags and states are unaffected; line-level identities are comparable only after re-derivation from the stored FileOffsets - under every option, because the defect is in the historical records",
+    "disclosure_text": "pilot_001's clang_tidy findings of the base run carry line/column values computed against CR-stripped text from CRLF sources; review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null. Counts, check ids and blocking verdicts are unaffected; per-line identities and the iteration-1 repair feedback line numbers are not comparable without re-derivation from the stored clang-tidy offsets."
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "MULTIPLE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "clang_tidy's byte FileOffset is converted against universal-newline text (tools.py:1242 read_text, :1246 offset_to_line_col), so CRLF-assembled sources (the Windows host writer) yield shifted line/column identities for clang_tidy findings while LF sources (container-assembled iterations) yield correct ones. Shall pilot_002 keep the host-dependent writer and the current conversion, pin the writer to LF, or fix the conversion (raw bytes) - the latter two re-freeze the assembly or static condition?",
+    "options": [
+     {
+      "option": "A",
+      "description": "keep ASSEMBLY_WRITER_NEWLINE_POLICY = HOST_DEPENDENT and tools.py unchanged (FREEZE_AS_IS)",
+      "measured_consequence": "pilot_002 base samples assembled on the Windows host reproduce the shifted clang_tidy locations at iteration 0 while container-assembled repair iterations get correct ones - exactly pilot_001's state (base: review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null; iterations: LF, correct)",
+      "pilot_001_comparability_consequence": "UNAFFECTED incrementally (both pilots carry the same defect); the defect itself limits every clang_tidy cell of BOTH pilots (see the item's disclosure)",
+      "pilot_002_methodology_consequence": "a known location defect is frozen into the main pilot; clang_tidy identities (tool, check_id, file, line) of iteration 0 are wrong for every finding after the first CR",
+      "repair_consequence": "iteration-0 feedback renders shifted 'line N:' text for clang_tidy findings (pilot_001: review measurement: 158 iteration-1 static_feedback/combined_feedback prompts rendered shifted clang_tidy line numbers; test_feedback unaffected)"
+     },
+     {
+      "option": "B",
+      "description": "pin the assembly writer to LF (CHANGE_THEN_FREEZE; assembly condition and every raw artifact hash of re-assembled samples move)",
+      "measured_consequence": "correct clang_tidy locations for LF sources (measured: LF copy vs CRLF copy of the same source differ in gemini_36_flash geometry/10 serial: CRLF (bugprone-implicit-widening-of-multiplication-result 41:30, bugprone-narrowing-conversions 15:27, 29:16, 49:19) vs LF (39:15, 15:13, 28:9, 48:29), all blocking; identity (check_id, line) sets differ); pilot_002 base bytes differ from pilot_001's base bytes (LF vs CRLF), content identical",
+      "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the 12 x {serial, omp, mpi} x static_analysis x clang_tidy cells (pilot_001 base locations shifted, pilot_002 correct) and the static/combined repair cells",
+      "pilot_002_methodology_consequence": "the conversion defect stays latent in tools.py (any future CRLF input re-triggers it)",
+      "repair_consequence": "correct line numbers in the repair feedback"
+     },
+     {
+      "option": "C",
+      "description": "convert clang-tidy's byte FileOffset against the raw bytes in tools.py (CHANGE_THEN_FREEZE; tools.py hash -> static condition re-freeze), optionally together with B",
+      "measured_consequence": "correct clang_tidy locations regardless of the writer's newline convention; static condition re-frozen, readiness re-measured; pilot_001 records can be re-derived from their stored raw_stdout FileOffsets (review: yes - every clang_tidy record stores the raw clang-tidy output with FileOffsets; recomputing (line, column) against the raw CRLF bytes is deterministic)",
+      "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the same clang_tidy and repair cells; counts/check_ids/blocking unaffected, line/column identities comparable only after re-derivation",
+      "pilot_002_methodology_consequence": "the defect is removed at its root; the newline policy becomes irrelevant for clang_tidy",
+      "repair_consequence": "correct line numbers in the repair feedback"
+     }
+    ],
+    "recommendation": "C",
+    "recommendation_rationale": "the location defect was found by the adversarial review of this wave and reproduced first-hand (gemini_36_flash geometry/10 serial: CRLF lines 41/15/29/49 vs LF 39/15/28/48, all blocking); freezing a known identity defect into the main pilot (A) is not defensible when the fix is a byte-offset conversion; C removes the root cause and, unlike B, does not depend on the host; B alone leaves the latent defect. The cost is the static-condition re-freeze that E32-02 B and E32-09 B require anyway.",
+    "residual_risk": "C changes tools.py and therefore the static condition (readiness re-proof, tool-state fixtures re-run); pilot_001 clang_tidy identities must be re-derived for any cross-pilot comparison; the residual non-ASCII column drift observed on LF sources by the review needs the same raw-byte conversion",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-09",
+   "short_name": "gcc_analyzer FP-class demotion (Phase-0 predicate T1-T5) designed, not applied",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: gcc_analyzer unchanged (every -Wanalyzer-* finding blocking; counts declared not quotable as defect counts). OPTION B: apply the T1-T5 demotion as low_confidence marking (finding kept, not deleted) in tools.py before pilot_002 - static condition re-freeze, readiness re-measured; pilot_001 counts re-derived with the same message predicate for the comparison.",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED (gcc_analyzer cells keep COMPARABLE_WITH_LIMITATIONS)",
+    "under_option_B": "LIMITED_WITH_DISCLOSURE for every gcc_analyzer cell (the message-based predicate can be applied to the pilot_001 records post hoc, so counts remain comparable after re-derivation; the repair loops are not, because pilot_001 iterated on undemoted blocking sets)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "MULTIPLE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "Shall pilot_002 run gcc_analyzer as in pilot_001 (every -Wanalyzer-* finding blocking) or with the Phase-0 FP-class demotion (T1-T5 -> low_confidence) applied before the run?",
+    "options": [
+     {
+      "option": "A",
+      "description": "no demotion (FREEZE_AS_IS): every -Wanalyzer-* finding stays blocking",
+      "measured_consequence": "current records (base run, 396 samples): blocking by execution model {\"mpi\": 147, \"omp\": 29, \"serial\": 5}; of these, {\"mpi\": 139, \"omp\": 28, \"serial\": 5} match the FP signature (by rule {\"T1\": 68, \"T2\": 5, \"T3\": 19, \"T5\": 80}); residue kept blocking in-family {\"-Wanalyzer-use-of-uninitialized-value\": 3}, other families {\"-Wanalyzer-malloc-leak\": 4, \"-Wanalyzer-out-of-bounds\": 2}",
+      "pilot_001_comparability_consequence": "UNAFFECTED (gcc_analyzer cells keep COMPARABLE_WITH_LIMITATIONS)",
+      "pilot_002_methodology_consequence": "gcc_analyzer blocking counts stay 'not quotable as defect counts' (Phase-0); the repair loop iterates on findings the Phase-0 analysis classifies as >= 99 % analyzer artefacts",
+      "repair_consequence": "unchanged: samples with only FP-class blocking findings enter the loop as repair targets"
+     },
+     {
+      "option": "B",
+      "description": "apply the T1-T5 demotion as low_confidence marking in tools.py (finding kept, not deleted) and re-freeze the static condition (CHANGE_THEN_FREEZE)",
+      "measured_consequence": "samples whose blocking set empties under the demotion: {\"mpi\": 45, \"omp\": 7, \"serial\": 4} (of {\"mpi\": 49, \"omp\": 8, \"serial\": 4} with blocking); blocking findings demoted {\"mpi\": 139, \"omp\": 28, \"serial\": 5}; 9 findings stay blocking (3 uninitialized-value residue, 4 malloc-leak - see E32-11 - and 2 out-of-bounds)",
+      "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for every gcc_analyzer cell: pilot_001 counts can be re-derived with the same message predicate (defined on the stored message), so counts stay comparable after re-derivation; repair trajectories are not (pilot_001 iterated on undemoted sets)",
+      "pilot_002_methodology_consequence": "the finding semantics change from 'every analyzer warning is a defect' to 'analyzer warnings on vector-allocation counterfactual paths are low-confidence'; the demotion is message-based and auditable per finding",
+      "repair_consequence": "the samples listed above start the loop as clean (or with only low-confidence findings, graced once); the repair experiment stops chasing vector-allocation phantoms"
+     }
+    ],
+    "recommendation": "B",
+    "recommendation_rationale": "Phase-0 measured 787/794 (99.1 %) of the three families as analyzer FP-class on pilot_001 and declared the counts not quotable; the same predicate on the CURRENT base records demotes 172 of 181 blocking findings; running the main pilot with a known >= 99 % false-positive blocking signal as repair input would make the repair loop's static arm chase artefacts, and the counts could not be reported as defects anyway. Demotion as marking (not deletion) keeps every finding recorded and the pilot_001 comparison re-derivable. It also covers 66 of the 72 blocking findings that E32-01 B would have removed by truncation.",
+    "residual_risk": "T5 (NULL '0' dereference) is the aggressive rule: a genuine dereference of a constant-propagated nullptr would be demoted too (0 such cases in pilot_001; the event path is now stored, so the anchored variant can be implemented); malloc-leak/out-of-bounds stay blocking unless E32-11 B is chosen; B is a static-condition change and requires the readiness re-freeze and a re-run of the tool-state fixtures",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-11",
+   "short_name": "gcc_analyzer -Wanalyzer-malloc-leak: same allocation-failure modelling, outside the decided demotion scope, 'flagged for a separate demotion decision'",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: malloc-leak stays blocking (= current config). OPTION B: -Wanalyzer-malloc-leak added to the demotion predicate's check_id set (only meaningful together with E32-09 B; same static re-freeze).",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED",
+    "under_option_B": "LIMITED_WITH_DISCLOSURE for the gcc_analyzer cells (same re-derivation as E32-09 B)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "MULTIPLE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "Shall -Wanalyzer-malloc-leak (flagged by the Phase-0 analysis as the same allocation-failure modelling as the demoted families, but left outside the decided demotion scope 'for a separate decision') stay blocking in pilot_002 or join the demotion predicate?",
+    "options": [
+     {
+      "option": "A",
+      "description": "keep -Wanalyzer-malloc-leak blocking (FREEZE_AS_IS; = current config)",
+      "measured_consequence": "current base records: 4 blocking malloc-leak findings in 2 records, all with T1 signature (vector-internal storage 'leaking' on counterfactual exception paths); after the E32-09 T1-T5 demotion 2 samples would stay blocking ONLY via malloc-leak: [\"deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0\", \"qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0\"]. Phase-0 over all 7 pilot_001 run dirs: 47 blocking (26 deduplicated), 20 token-bearing, 24 operator-new, 3 unknown",
+      "pilot_001_comparability_consequence": "UNAFFECTED (same as pilot_001)",
+      "pilot_002_methodology_consequence": "the demotion scope stays exactly the Phase-0 'decided' three families; a family the same analysis classifies as artefact keeps blocking and feeding the repair loop",
+      "repair_consequence": "the samples above remain repair targets on malloc-leak findings alone"
+     },
+     {
+      "option": "B",
+      "description": "add -Wanalyzer-malloc-leak to the demotion predicate's check_id set (same T1-T5 message signatures; CHANGE_THEN_FREEZE with the same static re-freeze as E32-09 B)",
+      "measured_consequence": "the 4 findings become low_confidence; the 2 samples start clean (or graced)",
+      "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the gcc_analyzer cells (same re-derivation as E32-09 B)",
+      "pilot_002_methodology_consequence": "consistent treatment of the analyzer's allocation-failure modelling; out-of-bounds (2) stays blocking",
+      "repair_consequence": "no phantom-leak repair targets"
+     }
+    ],
+    "recommendation": "B (only together with E32-09 B; A if E32-09 A)",
+    "recommendation_rationale": "the Phase-0 document classifies malloc-leak as 'the same allocation-failure modeling' and every current malloc-leak message carries the T1 signature; demoting the three families but not this one would leave the same artefact class blocking for 2 samples. The decision is conditional on E32-09: without the demotion there is nothing to join.",
+    "residual_risk": "a genuine leak of model-allocated memory on a real path would be demoted too (Phase-0: 24 of 47 are later-new-throws paths where the sample delete[]s both buffers; none genuine in pilot_001)",
+    "persisted_as_author_decision": false
+   }
+  },
+  {
+   "id": "E32-12",
+   "short_name": "search/35 benchmark-local validation attempts numTries = 5 vs suite-wide MAX_VALIDATION_ATTEMPTS = 2 (explicitly left un-normalized in wave 2B)",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: numTries = 5 kept (drivers tree unchanged; the cross-pilot canonical-condition note corrected in text only). OPTION B: numTries = MAX_VALIDATION_ATTEMPTS like search/38 (drivers tree -> static condition re-freeze, cross-pilot candidate_subset_state cpu_cc sha re-pinned).",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED (both pilots run 5 attempts); disclosure note: the cross-pilot artifact's canonical condition text is inaccurate for search/35",
+    "under_option_B": "LIMITED_WITH_DISCLOSURE for the 33 search/35 x {serial, omp, mpi} x correctness cells (validation power 5 -> 2; observed pilot_001 verdicts invariant)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "correctness",
+      "tool": "-"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "correctness",
+      "tool": "-"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "correctness",
+      "tool": "-"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decision_package": {
+    "decision_question": "search/35 validates with a benchmark-local numTries = 5 (drivers/cpp/benchmarks/search/35_.../cpu.cc:78) while the suite-wide contract is MAX_VALIDATION_ATTEMPTS = 2 (utilities.hpp:34-35) and search/38's identical hardcode was normalized in wave 2B (cpu.cc:66-73) with 35 explicitly left as is. Shall pilot_002 keep 5 attempts for search/35 or normalize it to the suite-wide contract?",
+    "options": [
+     {
+      "option": "A",
+      "description": "keep numTries = 5 (FREEZE_AS_IS; = pilot_001)",
+      "measured_consequence": "pilot_001 search/35 correctness: {\"pass\": 30, \"validation_failed\": 2, \"build_failed\": 1}; the two validation failures are deterministic (the candidate returns TEST_SIZE instead of the index: 'MISMATCH expected=1016 got=1024'), so they fail on the first attempt; validation power for search/35 stays 5 random inputs vs 2 suite-wide",
+      "pilot_001_comparability_consequence": "UNAFFECTED (both pilots run 5); disclosure note only: cross_pilot_comparability.json's canonical condition text 'max_validation_attempts (2, utilities.hpp default; no -D override)' is inaccurate for search/35",
+      "pilot_002_methodology_consequence": "one pilot_001 benchmark keeps a stricter validation contract than the rest of the suite; the wave-2B cost model note ('35's x5 newly documented') stays",
+      "repair_consequence": "none"
+     },
+     {
+      "option": "B",
+      "description": "normalize to numTries = MAX_VALIDATION_ATTEMPTS like search/38 (CHANGE_THEN_FREEZE: drivers tree changes -> static condition (drivers_tree_sha256) and the cross-pilot candidate_subset_state cpu_cc sha re-pinned)",
+      "measured_consequence": "pilot_001 verdicts of search/35 are invariant under 2 attempts (passes pass on every attempt; the 2 failures are deterministic); static_analysis_condition_sha256 changes (drivers_tree_sha256), readiness re-measured",
+      "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the 33 search/35 x {serial, omp, mpi} x correctness cells currently DIRECTLY_COMPARABLE (validation power 5 -> 2 attempts; observed verdicts invariant)",
+      "pilot_002_methodology_consequence": "suite-wide uniform validation contract",
+      "repair_consequence": "none"
+     }
+    ],
+    "recommendation": "A",
+    "recommendation_rationale": "the observed pilot_001 verdicts are invariant under either attempt count, so the choice does not change any recorded result; A keeps the drivers tree, the static condition and the cross-pilot state pins untouched right before pilot_002, and the stricter local contract is documented. B is the cleaner contract and can be adopted together with any other drivers-tree re-freeze.",
+    "residual_risk": "under A the cross-pilot artifact's canonical-condition text remains inaccurate for search/35 (a note, not a value change); under B a future search/35 candidate that fails only on attempts 3-5 would pass",
+    "persisted_as_author_decision": false
+   }
+  }
+ ],
+ "unresolved_items": [],
+ "decision_packages": {
+  "E32-01": {
+   "decision_question": "Shall pilot_002's gcc_analyzer compile the reduced MPI translation unit with -DOMPI_SKIP_MPICXX (as PARCOACH does), or keep pilot_001's compile (OpenMPI C++ binding headers included)?",
+   "options": [
+    {
+     "option": "A",
+     "description": "keep pilot_001 behaviour: no -DOMPI_SKIP_MPICXX for gcc_analyzer (FREEZE_AS_IS)",
+     "measured_consequence": "finding sets identical to pilot_001 (measured: 396/396 gcc_analyzer entries semantically equal between the current tool and the historical records); 49 of 132 MPI samples carry blocking gcc_analyzer findings (147 blocking in total), 45 of them only through Phase-0 FP-class signatures (see E32-09)",
+     "pilot_001_comparability_consequence": "UNAFFECTED: gcc_analyzer MPI cells keep COMPARABLE_WITH_LIMITATIONS",
+     "pilot_002_methodology_consequence": "the analyzer explores the TU with the exploration budget the OpenMPI C++ binding headers leave it; the recorded PARTIAL/COMPLETED coverage states keep their pilot_001 meaning",
+     "repair_consequence": "unchanged repair input for MPI samples"
+    },
+    {
+     "option": "B",
+     "description": "append -DOMPI_SKIP_MPICXX to the gcc_analyzer compile at the default analyzer budget (CHANGE_THEN_FREEZE; static condition re-frozen)",
+     "measured_consequence": "51 of 132 MPI finding sets change; blocking 147 -> 75; 21 samples go from blocking to clean, 0 from clean to blocking; vanished blocking findings by family: {\"-Wanalyzer-malloc-leak\": 4, \"-Wanalyzer-null-dereference\": 45, \"-Wanalyzer-out-of-bounds\": 1, \"-Wanalyzer-possible-null-dereference\": 19, \"-Wanalyzer-too-complex\": 464, \"-Wanalyzer-use-of-uninitialized-value\": 3}; by Phase-0 signature: {\"NO_SIGNATURE\": 6, \"T1\": 19, \"T3\": 2, \"T5\": 45}. Mechanism (review measurement adversarial review wf_13b0152d-caf, verifier agents (executed in pareval-thesis over all 132 pilot_001 MPI samples)): the define removes the C++ binding supernodes from the TU and with them shrinks GCC's whole-exploration budget (supernodes x analyzer-bb-explosion-factor), so the analyzer stops exploring the IDENTICAL model function earlier - too-complex give-ups vanish (464) because exploration ends before reaching those program points, whole-exploration bail-outs rise (whole-exploration bail-outs 18 -> 72 (54 new, none removed; 40 recorded as PARTIAL, 32 silent because GCC suppresses the system-header-located bail-out line) in one reproduction, 10/132 -> 40/132 with -Wsystem-headers in the other), and the 2 PARTIAL->COMPLETED transitions are silent bail-outs recorded as COMPLETED/CLEAN (their historical blocking finding returns at --param=analyzer-bb-explosion-factor=20, which restores every historical blocking set: -DOMPI_SKIP_MPICXX + --param=analyzer-bb-explosion-factor=20 reproduces the historical blocking sets 40/40 on the samples that changed)",
+     "pilot_001_comparability_consequence": "INCOMPARABLE for the 12 x mpi x static_analysis x gcc_analyzer cells (finding counts AND analysis-state/coverage counts); LIMITED_WITH_DISCLOSURE for the MPI static_feedback/combined_feedback repair cells",
+     "pilot_002_methodology_consequence": "a coverage LOSS presented by the records as a gain: fewer findings and 2 false COMPLETED states; the PARTIAL/COMPLETED state model would need an MPI caveat; a 'flag + explicit analyzer budget' variant is a NEW configuration that would need its own readiness measurement (not measured here)",
+     "repair_consequence": "21 MPI samples would start static_feedback/combined_feedback as clean instead of active because the analyzer no longer reaches their findings, not because the findings are wrong"
+    }
+   ],
+   "recommendation": "A",
+   "recommendation_rationale": "the adversarial review refuted the noise-removal reading of the flag: the vanished findings are model-line program points the analyzer no longer REACHES (budget truncation), not header noise (file attribution already removes header findings) - 66 of 72 vanished blocking findings do carry the Phase-0 FP-class signature, but that class is handled by E32-09 without cutting coverage. B as measured trades 51 finding sets and the MPI coverage states for nothing the methodology wants; PARCOACH's use of the define is unrelated (robustness of a tool that cannot model the C++ bindings).",
+   "residual_risk": "under A the analyzer keeps spending budget on unused binding headers (documented, pilot_001-identical); a future 'flag + explicit budget' configuration could recover the same coverage on a smaller TU but is unmeasured and would be a separate CHANGE_THEN_FREEZE with its own readiness proof",
+   "persisted_as_author_decision": false
+  },
+  "E32-02": {
+   "decision_question": "Shall infer stay configured for OpenMP samples in pilot_002 (recording NOT_ANALYZED on every omp kernel and vetoing clean stops), or be narrowed to serial/mpi?",
+   "options": [
+    {
+     "option": "A",
+     "description": "keep infer execution_models [serial, omp, mpi] (FREEZE_AS_IS)",
+     "measured_consequence": "pilot_001: 130 omp infer entries NOT_ANALYZED (132 of 132 omp records abort in the frontend); current image, 12 omp samples re-run: {\"NOT_ANALYZED\": 12}",
+     "pilot_001_comparability_consequence": "UNAFFECTED incrementally (infer/omp already METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; the stored disclosure table stays valid)",
+     "pilot_002_methodology_consequence": "every omp record documents the coverage gap explicitly (NOT_ANALYZED with the frontend reason); infer produces no OpenMP verdict; static condition unchanged",
+     "repair_consequence": "issue-free omp samples end stopped_analysis_incomplete instead of stopped_clean (orchestrator.evaluate_stop; measured on the 132 pilot_001 omp base records: 52 active, 80 issue-free, all 80 incomplete under A); no feedback text changes"
+    },
+    {
+     "option": "B",
+     "description": "narrow infer to execution_models [serial, mpi] (CHANGE_THEN_FREEZE WITH static-condition re-freeze: the configured scope is hashed into static_analysis_condition_sha256)",
+     "measured_consequence": "config-only in code (tool_config narrows by intersection, tools.py untouched), but static_analysis_condition_sha256 327b235a8014cb68 -> cf54ff519c477c23 (measured in memory), the readiness artifact goes stale and the runtime condition moves: readiness must be re-measured before T0. On the pilot_001 omp base records: 25 of the 80 issue-free samples would stop clean, 55 stay incomplete because of llov (55) and gcc_analyzer (11) gaps; the 52 active samples, their feedback and blocking sets are identical under A and B",
+     "pilot_001_comparability_consequence": "UNAFFECTED incrementally for the infer/omp static cells (already METHOD_CHANGED, no verdict to compare); LIMITED_WITH_DISCLOSURE for the 12 x omp x repair x {static_feedback, combined_feedback} cells: the class stays METHOD_CHANGED, but the stored disclosure table (clean_stops_reassessed_under_tool_state: gap:infer rows) must be re-derived with infer not required on omp; test_feedback cells UNAFFECTED",
+     "pilot_002_methodology_consequence": "the OpenMP static toolset becomes compiler + gcc_analyzer + clang_tidy + cppcheck + llov; the gap is stated by configuration instead of per record; the llov region-not-analyzed gap persists",
+     "repair_consequence": "25 of 80 issue-free omp samples can stop clean; the terminal-status population of the omp arm becomes comparable in kind with serial/mpi (a repair OUTCOME effect, not a feedback effect)"
+    }
+   ],
+   "recommendation": "B",
+   "recommendation_rationale": "132/132 pilot_001 OpenMP infer records abort in infer's clang-11 frontend and the current image reproduces it on every re-run sample; a tool that cannot analyse any OpenMP kernel contributes no verdict but, if required, vetoes every clean stop of the omp arm. Narrowing states the limitation once in the frozen configuration and recovers 25 of 80 issue-free clean stops; the remaining 55 are vetoed by llov's region-not-analyzed semantics, which is a deliberate tool-state decision, not an infer question. The cost is a static-condition re-freeze (same class as E32-09 B).",
+   "residual_risk": "narrowing hides the gap from the per-record view (NOT_APPLICABLE instead of NOT_ANALYZED); a future infer with OpenMP support would need a re-freeze; the reporting must state that infer covers serial/mpi only; the E32-06 placeholder remains unfingerprinted",
+   "persisted_as_author_decision": false
+  },
+  "E32-03": {
+   "decision_question": "Under which degenerate-input contract shall geometry/12, /13 and /14 be frozen: the explicit convention now in the prompts ('return 0' / 'area 0') with size 0 still DISALLOWED, the same convention with size 0 re-allowed (the reason for DISALLOWED no longer holds), or the precondition contract (n >= 3 / n >= 2 plus enforced min_size) that the decision artifact calls the preferred long-term contract?",
+   "options": [
+    {
+     "option": "A",
+     "description": "freeze the regenerated prompts as they are; e2b_size_zero stays DISALLOWED / min_size 1 on freeze-stability grounds; E3 artifact unchanged (FREEZE_AS_IS)",
+     "measured_consequence": "no change; the frozen E3 seeds at sizes 1/2 keep exercising the degenerate branch; correctness stage unaffected (n<2 / n<3 unreachable at TEST_SIZE 1024). NOTE: the catalog reason for DISALLOWED ('the frozen prompt does not state') is factually superseded - A keeps the VALUE for freeze stability only",
+     "pilot_001_comparability_consequence": "UNAFFECTED (benchmarks not in pilot_001)",
+     "pilot_002_methodology_consequence": "the contract is the oracle's own behaviour made explicit; every stage tests it consistently; size 0 - now a stated answer - is not exercised",
+     "repair_consequence": "none"
+    },
+    {
+     "option": "B",
+     "description": "precondition contract + min_size 3 (/12) and 2 (/13, /14); enhanced regeneration (E3 re-freeze) and a further prompt regeneration (CHANGE_THEN_FREEZE)",
+     "measured_consequence": "frozen seeds invalidated: /12 2, /13 1, /14 1; productive keys replaced: /12 12, /13 6, /14 5 (measured on the frozen artifact)",
+     "pilot_001_comparability_consequence": "UNAFFECTED (benchmarks not in pilot_001)",
+     "pilot_002_methodology_consequence": "the degenerate inputs leave the tested domain instead of being graded against a sentinel; /12 additionally needs a catalog field able to express a semantic min_size 3 (none exists today)",
+     "repair_consequence": "none"
+    },
+    {
+     "option": "C",
+     "description": "frozen convention + e2b_size_zero ALLOWED / min_size 0 for geometry/12, /13, /14 (the prompts now state the n = 0 answer) + E3 re-freeze (CHANGE_THEN_FREEZE)",
+     "measured_consequence": "review measurement (adversarial review wf_13b0152d-caf (in-memory simulation, enhanced_policy.json untouched)): size 0 re-allowed for geometry/12,13,14: 3 pre-E3 size-0 seed rows re-validated; verifier partition 272/199 -> 275/196; productive keys replaced 7/6/3 with the frozen seeds (7/6/4 with the re-validated seeds); 1-2 size-0 specs per productive suite",
+     "pilot_001_comparability_consequence": "UNAFFECTED (benchmarks not in pilot_001)",
+     "pilot_002_methodology_consequence": "the size-0 case the prompt now defines is exercised by the enhanced stage; E3 artifact, manifest and execution fingerprint re-frozen",
+     "repair_consequence": "none"
+    }
+   ],
+   "recommendation": "A",
+   "recommendation_rationale": "all three contracts are consistent with the oracle and the correctness stage cannot reach the degenerate branch; A keeps the E3 freeze, the prompt regeneration set and the readiness proofs intact, while B re-opens the enhanced freeze (4 seeds, 23 productive keys) plus a catalog schema change, and C re-opens it for a size-0 case of no measured discriminative value; both the precondition and the size-0 re-allowance can be adopted at the next enhanced regeneration without touching pilot_002",
+   "residual_risk": "under A the prompt grades a sentinel convention (return 0) that some readers may consider inventive, and the catalog keeps a DISALLOWED value whose stated reason no longer holds (E32-04 records the superseded text; the VALUE is decided here)",
+   "persisted_as_author_decision": false
+  },
+  "E32-07": {
+   "decision_question": "Shall the enhanced mutation frontier keep the frozen E3 suite (static-base and LLM seed identities not collapsed against each other), or be canonicalized jointly and re-frozen?",
+   "options": [
+    {
+     "option": "A",
+     "description": "keep the frozen E3 suite (FREEZE_AS_IS)",
+     "measured_consequence": "no change; 12 benchmarks carry 38 colliding identities that only lengthen the pre-shuffle mutation list",
+     "pilot_001_comparability_consequence": "UNAFFECTED incrementally (enhanced cells already not directly comparable across the E3 freeze)",
+     "pilot_002_methodology_consequence": "emission already dedupes on spec_key, so the collision creates no fake diversity; the frontier's seed order is a documented, deterministic quirk",
+     "repair_consequence": "none"
+    },
+    {
+     "option": "B",
+     "description": "collapse static/LLM identities before mutation and re-freeze E3 (CHANGE_THEN_FREEZE)",
+     "measured_consequence": "productive key sets change for 10 benchmarks (dense_la/01_dense_la_solve, graph/16_graph_largest_component, graph/17_graph_highest_degree, graph/18_graph_count_components, graph/19_graph_shortest_path, histogram/23_histogram_first_letter_counts, reduce/25_reduce_xor, sort/43_sort_sort_an_array_of_structs_by_key, sort/44_sort_sort_non-zero_elements, sparse_la/49_sparse_la_sparse_lu_decomp); frozen artifact, E3 manifest and execution fingerprint re-frozen",
+     "pilot_001_comparability_consequence": "UNAFFECTED incrementally; reduce/25's enhanced suite (a pilot_001 benchmark) changes composition once more",
+     "pilot_002_methodology_consequence": "identity purity of the frontier; suite composition churn for 10 benchmarks without a measured diversity gain",
+     "repair_consequence": "none"
+    }
+   ],
+   "recommendation": "A",
+   "recommendation_rationale": "the collision is not a defect of the frozen suite (no duplicate emission, no invalid seed) but a property of two deterministic generators; collapsing it re-composes 10 benchmarks' suites for no measurable benefit and would force an E3 re-freeze right before pilot_002",
+   "residual_risk": "a reader may find the frontier definition inelegant; the provenance report documents it",
+   "persisted_as_author_decision": false
+  },
+  "E32-08": {
+   "decision_question": "clang_tidy's byte FileOffset is converted against universal-newline text (tools.py:1242 read_text, :1246 offset_to_line_col), so CRLF-assembled sources (the Windows host writer) yield shifted line/column identities for clang_tidy findings while LF sources (container-assembled iterations) yield correct ones. Shall pilot_002 keep the host-dependent writer and the current conversion, pin the writer to LF, or fix the conversion (raw bytes) - the latter two re-freeze the assembly or static condition?",
+   "options": [
+    {
+     "option": "A",
+     "description": "keep ASSEMBLY_WRITER_NEWLINE_POLICY = HOST_DEPENDENT and tools.py unchanged (FREEZE_AS_IS)",
+     "measured_consequence": "pilot_002 base samples assembled on the Windows host reproduce the shifted clang_tidy locations at iteration 0 while container-assembled repair iterations get correct ones - exactly pilot_001's state (base: review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null; iterations: LF, correct)",
+     "pilot_001_comparability_consequence": "UNAFFECTED incrementally (both pilots carry the same defect); the defect itself limits every clang_tidy cell of BOTH pilots (see the item's disclosure)",
+     "pilot_002_methodology_consequence": "a known location defect is frozen into the main pilot; clang_tidy identities (tool, check_id, file, line) of iteration 0 are wrong for every finding after the first CR",
+     "repair_consequence": "iteration-0 feedback renders shifted 'line N:' text for clang_tidy findings (pilot_001: review measurement: 158 iteration-1 static_feedback/combined_feedback prompts rendered shifted clang_tidy line numbers; test_feedback unaffected)"
+    },
+    {
+     "option": "B",
+     "description": "pin the assembly writer to LF (CHANGE_THEN_FREEZE; assembly condition and every raw artifact hash of re-assembled samples move)",
+     "measured_consequence": "correct clang_tidy locations for LF sources (measured: LF copy vs CRLF copy of the same source differ in gemini_36_flash geometry/10 serial: CRLF (bugprone-implicit-widening-of-multiplication-result 41:30, bugprone-narrowing-conversions 15:27, 29:16, 49:19) vs LF (39:15, 15:13, 28:9, 48:29), all blocking; identity (check_id, line) sets differ); pilot_002 base bytes differ from pilot_001's base bytes (LF vs CRLF), content identical",
+     "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the 12 x {serial, omp, mpi} x static_analysis x clang_tidy cells (pilot_001 base locations shifted, pilot_002 correct) and the static/combined repair cells",
+     "pilot_002_methodology_consequence": "the conversion defect stays latent in tools.py (any future CRLF input re-triggers it)",
+     "repair_consequence": "correct line numbers in the repair feedback"
+    },
+    {
+     "option": "C",
+     "description": "convert clang-tidy's byte FileOffset against the raw bytes in tools.py (CHANGE_THEN_FREEZE; tools.py hash -> static condition re-freeze), optionally together with B",
+     "measured_consequence": "correct clang_tidy locations regardless of the writer's newline convention; static condition re-frozen, readiness re-measured; pilot_001 records can be re-derived from their stored raw_stdout FileOffsets (review: yes - every clang_tidy record stores the raw clang-tidy output with FileOffsets; recomputing (line, column) against the raw CRLF bytes is deterministic)",
+     "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the same clang_tidy and repair cells; counts/check_ids/blocking unaffected, line/column identities comparable only after re-derivation",
+     "pilot_002_methodology_consequence": "the defect is removed at its root; the newline policy becomes irrelevant for clang_tidy",
+     "repair_consequence": "correct line numbers in the repair feedback"
+    }
+   ],
+   "recommendation": "C",
+   "recommendation_rationale": "the location defect was found by the adversarial review of this wave and reproduced first-hand (gemini_36_flash geometry/10 serial: CRLF lines 41/15/29/49 vs LF 39/15/28/48, all blocking); freezing a known identity defect into the main pilot (A) is not defensible when the fix is a byte-offset conversion; C removes the root cause and, unlike B, does not depend on the host; B alone leaves the latent defect. The cost is the static-condition re-freeze that E32-02 B and E32-09 B require anyway.",
+   "residual_risk": "C changes tools.py and therefore the static condition (readiness re-proof, tool-state fixtures re-run); pilot_001 clang_tidy identities must be re-derived for any cross-pilot comparison; the residual non-ASCII column drift observed on LF sources by the review needs the same raw-byte conversion",
+   "persisted_as_author_decision": false
+  },
+  "E32-09": {
+   "decision_question": "Shall pilot_002 run gcc_analyzer as in pilot_001 (every -Wanalyzer-* finding blocking) or with the Phase-0 FP-class demotion (T1-T5 -> low_confidence) applied before the run?",
+   "options": [
+    {
+     "option": "A",
+     "description": "no demotion (FREEZE_AS_IS): every -Wanalyzer-* finding stays blocking",
+     "measured_consequence": "current records (base run, 396 samples): blocking by execution model {\"mpi\": 147, \"omp\": 29, \"serial\": 5}; of these, {\"mpi\": 139, \"omp\": 28, \"serial\": 5} match the FP signature (by rule {\"T1\": 68, \"T2\": 5, \"T3\": 19, \"T5\": 80}); residue kept blocking in-family {\"-Wanalyzer-use-of-uninitialized-value\": 3}, other families {\"-Wanalyzer-malloc-leak\": 4, \"-Wanalyzer-out-of-bounds\": 2}",
+     "pilot_001_comparability_consequence": "UNAFFECTED (gcc_analyzer cells keep COMPARABLE_WITH_LIMITATIONS)",
+     "pilot_002_methodology_consequence": "gcc_analyzer blocking counts stay 'not quotable as defect counts' (Phase-0); the repair loop iterates on findings the Phase-0 analysis classifies as >= 99 % analyzer artefacts",
+     "repair_consequence": "unchanged: samples with only FP-class blocking findings enter the loop as repair targets"
+    },
+    {
+     "option": "B",
+     "description": "apply the T1-T5 demotion as low_confidence marking in tools.py (finding kept, not deleted) and re-freeze the static condition (CHANGE_THEN_FREEZE)",
+     "measured_consequence": "samples whose blocking set empties under the demotion: {\"mpi\": 45, \"omp\": 7, \"serial\": 4} (of {\"mpi\": 49, \"omp\": 8, \"serial\": 4} with blocking); blocking findings demoted {\"mpi\": 139, \"omp\": 28, \"serial\": 5}; 9 findings stay blocking (3 uninitialized-value residue, 4 malloc-leak - see E32-11 - and 2 out-of-bounds)",
+     "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for every gcc_analyzer cell: pilot_001 counts can be re-derived with the same message predicate (defined on the stored message), so counts stay comparable after re-derivation; repair trajectories are not (pilot_001 iterated on undemoted sets)",
+     "pilot_002_methodology_consequence": "the finding semantics change from 'every analyzer warning is a defect' to 'analyzer warnings on vector-allocation counterfactual paths are low-confidence'; the demotion is message-based and auditable per finding",
+     "repair_consequence": "the samples listed above start the loop as clean (or with only low-confidence findings, graced once); the repair experiment stops chasing vector-allocation phantoms"
+    }
+   ],
+   "recommendation": "B",
+   "recommendation_rationale": "Phase-0 measured 787/794 (99.1 %) of the three families as analyzer FP-class on pilot_001 and declared the counts not quotable; the same predicate on the CURRENT base records demotes 172 of 181 blocking findings; running the main pilot with a known >= 99 % false-positive blocking signal as repair input would make the repair loop's static arm chase artefacts, and the counts could not be reported as defects anyway. Demotion as marking (not deletion) keeps every finding recorded and the pilot_001 comparison re-derivable. It also covers 66 of the 72 blocking findings that E32-01 B would have removed by truncation.",
+   "residual_risk": "T5 (NULL '0' dereference) is the aggressive rule: a genuine dereference of a constant-propagated nullptr would be demoted too (0 such cases in pilot_001; the event path is now stored, so the anchored variant can be implemented); malloc-leak/out-of-bounds stay blocking unless E32-11 B is chosen; B is a static-condition change and requires the readiness re-freeze and a re-run of the tool-state fixtures",
+   "persisted_as_author_decision": false
+  },
+  "E32-11": {
+   "decision_question": "Shall -Wanalyzer-malloc-leak (flagged by the Phase-0 analysis as the same allocation-failure modelling as the demoted families, but left outside the decided demotion scope 'for a separate decision') stay blocking in pilot_002 or join the demotion predicate?",
+   "options": [
+    {
+     "option": "A",
+     "description": "keep -Wanalyzer-malloc-leak blocking (FREEZE_AS_IS; = current config)",
+     "measured_consequence": "current base records: 4 blocking malloc-leak findings in 2 records, all with T1 signature (vector-internal storage 'leaking' on counterfactual exception paths); after the E32-09 T1-T5 demotion 2 samples would stay blocking ONLY via malloc-leak: [\"deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0\", \"qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0\"]. Phase-0 over all 7 pilot_001 run dirs: 47 blocking (26 deduplicated), 20 token-bearing, 24 operator-new, 3 unknown",
+     "pilot_001_comparability_consequence": "UNAFFECTED (same as pilot_001)",
+     "pilot_002_methodology_consequence": "the demotion scope stays exactly the Phase-0 'decided' three families; a family the same analysis classifies as artefact keeps blocking and feeding the repair loop",
+     "repair_consequence": "the samples above remain repair targets on malloc-leak findings alone"
+    },
+    {
+     "option": "B",
+     "description": "add -Wanalyzer-malloc-leak to the demotion predicate's check_id set (same T1-T5 message signatures; CHANGE_THEN_FREEZE with the same static re-freeze as E32-09 B)",
+     "measured_consequence": "the 4 findings become low_confidence; the 2 samples start clean (or graced)",
+     "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the gcc_analyzer cells (same re-derivation as E32-09 B)",
+     "pilot_002_methodology_consequence": "consistent treatment of the analyzer's allocation-failure modelling; out-of-bounds (2) stays blocking",
+     "repair_consequence": "no phantom-leak repair targets"
+    }
+   ],
+   "recommendation": "B (only together with E32-09 B; A if E32-09 A)",
+   "recommendation_rationale": "the Phase-0 document classifies malloc-leak as 'the same allocation-failure modeling' and every current malloc-leak message carries the T1 signature; demoting the three families but not this one would leave the same artefact class blocking for 2 samples. The decision is conditional on E32-09: without the demotion there is nothing to join.",
+   "residual_risk": "a genuine leak of model-allocated memory on a real path would be demoted too (Phase-0: 24 of 47 are later-new-throws paths where the sample delete[]s both buffers; none genuine in pilot_001)",
+   "persisted_as_author_decision": false
+  },
+  "E32-12": {
+   "decision_question": "search/35 validates with a benchmark-local numTries = 5 (drivers/cpp/benchmarks/search/35_.../cpu.cc:78) while the suite-wide contract is MAX_VALIDATION_ATTEMPTS = 2 (utilities.hpp:34-35) and search/38's identical hardcode was normalized in wave 2B (cpu.cc:66-73) with 35 explicitly left as is. Shall pilot_002 keep 5 attempts for search/35 or normalize it to the suite-wide contract?",
+   "options": [
+    {
+     "option": "A",
+     "description": "keep numTries = 5 (FREEZE_AS_IS; = pilot_001)",
+     "measured_consequence": "pilot_001 search/35 correctness: {\"pass\": 30, \"validation_failed\": 2, \"build_failed\": 1}; the two validation failures are deterministic (the candidate returns TEST_SIZE instead of the index: 'MISMATCH expected=1016 got=1024'), so they fail on the first attempt; validation power for search/35 stays 5 random inputs vs 2 suite-wide",
+     "pilot_001_comparability_consequence": "UNAFFECTED (both pilots run 5); disclosure note only: cross_pilot_comparability.json's canonical condition text 'max_validation_attempts (2, utilities.hpp default; no -D override)' is inaccurate for search/35",
+     "pilot_002_methodology_consequence": "one pilot_001 benchmark keeps a stricter validation contract than the rest of the suite; the wave-2B cost model note ('35's x5 newly documented') stays",
+     "repair_consequence": "none"
+    },
+    {
+     "option": "B",
+     "description": "normalize to numTries = MAX_VALIDATION_ATTEMPTS like search/38 (CHANGE_THEN_FREEZE: drivers tree changes -> static condition (drivers_tree_sha256) and the cross-pilot candidate_subset_state cpu_cc sha re-pinned)",
+     "measured_consequence": "pilot_001 verdicts of search/35 are invariant under 2 attempts (passes pass on every attempt; the 2 failures are deterministic); static_analysis_condition_sha256 changes (drivers_tree_sha256), readiness re-measured",
+     "pilot_001_comparability_consequence": "LIMITED_WITH_DISCLOSURE for the 33 search/35 x {serial, omp, mpi} x correctness cells currently DIRECTLY_COMPARABLE (validation power 5 -> 2 attempts; observed verdicts invariant)",
+     "pilot_002_methodology_consequence": "suite-wide uniform validation contract",
+     "repair_consequence": "none"
+    }
+   ],
+   "recommendation": "A",
+   "recommendation_rationale": "the observed pilot_001 verdicts are invariant under either attempt count, so the choice does not change any recorded result; A keeps the drivers tree, the static condition and the cross-pilot state pins untouched right before pilot_002, and the stricter local contract is documented. B is the cleaner contract and can be adopted together with any other drivers-tree re-freeze.",
+   "residual_risk": "under A the cross-pilot artifact's canonical-condition text remains inaccurate for search/35 (a note, not a value change); under B a future search/35 candidate that fails only on attempts 3-5 would pass",
+   "persisted_as_author_decision": false
+  }
+ },
+ "author_confirmation": {
+  "status": "PENDING",
+  "instructions": "the author confirms each pending item by choosing an option; the confirmed options are then persisted (a later wave) and only then may SAFE_TO_PROCEED_TO_POPULATION_FREEZE become true",
+  "no_recommendation_is_persisted_as_a_decision": true
+ },
+ "SAFE_TO_PROCEED_TO_AUTHOR_DECISION": true,
+ "SAFE_TO_PROCEED_TO_POPULATION_FREEZE": false,
+ "volatile": {
+  "generated_at_utc": "2026-09-12T15:02:12Z"
+ },
+ "decisions_sha256": "a1bc609e52eeffe707667b1a553c61eb8586796ca0c07d3810411a2cf7b3aa65"
+}

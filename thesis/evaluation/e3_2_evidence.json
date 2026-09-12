@@ -1,0 +1,4494 @@
+{
+ "schema_version": "e3_2_evidence.v1",
+ "wave": "E3.2 - Evidence Reconstruction, Current-vs-Historical Measurement, Re-Freeze Analysis & Author Decision Package",
+ "source_head": "c7a6dbc41d9c54786ec3c23db451d35f756054c1",
+ "inclusion_criterion": "an item is E3.2-relevant when a git-tracked report or artifact explicitly defers a DECISION whose outcome would change a pilot_002 methodology condition (prompt, enhanced policy/specs, static/repair condition, tool scope, hash rule) or require a pilot_001 disclosure, AND the item is not on the task's explicit separate-findings list; backlog feature waves without a provisional frozen value are listed under considered_not_e3_2",
+ "item_count_found": 12,
+ "prior_summary_count": 7,
+ "prior_summary_match": false,
+ "prior_summary_candidates": [
+  "Static/LLM-Frontier-Kollision",
+  "geometry/13+14 Precondition: n >= 2 statt 'return 0'",
+  "geometry/12 Katalogtext",
+  "LF-Normalisierung alter Condition-Versionen",
+  "not_applicable_entry Fingerprinting (historisch 528 Einträge)",
+  "Infer OMP Scope",
+  "OMPI_SKIP_MPICXX"
+ ],
+ "prior_summary_candidates_verified": {
+  "Static/LLM-Frontier-Kollision": "E32-07",
+  "geometry/13+14 Precondition: n >= 2 statt 'return 0'": "E32-03 (extended to geometry/12, n >= 3)",
+  "geometry/12 Katalogtext": "E32-04 (extended to 13/14 and scan/34)",
+  "LF-Normalisierung alter Condition-Versionen": "E32-05",
+  "not_applicable_entry Fingerprinting (historisch 528 Einträge)": "E32-06",
+  "Infer OMP Scope": "E32-02",
+  "OMPI_SKIP_MPICXX": "E32-01"
+ },
+ "prior_summary_unverified_items": [],
+ "additional_repo_derived_items": [
+  "E32-08",
+  "E32-09",
+  "E32-10",
+  "E32-11",
+  "E32-12"
+ ],
+ "count_mismatch_explanation": "12 found vs 7 in the prior summary: every prior candidate is repo-verified (7/7); the geometry precondition candidate covers geometry/12 as well (same decision fork, n >= 3) and the catalog-text candidate covers 12/13/14 and scan/34 (same string family); five further deferred decisions with repo sources were found: the assembly writer newline pin, which the adversarial review turned into a clang_tidy location-identity defect (E32-08), the Phase-0 gcc_analyzer FP-class demotion (E32-09), search/37 n = 0 (E32-10), the separately flagged malloc-leak demotion (E32-11, found by the review of E32-09) and search/35's un-normalized validation attempts (E32-12, found by the review of the inventory boundary)",
+ "measurement_condition": {
+  "source_head": "c7a6dbc41d9c54786ec3c23db451d35f756054c1",
+  "static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+  "repair_condition_sha256": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+  "runtime_condition_sha256": "a2f46b1a5e35e60150fc7c77ef7c40185fd6d6b6aed51ddc02c9e524af53f446",
+  "container_images": {
+   "main": "sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa",
+   "parcoach": "sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030",
+   "llov": "sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341"
+  },
+  "historical_tree_inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870",
+  "historical_tree_file_count": 2038
+ },
+ "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+ "items": [
+  {
+   "id": "E32-01",
+   "short_name": "OMPI_SKIP_MPICXX for gcc_analyzer (MPI)",
+   "prior_summary_candidate": "OMPI_SKIP_MPICXX",
+   "source_evidence": [
+    "thesis/evaluation/tools.py:1717 and :1797 - PARCOACH reduced-TU clang compile passes -DOMPI_SKIP_MPICXX (since commit e1fa423, 2026-07-06, i.e. BEFORE pilot_001 2026-08-12)",
+    "thesis/docs/static-analysis-filtering.md:427 - PARCOACH rationale ('drops OpenMPI's C++ bindings it cannot model')",
+    "thesis/evaluation/static_repair_pilot002_readiness_report.md:79 - gcc_analyzer: '-DOMPI_SKIP_MPICXX was not adopted because it changes 15 of 20 pilot MPI finding sets (68 -> 40 blocking)'",
+    "thesis/evaluation/prerun_enforcement_addendum.md:1382-1384 - E3.2: 'nothing is entered as ACCEPTED_DISCLOSURE for OMPI_SKIP_MPICXX or the MPI finding-set effects here'",
+    "thesis/docs/static-analysis-filtering.md:177 - on an MPI sample the analyzer emits ~56 warnings, 55 inside openmpi/ompi/mpi/cxx/*.h, removed by file attribution"
+   ],
+   "where_set": {
+    "parcoach": "SET (tools.py:1797, clang-15 in registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1) - in effect for pilot_001 already",
+    "gcc_analyzer": "NOT SET (mpicxx -fanalyzer in pareval-thesis) - considered and rejected in the static/repair readiness wave",
+    "compiler": "NOT SET",
+    "clang_tidy": "NOT SET",
+    "cppcheck": "NOT SET",
+    "infer": "NOT SET"
+   },
+   "why_introduced": "PARCOACH robustness: PARCOACH cannot model OpenMPI's (deprecated) C++ bindings; the define makes mpi.h skip mpicxx.h. For gcc_analyzer it was proposed as noise reduction and rejected because it changes finding sets.",
+   "historical_state": "pilot_001 gcc_analyzer ran WITHOUT the define (all 132 MPI samples); PARCOACH ran WITH it",
+   "current_state": "identical to pilot_001 for every tool (static_analysis_condition_sha256 327b235a8014cb68)",
+   "affected_stage": [
+    "static_analysis",
+    "repair (static_feedback, combined_feedback input)"
+   ],
+   "affected_tools": [
+    "gcc_analyzer"
+   ],
+   "affected_execution_models": [
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": {
+    "population": "all 132 pilot_001 MPI samples (12 benchmarks x 11 models)",
+    "finding_sets_changed_under_flag": 51,
+    "changed_per_benchmark": {
+     "dense_la/00_dense_la_lu_decomp": 3,
+     "fft/05_fft_inverse_fft": 3,
+     "geometry/10_geometry_convex_hull": 2,
+     "scan/30_scan_prefix_sum": 11,
+     "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude": 2,
+     "sparse_la/45_sparse_la_sparse_solve": 11,
+     "stencil/50_stencil_xor_kernel": 10,
+     "transform/55_transform_relu": 9
+    },
+    "changed_per_model": {
+     "claude_fable_5": 3,
+     "claude_opus_5": 6,
+     "deepseek_v4_flash": 5,
+     "deepseek_v4_pro": 5,
+     "gemini_31_pro": 4,
+     "gemini_36_flash": 5,
+     "openai_gpt55": 8,
+     "openai_gpt56_sol": 5,
+     "qwen36_35b_a3b": 3,
+     "qwen37_max": 4,
+     "qwen3_coder_api": 3
+    }
+   },
+   "measurement": {
+    "method": "scratch re-analysis of the pilot_001 sources with the CURRENT gcc_analyzer tool in pareval-thesis, once as configured (variant current) and once with -DOMPI_SKIP_MPICXX appended to the compile argv (variant ompi_skip, monkeypatched in the measurement script only); canonical finding-set comparison per (sample, tool)",
+    "compared": 132,
+    "changed": 51,
+    "unchanged": 81,
+    "blocking_without_flag": 147,
+    "blocking_with_flag": 75,
+    "samples_blocking_to_clean": [
+     "claude_fable_5__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "deepseek_v4_flash__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "deepseek_v4_flash__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "deepseek_v4_pro__dense_la__00_dense_la_lu_decomp__mpi__sample_0",
+     "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "gemini_31_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "gemini_31_pro__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "gemini_36_flash__fft__05_fft_inverse_fft__mpi__sample_0",
+     "gemini_36_flash__scan__30_scan_prefix_sum__mpi__sample_0",
+     "gemini_36_flash__transform__55_transform_relu__mpi__sample_0",
+     "openai_gpt55__dense_la__00_dense_la_lu_decomp__mpi__sample_0",
+     "openai_gpt55__fft__05_fft_inverse_fft__mpi__sample_0",
+     "openai_gpt55__geometry__10_geometry_convex_hull__mpi__sample_0",
+     "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "openai_gpt56_sol__scan__30_scan_prefix_sum__mpi__sample_0",
+     "qwen36_35b_a3b__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen36_35b_a3b__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen37_max__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "qwen3_coder_api__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen3_coder_api__transform__55_transform_relu__mpi__sample_0"
+    ],
+    "samples_clean_to_blocking": [],
+    "state_transitions": {
+     "COMPLETED->COMPLETED": 46,
+     "PARTIAL->COMPLETED": 2,
+     "PARTIAL->PARTIAL": 76,
+     "TOOL_ERROR->TOOL_ERROR": 8
+    },
+    "findings_only_without_flag_by_check": {
+     "-Wanalyzer-malloc-leak|warning|blocking=True": 2,
+     "-Wanalyzer-null-dereference|warning|blocking=True": 45,
+     "-Wanalyzer-out-of-bounds|warning|blocking=True": 1,
+     "-Wanalyzer-possible-null-dereference|warning|blocking=True": 19,
+     "-Wanalyzer-too-complex|info|blocking=False": 114,
+     "-Wanalyzer-use-of-uninitialized-value|warning|blocking=True": 3
+    },
+    "findings_only_with_flag_by_check": {
+     "-Wanalyzer-too-complex|info|blocking=False": 6
+    },
+    "vanished_findings_by_family": {
+     "-Wanalyzer-malloc-leak": 4,
+     "-Wanalyzer-null-dereference": 45,
+     "-Wanalyzer-out-of-bounds": 1,
+     "-Wanalyzer-possible-null-dereference": 19,
+     "-Wanalyzer-too-complex": 464,
+     "-Wanalyzer-use-of-uninitialized-value": 3
+    },
+    "vanished_blocking_by_demotion_rule": {
+     "NO_SIGNATURE": 6,
+     "T1": 19,
+     "T3": 2,
+     "T5": 45
+    },
+    "subset_with_blocking_without_flag": {
+     "samples": 49,
+     "changed": 45,
+     "old_blocking_total": 147,
+     "new_blocking_total": 75
+    },
+    "prior_claim": {
+     "claim": "15/20 MPI finding sets changed, 68 -> 40 blocking",
+     "reproduced": false,
+     "note": "the readiness wave's population of 20 MPI finding sets is not identified in the repo; measured over ALL 132 pilot_001 MPI samples: 51 changed, blocking 147 -> 75; over the 49 samples that carry blocking findings without the flag: 45 changed, blocking 147 -> 75. The direction and the roughly halved blocking count agree with the claim; the exact 15/20 and 68/40 figures are not reproducible as stated and the measured figures govern."
+    }
+   },
+   "result_impact": "MULTIPLE",
+   "result_impact_detail": "COVERAGE (negative, primary: the define removes the C++ binding supernodes and thereby shrinks GCC's whole-exploration budget; the analyzer stops exploring the identical model function earlier - review measurement: whole-exploration bail-outs whole-exploration bail-outs 18 -> 72 (54 new, none removed; 40 recorded as PARTIAL, 32 silent because GCC suppresses the system-header-located bail-out line) in one reproduction, 10/132 -> 40/132 with -Wsystem-headers in the other; the 2 PARTIAL->COMPLETED transitions are silent bail-outs recorded as COMPLETED/CLEAN) + FINDING_SET (consequential: 51 of 132 MPI finding sets differ, blocking 147 -> 75, 21 samples blocking -> clean)",
+   "repair_input_impact": "the blocking gcc_analyzer set is repair input for static_feedback and combined_feedback; 21 MPI sample(s) would start the loop as clean instead of active (blocking -> 0) and 0 the other way round",
+   "evidence_quality": "MEASURED_CURRENT_CONTAINER (same image id as the readiness proof) + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: gcc_analyzer compile argv unchanged (no -DOMPI_SKIP_MPICXX), static_analysis_condition_sha256 unchanged. OPTION B: -DOMPI_SKIP_MPICXX appended to the gcc_analyzer reduced-TU compile (tools.py), static condition re-frozen, readiness re-measured.",
+   "configuration_rationale": "the flag changes which findings the analyzer reports on model code for 51 of 132 MPI samples and halves the blocking count; the adversarial review showed the mechanism is a budget truncation (coverage loss), so the choice is between pilot_001-identical coverage (A) and a smaller TU with truncated exploration (B) - a methodology judgement with recommendation A",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED (cells keep the recorded class COMPARABLE_WITH_LIMITATIONS)",
+    "under_option_B": "INCOMPARABLE for the gcc_analyzer MPI cells (finding counts AND analysis-state/coverage counts), LIMITED_WITH_DISCLOSURE for the MPI static_feedback/combined_feedback repair cells (already METHOD_CHANGED)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ],
+    "unaffected": "serial and omp cells of every tool; compiler/clang_tidy/cppcheck/infer/parcoach/llov MPI cells; correctness, enhanced, timing"
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 4,
+    "confirmed": [
+     {
+      "title": "The OMPI_SKIP_MPICXX finding-set change is an analyzer-budget truncation (coverage loss), not a header-noise removal: result_impact must be MULTIPLE with COVERAGE as the primary, negative component",
+      "attacked_value": "result_impact = 'FINDING_SET (+COVERAGE minor)' is wrong -> MULTIPLE (COVERAGE negative + FINDING_SET as its consequence). The proposal's 'states 2x PARTIAL->COMPLETED, no other change' is also wrong (see E32-01 finding 3).",
+      "reclassification": "E32-01 result_impact: MULTIPLE (COVERAGE, negative, primary: -DOMPI_SKIP_MPICXX removes ~700 C++-binding supernodes from the TU and thereby shrinks the whole-exploration budget analyzer-bb-explosion-factor x supernodes; fresh runs over all 132 pilot_001 MPI samples: whole-exploration bail-outs 18 -> 72 (54 new, none removed), of which 40 are recorded as bailed_out_early/PARTIAL and 32 are silent because GCC suppresses the system-header-located bail-out line; the 2 PARTIAL->COMPLETED transitions are false COMPLETED records (empty stderr, 0 findings, one historical blocking finding lost each) + FINDING_SET, consequential: 51 finding sets differ, blocking 147 -> 75, 21 samples blocking->clean; flag + --param=analyzer-bb-explosion-factor=20 restores the historical blocking sets exactly 40/40, so the vanished findings are budget losses, not header noise). Item description correction: replace ",
+      "outcome": "CONFIRMED -> classification corrected"
+     },
+     {
+      "title": "RECOMMENDATION B (adopt the flag) is not supported: every vanished blocking finding is a Phase-0 vector-allocation artefact (class b), none is genuine or header-located, 73 of the 75 surviving blocking findings are the same class, and the removal is non-selective budget luck that E32-09 already handles in a principled way",
+      "attacked_value": "pilot_002_configuration RECOMMENDATION B -> A (keep; treat the artefact class via E32-09). B as measured ('flag alone at default analyzer budget') should not be offered as a precision improvement; a 'flag + explicit analyzer budget' variant would be a new, unmeasured configuration and cannot inherit this measurement.",
+      "reclassification": "E32-01: pilot_002_configuration stays DECISION_PENDING_AUTHOR (A keep / B adopt) but RECOMMENDATION = A (keep; treat the artefact class via E32-09 B, which covers 66 of the 70 vanished identities). The decision package must be corrected: option B is not 'analyzer budget spent on the model code' / 'noise removal' but a cut of GCC's global exploration budget (limit = #supernodes x analyzer-bb-explosion-factor; 966 -> 268 supernodes on the read sample) that truncates exploration of the identical model function; the vanished blocking findings and the 114 vanished too-complex infos are model-code program points no longer reached (869 -> 415 across the 132 samples), not removed noise; a 'flag + explicit --param=analyzer-bb-explosion-factor' variant is a NEW, unmeasured configuration (CHANGE_THEN_FREEZE only after its own readiness measurement) and cannot inherit this measurement. result_impact",
+      "outcome": "CONFIRMED -> classification corrected"
+     },
+     {
+      "title": "The two PARTIAL->COMPLETED transitions credited as 'COVERAGE minor' are silent truncations recorded as complete clean analyses; under B the gcc_analyzer COMPLETED state for MPI no longer carries the 'no give-up' guarantee",
+      "attacked_value": "The COVERAGE component's sign and the statement 'states 2x PARTIAL->COMPLETED, no other change' are wrong (negative, 41 records affected: 39 PARTIAL records move from per-point saturation to whole-exploration bail-out, 2 become COMPLETED by silent truncation). Consequently pilot_001_comparability under B must be INCOMPARABLE for the gcc_analyzer x mpi coverage/analysis-state cells as well, not only for the finding-set cells, and B cannot be adopted 'as is' without a state-model caveat for MPI.",
+      "reclassification": "E32-01 result_impact: FINDING_SET(+COVERAGE minor) -> MULTIPLE (FINDING_SET + COVERAGE, negative): with -DOMPI_SKIP_MPICXX the gcc -fanalyzer budget (supergraph nodes x bb-explosion-factor 5) shrinks for every MPI TU; whole-exploration bail-outs 40/132 under B vs 10/132 under A (measured with -Wsystem-headers; 1 visible in the capped pilot_001 records), 30 records newly truncated; the 2 PARTIAL->COMPLETED transitions are silent bail-outs (warning suppressed by GCC because the bail-out location's inlining stack is entirely in libstdc++ headers) recorded as COMPLETED/CLEAN although the historical null-deref (@53 / @78) returns at bb-explosion-factor 20 - 2 false-CLEAN records under B, 0 under A. The statement 'states 2x PARTIAL->COMPLETED, no other change' must be replaced by this. pilot_002_configuration: stays DECISION_PENDING_AUTHOR, but option B 'adopt as is' is not freezable (violates",
+      "outcome": "CONFIRMED -> classification corrected"
+     }
+    ],
+    "refuted": [
+     {
+      "title": "Option B affected-cell list is incomplete: backfilled gcc_analyzer MPI records in the test_feedback iteration populations (62 records, 94 blocking findings of exactly the vanishing classes) and the sample-level static verdict (has_blocking_findings flips for 10 samples) are outside the listed cells",
+      "attacked_value": "pilot_001_comparability option B: 'UNAFFECTED for everything else' is wrong for (i) the gcc_analyzer x mpi x static_analysis cells of the pilot_001__test_feedback__iter1/iter2 populations (should be INCOMPARABLE like the base cells - they are neither the 'base 12 cells' as measured on the 132 base samples nor 'static/combined repair cells') and (ii) the stage-level MPI static verdict cell (has_blocking_findings over all tools), which changes for 10 of the 21 blocking->clean samples. The list is only complete under a scope condition the proposal does not state: the flag is added to GccAnalyzerT",
+      "why_refuted": "The claim's numbers reproduce (21 gcc_analyzer blocking->clean MPI samples, 10 sample-level has_blocking_findings flips, 39+23 = 62 backfilled gcc_analyzer MPI records with 67+27 = 94 blocking findings in the test_feedback iteration trees), but the attacked classification value is not wrong under the two-axis semantics:\n\n(1) The attacked phrase 'UNAFFECTED for everything else' does not exist in the proposal. The E32-01 artifact block (scratchpad/e32/e32_build_artifacts.py:165-169) enumerates the",
+      "outcome": "ADVERSARIAL_CLAIM_REFUTED"
+     }
+    ]
+   }
+  },
+  {
+   "id": "E32-02",
+   "short_name": "infer configured scope on OpenMP",
+   "prior_summary_candidate": "Infer OMP Scope",
+   "source_evidence": [
+    "thesis/evaluation/static_repair_pilot002_readiness_report.md:91 - 'HARD_CAPABILITIES[infer] still lists omp; changing the scope is a config decision left open (reported, not decided)'",
+    "thesis/evaluation/static_repair_pilot002_readiness_report.md:210 - 'whether to narrow its configured scope to serial/mpi is a config decision not taken here'",
+    "thesis/config/config.yaml:470-472 - infer execution_models: [serial, omp, mpi]",
+    "thesis/evaluation/cross_pilot_comparability.json areas.F_static_repair.per_tool.infer - METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE for omp",
+    "thesis/repair/orchestrator.py:670-690 - evaluate_stop: a required tool with an analysis gap and no actionable issue -> stopped_analysis_incomplete"
+   ],
+   "historical_state": {
+    "pilot_001_infer_entries_by_execution_model_and_state": {
+     "mpi": {
+      "COMPLETED": 124,
+      "TOOL_ERROR": 8
+     },
+     "omp": {
+      "NOT_ANALYZED": 130,
+      "TOOL_ERROR": 2
+     },
+     "serial": {
+      "COMPLETED": 132
+     }
+    },
+    "omp_records_with_frontend_abort": 132,
+    "note": "every pilot_001 OpenMP infer record carries 'Aborting translation of method' (clang-11 frontend); recorded historically as a clean COMPLETED run, re-derived NOT_ANALYZED under tool_state.v1"
+   },
+   "current_state": {
+    "config": "infer enabled for serial, omp, mpi (unchanged)",
+    "scratch_rerun_omp_states": {
+     "NOT_ANALYZED": 12
+    },
+    "note": "the current container (Infer 1.1.0, image sha256:eb1c2e93cfab) reproduces the abort on every OpenMP kernel"
+   },
+   "affected_stage": [
+    "static_analysis",
+    "repair (static_feedback, combined_feedback stop decision)"
+   ],
+   "affected_tools": [
+    "infer"
+   ],
+   "affected_execution_models": [
+    "omp"
+   ],
+   "affected_benchmarks_or_samples": "all OpenMP samples (pilot_001: 132 = 12 benchmarks x 11 models); pilot_002: every omp sample of the frozen population",
+   "measurement": {
+    "method": "tool_state.v1 re-derivation of the pilot_001 infer entries (framework.analysis_state_of) + scratch re-run of infer over the pilot_001 sources with the current image",
+    "current_vs_historical_infer": {
+     "compared": 12,
+     "missing_in_new": 384,
+     "missing_in_old": 0,
+     "raw_equal": 12,
+     "strict_equal": 12,
+     "semantic_equal": 12,
+     "semantic_different": 0,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 0,
+     "new_blocking_total": 0
+    },
+    "repair_consequence_if_kept": "orchestrator.evaluate_stop: with infer required for omp and NOT_ANALYZED on every omp kernel, an issue-free omp sample ends stopped_analysis_incomplete instead of stopped_clean; measured on the 132 pilot_001 omp base records with framework.record_analysis_gap: 52 active (blocking issues), 80 issue-free - all 80 incomplete with infer required, 25 clean / 55 incomplete with infer not required (remaining gaps: llov 55, gcc_analyzer 11); feedback text and blocking sets identical either way",
+    "static_condition_if_narrowed": "static_analysis_condition_sha256 327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3 -> cf54ff519c477c23 (the configured tool scope is hashed: static_provenance.py:485)"
+   },
+   "result_impact": "COVERAGE",
+   "result_impact_detail": "COVERAGE (infer never analyses an OpenMP kernel: 132/132 pilot_001 omp records abort, 0 findings). The repair-stage manifestation is a terminal-status re-labelling of issue-free omp samples (stopped_analysis_incomplete vs stopped_clean), i.e. a repair OUTCOME effect - not REPAIR_INPUT: no feedback text and no blocking set changes (review correction)",
+   "evidence_quality": "historical records (132/132) + MEASURED_CURRENT_CONTAINER (12 omp samples of one model re-run with the pinned image: 12/12 abort) + orchestrator source + in-memory condition hash",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: infer execution_models [serial, omp, mpi] (as pilot_001), static condition unchanged. OPTION B: infer execution_models [serial, mpi]; omp entries become NOT_APPLICABLE; config-only in code, but CHANGE_THEN_FREEZE WITH a static-condition re-freeze: static_analysis_condition_sha256 327b235a8014cb68 -> cf54ff519c477c23 (measured), readiness artifact re-measured, runtime condition re-pinned before T0.",
+   "configuration_rationale": "narrowing is technically justified by 132/132 aborts and 0 OpenMP verdicts, but it removes a documented coverage gap from the records (NOT_ANALYZED -> NOT_APPLICABLE), re-labels the terminal status of 25 of 80 issue-free omp samples and costs a static-condition re-freeze; that trade-off is the author's",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED incrementally (infer/omp cells already METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; repair omp cells already METHOD_CHANGED)",
+    "under_option_B": "UNAFFECTED incrementally for the infer/omp static cells (historical: silent clean; pilot_002: not applicable); LIMITED_WITH_DISCLOSURE for the omp static_feedback/combined_feedback repair cells: the class stays METHOD_CHANGED but the stored disclosure table (clean_stops_reassessed_under_tool_state, gap:infer rows) must be re-derived with infer not required on omp (review correction); test_feedback UNAFFECTED",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "infer"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 5,
+    "confirmed": [
+     {
+      "title": "Option B (narrow infer to [serial, mpi]) is presented as a config-only change that leaves static_analysis_condition_sha256 unchanged; the static condition hashes each tool's execution_models, so B is a static-condition re-freeze with readiness re-measurement (same cost class as E32-01 option B)",
+      "attacked_value": "pilot_002_configuration option B freeze_target ('config-only change ... static_analysis_condition_sha256 unchanged because the condition hashes code and drivers, not the profile's tool scope') is wrong -> option B = CHANGE_THEN_FREEZE with static-condition re-freeze; rollup under B RE_FREEZE_REQUIRED (static condition + readiness), not a config-only freeze. The DECISION_PENDING_AUTHOR classification itself stands, but the package hands the author a false cost for B. (Secondary: the rationale 'changes the repair stop population for every omp sample' is overstated - measured over the 132 pilot_0",
+      "reclassification": "E32-02 pilot_002_configuration stays DECISION_PENDING_AUTHOR; item rollup stays DECISION_PENDING_AUTHOR. Correct the option-B characterization: freeze_target OPTION B = \"infer execution_models [serial, mpi] in thesis/config/config.yaml; omp entries become NOT_APPLICABLE; CHANGE_THEN_FREEZE with static-condition re-freeze: static_analysis_condition_sha256 changes 327b235a... -> cf54ff51... (static_provenance.py:485 hashes each tool's execution_models), readiness re-measured (check_static_repair_readiness.py re-run; pilot_preflight.py:709/817 otherwise reports STATIC_REPAIR_READINESS = UNRESOLVED (stale)); runtime_condition_sha256 of the readiness artifact moves with it\" - i.e. the same cost class as E32-01 option B; delete \"config-only change ... static_analysis_condition_sha256 unchanged\" from e32_build_artifacts.py:215 and \"config only\" from the e32_packages.py E32-02 option B label. Co",
+      "outcome": "CONFIRMED -> classification corrected"
+     },
+     {
+      "title": "Narrowing infer to [serial,mpi] changes the stored comparability disclosure of the omp static/combined repair cells (51 pilot_001 clean stops move class); 'UNAFFECTED incrementally' is not tenable and is inconsistent with E32-01 B",
+      "attacked_value": "pilot_001_comparability for option B: proposed UNAFFECTED (incrementally, 'repair omp already METHOD_CHANGED'); should be LIMITED_WITH_DISCLOSURE for the omp static_feedback/combined_feedback repair cells (the disclosure table that accompanies the METHOD_CHANGED class changes and the stored artifact becomes stale) - exactly the value the proposal itself assigns to the equally already-METHOD_CHANGED MPI repair cells under E32-01 B. test_feedback stays UNAFFECTED (verified 337 -> 337).",
+      "reclassification": "E32-02 pilot_001_comparability, under option B only: LIMITED_WITH_DISCLOSURE for the 12 x omp x repair x {static_feedback, combined_feedback} cells (class stays METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; disclosure = clean_stops_reassessed_under_tool_state re-derived with infer NOT required on omp: combined_feedback 150 clean / 142 would-be-incomplete, static_feedback 159 / 181, no gap:infer rows; the k_class_reachability note \"207 of 340 / 167 of 292 ... (infer OpenMP frontend abort, ...)\" must be restated, and the re-derivation must be scope-aware because build_static_repair_inventory.repair_inventory iterates STATIC_TOOLS without consulting the configured scope). The 12 x omp x static_analysis x infer cells remain \"UNAFFECTED incrementally\" (already METHOD_CHANGED, no verdict to compare). test_feedback cells UNAFFECTED (337 -> 337). Option A value unchanged (UNAFFECTED incrementally). re",
+      "outcome": "CONFIRMED -> classification corrected"
+     },
+     {
+      "title": "Option B (narrow infer to [serial, mpi]) is NOT condition-neutral: the tool scope is hashed into static_analysis_condition_sha256, so B forces a static/repair readiness re-freeze",
+      "attacked_value": "pilot_002_configuration option-B description / freeze_target ('config-only change ... static_analysis_condition_sha256 unchanged because the condition hashes code and drivers, not the profile's tool scope') and the implied rollup under B. Under B the rollup must be RE_FREEZE_REQUIRED (static condition + runtime condition + pilot run contract re-proof), exactly as E32-09's option B already states ('+ static re-freeze'); RECOMMENDATION B currently rests on a false premise. Code-wise B is indeed config-only (tool_config.py:273-274 narrows requested scope by intersection; run_static_analysis.py:18",
+      "reclassification": "E32-02: item-level pilot_002_configuration stays DECISION_PENDING_AUTHOR and item-level rollup stays DECISION_PENDING_AUTHOR; result_impact (MULTIPLE) and pilot_001_comparability (UNAFFECTED incrementally) unchanged. CORRECT the option-B description/freeze_target and the per-option consequence: OPTION B = CHANGE_THEN_FREEZE WITH static-condition re-freeze: \"infer execution_models [serial, mpi]; config-only in code (tool_config narrowing, no tools.py change, tests unaffected), but the configured scope is hashed into the static condition (static_provenance.py:485): static_analysis_condition_sha256 327b235a... -> cf54ff51...; readiness artifact goes stale (pilot_preflight.py:709-710 -> STATIC_REPAIR_READINESS = UNRESOLVED (stale)); runtime_condition_sha256 changes (static_provenance.py:201) so T0 refuses the start (run_authorization.py:295-299 'runtime drift since the readiness proof') unti",
+      "outcome": "CONFIRMED -> classification corrected"
+     },
+     {
+      "title": "REPAIR_INPUT is the wrong impact class: the infer gap never reaches the repair feedback, it only re-labels the terminal stop status; and narrowing recovers only 25 of 80 issue-free omp stops (llov gaps hold the rest)",
+      "attacked_value": "result_impact = MULTIPLE (COVERAGE + REPAIR_INPUT) -> should be COVERAGE + stop-status/terminal-population effect (repair OUTCOME classification), not REPAIR_INPUT; the configuration_rationale claim that B 'changes the repair stop population for every omp sample' is overstated (19% of omp samples flip at iteration 0 on pilot_001 data). Compare E32-09 where REPAIR_INPUT is correct because blocking findings are rendered into the prompt.",
+      "reclassification": "E32-02 result_impact: COVERAGE (single class), not MULTIPLE (COVERAGE + REPAIR_INPUT). result_impact_detail: \"COVERAGE (infer never analyses an OpenMP kernel: 132/132 pilot_001 omp records NOT_ANALYZED/TOOL_ERROR, 0 findings). Repair-stage manifestation is a terminal-status re-labelling of issue-free omp samples only (stopped_analysis_incomplete under A vs stopped_clean under B; NON_MODEL_TERMINAL vs model outcome, i.e. a repair-outcome/reporting effect): on pilot_001 data 25 of 132 omp samples (25 of the 80 issue-free ones) flip at iteration 0, the 52 active samples, every rendered feedback and every blocking set are identical under A and B, and 55 of the 80 stay stopped_analysis_incomplete under B because of llov (44) and gcc_analyzer+llov (11) gaps - the llov gap persists in the current container (120 omp entries: COMPLETED 48, NOT_ANALYZED 58, TOOL_ERROR 5, PARTIAL 9). No REPAIR_INPU",
+      "outcome": "CONFIRMED -> classification corrected"
+     }
+    ],
+    "refuted": [
+     {
+      "title": "evidence_quality 'MEASURED_CURRENT_CONTAINER' / measurement_status COMPLETE / 'current container reproduces the abort on every OpenMP kernel' is not yet backed by any current infer record",
+      "attacked_value": "evidence_quality = MEASURED_CURRENT_CONTAINER and measurement_status = COMPLETE for the COVERAGE component -> at review time should be PENDING (historical records + orchestrator source only) until the main-tool scratch re-run finishes and infer_current_omp_states is non-empty; the note text is hard-coded regardless of the measured facts. The historical half is fully verified: 132/132 pilot_001 omp infer entries carry 'Aborting translation of method' + 'CapturedStmt' (130 NOT_ANALYZED + 2 TOOL_ERROR whose TU the compiler also rejected, subsumed -> 130 gap-contributing), serial 132/132 COMPLETED",
+      "why_refuted": "REFUTED as a classification finding (the reproduced facts are real, but they do not make any classification value of E32-02 wrong).\n\n1) The attacked value is not a classification value under the review's semantics. The input file defines the axes as result_impact, pilot_002_configuration {FREEZE_AS_IS, CHANGE_THEN_FREEZE, DECISION_PENDING_AUTHOR}, pilot_001_comparability {UNAFFECTED, LIMITED_WITH_DISCLOSURE, INCOMPARABLE, UNRESOLVED} and rollup. 'evidence_quality' / 'measurement_status' are prov",
+      "outcome": "ADVERSARIAL_CLAIM_REFUTED"
+     }
+    ]
+   }
+  },
+  {
+   "id": "E32-03",
+   "short_name": "geometry/12,13,14 degenerate-input contract: prompt convention (return 0) vs precondition + min_size",
+   "prior_summary_candidate": "geometry/13+14 Precondition: n >= 2 statt 'return 0' (repo evidence extends it to geometry/12 with n >= 3)",
+   "source_evidence": [
+    "thesis/evaluation/semantic_decisions_pilot002.json:248 (geometry/13) - 'preferred long-term contract remains the precondition n>=2 with enforced_size_safety.min_size = 2, to be re-evaluated in the next enhanced regeneration wave' (BLOCKED_PENDING_ENHANCED_REGENERATION)",
+    "thesis/evaluation/semantic_decisions_pilot002.json:339 (geometry/14) - same path, 'simulated: 1 frozen seed invalid, 5 productive specs reshuffled'",
+    "thesis/evaluation/semantic_decisions_pilot002.json:159 (geometry/12) - 'simulated min_size 3: 2 frozen seeds invalid, 12 productive keys change; no catalog field can express a semantic min_size 3'",
+    "thesis/evaluation/semantic_interlocks_pilot002_report.md:82,186-189",
+    "thesis/enhanced_tests/enhanced_policy.json benchmarks.geometry/12|13|14.size_constraint.min_size = 1"
+   ],
+   "historical_state": "pilot_001 did not contain geometry/12, /13 or /14 (population: 12 benchmarks, geometry/10 only); the frozen E3 seeds include size-1/size-2 rows that exercise the n<3 / n<2 branch",
+   "current_state": "prompts regenerated with the explicit convention sentences (BL-05/06/07 RESOLVED, prompt_changed=true, requires_pilot_002_regeneration=true); min_size stays 1; the precondition path is recorded as blocked pending an enhanced regeneration",
+   "affected_stage": [
+    "prompts/generation",
+    "enhanced_tests (frozen E3 seeds and productive suite)",
+    "correctness (unaffected: n<2 unreachable at TEST_SIZE 1024)"
+   ],
+   "affected_tools": [],
+   "affected_execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": [
+    "geometry/12_geometry_smallest_triangle",
+    "geometry/13_geometry_closest_pair_2d",
+    "geometry/14_geometry_closest_pair_1d"
+   ],
+   "measurement": {
+    "method": "in-memory simulation on the frozen artifact e3_final_specs.jsonl: enhanced_policy min_size patched in memory to 3 (/12) and 2 (/13, /14), build_benchmark_specs re-run, key sets compared; enhanced_policy.json and the frozen artifact untouched",
+    "per_benchmark": {
+     "geometry/12_geometry_smallest_triangle": {
+      "current_min_size": 1,
+      "simulated_min_size": 3,
+      "frozen_seeds": 8,
+      "frozen_seeds_valid_now": 8,
+      "frozen_seeds_invalid_under_precondition": 2,
+      "invalidated_seeds": [
+       {
+        "size": 2,
+        "pattern": "all_zeros",
+        "origin": "llm"
+       },
+       {
+        "size": 1,
+        "pattern": "all_zeros",
+        "origin": "llm"
+       }
+      ],
+      "productive_specs_now": 20,
+      "productive_specs_under_precondition": 20,
+      "productive_keys_removed": 12,
+      "productive_keys_added": 12,
+      "productive_key_set_changed": true,
+      "productive_order_changed": true,
+      "sizes_below_precondition_in_productive_suite_now": 7
+     },
+     "geometry/13_geometry_closest_pair_2d": {
+      "current_min_size": 1,
+      "simulated_min_size": 2,
+      "frozen_seeds": 6,
+      "frozen_seeds_valid_now": 6,
+      "frozen_seeds_invalid_under_precondition": 1,
+      "invalidated_seeds": [
+       {
+        "size": 1,
+        "pattern": "all_zeros",
+        "origin": "llm"
+       }
+      ],
+      "productive_specs_now": 20,
+      "productive_specs_under_precondition": 20,
+      "productive_keys_removed": 6,
+      "productive_keys_added": 6,
+      "productive_key_set_changed": true,
+      "productive_order_changed": true,
+      "sizes_below_precondition_in_productive_suite_now": 3
+     },
+     "geometry/14_geometry_closest_pair_1d": {
+      "current_min_size": 1,
+      "simulated_min_size": 2,
+      "frozen_seeds": 8,
+      "frozen_seeds_valid_now": 8,
+      "frozen_seeds_invalid_under_precondition": 1,
+      "invalidated_seeds": [
+       {
+        "size": 1,
+        "pattern": "explicit_values",
+        "origin": "llm"
+       }
+      ],
+      "productive_specs_now": 20,
+      "productive_specs_under_precondition": 20,
+      "productive_keys_removed": 5,
+      "productive_keys_added": 5,
+      "productive_key_set_changed": true,
+      "productive_order_changed": true,
+      "sizes_below_precondition_in_productive_suite_now": 2
+     }
+    },
+    "prior_numbers_reproduced": {
+     "geometry/12 '2 frozen seeds invalid, 12 productive keys change'": true,
+     "geometry/13 '1 frozen seed invalid'": true,
+     "geometry/14 '1 frozen seed invalid, 5 productive specs reshuffled'": true
+    }
+   },
+   "result_impact": "NONE",
+   "result_impact_detail": "NONE for pilot_002 under the frozen convention (option A); under B or C the enhanced spec population changes (E3 re-freeze) - no correctness verdict change under any option (n<2 / n<3 unreachable at the correctness stage)",
+   "evidence_quality": "MEASURED_LOCAL (deterministic builder) + decision artifact",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: freeze the regenerated prompts as they are (explicit 'return 0' / 'area 0' conventions), e2b_size_zero DISALLOWED / min_size 1 kept on freeze-stability grounds, E3 artifact unchanged. OPTION B: precondition contract (n>=2 for /13,/14; n>=3 for /12) with min_size 2/3 - requires an enhanced regeneration (E3 re-freeze: 4 frozen seeds invalidated, 23 productive keys replaced) and a second prompt regeneration. OPTION C (added by the adversarial review): frozen convention + size 0 re-ALLOWED (the prompts now state the n = 0 answer, so the DISALLOWED reason no longer holds) + E3 re-freeze.",
+   "configuration_rationale": "both contracts are mathematically consistent with the oracle; the decision artifact itself calls the precondition the 'preferred long-term contract' while freezing the convention now - that is an author choice between a stable freeze and the preferred contract",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "none of the three benchmarks is in the pilot_001 population; no cross-pilot cell exists"
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 0,
+    "confirmed": [],
+    "refuted": [],
+    "note": "attacked within the dimension prompts; no surviving finding"
+   }
+  },
+  {
+   "id": "E32-04",
+   "short_name": "catalog e2b_size_zero reason strings superseded by the prompt sentences (geometry/12,13,14; scan/34)",
+   "prior_summary_candidate": "geometry/12 Katalogtext (repo evidence: the same string family in 12/13/14 and a superseded reason in scan/34)",
+   "source_evidence": [
+    "thesis/evaluation/semantic_decisions_pilot002.json:158 - geometry/12 size_zero_decision: 'catalog reason text (\"that the frozen prompt does not state\") is superseded by the new prompt sentence and is flagged for the next catalog/policy wave - no catalog change now, because the reason string is copied into enhanced_policy.json and would move the policy SHA (execution-fingerprint component B)'",
+    "thesis/evaluation/semantic_decisions_pilot002.json:516 - scan/34: 'NOT reworded in this wave (the string is copied into enhanced_policy.json and would move the policy SHA / E3 manifest hashes)'",
+    "thesis/evaluation/semantic_interlocks_pilot002_report.md:316-323",
+    "thesis/enhanced_tests/enhanced_policy.json - 'that the frozen prompt does not state' occurs 6 times (size_zero_policy.reason and size_constraint.reason of geometry/12, /13, /14)"
+   ],
+   "historical_state": "catalog/policy text written before the semantic interlock wave; factually correct for the pre-wave prompts",
+   "current_state": "the prompts now state the convention; the policy strings still say they do not. The enforced VALUES (DISALLOWED, min_size 1) are unchanged; whether DISALLOWED remains justified for geometry/12,13,14 under the frozen convention is a VALUE question decided in E32-03 (option C) - this item covers the text only (review correction)",
+   "affected_stage": [
+    "enhanced_tests (policy provenance text only)"
+   ],
+   "affected_tools": [],
+   "affected_execution_models": [],
+   "affected_benchmarks_or_samples": [
+    "geometry/12_geometry_smallest_triangle",
+    "geometry/13_geometry_closest_pair_2d",
+    "geometry/14_geometry_closest_pair_1d",
+    "scan/34_scan_largest_contiguous_subarray_sum"
+   ],
+   "measurement": {
+    "method": "string search in enhanced_policy.json; enforced values read",
+    "enforced_values_unchanged": true,
+    "policy_sha_would_move_if_reworded": true
+   },
+   "result_impact": "METADATA_ONLY",
+   "evidence_quality": "REPO_SOURCE (exact strings)",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "enhanced_policy.json byte-identical (policy sha unchanged); the superseded reason strings stay, with this artifact recording that the prompt sentences supersede them; rewording is queued for the next catalog/policy wave, which re-freezes the policy anyway. Conditional: valid under E32-03 A; under E32-03 B/C the policy is re-frozen and the strings are reworded in that step.",
+   "configuration_rationale": "MECHANICAL: a text correction without semantic content; rewording now would move the policy SHA, the E3 manifest hashes and the execution fingerprint (component B) for zero result effect",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "provenance text only; the enforced policy values are identical; none of the four benchmarks is in the pilot_001 population"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "author_decision_required": false,
+   "adversarial_review": {
+    "attacks": 2,
+    "confirmed": [
+     {
+      "title": "The e2b_size_zero DISALLOWED value for geometry/12,13,14 is no longer justified under the frozen convention (the prompts now state the n=0 answer); re-allowing size 0 is an equally defensible, contract-consistent alternative that changes the enhanced test population - an author fork that neither E32-04 (declared METADATA_ONLY/mechanical) nor E32-03 (options A/B only simulate min_size UP) presents",
+      "attacked_value": "E32-04 pilot_002_configuration FREEZE_AS_IS (mechanical) and rollup NO_METHODICAL_IMPACT -> DECISION_PENDING_AUTHOR (or, equivalently, E32-03 must gain option C 'frozen convention + size_zero ALLOWED/min_size 0 + E3 re-freeze' and E32-04's premise 'enforced values (DISALLOWED, min_size 1) are unchanged and correct' must be dropped); result_impact of the value question is an enhanced spec-population change, not METADATA_ONLY.",
+      "reclassification": "E32-04: drop the premise \"enforced values (DISALLOWED, min_size 1) are unchanged and correct\" for geometry/12,13,14 (it holds only for scan/34, whose prompt states a precondition). The geometry size-0 value question is an enhanced spec-population question, not METADATA_ONLY, and must become an author decision: either (preferred, keeps E32-04's text-only scope) E32-03 gains OPTION C = frozen 'return 0' convention + e2b_size_zero ALLOWED / min_size 0 for geometry/12,13,14 + E3 re-freeze (measured: 3 pre-E3 size-0 seeds re-validated, verifier partition 272/199 -> 275/196, productive keys replaced 7/6/3 with frozen seeds (7/6/4 with the seeds), 1-2 size-0 specs per suite; result_impact under C = enhanced spec-population change / E3 re-freeze; pilot_001_comparability UNAFFECTED, no cells), with E32-03's OPTION A explicitly recorded as also deciding DISALLOWED on freeze-stability grounds only;",
+      "outcome": "CONFIRMED -> classification corrected"
+     }
+    ],
+    "refuted": [
+     {
+      "title": "The stale e2b_size_zero reason string is a generator-prompt input, so FREEZE_AS_IS is only valid conditional on E32-03 = A and E32-07 = A; under an E3 re-freeze the rewording must precede regeneration",
+      "attacked_value": "pilot_002_configuration FREEZE_AS_IS (mechanical) -> conditional: FREEZE_AS_IS under E32-03/E32-07 option A, CHANGE_THEN_FREEZE folded into the re-freeze wave under option B (reword the catalog/policy reason BEFORE e3_regenerate); result_impact METADATA_ONLY holds only for the frozen suite - under B the string is part of the E3 generation condition (LLM user prompt) and would freeze a false statement about the prompts into the regenerated suite",
+      "why_refuted": "The mechanical part of the claim reproduces (the e2b_size_zero reason string is embedded, truncated to 180 chars, in the LLM user prompt via _parameter_rules_block -> build_user_prompt -> generate_for_benchmark, and e3_regenerate.py uses the same builder; policy SHA is fingerprint component B). But the core premise - that under an E3 re-freeze the generator would receive a serial prompt that states the return-0 convention alongside a rule asserting it does not, thereby freezing a false statement",
+      "outcome": "ADVERSARIAL_CLAIM_REFUTED"
+     }
+    ]
+   }
+  },
+  {
+   "id": "E32-05",
+   "short_name": "raw-byte (checkout-dependent) hash rule of the OLD condition versions",
+   "prior_summary_candidate": "LF-Normalisierung alter Condition-Versionen",
+   "source_evidence": [
+    "thesis/evaluation/static_repair_runtime_provenance_addendum.md:405-416 - 'tools.py hashes 9ed277a0bb3b74ea... raw versus 9d3ec752b5f2b7cc... LF-normalized ... Normalizing that hash would change the static condition itself and is out of scope here'",
+    "thesis/evaluation/cross_pilot_comparability.json:1391 - 'the EXISTING gate/E3 hash rules are raw-byte and therefore checkout-dependent: a pure HEAD clone with LF endings already reports 15 STALE entries and E3_FROZEN_ARTIFACTS_REPRODUCIBLE = false'",
+    "thesis/evaluation/pilot002_prerun_infrastructure_report.md:187-192, :454-455",
+    "thesis/evaluation/check_condition_portability.py:1-20 - every condition introduced by the pre-run wave is LF-normalized; artifact hashes stay raw by design"
+   ],
+   "historical_state": "pilot_001-era conditions (static_analysis_condition, repair_condition, cross-pilot shared_state, E3 verifier) are sha256 over raw bytes; identical on this host and inside the bind-mounted containers, different in a fresh LF clone",
+   "current_state": "unchanged; new conditions are LF-normalized (check_condition_portability), old ones raw",
+   "affected_stage": [
+    "provenance / gates (no result stage)"
+   ],
+   "affected_tools": [],
+   "affected_execution_models": [],
+   "affected_benchmarks_or_samples": [],
+   "measurement": {
+    "method": "sha256 of thesis/evaluation/tools.py measured on the host, inside pareval-thesis over the bind mount, and as the git blob (LF)",
+    "host_raw_sha256_prefix": "9ed277a0bb3b74ea",
+    "container_bind_mount_sha256_prefix": "9ed277a0bb3b74ea",
+    "git_blob_lf_sha256_prefix": "9d3ec752b5f2b7cc",
+    "host_equals_container": true,
+    "documented_values_reproduced": true
+   },
+   "result_impact": "NONE",
+   "evidence_quality": "MEASURED (host, container, git) + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "the old condition versions keep their raw-byte definition and values (static 327b235a..., repair e6f5c32b..., cross-pilot shared_state); no re-versioning before pilot_002; the known checkout-dependence stays documented as a portability limitation of the OLD versions",
+   "configuration_rationale": "MECHANICAL: representation only - the bytes the pipeline hashes are the same on the host and in every container of the pilot_002 execution environment (measured equal), so the values are stable for the run; re-versioning would cascade into readiness/cross-pilot/E3 re-freezes with zero semantic content. Third-party reproduction on an LF clone must compare the LF-normalized values (documented).",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "hash representation only; no measurement changes"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "author_decision_required": false,
+   "adversarial_review": {
+    "attacks": 1,
+    "confirmed": [],
+    "refuted": [
+     {
+      "title": "Old raw-byte condition hashes are working-tree-state dependent, not merely checkout-OS dependent: a fresh clone of the same HEAD on the same Windows host yields different static/repair condition ids and a STALE cross-pilot gate",
+      "attacked_value": "rollup NO_METHODICAL_IMPACT -> ACCEPTED_DISCLOSURE at minimum (disclosure text in static_repair_runtime_provenance_addendum.md:405-416 and cross_pilot_comparability.json:1391 is incomplete: it names only a Linux LF clone), better CHANGE_THEN_FREEZE (LF-normalized re-versioning of static_analysis_condition/repair_condition/shared_state before pilot_002 - the item itself calls it representation-only); pilot_002_configuration 'FREEZE_AS_IS (mechanical: bytes identical on host and in every container)' freezes run-gating ids (pilot_preflight.py:709/713 staleness; run_manifest.py:369 AnalysisConditi",
+      "why_refuted": "The EVIDENCE reproduces exactly, but the attacked classification VALUES are not wrong under the two-axis semantics; what is wrong is the item's evidence/disclosure TEXT, which can be corrected inside the existing values.\n\nReproduced (all on HEAD c7a6dbc): core.autocrlf=true, no .gitattributes; productive tree 978 w/crlf + 115 w/lf (tool_config.py, feedback.py, assemble_sources.py, e3_final_specs.jsonl, cross_pilot_comparability.json, 12 drivers/cpp files incl. utilities.hpp and all model drivers",
+      "outcome": "ADVERSARIAL_CLAIM_REFUTED"
+     }
+    ]
+   }
+  },
+  {
+   "id": "E32-06",
+   "short_name": "not_applicable_entry written without fingerprint / outside the per-tool merge check (528 pilot_001 entries)",
+   "prior_summary_candidate": "not_applicable_entry Fingerprinting, historisch 528 Einträge",
+   "source_evidence": [
+    "thesis/evaluation/static_repair_runtime_provenance_addendum.md:387-399 - 'an out-of-scope tool's not-applicable entry is written into record[\"tools\"] unconditionally and without a fingerprint ... even a full recomputation of pilot_001 would leave 528 unfingerprinted NOT_APPLICABLE entries (264 + 264, measured) ... deliberately not changed here'",
+    "thesis/evaluation/run_static_analysis.py:188-197 (not_applicable_entry), :491-498 (unconditional write)"
+   ],
+   "historical_state": {
+    "not_applicable_entries_pilot_001": {
+     "llov/mpi": 132,
+     "llov/serial": 132,
+     "parcoach/omp": 132,
+     "parcoach/serial": 132
+    },
+    "without_fingerprint": {
+     "llov/mpi": 132,
+     "llov/serial": 132,
+     "parcoach/omp": 132,
+     "parcoach/serial": 132
+    },
+    "total": 528
+   },
+   "current_state": {
+    "scratch_rerun_not_applicable_entries": {
+     "llov/mpi": 132,
+     "llov/serial": 132,
+     "parcoach/omp": 132,
+     "parcoach/serial": 132
+    },
+    "scratch_rerun_without_fingerprint": {
+     "llov/mpi": 132,
+     "llov/serial": 132,
+     "parcoach/omp": 132,
+     "parcoach/serial": 132
+    },
+    "note": "the current runner still writes the placeholder without a fingerprint; harmless for a fresh run (no entry to overwrite)"
+   },
+   "affected_stage": [
+    "static_analysis (record provenance / merge semantics)"
+   ],
+   "affected_tools": [
+    "parcoach (serial, omp)",
+    "llov (serial, mpi)"
+   ],
+   "affected_execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": "every non-mpi sample (parcoach placeholder) and every non-omp sample (llov placeholder)",
+   "measurement": {
+    "method": "count of NOT_APPLICABLE entries and of those without tool_execution_fingerprint_sha256 in the pilot_001 records and in the scratch re-run records",
+    "prior_number_reproduced": true
+   },
+   "result_impact": "METADATA_ONLY",
+   "evidence_quality": "MEASURED (records) + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "run_static_analysis.py merge semantics unchanged for pilot_002; NOT_APPLICABLE placeholders stay unfingerprinted; the gap is documented and only reachable by re-running a NARROWED tool scope over an existing record set, which pilot_002 (a fresh run_id, fixed scope) does not do",
+   "configuration_rationale": "MECHANICAL: a provenance nicety with no finding, coverage or verdict content; fixing it is a static-merge code change that belongs to a static-condition re-freeze and would have to be verified against the legacy-merge tests, none of which pilot_002 needs",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "placeholders carry no measurement; pilot_001 records are static_analysis.v2 without any fingerprints anyway"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "author_decision_required": false,
+   "adversarial_review": {
+    "attacks": 0,
+    "confirmed": [],
+    "refuted": [],
+    "note": "attacked within the dimension prompts; no surviving finding"
+   }
+  },
+  {
+   "id": "E32-07",
+   "short_name": "static-base / LLM spec_key collision in the enhanced mutation frontier",
+   "prior_summary_candidate": "Static/LLM-Frontier-Kollision",
+   "source_evidence": [
+    "thesis/enhanced_tests/specs.py:743-755 - 'a static/LLM spec_key collision is a different phenomenon ... Collapsing it WOULD change which mutants survive the target cap ... (measured on the frozen artifact: 12 benchmarks, 38 colliding identities, 10 benchmarks with a changed key set). That is out of scope here and recorded as a separate finding.'",
+    "thesis/evaluation/enhanced_e3_1_provenance_report.md:169-184 - 'für eine spätere Welle offen, nicht stillschweigend mitentschieden'"
+   ],
+   "historical_state": "pilot_001's enhanced suite was built from the pre-E3 seed file with duplicate/invalid rows (E3.1 caveat); the collision existed there too but is not attributable per record",
+   "current_state": "frozen E3 artifact: 12 benchmarks with 38 colliding identities; collapsing them would change the productive key set of 10 benchmarks",
+   "affected_stage": [
+    "enhanced_tests (productive suite composition)"
+   ],
+   "affected_tools": [],
+   "affected_execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": [
+    "dense_la/01_dense_la_solve",
+    "graph/16_graph_largest_component",
+    "graph/17_graph_highest_degree",
+    "graph/18_graph_count_components",
+    "graph/19_graph_shortest_path",
+    "histogram/23_histogram_first_letter_counts",
+    "reduce/25_reduce_xor",
+    "sort/43_sort_sort_an_array_of_structs_by_key",
+    "sort/44_sort_sort_non-zero_elements",
+    "sparse_la/49_sparse_la_sparse_lu_decomp"
+   ],
+   "measurement": {
+    "method": "re-run of the frozen-artifact simulation: static_base_specs keys intersected with valid LLM seed keys per benchmark; build_benchmark_specs with and without the colliding LLM seeds",
+    "benchmarks_with_collision": 12,
+    "colliding_identities": 38,
+    "benchmarks_whose_key_set_would_change": 10,
+    "prior_numbers_reproduced": true,
+    "pilot_001_benchmark_among_changed": [
+     "reduce/25_reduce_xor"
+    ]
+   },
+   "result_impact": "NONE",
+   "result_impact_detail": "NONE under the frozen suite (option A); under a collapse (option B) the enhanced spec population changes for 10 benchmarks (no fake diversity either way - emission already dedupes on spec_key)",
+   "evidence_quality": "MEASURED_LOCAL (deterministic builder) + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: frozen E3 suite unchanged (collision tolerated: it lengthens the pre-shuffle mutation list only). OPTION B: canonicalize static+LLM identities together and re-freeze E3 (10 benchmarks re-shuffled, incl. pilot_001's reduce/25).",
+   "configuration_rationale": "collapsing is a defensible cleanliness choice but it re-composes the productive suite of 10 benchmarks for no measured diversity gain; whether suite stability or identity purity wins is a methodology judgement",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED incrementally (enhanced cells are already not directly comparable across the E3 freeze)",
+    "under_option_B": "UNAFFECTED incrementally for the same reason; reduce/25's enhanced cells would change composition once more",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "enhanced_tests",
+      "tool": "-"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "enhanced_tests",
+      "tool": "-"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "enhanced_tests",
+      "tool": "-"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 0,
+    "confirmed": [],
+    "refuted": [],
+    "note": "attacked within the dimension prompts; no surviving finding"
+   }
+  },
+  {
+   "id": "E32-08",
+   "short_name": "assembly writer newline policy HOST_DEPENDENT x clang_tidy byte-offset conversion: CRLF sources shift clang_tidy line/column identities",
+   "prior_summary_candidate": null,
+   "source_evidence": [
+    "thesis/evaluation/pilot002_prerun_infrastructure_report.md:54-63 - 'This wave deliberately does not pin the writer to LF: that would change the raw bytes ... and needs its own re-freeze step.'",
+    "thesis/assembly/assemble_sources.py:41-44, :82-83 (ASSEMBLY_WRITER_NEWLINE_POLICY = HOST_DEPENDENT)",
+    "thesis/evaluation/tools.py:1242 (file_cache[file_path] = Path(file_path).read_text(encoding=\"utf-8\") - universal newlines) and :1246 (offset_to_line_col(file_cache[file_path], file_offset) with clang-tidy's byte FileOffset)",
+    "thesis/evaluation/pilot001_newline_inventory.json (396 CRLF base files, 715 LF iteration files)",
+    "adversarial review workflow wf_13b0152d-caf (two independent reproductions with the productive ClangTidyTool and with the stored raw_stdout FileOffsets)"
+   ],
+   "historical_state": "pilot_001 base sources CRLF (Windows host writer), repair iterations LF (container writer); GATE 1 compared CRLF against CRLF-era history (0 content differences) and never LF against CRLF. Consequence found by this wave's review: every clang_tidy finding of the CRLF base records has its column shifted and review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null; the iteration-1 static/combined feedback rendered the shifted line numbers (review measurement: 158 iteration-1 static_feedback/combined_feedback prompts rendered shifted clang_tidy line numbers; test_feedback unaffected)",
+   "current_state": "unchanged (HOST_DEPENDENT writer, same conversion): a pilot_002 base assembled on the host reproduces the defect at iteration 0; container-assembled iterations do not",
+   "affected_stage": [
+    "assembly (raw bytes)",
+    "static_analysis (clang_tidy location identity)",
+    "repair (static_feedback/combined_feedback feedback text)"
+   ],
+   "affected_tools": [
+    "clang_tidy (compiler, gcc_analyzer, cppcheck identity-equal under CRLF and LF - review measurement on 36 samples)"
+   ],
+   "affected_execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": "every CRLF-assembled sample with clang_tidy findings after the first CR (pilot_001 base: review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null)",
+   "measurement": {
+    "method": "first-hand reproduction: the productive ClangTidyTool run in pareval-thesis on a CRLF copy and an LF copy of the same pilot_001 source; review measurements over 22 + 14 samples and over all stored pilot_001 clang_tidy raw_stdout FileOffsets",
+    "one_sample": "gemini_36_flash geometry/10 serial: CRLF (bugprone-implicit-widening-of-multiplication-result 41:30, bugprone-narrowing-conversions 15:27, 29:16, 49:19) vs LF (39:15, 15:13, 28:9, 48:29), all blocking; identity (check_id, line) sets differ",
+    "newline_bytes_affect_findings": true,
+    "scope": "clang_tidy only; verdict-level fields (check_id, severity, blocking, state) unaffected; the identity field line and the column are affected",
+    "pilot_001_rederivable": "yes - every clang_tidy record stores the raw clang-tidy output with FileOffsets; recomputing (line, column) against the raw CRLF bytes is deterministic"
+   },
+   "result_impact": "MULTIPLE",
+   "result_impact_detail": "FINDING_SET (the productive identity (tool, check_id, file, line) of clang_tidy findings differs between CRLF and LF bytes of the same source; blocking findings included) + REPAIR_INPUT (the 'line N: [check] msg' feedback text carries the shifted numbers)",
+   "evidence_quality": "MEASURED_CURRENT_CONTAINER (first-hand + two independent review reproductions) + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: HOST_DEPENDENT writer + tools.py unchanged (defect frozen in, pilot_001-identical). OPTION B: writer pinned to LF (assembly condition and raw artifact hashes move). OPTION C: clang-tidy FileOffset converted against the raw bytes in tools.py (static condition re-freeze), optionally with B.",
+   "configuration_rationale": "this item was proposed as a mechanical METADATA_ONLY freeze and was FLIPPED by the adversarial review with executed evidence; freezing a known identity defect into the main pilot versus fixing it before the run is an author decision with a clear recommendation (C)",
+   "pilot_001_comparability": {
+    "value": "LIMITED_WITH_DISCLOSURE",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "clang_tidy"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ],
+    "reason": "pilot_001 base clang_tidy locations are shifted (identity field), iteration records are correct; counts, check_ids, blocking flags and states are unaffected; line-level identities are comparable only after re-derivation from the stored FileOffsets - under every option, because the defect is in the historical records",
+    "disclosure_text": "pilot_001's clang_tidy findings of the base run carry line/column values computed against CR-stripped text from CRLF sources; review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null. Counts, check ids and blocking verdicts are unaffected; per-line identities and the iteration-1 repair feedback line numbers are not comparable without re-derivation from the stored clang-tidy offsets."
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 2,
+    "confirmed": [
+     {
+      "title": "CRLF bytes corrupt every clang_tidy finding location: line/column identity and repair-feedback line numbers differ between CRLF and LF copies of the same source",
+      "attacked_value": "result_impact METADATA_ONLY -> FINDING_SET (clang_tidy location identity (tool, check_id, file, line)) + REPAIR_INPUT; pilot_002_configuration FREEZE_AS_IS -> DECISION_PENDING_AUTHOR / CHANGE_THEN_FREEZE (either pin the writer to LF or fix tools.py:1242/1246 to convert clang-tidy's byte FileOffset against raw bytes instead of universal-newline text; both move the static condition -> static re-freeze); pilot_001_comparability UNAFFECTED -> LIMITED_WITH_DISCLOSURE for every clang_tidy static_analysis cell (all 396 CRLF base records carry wrong locations, the 715 LF iteration records correct ones",
+      "reclassification": "E32-08 (or split into E32-08 writer policy + a new item 'clang_tidy offset_to_line_col converts a byte FileOffset against universal-newline text' — either way E32-08's proposed values are wrong): result_impact = MULTIPLE (FINDING_SET on the productive identity field line for clang_tidy: 510 of 1286 pilot_001 base findings wrong line in 150 of 306 samples, 161 blocking; column wrong for all 1286 + REPAIR_INPUT: 158 iter1 static/combined prompts rendered wrong line numbers). pilot_002_configuration = DECISION_PENDING_AUTHOR (A keep HOST_DEPENDENT writer + tools.py unchanged: pilot_002 base reproduces the wrong locations if host-assembled and is internally inconsistent with container-assembled iterations / B pin writer to LF (assembly condition moves, the infra report itself defers this to 'its own re-freeze step') / C convert clang-tidy's FileOffset against raw bytes in tools.py (clang_tid",
+      "outcome": "CONFIRMED -> classification corrected"
+     },
+     {
+      "title": "Assembly newline convention changes clang_tidy finding identities (line/column) via the byte-offset vs. universal-newline mismatch in tools.py; 'newline bytes change no finding (measured)' is false and was never measured (CRLF was compared against CRLF)",
+      "attacked_value": "result_impact METADATA_ONLY -> FINDING_SET + REPAIR_INPUT (clang_tidy identity (tool, check_id, file, line) and the 'line N: [check] msg' feedback text differ between CRLF- and LF-assembled bytes of the SAME source; blocking findings included). pilot_002_configuration FREEZE_AS_IS (mechanical) -> not mechanical: either CHANGE_THEN_FREEZE (fix offset_to_line_col input at tools.py:1246-1249 to raw bytes -> tools.py hash -> static-condition re-freeze) or DECISION_PENDING_AUTHOR (the freeze_target 'pilot_002 base samples assembled on the same host convention as pilot_001's base (CRLF)' deliberatel",
+      "reclassification": "E32-08 corrected values: result_impact = MULTIPLE (FINDING_SET + REPAIR_INPUT), scoped to clang_tidy only (compiler, gcc_analyzer, cppcheck identity-equal under CRLF and LF); VERDICT unaffected (blocking counts and tool states identical; grace_once identity path reachable only via clang-analyzer-optin.mpi findings, none in pilot_001). measurement.newline_bytes_affect_findings = True; the 'measured' claim must be withdrawn (CRLF was compared against CRLF-era history, never LF vs CRLF). pilot_002_configuration = DECISION_PENDING_AUTHOR (A: keep HOST_DEPENDENT writer + current tools.py:1246-1249 -> pilot_002 iteration-0 clang_tidy (line, column) shifted by (line-1) characters and end-of-file findings recorded with line null, iterations >= 1 correct, as in pilot_001; B: convert clang-tidy byte offsets on the raw bytes in tools.py (or pin the writer to LF) -> tools.py hash changes -> static-c",
+      "outcome": "CONFIRMED -> classification corrected"
+     }
+    ],
+    "refuted": []
+   }
+  },
+  {
+   "id": "E32-09",
+   "short_name": "gcc_analyzer FP-class demotion (Phase-0 predicate T1-T5) designed, not applied",
+   "prior_summary_candidate": null,
+   "source_evidence": [
+    "thesis/docs/pilot-001-corrected-numbers.md:386-411 - 'Deliverable: filter predicate' demote_to_low_confidence(finding) := T1..T5; coverage 787/794 (99.1%) of the null-dereference / possible-null-dereference / use-of-uninitialized-value blocking findings",
+    "thesis/docs/pilot-001-corrected-numbers.md:449 - 'gcc_analyzer blocking counts ... not quotable (as defect counts) ... Quote only after the demotion is applied and counts are re-derived'",
+    "thesis/docs/pilot-001-corrected-numbers.md:421-422 - malloc-leak (47) and out-of-bounds (3) 'flagged for a separate demotion decision' / 'left blocking'",
+    "thesis/config/config.yaml:448-453 - gcc_analyzer has no low_precision_families ('If the full run shows this is still too loud, add low_precision_families here')",
+    "thesis/evaluation/tools.py / tool_config.py - no demotion predicate exists in the productive tool (grep: none)"
+   ],
+   "historical_state": "pilot_001: every -Wanalyzer-* finding blocking; Phase-0 measured >= 99 % of the three families as analyzer FP-class on std::vector allocation paths",
+   "current_state": {
+    "config": "identical to pilot_001 (no low_precision_families for gcc_analyzer; static_analysis_condition_sha256 327b235a8014cb68)",
+    "predicate_on_current_records": {
+     "predicate": "Phase-0 T1-T5 (thesis/docs/pilot-001-corrected-numbers.md section 5), families null-dereference / possible-null-dereference / use-of-uninitialized-value",
+     "blocking_by_execution_model": {
+      "mpi": 147,
+      "omp": 29,
+      "serial": 5
+     },
+     "demoted_by_execution_model": {
+      "mpi": 139,
+      "omp": 28,
+      "serial": 5
+     },
+     "demoted_by_rule": {
+      "T1": 68,
+      "T2": 5,
+      "T3": 19,
+      "T5": 80
+     },
+     "in_family_residue_kept_blocking": {
+      "-Wanalyzer-use-of-uninitialized-value": 3
+     },
+     "other_families_kept_blocking": {
+      "-Wanalyzer-malloc-leak": 4,
+      "-Wanalyzer-out-of-bounds": 2
+     },
+     "samples_with_blocking_by_execution_model": {
+      "mpi": 49,
+      "omp": 8,
+      "serial": 4
+     },
+     "samples_whose_blocking_set_empties_under_demotion": {
+      "mpi": 45,
+      "omp": 7,
+      "serial": 4
+     }
+    }
+   },
+   "affected_stage": [
+    "static_analysis",
+    "repair (blocking findings are repair input; low_confidence findings are graced)"
+   ],
+   "affected_tools": [
+    "gcc_analyzer"
+   ],
+   "affected_execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": {
+    "samples_with_blocking_by_execution_model": {
+     "mpi": 49,
+     "omp": 8,
+     "serial": 4
+    },
+    "samples_whose_blocking_set_empties_under_demotion": {
+     "mpi": 45,
+     "omp": 7,
+     "serial": 4
+    }
+   },
+   "measurement": {
+    "method": "the Phase-0 predicate re-implemented for measurement only and applied to the scratch CURRENT gcc_analyzer records (same tool, same image); counts per rule, execution model and residue",
+    "result": {
+     "predicate": "Phase-0 T1-T5 (thesis/docs/pilot-001-corrected-numbers.md section 5), families null-dereference / possible-null-dereference / use-of-uninitialized-value",
+     "blocking_by_execution_model": {
+      "mpi": 147,
+      "omp": 29,
+      "serial": 5
+     },
+     "demoted_by_execution_model": {
+      "mpi": 139,
+      "omp": 28,
+      "serial": 5
+     },
+     "demoted_by_rule": {
+      "T1": 68,
+      "T2": 5,
+      "T3": 19,
+      "T5": 80
+     },
+     "in_family_residue_kept_blocking": {
+      "-Wanalyzer-use-of-uninitialized-value": 3
+     },
+     "other_families_kept_blocking": {
+      "-Wanalyzer-malloc-leak": 4,
+      "-Wanalyzer-out-of-bounds": 2
+     },
+     "samples_with_blocking_by_execution_model": {
+      "mpi": 49,
+      "omp": 8,
+      "serial": 4
+     },
+     "samples_whose_blocking_set_empties_under_demotion": {
+      "mpi": 45,
+      "omp": 7,
+      "serial": 4
+     }
+    }
+   },
+   "result_impact": "MULTIPLE",
+   "result_impact_detail": "FINDING_SET (blocking -> low_confidence for the matched findings) + REPAIR_INPUT (iteration-0 stop decision flips for the samples whose blocking set empties)",
+   "evidence_quality": "MEASURED_CURRENT_CONTAINER + Phase-0 analysis + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: gcc_analyzer unchanged (every -Wanalyzer-* finding blocking; counts declared not quotable as defect counts). OPTION B: apply the T1-T5 demotion as low_confidence marking (finding kept, not deleted) in tools.py before pilot_002 - static condition re-freeze, readiness re-measured; pilot_001 counts re-derived with the same message predicate for the comparison.",
+   "configuration_rationale": "the Phase-0 evidence is strong (787/794) but applying it changes static finding semantics and the repair input of pilot_002 and it is the very item the readiness wave froze WITHOUT; the residual risk (a genuine constant-null dereference matching T5) is the author's to weigh",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED (gcc_analyzer cells keep COMPARABLE_WITH_LIMITATIONS)",
+    "under_option_B": "LIMITED_WITH_DISCLOSURE for every gcc_analyzer cell (the message-based predicate can be applied to the pilot_001 records post hoc, so counts remain comparable after re-derivation; the repair loops are not, because pilot_001 iterated on undemoted blocking sets)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     }
+    ],
+    "affected_repair_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "serial",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "static_feedback"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "repair",
+      "tool": "combined_feedback"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 1,
+    "confirmed": [],
+    "refuted": [
+     {
+      "title": "'LIMITED_WITH_DISCLOSURE for every gcc_analyzer cell (counts re-derivable with the message predicate)' fails for the 12 MPI cells under the co-recommended E32-01 B, and re-derivability holds only for the message-level T5, not the source doc's recommended pipeline-time T5",
+      "attacked_value": "pilot_001_comparability option B: 'every gcc_analyzer cell LIMITED_WITH_DISCLOSURE' should be restricted to the serial/omp gcc_analyzer cells; the 12 x mpi x static_analysis x gcc_analyzer cells remain INCOMPARABLE when E32-01 B is adopted (both rows carry RECOMMENDATION B). In addition, the value is UNRESOLVED unless option B pins the MESSAGE-level predicate: the event-path-anchored T5 variant the source document recommends for pipeline time cannot be re-derived on pilot_001.",
+      "why_refuted": "The claimant's numbers reproduce, but neither attacked value is wrong under the two-axis (per-item, per-cell) semantics.\n\n(1) \"Restrict E32-09 B to serial/omp; the 12 MPI gcc_analyzer cells remain INCOMPARABLE under E32-01 B\": those 12 cells are ALREADY listed as INCOMPARABLE under E32-01 B (review_input.md row E32-01; e32_build_artifacts.py:166 \"INCOMPARABLE for the gcc_analyzer MPI cells\"; e32_write_addendum.py:123 lists both items' cells side by side). Per-item comparability values are increm",
+      "outcome": "ADVERSARIAL_CLAIM_REFUTED"
+     }
+    ]
+   }
+  },
+  {
+   "id": "E32-10",
+   "short_name": "search/37 n = 0 deliberately not decided (technically excluded)",
+   "prior_summary_candidate": null,
+   "source_evidence": [
+    "thesis/evaluation/semantic_interlocks_pilot002_report.md:281-283 - 'n = 0 is a separate undefined input (oracle reads x[0]), already excluded technically (min_size 1), deliberately not decided here'",
+    "thesis/evaluation/semantic_decisions_pilot002.json:582 - 'deliberately NOT decided under TIE-BREAK-OPEN'",
+    "thesis/enhanced_tests/enhanced_policy.json benchmarks.search/37.size_constraint = {min_size: 1, technical (E2-A)}; size_zero_policy NOT_APPLICABLE"
+   ],
+   "historical_state": "search/37 not in pilot_001; size 0 excluded technically since E2-A",
+   "current_state": "unchanged: min_size 1 (technical: modulo-by-zero in validate(), x[0] read in the oracle); no prompt sentence for n = 0",
+   "affected_stage": [
+    "enhanced_tests (domain), prompts"
+   ],
+   "affected_tools": [],
+   "affected_execution_models": [],
+   "affected_benchmarks_or_samples": [
+    "search/37_search_find_the_closest_number_to_pi"
+   ],
+   "measurement": {
+    "method": "policy value read; reachability: correctness stage TEST_SIZE > 0, enhanced min_size 1",
+    "n0_reachable_in_any_pilot_002_stage": false
+   },
+   "result_impact": "NONE",
+   "evidence_quality": "REPO_SOURCE",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "no n = 0 convention; the input stays outside every pilot_002 stage by the technical constraint",
+   "configuration_rationale": "MECHANICAL: an input that no stage can produce needs no contract sentence; adding one would be untestable and would require a third prompt regeneration",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "benchmark not in pilot_001; input unreachable"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "author_decision_required": false,
+   "adversarial_review": {
+    "attacks": 1,
+    "confirmed": [],
+    "refuted": [
+     {
+      "title": "search/37 n=0 was already closed by E2-B as NOT_APPLICABLE; identical-status search/36 and /39 are excluded, so E32-10 does not meet the criterion (or the inventory is inconsistent)",
+      "attacked_value": "'should not be an item': the size-0 question for search/37 was decided (NOT_APPLICABLE, 'the semantic question does not arise') in the E2-B policy wave and materialized in enhanced_policy.json; the 'deliberately NOT decided' wording in semantic_decisions_pilot002.json:582 only scopes the TIE-BREAK-OPEN decision id. The review's own row says the input is unreachable, i.e. the outcome changes no pilot_002 condition. If the wording is nevertheless read as a deferral, then search/36 and search/39 (same E2-A technical min_size 1, same E2-B NOT_APPLICABLE closing, same wave-2B 'DECISION_NOT_FROZEN' ",
+      "why_refuted": "REFUTED. The cited evidence reproduces in substance, but it does not make any E32-10 classification value wrong, and the 'inventory inconsistency' premise fails on the one axis that actually separates search/37 from search/36/39.\n\n1) 'Proposed value already covers the point'. E32-10 is classified result_impact NONE / FREEZE_AS_IS (mechanical: unreachable input) / UNAFFECTED / NO_METHODICAL_IMPACT. That is exactly the two-axis rendering of E2-B's NOT_APPLICABLE closing (enhanced_e2b_policy_report",
+      "outcome": "ADVERSARIAL_CLAIM_REFUTED"
+     }
+    ]
+   }
+  },
+  {
+   "id": "E32-11",
+   "short_name": "gcc_analyzer -Wanalyzer-malloc-leak: same allocation-failure modelling, outside the decided demotion scope, 'flagged for a separate demotion decision'",
+   "prior_summary_candidate": null,
+   "source_evidence": [
+    "thesis/docs/pilot-001-corrected-numbers.md:421 - 'malloc-leak (47 blocking, 26 deduped) is not in the decided demotion scope but is the same allocation-failure modeling ... Flag for a separate demotion decision.'",
+    "thesis/docs/pilot-001-corrected-numbers.md:348, :472",
+    "thesis/config/config.yaml:448-459 - no low_precision_families for gcc_analyzer",
+    "found by the adversarial review of E32-09 (workflow wf_13b0152d-caf)"
+   ],
+   "historical_state": "pilot_001 (all 7 run dirs, Phase-0): 47 blocking malloc-leak findings (26 deduplicated): 20 token-bearing, 24 operator-new, 3 unknown; blocking in pilot_001",
+   "current_state": {
+    "config": "blocking (no demotion)",
+    "current_base_records": {
+     "blocking_malloc_leak_findings": 4,
+     "records": 2,
+     "message_signature": {
+      "T1": 4
+     },
+     "samples_blocking_only_via_malloc_leak_after_T1_T5": [
+      "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+      "qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0"
+     ]
+    }
+   },
+   "affected_stage": [
+    "static_analysis",
+    "repair (blocking findings are repair input)"
+   ],
+   "affected_tools": [
+    "gcc_analyzer"
+   ],
+   "affected_execution_models": [
+    "mpi",
+    "omp"
+   ],
+   "affected_benchmarks_or_samples": [
+    "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+    "qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0"
+   ],
+   "measurement": {
+    "method": "family count on the scratch CURRENT base records; signature test of every malloc-leak message against the T1/T3/T4 tokens; samples that would stay blocking only via malloc-leak after the E32-09 demotion",
+    "result": {
+     "findings": 4,
+     "records": 2,
+     "signature": {
+      "T1": 4
+     },
+     "only_leak": [
+      "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+      "qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0"
+     ]
+    }
+   },
+   "result_impact": "MULTIPLE",
+   "result_impact_detail": "FINDING_SET (blocking -> low_confidence for the family) + REPAIR_INPUT (the listed samples stop being repair targets)",
+   "evidence_quality": "MEASURED_CURRENT_CONTAINER + Phase-0 analysis + repo source",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: malloc-leak stays blocking (= current config). OPTION B: -Wanalyzer-malloc-leak added to the demotion predicate's check_id set (only meaningful together with E32-09 B; same static re-freeze).",
+   "configuration_rationale": "conditional on E32-09: the Phase-0 analysis explicitly separated this family from the decided scope, so it is the author's call whether the demotion covers it",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED",
+    "under_option_B": "LIMITED_WITH_DISCLOSURE for the gcc_analyzer cells (same re-derivation as E32-09 B)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "dense_la/00_dense_la_lu_decomp",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "fft/05_fft_inverse_fft",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "geometry/10_geometry_convex_hull",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "graph/15_graph_edge_count",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "histogram/20_histogram_pixel_histogram",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "reduce/25_reduce_xor",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "scan/30_scan_prefix_sum",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "sparse_la/45_sparse_la_sparse_solve",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "stencil/50_stencil_xor_kernel",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "mpi",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     },
+     {
+      "benchmark": "transform/55_transform_relu",
+      "execution_model": "omp",
+      "stage": "static_analysis",
+      "tool": "gcc_analyzer"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 1,
+    "confirmed": [
+     {
+      "title": "Explicitly flagged 'separate demotion decision' for malloc-leak is absent from the inventory; E32-09 option B leaves 47 artefact findings blocking",
+      "attacked_value": "Inventory completeness: a missing item. thesis/docs/pilot-001-corrected-numbers.md:421 (inside the very range :386-422 that E32-09 cites) defers a SEPARATE decision that E32-09 does not cover (E32-09 = T1-T5 over the three families null-deref/possible-null/uninit, 794 findings). Consequently E32-09's result_impact and its option-B pilot_001_comparability text ('counts re-derivable with the message predicate') are understated: after T1-T5 demotion, 12 pilot_001 static records stay blocking ONLY through malloc-leak findings the same document classifies as the same allocation-failure modeling. Sh",
+      "reclassification": "Add a new inventory item (E32-11) \"gcc_analyzer -Wanalyzer-malloc-leak demotion (flagged separately by pilot-001-corrected-numbers.md:421/:472)\": source thesis/docs/pilot-001-corrected-numbers.md:348,:421,:472; thesis/config/config.yaml:452-459 (no low_precision_families for gcc_analyzer). result_impact = MULTIPLE (FINDING_SET + REPAIR_INPUT), magnitude: 47 blocking findings in 17 pilot_001 (run,sample) records; after the E32-09 T1-T5 demotion, 12 records (10 distinct samples: sparse_la/45 mpi x3 models, fft/05 mpi x2, scan/30 mpi, stencil/50 mpi, transform/55 mpi x2, scan/30 omp) remain blocking solely via malloc-leak (all 47 messages already match T1/T3/T4: 20/5/22). pilot_002_configuration = DECISION_PENDING_AUTHOR (A keep blocking = current config / B demote as low_confidence by adding -Wanalyzer-malloc-leak to the E32-09 predicate's check_id set, with the same static re-freeze as E3",
+      "outcome": "CONFIRMED -> classification corrected"
+     }
+    ],
+    "refuted": []
+   }
+  },
+  {
+   "id": "E32-12",
+   "short_name": "search/35 benchmark-local validation attempts numTries = 5 vs suite-wide MAX_VALIDATION_ATTEMPTS = 2 (explicitly left un-normalized in wave 2B)",
+   "prior_summary_candidate": null,
+   "source_evidence": [
+    "drivers/cpp/benchmarks/search/35_search_search_for_last_struct_by_key/cpu.cc:78 - const size_t numTries = 5;",
+    "drivers/cpp/utilities.hpp:34-35 - #define MAX_VALIDATION_ATTEMPTS 2",
+    "drivers/cpp/benchmarks/search/38_search_find_the_first_even_number/cpu.cc:66-73 - wave 2B normalized search/38's identical hardcode to MAX_VALIDATION_ATTEMPTS",
+    "thesis/evaluation/wave2b_benchmark_validator_implementation_report.md:66, :107-110, :527-533 ('35's x5 newly documented', 'QUEUED - workload model refresh required')",
+    "thesis/evaluation/cross_pilot_comparability.json candidate_subset_state canonical condition text 'max_validation_attempts (2, utilities.hpp default; no -D override)' - inaccurate for search/35",
+    "found by the adversarial review of the inventory boundary (workflow wf_13b0152d-caf): a provisional frozen value pilot_002 runs under (drivers tree is hashed into the static condition; the correctness stage executes it), on a DIRECTLY_COMPARABLE pilot_001 benchmark"
+   ],
+   "historical_state": "pilot_001 ran search/35 with 5 validation attempts: {\"pass\": 30, \"validation_failed\": 2, \"build_failed\": 1}; the 2 validation failures are deterministic (candidate returns TEST_SIZE instead of an index)",
+   "current_state": "unchanged (5 attempts); suite-wide contract 2",
+   "affected_stage": [
+    "correctness (validation power)",
+    "provenance (static condition via drivers_tree_sha256; cross-pilot candidate_subset_state)"
+   ],
+   "affected_tools": [],
+   "affected_execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+   ],
+   "affected_benchmarks_or_samples": [
+    "search/35_search_search_for_last_struct_by_key (33 pilot_001 cells)"
+   ],
+   "measurement": {
+    "method": "driver source read; pilot_001 correctness records of search/35 read (verdicts, mismatch lines)",
+    "verdicts": {
+     "pass": 30,
+     "validation_failed": 2,
+     "build_failed": 1
+    },
+    "verdict_invariant_under_2_attempts": true,
+    "invariance_reason": "a candidate that passes 5 random attempts passes 2; both failures are deterministic first-attempt mismatches ('MISMATCH expected=1016 got=1024', total=1)"
+   },
+   "result_impact": "NONE",
+   "result_impact_detail": "NONE under option A (pilot_001-identical); COVERAGE (validation power 5 -> 2 attempts for one benchmark) under option B; observed verdicts invariant",
+   "evidence_quality": "REPO_SOURCE + historical records",
+   "measurement_status": "COMPLETE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "freeze_target": "OPTION A: numTries = 5 kept (drivers tree unchanged; the cross-pilot canonical-condition note corrected in text only). OPTION B: numTries = MAX_VALIDATION_ATTEMPTS like search/38 (drivers tree -> static condition re-freeze, cross-pilot candidate_subset_state cpu_cc sha re-pinned).",
+   "configuration_rationale": "a benchmark-local contract that wave 2B normalized elsewhere and explicitly left here; the observed verdicts do not depend on it, so the choice is about contract uniformity vs freeze stability - the author's",
+   "pilot_001_comparability": {
+    "under_option_A": "UNAFFECTED (both pilots run 5 attempts); disclosure note: the cross-pilot artifact's canonical condition text is inaccurate for search/35",
+    "under_option_B": "LIMITED_WITH_DISCLOSURE for the 33 search/35 x {serial, omp, mpi} x correctness cells (validation power 5 -> 2; observed pilot_001 verdicts invariant)",
+    "affected_comparison_cells": [
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "serial",
+      "stage": "correctness",
+      "tool": "-"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "omp",
+      "stage": "correctness",
+      "tool": "-"
+     },
+     {
+      "benchmark": "search/35_search_search_for_last_struct_by_key",
+      "execution_model": "mpi",
+      "stage": "correctness",
+      "tool": "-"
+     }
+    ]
+   },
+   "classification": "DECISION_PENDING_AUTHOR",
+   "author_decision_required": true,
+   "adversarial_review": {
+    "attacks": 1,
+    "confirmed": [
+     {
+      "title": "search/35 `numTries = 5` IS a provisional frozen value pilot_002 runs under, on a DIRECTLY_COMPARABLE pilot_001 benchmark, explicitly left undecided",
+      "attacked_value": "The exclusion reason 'backlog without a provisional frozen value' is factually wrong. The value (5) sits in the productive driver, is hashed into static_condition.v1 via drivers_tree_sha256, and the correctness stage executes it; search/38's identical hardcode was normalized to the suite-wide MAX_VALIDATION_ATTEMPTS (=2) in wave 2B while 35 was explicitly NOT normalized. Proposed classification: new item, pilot_002_configuration = DECISION_PENDING_AUTHOR (A keep 5 / B normalize to MAX_VALIDATION_ATTEMPTS like 38); pilot_001_comparability: A UNAFFECTED, B LIMITED_WITH_DISCLOSURE for the 33 sear",
+      "reclassification": "\"should not be an item\" -> MUST be a new item (E32-11: search/35 benchmark-local validation attempts numTries=5 vs suite-wide MAX_VALIDATION_ATTEMPTS=2). result_impact: NONE under A; COVERAGE (correctness-stage validation power 5 -> 2 attempts for search/35) under B. pilot_002_configuration = DECISION_PENDING_AUTHOR (A keep 5 and refresh the D2.4 cost model / canonical condition note; B normalize to MAX_VALIDATION_ATTEMPTS like search/38 and re-pin cross_pilot candidate_subset_state cpu_cc_sha256). pilot_001_comparability: A UNAFFECTED (both pilots run 5; disclosure note only that cross_pilot_comparability.json's canonical \"max_validation_attempts: 2\" is inaccurate for search/35); B LIMITED_WITH_DISCLOSURE for the 33 search/35 x {serial,omp,mpi} x correctness cells currently DIRECTLY_COMPARABLE (observed pilot_001 verdicts provably invariant under 2 attempts - all 5 failures are attempt-",
+      "outcome": "CONFIRMED -> classification corrected"
+     }
+    ],
+    "refuted": []
+   }
+  }
+ ],
+ "measurements": {
+  "historical_tree_fingerprint_before": {
+   "schema_version": "e3_2_tree_fingerprint.v1",
+   "roots": [
+    "thesis/results/intermediate/pilot_001",
+    "thesis/results/intermediate/pilot_001__combined_feedback__iter1",
+    "thesis/results/intermediate/pilot_001__combined_feedback__iter2",
+    "thesis/results/intermediate/pilot_001__static_feedback__iter1",
+    "thesis/results/intermediate/pilot_001__static_feedback__iter2",
+    "thesis/results/intermediate/pilot_001__test_feedback__iter1",
+    "thesis/results/intermediate/pilot_001__test_feedback__iter2",
+    "thesis/results/raw/pilot_001",
+    "thesis/results/raw/pilot_001__combined_feedback__iter1",
+    "thesis/results/raw/pilot_001__combined_feedback__iter2",
+    "thesis/results/raw/pilot_001__static_feedback__iter1",
+    "thesis/results/raw/pilot_001__static_feedback__iter2",
+    "thesis/results/raw/pilot_001__test_feedback__iter1",
+    "thesis/results/raw/pilot_001__test_feedback__iter2"
+   ],
+   "file_count": 2038,
+   "newest_mtime_ns": 1787311779212898700,
+   "inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870"
+  },
+  "historical_tree_fingerprint_after": {
+   "schema_version": "e3_2_tree_fingerprint.v1",
+   "roots": [
+    "thesis/results/intermediate/pilot_001",
+    "thesis/results/intermediate/pilot_001__combined_feedback__iter1",
+    "thesis/results/intermediate/pilot_001__combined_feedback__iter2",
+    "thesis/results/intermediate/pilot_001__static_feedback__iter1",
+    "thesis/results/intermediate/pilot_001__static_feedback__iter2",
+    "thesis/results/intermediate/pilot_001__test_feedback__iter1",
+    "thesis/results/intermediate/pilot_001__test_feedback__iter2",
+    "thesis/results/raw/pilot_001",
+    "thesis/results/raw/pilot_001__combined_feedback__iter1",
+    "thesis/results/raw/pilot_001__combined_feedback__iter2",
+    "thesis/results/raw/pilot_001__static_feedback__iter1",
+    "thesis/results/raw/pilot_001__static_feedback__iter2",
+    "thesis/results/raw/pilot_001__test_feedback__iter1",
+    "thesis/results/raw/pilot_001__test_feedback__iter2"
+   ],
+   "file_count": 2038,
+   "newest_mtime_ns": 1787311779212898700,
+   "inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870"
+  },
+  "PILOT001_TREE_CHANGED_BY_E3_2_MEASUREMENT": false,
+  "scratch_reanalysis": {
+   "method": "assembly.jsonl and sources of every pilot_001 model copied into a scratch intermediate tree; run_static_analysis.run_model executed with the CURRENT config in pareval-thesis (compiler, gcc_analyzer, clang_tidy, cppcheck over all 396 samples; infer over the 12 OpenMP samples of one model - the full infer re-run was stopped for environment throughput and no E3.2 item depends on the serial/mpi infer comparison), parcoach-demo:2.4.1 (parcoach, 396) and pareval-llov (llov, 396); history read-only; the gcc_analyzer ompi_skip variant over the 132 MPI samples",
+   "containers": {
+    "main": "sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa",
+    "parcoach": "sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030",
+    "llov": "sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341"
+   },
+   "current_vs_historical_summary": {
+    "compiler": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 396,
+     "strict_equal": 396,
+     "semantic_equal": 396,
+     "semantic_different": 0,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 25,
+     "new_blocking_total": 25
+    },
+    "gcc_analyzer": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 385,
+     "strict_equal": 385,
+     "semantic_equal": 396,
+     "semantic_different": 0,
+     "column_or_message_only": 11,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 181,
+     "new_blocking_total": 181
+    },
+    "clang_tidy": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 386,
+     "strict_equal": 386,
+     "semantic_equal": 386,
+     "semantic_different": 10,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 10,
+     "old_blocking_total": 231,
+     "new_blocking_total": 208
+    },
+    "cppcheck": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 395,
+     "strict_equal": 395,
+     "semantic_equal": 395,
+     "semantic_different": 1,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 1,
+     "blocking_changed": 1,
+     "old_blocking_total": 3,
+     "new_blocking_total": 2
+    },
+    "infer": {
+     "compared": 12,
+     "missing_in_new": 384,
+     "missing_in_old": 0,
+     "raw_equal": 12,
+     "strict_equal": 12,
+     "semantic_equal": 12,
+     "semantic_different": 0,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 0,
+     "new_blocking_total": 0
+    },
+    "parcoach": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 394,
+     "strict_equal": 394,
+     "semantic_equal": 396,
+     "semantic_different": 0,
+     "column_or_message_only": 2,
+     "order_or_duplicates_only": 0,
+     "state_changed": 22,
+     "blocking_changed": 0,
+     "old_blocking_total": 5,
+     "new_blocking_total": 5
+    },
+    "llov": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 392,
+     "strict_equal": 392,
+     "semantic_equal": 392,
+     "semantic_different": 4,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 22,
+     "blocking_changed": 4,
+     "old_blocking_total": 32,
+     "new_blocking_total": 36
+    }
+   },
+   "current_vs_historical_detail": {
+    "compiler": {
+     "semantic_different": 0,
+     "by_state_and_blocking": {},
+     "samples": []
+    },
+    "gcc_analyzer": {
+     "semantic_different": 0,
+     "by_state_and_blocking": {},
+     "samples": []
+    },
+    "clang_tidy": {
+     "semantic_different": 10,
+     "by_state_and_blocking": {
+      "TOOL_ERROR->TOOL_ERROR|blocking_changed": 10
+     },
+     "samples": [
+      {
+       "sample_id": "deepseek_v4_flash__scan__30_scan_prefix_sum__omp__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 2,
+       "new_blocking": 1,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         41,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         41,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "deepseek_v4_pro__fft__05_fft_inverse_fft__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 7,
+       "new_blocking": 0,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         13,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         13,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "deepseek_v4_pro__sort__40_sort_sort_an_array_of_complex_numbers_by_magnitude__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 4,
+       "new_blocking": 2,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         40,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         66,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         40,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         66,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen36_35b_a3b__histogram__20_histogram_pixel_histogram__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 1,
+       "new_blocking": 0,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         25,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         25,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen36_35b_a3b__search__35_search_search_for_last_struct_by_key__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 1,
+       "new_blocking": 0,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         33,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         33,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen37_max__sort__40_sort_sort_an_array_of_complex_numbers_by_magnitude__omp__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 3,
+       "new_blocking": 1,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         41,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         43,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         41,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         43,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen3_coder_api__geometry__10_geometry_convex_hull__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 8,
+       "new_blocking": 6,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         15,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         16,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         15,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         16,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen3_coder_api__graph__15_graph_edge_count__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 1,
+       "new_blocking": 0,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         20,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         20,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen3_coder_api__histogram__20_histogram_pixel_histogram__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 2,
+       "new_blocking": 0,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         25,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         40,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         25,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         40,
+         "error",
+         false,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen3_coder_api__stencil__50_stencil_xor_kernel__mpi__sample_0",
+       "old_state": "TOOL_ERROR",
+       "new_state": "TOOL_ERROR",
+       "old_blocking": 6,
+       "new_blocking": 2,
+       "only_old": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         27,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         28,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         75,
+         "error",
+         true,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         77,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         27,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         28,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         75,
+         "error",
+         false,
+         false
+        ],
+        [
+         "clang_tidy",
+         "clang-diagnostic-error",
+         "generated-code.hpp",
+         77,
+         "error",
+         false,
+         false
+        ]
+       ]
+      }
+     ]
+    },
+    "cppcheck": {
+     "semantic_different": 1,
+     "by_state_and_blocking": {
+      "COMPLETED->PARTIAL|blocking_changed": 1
+     },
+     "samples": [
+      {
+       "sample_id": "deepseek_v4_pro__fft__05_fft_inverse_fft__mpi__sample_0",
+       "old_state": "COMPLETED",
+       "new_state": "PARTIAL",
+       "old_blocking": 1,
+       "new_blocking": 0,
+       "only_old": [
+        [
+         "cppcheck",
+         "preprocessorErrorDirective",
+         "generated-code.hpp",
+         13,
+         "error",
+         true,
+         false
+        ]
+       ],
+       "only_new": [
+        [
+         "cppcheck",
+         "preprocessorErrorDirective",
+         "generated-code.hpp",
+         13,
+         "info",
+         false,
+         false
+        ]
+       ]
+      }
+     ]
+    },
+    "infer": {
+     "semantic_different": 0,
+     "by_state_and_blocking": {},
+     "samples": []
+    },
+    "parcoach": {
+     "semantic_different": 0,
+     "by_state_and_blocking": {},
+     "samples": []
+    },
+    "llov": {
+     "semantic_different": 4,
+     "by_state_and_blocking": {
+      "COMPLETED->COMPLETED|blocking_changed": 2,
+      "PARTIAL->PARTIAL|blocking_changed": 2
+     },
+     "samples": [
+      {
+       "sample_id": "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__omp__sample_0",
+       "old_state": "PARTIAL",
+       "new_state": "PARTIAL",
+       "old_blocking": 1,
+       "new_blocking": 2,
+       "only_old": [],
+       "only_new": [
+        [
+         "llov",
+         "llov-data-race",
+         "generated-code.hpp",
+         42,
+         "warning",
+         true,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen36_35b_a3b__scan__30_scan_prefix_sum__omp__sample_0",
+       "old_state": "COMPLETED",
+       "new_state": "COMPLETED",
+       "old_blocking": 0,
+       "new_blocking": 1,
+       "only_old": [],
+       "only_new": [
+        [
+         "llov",
+         "llov-data-race",
+         "generated-code.hpp",
+         16,
+         "warning",
+         true,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen36_35b_a3b__sparse_la__45_sparse_la_sparse_solve__omp__sample_0",
+       "old_state": "PARTIAL",
+       "new_state": "PARTIAL",
+       "old_blocking": 1,
+       "new_blocking": 2,
+       "only_old": [],
+       "only_new": [
+        [
+         "llov",
+         "llov-data-race",
+         "generated-code.hpp",
+         45,
+         "warning",
+         true,
+         false
+        ]
+       ]
+      },
+      {
+       "sample_id": "qwen37_max__sparse_la__45_sparse_la_sparse_solve__omp__sample_0",
+       "old_state": "COMPLETED",
+       "new_state": "COMPLETED",
+       "old_blocking": 0,
+       "new_blocking": 1,
+       "only_old": [],
+       "only_new": [
+        [
+         "llov",
+         "llov-data-race",
+         "generated-code.hpp",
+         60,
+         "warning",
+         true,
+         false
+        ]
+       ]
+      }
+     ]
+    }
+   },
+   "normalization": {
+    "identity": "(tool, check_id, basename(file), line) - the productive grace/finding identity",
+    "semantic": "identity + severity + blocking + low_confidence; sets (duplicates collapsed, order ignored)",
+    "strict": "semantic + column + message with quote characters unified and whitespace collapsed",
+    "raw": "the stored finding list in stored order",
+    "never_normalized": "check_id, severity, blocking, low_confidence, presence/absence, line, tool state"
+   }
+  },
+  "mpi_finding_sets": {
+   "MPI_FINDING_SETS_COMPARED": 132,
+   "MPI_FINDING_SETS_CHANGED": 51,
+   "MPI_FINDING_SETS_UNCHANGED": 81,
+   "semantic_equivalent_after_normalization": 16,
+   "semantically_different": 51,
+   "PRIOR_SUMMARY_CLAIM": "15/20",
+   "PRIOR_SUMMARY_CLAIM_REPRODUCED": false,
+   "prior_claim_note": "the readiness wave's population of 20 MPI finding sets is not identified in the repo; measured over ALL 132 pilot_001 MPI samples: 51 changed, blocking 147 -> 75; over the 49 samples that carry blocking findings without the flag: 45 changed, blocking 147 -> 75. The direction and the roughly halved blocking count agree with the claim; the exact 15/20 and 68/40 figures are not reproducible as stated and the measured figures govern."
+  },
+  "enhanced_simulation": {
+   "schema_version": "e3_2_enhanced_simulation.v1",
+   "frozen_artifact": "thesis/enhanced_tests/frozen/e3_final_specs.jsonl",
+   "frozen_seed_count": 471,
+   "benchmarks": 60,
+   "geometry_preconditions": {
+    "geometry/12_geometry_smallest_triangle": {
+     "current_min_size": 1,
+     "simulated_min_size": 3,
+     "frozen_seeds": 8,
+     "frozen_seeds_valid_now": 8,
+     "frozen_seeds_invalid_under_precondition": 2,
+     "invalidated_seeds": [
+      {
+       "size": 2,
+       "pattern": "all_zeros",
+       "origin": "llm"
+      },
+      {
+       "size": 1,
+       "pattern": "all_zeros",
+       "origin": "llm"
+      }
+     ],
+     "productive_specs_now": 20,
+     "productive_specs_under_precondition": 20,
+     "productive_keys_removed": 12,
+     "productive_keys_added": 12,
+     "productive_key_set_changed": true,
+     "productive_order_changed": true,
+     "sizes_below_precondition_in_productive_suite_now": 7
+    },
+    "geometry/13_geometry_closest_pair_2d": {
+     "current_min_size": 1,
+     "simulated_min_size": 2,
+     "frozen_seeds": 6,
+     "frozen_seeds_valid_now": 6,
+     "frozen_seeds_invalid_under_precondition": 1,
+     "invalidated_seeds": [
+      {
+       "size": 1,
+       "pattern": "all_zeros",
+       "origin": "llm"
+      }
+     ],
+     "productive_specs_now": 20,
+     "productive_specs_under_precondition": 20,
+     "productive_keys_removed": 6,
+     "productive_keys_added": 6,
+     "productive_key_set_changed": true,
+     "productive_order_changed": true,
+     "sizes_below_precondition_in_productive_suite_now": 3
+    },
+    "geometry/14_geometry_closest_pair_1d": {
+     "current_min_size": 1,
+     "simulated_min_size": 2,
+     "frozen_seeds": 8,
+     "frozen_seeds_valid_now": 8,
+     "frozen_seeds_invalid_under_precondition": 1,
+     "invalidated_seeds": [
+      {
+       "size": 1,
+       "pattern": "explicit_values",
+       "origin": "llm"
+      }
+     ],
+     "productive_specs_now": 20,
+     "productive_specs_under_precondition": 20,
+     "productive_keys_removed": 5,
+     "productive_keys_added": 5,
+     "productive_key_set_changed": true,
+     "productive_order_changed": true,
+     "sizes_below_precondition_in_productive_suite_now": 2
+    }
+   },
+   "static_llm_collision": {
+    "benchmarks_with_collision": 12,
+    "colliding_identities": 38,
+    "benchmarks_whose_key_set_would_change": 10,
+    "changed_benchmarks": [
+     "dense_la/01_dense_la_solve",
+     "graph/16_graph_largest_component",
+     "graph/17_graph_highest_degree",
+     "graph/18_graph_count_components",
+     "graph/19_graph_shortest_path",
+     "histogram/23_histogram_first_letter_counts",
+     "reduce/25_reduce_xor",
+     "sort/43_sort_sort_an_array_of_structs_by_key",
+     "sort/44_sort_sort_non-zero_elements",
+     "sparse_la/49_sparse_la_sparse_lu_decomp"
+    ],
+    "per_benchmark": {
+     "dense_la/01_dense_la_solve": {
+      "colliding_identities": 3,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 2,
+      "keys_added": 2,
+      "order_changed_if_collapsed": true
+     },
+     "graph/15_graph_edge_count": {
+      "colliding_identities": 4,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": false,
+      "keys_removed": 0,
+      "keys_added": 0,
+      "order_changed_if_collapsed": true
+     },
+     "graph/16_graph_largest_component": {
+      "colliding_identities": 4,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 2,
+      "keys_added": 2,
+      "order_changed_if_collapsed": true
+     },
+     "graph/17_graph_highest_degree": {
+      "colliding_identities": 4,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 2,
+      "keys_added": 2,
+      "order_changed_if_collapsed": true
+     },
+     "graph/18_graph_count_components": {
+      "colliding_identities": 3,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 1,
+      "keys_added": 1,
+      "order_changed_if_collapsed": true
+     },
+     "graph/19_graph_shortest_path": {
+      "colliding_identities": 1,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 3,
+      "keys_added": 3,
+      "order_changed_if_collapsed": true
+     },
+     "histogram/23_histogram_first_letter_counts": {
+      "colliding_identities": 3,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 1,
+      "keys_added": 1,
+      "order_changed_if_collapsed": true
+     },
+     "reduce/25_reduce_xor": {
+      "colliding_identities": 4,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 2,
+      "keys_added": 2,
+      "order_changed_if_collapsed": true
+     },
+     "sort/43_sort_sort_an_array_of_structs_by_key": {
+      "colliding_identities": 1,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 4,
+      "keys_added": 4,
+      "order_changed_if_collapsed": true
+     },
+     "sort/44_sort_sort_non-zero_elements": {
+      "colliding_identities": 4,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 2,
+      "keys_added": 2,
+      "order_changed_if_collapsed": true
+     },
+     "sparse_la/45_sparse_la_sparse_solve": {
+      "colliding_identities": 3,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": false,
+      "keys_removed": 0,
+      "keys_added": 0,
+      "order_changed_if_collapsed": true
+     },
+     "sparse_la/49_sparse_la_sparse_lu_decomp": {
+      "colliding_identities": 4,
+      "productive_specs": 20,
+      "key_set_changed_if_collapsed": true,
+      "keys_removed": 2,
+      "keys_added": 2,
+      "order_changed_if_collapsed": true
+     }
+    }
+   }
+  },
+  "records_facts": {
+   "infer_states_by_execution_model": {
+    "mpi": {
+     "COMPLETED": 124,
+     "TOOL_ERROR": 8
+    },
+    "omp": {
+     "NOT_ANALYZED": 130,
+     "TOOL_ERROR": 2
+    },
+    "serial": {
+     "COMPLETED": 132
+    }
+   },
+   "infer_omp_abort_records": 132,
+   "infer_current_omp_states": {
+    "NOT_ANALYZED": 12
+   },
+   "infer_current_omp_abort_records": 12,
+   "not_applicable_entries": {
+    "llov/mpi": 132,
+    "llov/serial": 132,
+    "parcoach/omp": 132,
+    "parcoach/serial": 132
+   },
+   "not_applicable_without_fingerprint": {
+    "llov/mpi": 132,
+    "llov/serial": 132,
+    "parcoach/omp": 132,
+    "parcoach/serial": 132
+   },
+   "not_applicable_total": 528,
+   "current_not_applicable_entries": {
+    "llov/mpi": 132,
+    "llov/serial": 132,
+    "parcoach/omp": 132,
+    "parcoach/serial": 132
+   },
+   "current_not_applicable_without_fingerprint": {
+    "llov/mpi": 132,
+    "llov/serial": 132,
+    "parcoach/omp": 132,
+    "parcoach/serial": 132
+   },
+   "tools_py_sha": {
+    "host_raw": "9ed277a0bb3b74ea",
+    "container_raw": "9ed277a0bb3b74ea",
+    "git_blob_lf": "9d3ec752b5f2b7cc"
+   },
+   "stale_reason_string_occurrences": 6,
+   "semantic_decisions_sha_lf": "90dfec3e65f5f18e31bd3642251b613c4c764a5b77a7b89238354e744b291172"
+  },
+  "derived": {
+   "schema_version": "e3_2_derived_measurements.v1",
+   "ompi_skip_effect": {
+    "compared": 132,
+    "changed": 51,
+    "unchanged": 81,
+    "old_blocking_total": 147,
+    "new_blocking_total": 75,
+    "samples_blocking_to_clean": [
+     "claude_fable_5__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "deepseek_v4_flash__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "deepseek_v4_flash__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "deepseek_v4_pro__dense_la__00_dense_la_lu_decomp__mpi__sample_0",
+     "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "gemini_31_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "gemini_31_pro__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "gemini_36_flash__fft__05_fft_inverse_fft__mpi__sample_0",
+     "gemini_36_flash__scan__30_scan_prefix_sum__mpi__sample_0",
+     "gemini_36_flash__transform__55_transform_relu__mpi__sample_0",
+     "openai_gpt55__dense_la__00_dense_la_lu_decomp__mpi__sample_0",
+     "openai_gpt55__fft__05_fft_inverse_fft__mpi__sample_0",
+     "openai_gpt55__geometry__10_geometry_convex_hull__mpi__sample_0",
+     "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "openai_gpt56_sol__scan__30_scan_prefix_sum__mpi__sample_0",
+     "qwen36_35b_a3b__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen36_35b_a3b__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen37_max__stencil__50_stencil_xor_kernel__mpi__sample_0",
+     "qwen3_coder_api__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen3_coder_api__transform__55_transform_relu__mpi__sample_0"
+    ],
+    "samples_clean_to_blocking": [],
+    "changed_per_benchmark": {
+     "dense_la/00_dense_la_lu_decomp": 3,
+     "fft/05_fft_inverse_fft": 3,
+     "geometry/10_geometry_convex_hull": 2,
+     "scan/30_scan_prefix_sum": 11,
+     "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude": 2,
+     "sparse_la/45_sparse_la_sparse_solve": 11,
+     "stencil/50_stencil_xor_kernel": 10,
+     "transform/55_transform_relu": 9
+    },
+    "changed_per_model": {
+     "claude_fable_5": 3,
+     "claude_opus_5": 6,
+     "deepseek_v4_flash": 5,
+     "deepseek_v4_pro": 5,
+     "gemini_31_pro": 4,
+     "gemini_36_flash": 5,
+     "openai_gpt55": 8,
+     "openai_gpt56_sol": 5,
+     "qwen36_35b_a3b": 3,
+     "qwen37_max": 4,
+     "qwen3_coder_api": 3
+    },
+    "state_transitions": {
+     "COMPLETED->COMPLETED": 46,
+     "PARTIAL->COMPLETED": 2,
+     "PARTIAL->PARTIAL": 76,
+     "TOOL_ERROR->TOOL_ERROR": 8
+    },
+    "findings_only_without_flag_by_check": {
+     "-Wanalyzer-malloc-leak|warning|blocking=True": 2,
+     "-Wanalyzer-null-dereference|warning|blocking=True": 45,
+     "-Wanalyzer-out-of-bounds|warning|blocking=True": 1,
+     "-Wanalyzer-possible-null-dereference|warning|blocking=True": 19,
+     "-Wanalyzer-too-complex|info|blocking=False": 114,
+     "-Wanalyzer-use-of-uninitialized-value|warning|blocking=True": 3
+    },
+    "findings_only_with_flag_by_check": {
+     "-Wanalyzer-too-complex|info|blocking=False": 6
+    },
+    "vanished_findings_total": 536,
+    "vanished_findings_by_family": {
+     "-Wanalyzer-malloc-leak": 4,
+     "-Wanalyzer-null-dereference": 45,
+     "-Wanalyzer-out-of-bounds": 1,
+     "-Wanalyzer-possible-null-dereference": 19,
+     "-Wanalyzer-too-complex": 464,
+     "-Wanalyzer-use-of-uninitialized-value": 3
+    },
+    "vanished_blocking_by_demotion_rule": {
+     "NO_SIGNATURE": 6,
+     "T1": 19,
+     "T3": 2,
+     "T5": 45
+    },
+    "prior_claim": {
+     "claim": "15 of 20 pilot MPI finding sets change (68 -> 40 blocking)",
+     "measured_population": "all pilot_001 MPI samples with a gcc_analyzer entry in both scratch variants"
+    },
+    "subset_with_blocking_without_flag": {
+     "samples": 49,
+     "changed": 45,
+     "old_blocking_total": 147,
+     "new_blocking_total": 75
+    },
+    "column_or_message_only": 16,
+    "state_transitions_changed": true,
+    "impact_detail": "FINDING_SET (51 of 132 MPI finding sets differ semantically, blocking 147 -> 75) + COVERAGE (2 analysis-state transition(s))",
+    "prior_claim_reproduced": false,
+    "prior_claim_note": "the readiness wave's population of 20 MPI finding sets is not identified in the repo; measured over ALL 132 pilot_001 MPI samples: 51 changed, blocking 147 -> 75; over the 49 samples that carry blocking findings without the flag: 45 changed, blocking 147 -> 75. The direction and the roughly halved blocking count agree with the claim; the exact 15/20 and 68/40 figures are not reproducible as stated and the measured figures govern."
+   },
+   "malloc_leak_on_current_records": {
+    "blocking_malloc_leak_findings": 4,
+    "records_with_malloc_leak": 2,
+    "malloc_leak_message_signature": {
+     "T1": 4
+    },
+    "samples_blocking_only_via_malloc_leak_after_T1_T5": [
+     "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "qwen37_max__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0"
+    ]
+   },
+   "demotion_predicate_on_current_records": {
+    "predicate": "Phase-0 T1-T5 (thesis/docs/pilot-001-corrected-numbers.md section 5), families null-dereference / possible-null-dereference / use-of-uninitialized-value",
+    "blocking_by_execution_model": {
+     "mpi": 147,
+     "omp": 29,
+     "serial": 5
+    },
+    "demoted_by_execution_model": {
+     "mpi": 139,
+     "omp": 28,
+     "serial": 5
+    },
+    "demoted_by_rule": {
+     "T1": 68,
+     "T2": 5,
+     "T3": 19,
+     "T5": 80
+    },
+    "in_family_residue_kept_blocking": {
+     "-Wanalyzer-use-of-uninitialized-value": 3
+    },
+    "other_families_kept_blocking": {
+     "-Wanalyzer-malloc-leak": 4,
+     "-Wanalyzer-out-of-bounds": 2
+    },
+    "samples_with_blocking_by_execution_model": {
+     "mpi": 49,
+     "omp": 8,
+     "serial": 4
+    },
+    "samples_whose_blocking_set_empties_under_demotion": {
+     "mpi": 45,
+     "omp": 7,
+     "serial": 4
+    }
+   },
+   "current_vs_historical_summary": {
+    "compiler": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 396,
+     "strict_equal": 396,
+     "semantic_equal": 396,
+     "semantic_different": 0,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 25,
+     "new_blocking_total": 25
+    },
+    "gcc_analyzer": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 385,
+     "strict_equal": 385,
+     "semantic_equal": 396,
+     "semantic_different": 0,
+     "column_or_message_only": 11,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 181,
+     "new_blocking_total": 181
+    },
+    "clang_tidy": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 386,
+     "strict_equal": 386,
+     "semantic_equal": 386,
+     "semantic_different": 10,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 10,
+     "old_blocking_total": 231,
+     "new_blocking_total": 208
+    },
+    "cppcheck": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 395,
+     "strict_equal": 395,
+     "semantic_equal": 395,
+     "semantic_different": 1,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 1,
+     "blocking_changed": 1,
+     "old_blocking_total": 3,
+     "new_blocking_total": 2
+    },
+    "infer": {
+     "compared": 12,
+     "missing_in_new": 384,
+     "missing_in_old": 0,
+     "raw_equal": 12,
+     "strict_equal": 12,
+     "semantic_equal": 12,
+     "semantic_different": 0,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 0,
+     "blocking_changed": 0,
+     "old_blocking_total": 0,
+     "new_blocking_total": 0
+    },
+    "parcoach": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 394,
+     "strict_equal": 394,
+     "semantic_equal": 396,
+     "semantic_different": 0,
+     "column_or_message_only": 2,
+     "order_or_duplicates_only": 0,
+     "state_changed": 22,
+     "blocking_changed": 0,
+     "old_blocking_total": 5,
+     "new_blocking_total": 5
+    },
+    "llov": {
+     "compared": 396,
+     "missing_in_new": 0,
+     "missing_in_old": 0,
+     "raw_equal": 392,
+     "strict_equal": 392,
+     "semantic_equal": 392,
+     "semantic_different": 4,
+     "column_or_message_only": 0,
+     "order_or_duplicates_only": 0,
+     "state_changed": 22,
+     "blocking_changed": 4,
+     "old_blocking_total": 32,
+     "new_blocking_total": 36
+    }
+   }
+  }
+ },
+ "unresolved_measurements": [],
+ "considered_not_e3_2": [
+  {
+   "candidate": "dense_la/00 BL-01 tolerance regime",
+   "source": "semantic_decisions_pilot002.json (ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002)",
+   "why_not": "already DECIDED and persisted; its deferred alternatives were rejected by the semantic interlock wave; not reopened here"
+  },
+  {
+   "candidate": "disclosure rendering / post-run manifest 'NOT_IMPLEMENTED' text in older artifacts",
+   "source": "semantic_decisions_pilot002.json:114, cross_pilot_comparability.json:641-644,:1743,:1780,:1788",
+   "why_not": "stale provenance text superseded by implemented gates (check_semantic_decisions READY, verify_pilot_run); no methodology decision"
+  },
+  {
+   "candidate": "run_backfill.stage_coverage gap reporting; batch provider asymmetry; gcc_analyzer raw_stderr 8000-char cap; runtime identity in the run manifest",
+   "source": "static_repair_pilot002_readiness_report.md:139,:213,:215; static_repair_runtime_provenance_addendum.md:381-386",
+   "why_not": "operational/reporting/provenance observations without a provisional frozen value; no pilot_002 configuration fork and no comparability cell"
+  },
+  {
+   "candidate": "Helgrind / DRD enabling",
+   "source": "thesis/docs/static-analysis-filtering.md:514-515; config.yaml:525-536",
+   "why_not": "documented configuration option, not a deferred decision; dynamic-analysis tool set is frozen by the current config"
+  },
+  {
+   "candidate": "pilot_002 population / base run_id / reuse / publication policy / histogram/20 widening",
+   "source": "cross_pilot_comparability.json decisions_explicitly_not_made",
+   "why_not": "explicitly excluded from this wave by the task (no population, run_id, reuse or publication decision)"
+  },
+  {
+   "candidate": "wave-2B future-wave backlog (B enhanced patterns, C dedicated timing wave for sparse45/49/graph19, E assembly cleaning wave, F reporting/provenance refresh; histogram/24 BL-08, search/36/39 size-0 asymmetry)",
+   "source": "wave2b_benchmark_validator_implementation_report.md:63,:83,:706-726; wave2a_domain_critical_implementation_report.md:538-560",
+   "why_not": "queued feature work without a provisional frozen value; the timing contract (timing_semantics.v1), the assembly condition and the domain table were frozen by later waves with these items explicitly untouched; none requires a re-freeze or a disclosure before pilot_002 by its own wording. NOTE: search/35 numTries was first excluded here and moved into the inventory as E32-12 after the adversarial review showed it IS a provisional frozen value pilot_002 runs under"
+  },
+  {
+   "candidate": "LLOV re-pilot decision (wave-1 open gate)",
+   "source": "wave1_final_gate_report.md:945",
+   "why_not": "superseded by the static/repair wave: LLOV classified METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE with the parser fix; no pilot_002 fork remains"
+  },
+  {
+   "candidate": "STATIC_SPLIT_INVOCATION_COVERAGE_GAP (parcoach/llov), ITERATION_ZERO_COVERAGE_RESIDUAL, Docker readiness first-call observation, TSan/ASLR",
+   "source": "prerun_enforcement_addendum.md:977-1000,:1345-1366; static_repair_runtime_provenance_addendum.md:375-380",
+   "why_not": "explicitly separate infrastructure/environment findings (task: stay separate; final environment gate)"
+  }
+ ],
+ "already_decided_context": {
+  "dense_la/00 BL-01": "ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002 (semantic_decisions_pilot002.json) - unchanged",
+  "static/repair per-tool comparability classes": {
+   "compiler": {
+    "class": "DIRECTLY_COMPARABLE",
+    "reason": "same g++ 13.3.0 toolchain image, unchanged diagnostic parser and build flags; the only rule change (toolchain failures never become synthetic model compile errors) affects 0 pilot_001 records"
+   },
+   "gcc_analyzer": {
+    "class": "COMPARABLE_WITH_LIMITATIONS",
+    "reason": "identical tool, flags and parser; the wave adds the coverage STATE (PARTIAL for bail-out / too-complex) and path events. pilot_001 'no finding' results split into COMPLETED and PARTIAL only through the re-derived legacy classification (raw stderr capped at 8000 chars: PARTIAL is a lower bound); a pilot_002 comparison must be scoped to COMPLETED+DEFECT_FOUND vs CLEAN populations"
+   },
+   "clang_tidy": {
+    "class": "COMPARABLE_WITH_LIMITATIONS",
+    "reason": "same LLVM 18.1.3, same check set; clang-diagnostic-error changed from blocking model defect to TOOL_ERROR / NOT_ANALYZED (subsumed). In pilot_001 every such finding sits in a compiler-failed record, so no stop decision changes; blocking counts differ by exactly those findings"
+   },
+   "cppcheck": {
+    "class": "COMPARABLE_WITH_LIMITATIONS",
+    "reason": "same Cppcheck 2.13.0 and options; lexer/parser failures (preprocessorErrorDirective 'No pair', syntaxError) are no longer blocking model defects; genuine #error directives stay blocking; 1 pilot_001 base finding affected (compiler-failed record)"
+   },
+   "infer": {
+    "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE for omp; COMPARABLE_WITH_LIMITATIONS for serial/mpi",
+    "reason": "same Infer 1.1.0 and level filter; but every pilot_001 OpenMP kernel was dropped by infer's clang-11 frontend ('Aborting translation of method') and recorded as a clean COMPLETED run. Under the tool-state model those 130 verdicts are NOT_ANALYZED; there is no OMP infer verdict to compare"
+   },
+   "parcoach": {
+    "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+    "reason": "reduced TU now includes the cpu.cc system-include preamble (22 pilot_001 base entries were compile failures on g++-buildable code); container identity for pilot_001 is TAG_ONLY (parcoach-demo:2.4.1, no digest recorded); precision stays low-confidence (MBI 0.506, unchanged)"
+   },
+   "llov": {
+    "class": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+    "reason": "parser fix ('Directive Not Analyzed', line:col locations) changes the stored verdict classes of pilot_001 (re-derived next to the stored ones, never replacing them) and the reduced TU gained the preamble; pilot_001 image identity TAG_ONLY (pareval-llov, clang 7.1.0 recorded)"
+   }
+  }
+ },
+ "cross_pilot_counts_from_artifact": {
+  "source": "thesis/evaluation/cross_pilot_comparability.json",
+  "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
+  "pilot_001_population_iteration0_cells": 396,
+  "candidate_subset_cells": 99,
+  "excluded_cells": 99,
+  "transport_effect": {
+   "verdict_preserving_cells": 99,
+   "verdict_changed_cells": 0,
+   "unresolved_cells": 99
+  },
+  "candidate_subset_verdicts": {
+   "build_failed": 2,
+   "pass": 94,
+   "runtime_error": 1,
+   "validation_failed": 2
+  },
+  "cross_pilot_fingerprint_sha256": "57436c61d1cbf46fcbb09f1a873c5455eef337a0aa51b3230bd70a64effba46d",
+  "state_commit": "6fc8a1a9a33d287f5dc7c87bf5f3502dfda9b859",
+  "artifact_changed_by_this_wave": false
+ },
+ "adversarial_review": {
+  "workflow": "wf_13b0152d-caf (5 attack dimensions, one adversarial verifier per claim, every claim executed)",
+  "attacks_attempted": 18,
+  "confirmed": 12,
+  "refuted": 6,
+  "accepted_disclosure_attacks": "none proposed as ACCEPTED_DISCLOSURE before the review; the LIMITED_WITH_DISCLOSURE cells of E32-01 B, E32-02 B, E32-08, E32-09 B, E32-11 B, E32-12 B were attacked via the disclosure-and-cells dimension",
+  "no_methodical_impact_attacks": "E32-04, E32-05, E32-06, E32-08, E32-10 attacked; E32-08 CONFIRMED and reclassified; E32-04 partially confirmed (value question moved to E32-03 C); E32-05, E32-06, E32-10 refuted (evidence text corrections only)",
+  "freeze_as_is_alternatives_discovered": "E32-08 (fix the conversion / pin LF), E32-03 option C; the other mechanical items have no methodology-bearing alternative (refuted)",
+  "distinct_corrections_applied": [
+   "E32-08: METADATA_ONLY/FREEZE_AS_IS/UNAFFECTED/NO_METHODICAL_IMPACT -> MULTIPLE (FINDING_SET + REPAIR_INPUT) / DECISION_PENDING_AUTHOR (A/B/C, recommendation C) / LIMITED_WITH_DISCLOSURE for all clang_tidy static cells and the static/combined repair cells: clang_tidy byte FileOffset converted against universal-newline text (tools.py:1242/1246) shifts line/column of every CRLF base record (first-hand reproduction + two review reproductions)",
+   "E32-01: result_impact FINDING_SET -> MULTIPLE (COVERAGE negative + FINDING_SET); RECOMMENDATION B -> A: the flag truncates GCC's whole-exploration budget (2 silent false-COMPLETED records; -Wanalyzer-too-complex give-ups vanish because exploration ends earlier; bb-explosion-factor 20 restores the historical blocking sets); under B the gcc_analyzer x mpi cells are INCOMPARABLE for coverage states too",
+   "E32-02: option B is NOT config-neutral (the tool scope is hashed into the static condition: 327b235a -> cf54ff51 measured) -> CHANGE_THEN_FREEZE with static re-freeze; result_impact MULTIPLE(COVERAGE+REPAIR_INPUT) -> COVERAGE (terminal-status relabelling of 25 of 80 issue-free omp samples; feedback unchanged; llov gaps keep 55 incomplete); under B the omp static/combined repair cells become LIMITED_WITH_DISCLOSURE (stored disclosure table must be re-derived)",
+   "E32-03: OPTION C added (frozen convention + size 0 re-allowed + E3 re-freeze: the DISALLOWED reason no longer holds); option A explicitly decides DISALLOWED on freeze-stability grounds",
+   "E32-04: premise 'enforced values unchanged and correct' dropped; item scoped to the text, the value question moved to E32-03 C",
+   "E32-11 (new): malloc-leak demotion 'flagged for a separate decision' (pilot-001-corrected-numbers.md:421) was missing from the inventory",
+   "E32-12 (new): search/35 numTries = 5 was wrongly excluded as backlog; it is a provisional frozen value pilot_002 runs under (drivers tree hashed into the static condition) on a DIRECTLY_COMPARABLE pilot_001 benchmark"
+  ],
+  "refuted_claims": [
+   {
+    "item_id": "E32-05",
+    "title": "Old raw-byte condition hashes are working-tree-state dependent, not merely checkout-OS dependent: a fresh clone of the same HEAD on the same Windows host yields different static/repair condition ids a",
+    "why": "The EVIDENCE reproduces exactly, but the attacked classification VALUES are not wrong under the two-axis semantics; what is wrong is the item's evidence/disclosure TEXT, which can be corrected inside the existing values.\n\nReproduced (all on HEAD c7a6dbc): core.autocrlf=true, no .gitattributes; productive tree 978 w/crlf + 115 w/lf (tool_config.py, feedback.py, assemble_sources.py, e3_final_specs.j"
+   },
+   {
+    "item_id": "E32-04",
+    "title": "The stale e2b_size_zero reason string is a generator-prompt input, so FREEZE_AS_IS is only valid conditional on E32-03 = A and E32-07 = A; under an E3 re-freeze the rewording must precede regeneration",
+    "why": "The mechanical part of the claim reproduces (the e2b_size_zero reason string is embedded, truncated to 180 chars, in the LLM user prompt via _parameter_rules_block -> build_user_prompt -> generate_for_benchmark, and e3_regenerate.py uses the same builder; policy SHA is fingerprint component B). But the core premise - that under an E3 re-freeze the generator would receive a serial prompt that state"
+   },
+   {
+    "item_id": "E32-09",
+    "title": "'LIMITED_WITH_DISCLOSURE for every gcc_analyzer cell (counts re-derivable with the message predicate)' fails for the 12 MPI cells under the co-recommended E32-01 B, and re-derivability holds only for ",
+    "why": "The claimant's numbers reproduce, but neither attacked value is wrong under the two-axis (per-item, per-cell) semantics.\n\n(1) \"Restrict E32-09 B to serial/omp; the 12 MPI gcc_analyzer cells remain INCOMPARABLE under E32-01 B\": those 12 cells are ALREADY listed as INCOMPARABLE under E32-01 B (review_input.md row E32-01; e32_build_artifacts.py:166 \"INCOMPARABLE for the gcc_analyzer MPI cells\"; e32_w"
+   },
+   {
+    "item_id": "E32-01",
+    "title": "Option B affected-cell list is incomplete: backfilled gcc_analyzer MPI records in the test_feedback iteration populations (62 records, 94 blocking findings of exactly the vanishing classes) and the sa",
+    "why": "The claim's numbers reproduce (21 gcc_analyzer blocking->clean MPI samples, 10 sample-level has_blocking_findings flips, 39+23 = 62 backfilled gcc_analyzer MPI records with 67+27 = 94 blocking findings in the test_feedback iteration trees), but the attacked classification value is not wrong under the two-axis semantics:\n\n(1) The attacked phrase 'UNAFFECTED for everything else' does not exist in th"
+   },
+   {
+    "item_id": "E32-10",
+    "title": "search/37 n=0 was already closed by E2-B as NOT_APPLICABLE; identical-status search/36 and /39 are excluded, so E32-10 does not meet the criterion (or the inventory is inconsistent)",
+    "why": "REFUTED. The cited evidence reproduces in substance, but it does not make any E32-10 classification value wrong, and the 'inventory inconsistency' premise fails on the one axis that actually separates search/37 from search/36/39.\n\n1) 'Proposed value already covers the point'. E32-10 is classified result_impact NONE / FREEZE_AS_IS (mechanical: unreachable input) / UNAFFECTED / NO_METHODICAL_IMPACT."
+   },
+   {
+    "item_id": "E32-02",
+    "title": "evidence_quality 'MEASURED_CURRENT_CONTAINER' / measurement_status COMPLETE / 'current container reproduces the abort on every OpenMP kernel' is not yet backed by any current infer record",
+    "why": "REFUTED as a classification finding (the reproduced facts are real, but they do not make any classification value of E32-02 wrong).\n\n1) The attacked value is not a classification value under the review's semantics. The input file defines the axes as result_impact, pilot_002_configuration {FREEZE_AS_IS, CHANGE_THEN_FREEZE, DECISION_PENDING_AUTHOR}, pilot_001_comparability {UNAFFECTED, LIMITED_WITH_"
+   }
+  ]
+ },
+ "constraints_proven": {
+  "GENERATION_PERFORMED": false,
+  "LLM_API_CALLS": 0,
+  "PILOT001_HISTORICAL_TREE_CHANGED": false,
+  "PROMPTS_CHANGED": false,
+  "CORRECTNESS_VERDICT_SEMANTICS_CHANGED": false,
+  "ASSEMBLY_SEMANTICS_CHANGED": false,
+  "TIMING_SEMANTICS_CHANGED": false,
+  "REPORTING_RENDERER_CHANGED": false,
+  "REPAIR_SEMANTICS_CHANGED": false,
+  "ENHANCED_FROZEN_SPECS_CHANGED": false,
+  "POPULATION_CHANGED": false,
+  "RUN_ID_CHANGED": false
+ },
+ "volatile": {
+  "generated_at_utc": "2026-09-12T15:02:12Z",
+  "fingerprint_before_measured_at_utc": "2026-09-12T11:37:59Z",
+  "fingerprint_after_measured_at_utc": "2026-09-12T14:54:17Z"
+ },
+ "evidence_sha256": "5de7565669a31e69d908b5048065805cab8f601b6cac90434f19fc81e88a3c16"
+}
