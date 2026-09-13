@@ -519,6 +519,133 @@ def reduced_tu_preamble(sample: AssembledSample) -> list[str]:
     return includes
 
 
+# ---------------------------------------------------------------------------
+# GCC -fanalyzer false-positive-class demotion
+#
+# E3.2 author decisions E32-09 B and E32-11 B (thesis/evaluation/
+# e3_2_decisions.json). The predicate is the FROZEN Phase-0 deliverable of
+# thesis/docs/pilot-001-corrected-numbers.md, section 5 "Deliverable: filter
+# predicate", re-measured on the current records in
+# thesis/evaluation/e3_2_evidence.json (item E32-09: 172 of the 175 blocking
+# findings of the three families on the pilot_001 base records; 181 blocking
+# gcc_analyzer findings over all families).
+#
+# What it catches: the analyzer models std::vector's allocation as fallible
+# and then reports the counterfactual `operator new` failure path as a NULL
+# dereference / uninitialized read of the vector's internal storage (787 of
+# 794 blocking findings of the three families on pilot_001, all 47 blocking
+# malloc-leak findings). Such a finding is KEPT - check_id, message,
+# location, event path and raw output untouched - and marked low_confidence:
+# the same data field and the same downstream policy that tool_config's
+# low_precision settings give parcoach and clang-tidy's MPI-Checker family
+# (feedback renders a verify-first hint; the stop criterion applies
+# stages.repair.low_confidence_stop_mode). `blocking` stays the tool's own
+# assessment, exactly as for those. Nothing is deleted and no count changes.
+#
+# Rule ids T1-T5 and the check families are the evidenced ones. There is NO
+# extension: any other -Wanalyzer-* family (out-of-bounds, ...) never
+# matches, and a family finding without one of the signatures stays a plain
+# blocking finding.
+
+# Check families the predicate may demote. E32-11 B adds malloc-leak under
+# the SAME signatures (Phase-0 section 6: "the same allocation-failure
+# modeling") - a malloc-leak finding without a signature stays blocking.
+GCC_ANALYZER_DEMOTION_FAMILIES = (
+    "-Wanalyzer-null-dereference",
+    "-Wanalyzer-possible-null-dereference",
+    "-Wanalyzer-use-of-uninitialized-value",
+    "-Wanalyzer-malloc-leak",
+)
+
+# quoted_expr := the text inside the diagnostic's first U+2018 ... U+2019
+# quote pair (GCC's quote style under the UTF-8 C type locale Python exports
+# to the tool process; every stored pilot_001 analyzer message uses it)
+GCC_DIAGNOSTIC_QUOTED_RE = re.compile("\u2018([^\u2019]*)\u2019")
+
+# T1: libstdc++ vector-internal storage named anywhere in the message
+GCC_ANALYZER_VECTOR_INTERNAL_TOKENS = ("_Vector_base", "_M_impl", "_M_start", "_M_finish")
+
+# T2: reserved-identifier internals of libstdc++ iterators/algorithms
+# (`__it1$_M_current`, `*__first.Point::x`)
+GCC_ANALYZER_RESERVED_IDENT_RE = re.compile(r"__\w+\$")
+
+# Machine-readable rule table: (rule id, families the rule applies to,
+# matching condition on message / quoted_expr, Phase-0 evidence). Evaluated
+# in this order by gcc_analyzer_fp_demotion_rule; the first hit is reported.
+GCC_ANALYZER_FP_DEMOTION_RULES = (
+    ("T1", "any demotion family",
+     "message contains one of _Vector_base, _M_impl, _M_start, _M_finish",
+     "pilot-001-corrected-numbers.md section 5 (273 of 794); E3.2 evidence E32-09 (68)"),
+    ("T2", "any demotion family",
+     r"quoted_expr contains '_M_current' OR matches /__\w+\$/ OR starts with '*__'",
+     "pilot-001-corrected-numbers.md section 5 (12 of 794); E3.2 evidence E32-09 (5)"),
+    ("T3", "any demotion family",
+     "quoted_expr contains '<unknown>'",
+     "pilot-001-corrected-numbers.md section 5 (106 of 794); E3.2 evidence E32-09 (19)"),
+    ("T4", "any demotion family",
+     "quoted_expr contains 'operator new'",
+     "pilot-001-corrected-numbers.md section 5 (15 of 794); E3.2 evidence E32-09 (0 on the base records)"),
+    ("T5", "-Wanalyzer-null-dereference only",
+     "quoted_expr == '0' (message 'dereference of NULL '0'')",
+     "pilot-001-corrected-numbers.md section 5, probe P1 (384 of 794, 0 genuine); E3.2 evidence E32-09 (80)"),
+)
+
+
+def gcc_diagnostic_quoted_expr(message: str) -> str:
+    """Text inside the first U+2018 ... U+2019 quote pair of a GCC diagnostic
+    message; empty when the message carries no such pair."""
+    match = GCC_DIAGNOSTIC_QUOTED_RE.search(message or "")
+    return match.group(1) if match else ""
+
+
+def gcc_analyzer_fp_demotion_rule(finding: Finding) -> str | None:
+    """Id of the Phase-0 rule (T1..T5) that classifies this finding as the
+    analyzer's allocation-failure artefact, or None when the finding is a
+    plain blocking finding. Pure function of (tool, blocking, check_id,
+    message) - re-derivable from any stored record."""
+    if finding.tool != "gcc_analyzer" or not finding.blocking:
+        return None
+    if finding.check_id not in GCC_ANALYZER_DEMOTION_FAMILIES:
+        return None
+
+    message = finding.message or ""
+    quoted = gcc_diagnostic_quoted_expr(message)
+
+    if any(token in message for token in GCC_ANALYZER_VECTOR_INTERNAL_TOKENS):
+        return "T1"
+    if (
+        "_M_current" in quoted
+        or GCC_ANALYZER_RESERVED_IDENT_RE.search(quoted)
+        or quoted.startswith("*__")
+    ):
+        return "T2"
+    if "<unknown>" in quoted:
+        return "T3"
+    if "operator new" in quoted:
+        return "T4"
+    # the aggressive rule, kept exactly as evidenced: the null-dereference
+    # family only, and only the constant-propagated NULL '0' (probe P1 -
+    # the origin is the fallible-allocation path, visible in the events)
+    if finding.check_id == "-Wanalyzer-null-dereference" and quoted == "0":
+        return "T5"
+    return None
+
+
+def apply_gcc_analyzer_fp_demotion(findings: list[Finding]) -> dict[str, int]:
+    """Mark every matching finding low_confidence (nothing else changes,
+    nothing is removed); returns the per-rule counts for analysis_details."""
+    counts: dict[str, int] = {}
+
+    for finding in findings:
+        rule = gcc_analyzer_fp_demotion_rule(finding)
+        if rule is None:
+            continue
+        finding.low_confidence = True
+        counts[rule] = counts.get(rule, 0) + 1
+
+    return dict(sorted(counts.items()))
+
+
 class GccAnalyzerTool:
     """Compile-only pass with GCC's `-fanalyzer` and parse its diagnostics.
 
@@ -665,6 +792,11 @@ class GccAnalyzerTool:
 
         findings = findings_in_model_file(findings, sample.source_path.name)
 
+        # E3.2 E32-09 B / E32-11 B: Phase-0 FP-class demotion - matching
+        # findings are kept and marked low_confidence (see the rule table
+        # above); the per-rule counts make the demotion auditable per entry
+        fp_demotion = apply_gcc_analyzer_fp_demotion(findings)
+
         # Tool-state wave: attach the analyzer's path EVENTS to each defect
         # finding (one logical defect stays ONE finding; events are context,
         # never separate findings, never counted) so the repair feedback can
@@ -732,6 +864,7 @@ class GccAnalyzerTool:
                 "too_complex_total": too_complex_total,
                 "bailed_out_early": bailed_out,
                 "tu_rejected": state == STATE_TOOL_ERROR,
+                "fp_demotion": fp_demotion,
             },
         )
 
@@ -1004,19 +1137,29 @@ CLANG_TIDY_LEVEL = {
 }
 
 
-def offset_to_line_col(text: str, offset: int) -> tuple[int, int]:
-    """Convert a byte offset into (line, column), both 1-based.
+def offset_to_line_col(data: bytes, offset: int) -> tuple[int, int]:
+    """Convert clang-tidy's byte FileOffset into (line, column), both
+    1-based, against the RAW BYTES of the analysed file.
 
-    clang-tidy's -export-fixes reports byte offsets, not line/col. The
-    assembled source is small, so a direct scan is fine.
+    clang-tidy's -export-fixes reports FileOffset as a BYTE offset into the
+    file as read from disk, so the conversion must count on that same byte
+    stream. Counting on text decoded with universal newlines (the pilot_001
+    implementation) shifted every location behind the first line break of
+    a CRLF source, because the decoded text is shorter than the bytes
+    (E3.2 item E32-08, fixed as author decision C). A line ends at each
+    `\n` byte - `\r\n` is one line end whose `\r` belongs to the line -
+    and the column is the 1-based byte count since that `\n`: clang's own
+    column convention, so a multibyte UTF-8 character before the finding
+    advances the column by its byte length exactly as in clang-tidy's text
+    output. An offset equal to the byte length is the end of file.
     """
-    if offset < 0 or offset > len(text):
+    if offset < 0 or offset > len(data):
         return (0, 0)
 
-    preceding = text[:offset]
-    line = preceding.count("\n") + 1
-    last_newline = preceding.rfind("\n")
-    column = offset - last_newline  # 1-based: char after the newline is col 1
+    preceding = data[:offset]
+    line = preceding.count(b"\n") + 1
+    last_newline = preceding.rfind(b"\n")
+    column = offset - last_newline  # 1-based: the byte after the newline is col 1
 
     return (line, column)
 
@@ -1217,8 +1360,9 @@ class ClangTidyTool:
             return []
 
         model_file = sample.source_path.name
-        # cache file contents for offset->line, keyed by path
-        file_cache: dict[str, str] = {}
+        # cache the RAW BYTES of each file for offset->line, keyed by path:
+        # FileOffset is a byte offset (see offset_to_line_col)
+        file_cache: dict[str, bytes] = {}
         findings: list[Finding] = []
 
         for diagnostic in data["Diagnostics"]:
@@ -1239,9 +1383,9 @@ class ClangTidyTool:
 
             if file_path not in file_cache:
                 try:
-                    file_cache[file_path] = Path(file_path).read_text(encoding="utf-8")
+                    file_cache[file_path] = Path(file_path).read_bytes()
                 except OSError:
-                    file_cache[file_path] = ""
+                    file_cache[file_path] = b""
 
             line, column = offset_to_line_col(file_cache[file_path], file_offset)
 
@@ -2168,7 +2312,9 @@ _IMPLEMENTATION_DEPS: dict[str, tuple[str, ...]] = {
     "gcc_analyzer": ("GccAnalyzerTool", "parse_gcc_clang_diagnostics",
                      "driver_system_includes", "parse_gcc_analyzer_paths",
                      "cap_analyzer_path", "attach_gcc_analyzer_paths",
-                     "findings_in_model_file"),
+                     "findings_in_model_file", "gcc_diagnostic_quoted_expr",
+                     "gcc_analyzer_fp_demotion_rule",
+                     "apply_gcc_analyzer_fp_demotion"),
     "clang_tidy": ("ClangTidyTool", "is_blocking_check", "offset_to_line_col",
                    "mpi_include_flags"),
     "cppcheck": ("CppcheckTool", "findings_in_model_file", "mpi_include_flags"),
@@ -2182,7 +2328,11 @@ _IMPLEMENTATION_DEPS: dict[str, tuple[str, ...]] = {
 
 # Constant tables that change a tool's classification (hashed alongside).
 _IMPLEMENTATION_TABLES: dict[str, tuple[str, ...]] = {
-    "gcc_analyzer": ("ANALYZER_NON_DEFECT_WARNINGS", "ANALYZER_PATH_MAX_EVENTS"),
+    "gcc_analyzer": ("ANALYZER_NON_DEFECT_WARNINGS", "ANALYZER_PATH_MAX_EVENTS",
+                     "GCC_ANALYZER_DEMOTION_FAMILIES", "GCC_DIAGNOSTIC_QUOTED_RE",
+                     "GCC_ANALYZER_VECTOR_INTERNAL_TOKENS",
+                     "GCC_ANALYZER_RESERVED_IDENT_RE",
+                     "GCC_ANALYZER_FP_DEMOTION_RULES"),
     "clang_tidy": ("CLANG_TIDY_CHECKS", "CLANG_TIDY_BLOCKING_GROUPS",
                    "CLANG_TIDY_BLOCKING_EXCEPTIONS", "CLANG_TIDY_LEVEL"),
     "cppcheck": ("CPPCHECK_SEVERITY", "CPPCHECK_BLOCKING_SEVERITIES",

@@ -296,3 +296,14 @@ RESULT: NOT_READY - pilot_002_not_authorized (open declarations/decisions or mis
 ### Readiness verdict
 
 Static/Repair is technically ready for pilot_002 under the tool-state model: every fail-closed guarantee of the contract is implemented, tested on the host and measured in the three containers, the merge/summary/provenance path is order-independent and hard-fails on drift, the repair loop no longer reports gaps as clean and no longer retries without bound, and the cross-pilot artifact records the static/repair comparability honestly. The remaining blockers before pilot_002 are outside this wave: pilot_002 population (NOT_YET_DECIDED), base run id (NOT_YET_CONFIGURED), reuse (UNDECIDED), publication (unchanged), semantic disclosure rendering (reporting wave), post-run manifest verification (REQUIRED_NOT_IMPLEMENTED), and the runtime image pinning (TAG_ONLY; digests are now measurable and were recorded in the readiness declaration).
+
+## 33. E3.2 author confirmation re-freeze (2026-09-12)
+
+The E3.2 author choices A/B/A/A/C/B/B/A (`thesis/evaluation/e3_2_decisions.json`, `thesis/evaluation/e3_2_author_confirmation.json`) changed the static condition once, from the final state:
+
+* `static_analysis_condition_sha256`: `327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3` -> `1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49`; changed inputs: /shared_modules_sha256, /tools/clang_tidy/implementation_sha256, /tools/gcc_analyzer/implementation_sha256, /tools/infer/execution_models, /tools_module_sha256 (drivers tree, build flags, external commands, stop mode unchanged).
+* `repair_condition_sha256`: `e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03` (unchanged - none of its inputs changed).
+* `runtime_condition_sha256`: `a2f46b1a5e35e60150fc7c77ef7c40185fd6d6b6aed51ddc02c9e524af53f446` -> `516288da9998fd1ce61a34ce5ff4c396ad84364031d38d78509caadf0cf815b3`; image identities changed: False.
+* Readiness gate re-measured: `READY`.
+* Infer scope (section 10): now configured `[serial, mpi]`; OpenMP records carry `NOT_APPLICABLE` (E32-02 B). gcc_analyzer (section 7): argv unchanged, no `OMPI_SKIP_MPICXX` (E32-01 A); Phase-0 T1-T5 demotion as `low_confidence` marking incl. malloc-leak under the same signatures (E32-09 B / E32-11 B). clang_tidy: FileOffset mapped against the raw source bytes (E32-08 C).
+* Per-tool comparability (section 26) is updated in `cross_pilot_comparability.json` (`areas.F_static_repair`): gcc_analyzer and clang_tidy additionally LIMITED_WITH_DISCLOSURE (derived class / location identity); infer-omp unchanged METHOD_CHANGED (pilot_002 not applicable).

@@ -448,10 +448,16 @@ def test_clang_tidy_helpers() -> None:
     print("clang-tidy helpers: offset->line and blocking classification")
     from thesis.evaluation.tools import offset_to_line_col, is_blocking_check
 
-    text = "line1\nline2\nline3\n"
+    # E3.2 E32-08 C: the conversion counts on the RAW BYTES (FileOffset is
+    # a byte offset); the option-specific fixtures live in
+    # test_e3_2_author_confirmation.py
+    text = b"line1\nline2\nline3\n"
     check("offset 0 -> (1,1)", offset_to_line_col(text, 0) == (1, 1))
     check("offset 6 -> (2,1)", offset_to_line_col(text, 6) == (2, 1))
     check("offset 8 -> (2,3)", offset_to_line_col(text, 8) == (2, 3))
+    crlf = b"line1\r\nline2\r\nline3\r\n"
+    check("CRLF offset 7 -> (2,1)", offset_to_line_col(crlf, 7) == (2, 1))
+    check("CRLF offset 9 -> (2,3)", offset_to_line_col(crlf, 9) == (2, 3))
 
     check("bugprone blocking", is_blocking_check("bugprone-use-after-move"))
     check("clang-analyzer blocking", is_blocking_check("clang-analyzer-cplusplus.NewDeleteLeaks"))

@@ -11,82 +11,12 @@
   "path": "thesis/evaluation/e3_2_evidence.json",
   "evidence_artifact_sha256": "5de7565669a31e69d908b5048065805cab8f601b6cac90434f19fc81e88a3c16"
  },
- "E3_2_DECISION": "ACCEPTED_PENDING_AUTHOR_CONFIRMATION",
+ "E3_2_DECISION": "ACCEPTED",
  "decided_items": [
-  {
-   "id": "E32-04",
-   "short_name": "catalog e2b_size_zero reason strings superseded by the prompt sentences (geometry/12,13,14; scan/34)",
-   "pilot_002_configuration": "FREEZE_AS_IS",
-   "freeze_target": "enhanced_policy.json byte-identical (policy sha unchanged); the superseded reason strings stay, with this artifact recording that the prompt sentences supersede them; rewording is queued for the next catalog/policy wave, which re-freezes the policy anyway. Conditional: valid under E32-03 A; under E32-03 B/C the policy is re-frozen and the strings are reworded in that step.",
-   "pilot_001_comparability": {
-    "value": "UNAFFECTED",
-    "affected_comparison_cells": [],
-    "reason": "provenance text only; the enforced policy values are identical; none of the four benchmarks is in the pilot_001 population"
-   },
-   "classification": "NO_METHODICAL_IMPACT",
-   "result_impact": "METADATA_ONLY",
-   "evidence_complete": true,
-   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
-   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
-   "configuration_rationale": "MECHANICAL: a text correction without semantic content; rewording now would move the policy SHA, the E3 manifest hashes and the execution fingerprint (component B) for zero result effect"
-  },
-  {
-   "id": "E32-05",
-   "short_name": "raw-byte (checkout-dependent) hash rule of the OLD condition versions",
-   "pilot_002_configuration": "FREEZE_AS_IS",
-   "freeze_target": "the old condition versions keep their raw-byte definition and values (static 327b235a..., repair e6f5c32b..., cross-pilot shared_state); no re-versioning before pilot_002; the known checkout-dependence stays documented as a portability limitation of the OLD versions",
-   "pilot_001_comparability": {
-    "value": "UNAFFECTED",
-    "affected_comparison_cells": [],
-    "reason": "hash representation only; no measurement changes"
-   },
-   "classification": "NO_METHODICAL_IMPACT",
-   "result_impact": "NONE",
-   "evidence_complete": true,
-   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
-   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
-   "configuration_rationale": "MECHANICAL: representation only - the bytes the pipeline hashes are the same on the host and in every container of the pilot_002 execution environment (measured equal), so the values are stable for the run; re-versioning would cascade into readiness/cross-pilot/E3 re-freezes with zero semantic content. Third-party reproduction on an LF clone must compare the LF-normalized values (documented)."
-  },
-  {
-   "id": "E32-06",
-   "short_name": "not_applicable_entry written without fingerprint / outside the per-tool merge check (528 pilot_001 entries)",
-   "pilot_002_configuration": "FREEZE_AS_IS",
-   "freeze_target": "run_static_analysis.py merge semantics unchanged for pilot_002; NOT_APPLICABLE placeholders stay unfingerprinted; the gap is documented and only reachable by re-running a NARROWED tool scope over an existing record set, which pilot_002 (a fresh run_id, fixed scope) does not do",
-   "pilot_001_comparability": {
-    "value": "UNAFFECTED",
-    "affected_comparison_cells": [],
-    "reason": "placeholders carry no measurement; pilot_001 records are static_analysis.v2 without any fingerprints anyway"
-   },
-   "classification": "NO_METHODICAL_IMPACT",
-   "result_impact": "METADATA_ONLY",
-   "evidence_complete": true,
-   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
-   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
-   "configuration_rationale": "MECHANICAL: a provenance nicety with no finding, coverage or verdict content; fixing it is a static-merge code change that belongs to a static-condition re-freeze and would have to be verified against the legacy-merge tests, none of which pilot_002 needs"
-  },
-  {
-   "id": "E32-10",
-   "short_name": "search/37 n = 0 deliberately not decided (technically excluded)",
-   "pilot_002_configuration": "FREEZE_AS_IS",
-   "freeze_target": "no n = 0 convention; the input stays outside every pilot_002 stage by the technical constraint",
-   "pilot_001_comparability": {
-    "value": "UNAFFECTED",
-    "affected_comparison_cells": [],
-    "reason": "benchmark not in pilot_001; input unreachable"
-   },
-   "classification": "NO_METHODICAL_IMPACT",
-   "result_impact": "NONE",
-   "evidence_complete": true,
-   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
-   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
-   "configuration_rationale": "MECHANICAL: an input that no stage can produce needs no contract sentence; adding one would be untestable and would require a third prompt regeneration"
-  }
- ],
- "pending_author_items": [
   {
    "id": "E32-01",
    "short_name": "OMPI_SKIP_MPICXX for gcc_analyzer (MPI)",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "FREEZE_AS_IS",
    "freeze_target": "OPTION A: gcc_analyzer compile argv unchanged (no -DOMPI_SKIP_MPICXX), static_analysis_condition_sha256 unchanged. OPTION B: -DOMPI_SKIP_MPICXX appended to the gcc_analyzer reduced-TU compile (tools.py), static condition re-frozen, readiness re-measured.",
    "pilot_001_comparability": {
     "under_option_A": "UNAFFECTED (cells keep the recorded class COMPARABLE_WITH_LIMITATIONS)",
@@ -313,7 +243,7 @@
     ],
     "unaffected": "serial and omp cells of every tool; compiler/clang_tidy/cppcheck/infer/parcoach/llov MPI cells; correctness, enhanced, timing"
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "MULTIPLE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -340,13 +270,32 @@
     "recommendation": "A",
     "recommendation_rationale": "the adversarial review refuted the noise-removal reading of the flag: the vanished findings are model-line program points the analyzer no longer REACHES (budget truncation), not header noise (file attribution already removes header findings) - 66 of 72 vanished blocking findings do carry the Phase-0 FP-class signature, but that class is handled by E32-09 without cutting coverage. B as measured trades 51 finding sets and the MPI coverage states for nothing the methodology wants; PARCOACH's use of the define is unrelated (robustness of a tool that cannot model the C++ bindings).",
     "residual_risk": "under A the analyzer keeps spending budget on unused binding headers (documented, pilot_001-identical); a future 'flag + explicit budget' configuration could recover the same coverage on a smaller TU but is unmeasured and would be a separate CHANGE_THEN_FREEZE with its own readiness proof",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "A"
+   },
+   "author_choice": "A",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "A",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "FREEZE_AS_IS: the gcc_analyzer reduced-TU compile argv is unchanged - no -DOMPI_SKIP_MPICXX (build_config.base_command + extra flags -fanalyzer/-Wanalyzer-too-complex/-c/-DDRIVER_PROBLEM_SIZE only); PARCOACH keeps its own, independent -DOMPI_SKIP_MPICXX in its clang -emit-llvm compile",
+   "confirmed_comparability": "UNAFFECTED by this item: the gcc_analyzer x mpi cells keep the tool/flag/parser identity of pilot_001 (their class is limited only by E32-09 B / E32-11 B, see those items); coverage states (PARTIAL/bail-out) stay comparable",
+   "author_rationale_recorded": "the flag changes the analyzer's coverage / exploration budget, not only header noise (132 MPI samples compared, 51 finding sets changed, blocking 147 -> 75, 21 samples blocking -> clean, 2 PARTIAL -> COMPLETED despite coverage loss)",
+   "required_changes": [],
+   "required_refreezes": [],
+   "evidence_reference": [
+    "e3_2_evidence.json items.E32-01",
+    "e3_2_evidence.json measurements.mpi_finding_sets",
+    "e3_2_evidence.json measurements.derived.ompi_*"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
   },
   {
    "id": "E32-02",
    "short_name": "infer configured scope on OpenMP",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "CHANGE_THEN_FREEZE",
    "freeze_target": "OPTION A: infer execution_models [serial, omp, mpi] (as pilot_001), static condition unchanged. OPTION B: infer execution_models [serial, mpi]; omp entries become NOT_APPLICABLE; config-only in code, but CHANGE_THEN_FREEZE WITH a static-condition re-freeze: static_analysis_condition_sha256 327b235a8014cb68 -> cf54ff519c477c23 (measured), readiness artifact re-measured, runtime condition re-pinned before T0.",
    "pilot_001_comparability": {
     "under_option_A": "UNAFFECTED incrementally (infer/omp cells already METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; repair omp cells already METHOD_CHANGED)",
@@ -572,7 +521,7 @@
      }
     ]
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "COVERAGE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -599,20 +548,44 @@
     "recommendation": "B",
     "recommendation_rationale": "132/132 pilot_001 OpenMP infer records abort in infer's clang-11 frontend and the current image reproduces it on every re-run sample; a tool that cannot analyse any OpenMP kernel contributes no verdict but, if required, vetoes every clean stop of the omp arm. Narrowing states the limitation once in the frozen configuration and recovers 25 of 80 issue-free clean stops; the remaining 55 are vetoed by llov's region-not-analyzed semantics, which is a deliberate tool-state decision, not an infer question. The cost is a static-condition re-freeze (same class as E32-09 B).",
     "residual_risk": "narrowing hides the gap from the per-record view (NOT_APPLICABLE instead of NOT_ANALYZED); a future infer with OpenMP support would need a re-freeze; the reporting must state that infer covers serial/mpi only; the E32-06 placeholder remains unfingerprinted",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "B"
+   },
+   "author_choice": "B",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "B",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "CHANGE_THEN_FREEZE: thesis/config/config.yaml stages.static_analysis.tools.infer.execution_models [serial, omp, mpi] -> [serial, mpi]; OpenMP records receive an explicit NOT_APPLICABLE Infer entry (run_static_analysis.not_applicable_entry), not NOT_ANALYZED; orchestrator.required_static_tools no longer requires Infer on omp; Infer tool semantics, parser, version and the pinned image are unchanged; the repair stop algorithm is unchanged",
+   "confirmed_comparability": "infer x omp static cells (12): class unchanged METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE - pilot_001 stored a silent clean COMPLETED (frontend abort, re-derived NOT_ANALYZED), pilot_002 records NOT_APPLICABLE; there is no OMP Infer verdict on either side. omp static_feedback / combined_feedback repair cells (24): class stays METHOD_CHANGED, additionally LIMITED_WITH_DISCLOSURE - an issue-free omp sample can now stop clean where the tool-state re-assessment of pilot_001 counted gap:infer (25 of 80 issue-free omp base samples; 55 stay incomplete via llov/gcc_analyzer gaps). test_feedback and serial/mpi cells UNAFFECTED",
+   "required_changes": [
+    "thesis/config/config.yaml: infer.execution_models [serial, mpi] (config only)"
+   ],
+   "required_refreezes": [
+    "static_analysis_condition (input tools.infer.execution_models)",
+    "static_repair_readiness.json re-measured",
+    "cross_pilot_comparability.json areas.F_static_repair (infer per_tool text, repair disclosure)"
+   ],
+   "evidence_reference": [
+    "e3_2_evidence.json items.E32-02",
+    "e3_2_evidence.json measurements.derived.infer_stop",
+    "e3_2_evidence.json measurements.scratch_reanalysis (infer_omp: 12/12 NOT_ANALYZED)"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
   },
   {
    "id": "E32-03",
    "short_name": "geometry/12,13,14 degenerate-input contract: prompt convention (return 0) vs precondition + min_size",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "FREEZE_AS_IS",
    "freeze_target": "OPTION A: freeze the regenerated prompts as they are (explicit 'return 0' / 'area 0' conventions), e2b_size_zero DISALLOWED / min_size 1 kept on freeze-stability grounds, E3 artifact unchanged. OPTION B: precondition contract (n>=2 for /13,/14; n>=3 for /12) with min_size 2/3 - requires an enhanced regeneration (E3 re-freeze: 4 frozen seeds invalidated, 23 productive keys replaced) and a second prompt regeneration. OPTION C (added by the adversarial review): frozen convention + size 0 re-ALLOWED (the prompts now state the n = 0 answer, so the DISALLOWED reason no longer holds) + E3 re-freeze.",
    "pilot_001_comparability": {
     "value": "UNAFFECTED",
     "affected_comparison_cells": [],
     "reason": "none of the three benchmarks is in the pilot_001 population; no cross-pilot cell exists"
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "NONE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -647,13 +620,82 @@
     "recommendation": "A",
     "recommendation_rationale": "all three contracts are consistent with the oracle and the correctness stage cannot reach the degenerate branch; A keeps the E3 freeze, the prompt regeneration set and the readiness proofs intact, while B re-opens the enhanced freeze (4 seeds, 23 productive keys) plus a catalog schema change, and C re-opens it for a size-0 case of no measured discriminative value; both the precondition and the size-0 re-allowance can be adopted at the next enhanced regeneration without touching pilot_002",
     "residual_risk": "under A the prompt grades a sentinel convention (return 0) that some readers may consider inventive, and the catalog keeps a DISALLOWED value whose stated reason no longer holds (E32-04 records the superseded text; the VALUE is decided here)",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "A"
+   },
+   "author_choice": "A",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "A",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "FREEZE_AS_IS: the frozen prompt/oracle convention stays (geometry/12 n < 3 -> degenerate case per the frozen convention; geometry/13 and /14 n < 2 -> 0); no precondition freeze, no size-0 re-enable (enhanced_policy.json geometry/12,13,14 size_constraint.min_size 1 / size_zero_policy DISALLOWED unchanged), no enhanced-E3 regeneration; the frozen E3 state is kept",
+   "confirmed_comparability": "UNAFFECTED (none of the three benchmarks is in the pilot_001 population; frozen artifacts byte-identical)",
+   "required_changes": [],
+   "required_refreezes": [],
+   "evidence_reference": [
+    "e3_2_evidence.json items.E32-03",
+    "e3_2_evidence.json measurements.enhanced_simulation"
+   ],
+   "consequence_for_E32_04": "E32-04 (mechanical, FREEZE_AS_IS) stays valid as decided: the superseded catalog reason strings remain a documented metadata limitation; no text correction now, because it would move the frozen policy / E3 hashes",
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
+  },
+  {
+   "id": "E32-04",
+   "short_name": "catalog e2b_size_zero reason strings superseded by the prompt sentences (geometry/12,13,14; scan/34)",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "enhanced_policy.json byte-identical (policy sha unchanged); the superseded reason strings stay, with this artifact recording that the prompt sentences supersede them; rewording is queued for the next catalog/policy wave, which re-freezes the policy anyway. Conditional: valid under E32-03 A; under E32-03 B/C the policy is re-frozen and the strings are reworded in that step.",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "provenance text only; the enforced policy values are identical; none of the four benchmarks is in the pilot_001 population"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "METADATA_ONLY",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: a text correction without semantic content; rewording now would move the policy SHA, the E3 manifest hashes and the execution fingerprint (component B) for zero result effect"
+  },
+  {
+   "id": "E32-05",
+   "short_name": "raw-byte (checkout-dependent) hash rule of the OLD condition versions",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "the old condition versions keep their raw-byte definition and values (static 327b235a..., repair e6f5c32b..., cross-pilot shared_state); no re-versioning before pilot_002; the known checkout-dependence stays documented as a portability limitation of the OLD versions",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "hash representation only; no measurement changes"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: representation only - the bytes the pipeline hashes are the same on the host and in every container of the pilot_002 execution environment (measured equal), so the values are stable for the run; re-versioning would cascade into readiness/cross-pilot/E3 re-freezes with zero semantic content. Third-party reproduction on an LF clone must compare the LF-normalized values (documented)."
+  },
+  {
+   "id": "E32-06",
+   "short_name": "not_applicable_entry written without fingerprint / outside the per-tool merge check (528 pilot_001 entries)",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "run_static_analysis.py merge semantics unchanged for pilot_002; NOT_APPLICABLE placeholders stay unfingerprinted; the gap is documented and only reachable by re-running a NARROWED tool scope over an existing record set, which pilot_002 (a fresh run_id, fixed scope) does not do",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "placeholders carry no measurement; pilot_001 records are static_analysis.v2 without any fingerprints anyway"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "METADATA_ONLY",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: a provenance nicety with no finding, coverage or verdict content; fixing it is a static-merge code change that belongs to a static-condition re-freeze and would have to be verified against the legacy-merge tests, none of which pilot_002 needs"
   },
   {
    "id": "E32-07",
    "short_name": "static-base / LLM spec_key collision in the enhanced mutation frontier",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "FREEZE_AS_IS",
    "freeze_target": "OPTION A: frozen E3 suite unchanged (collision tolerated: it lengthens the pre-shuffle mutation list only). OPTION B: canonicalize static+LLM identities together and re-freeze E3 (10 benchmarks re-shuffled, incl. pilot_001's reduce/25).",
    "pilot_001_comparability": {
     "under_option_A": "UNAFFECTED incrementally (enhanced cells are already not directly comparable across the E3 freeze)",
@@ -679,7 +721,7 @@
      }
     ]
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "NONE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -706,13 +748,29 @@
     "recommendation": "A",
     "recommendation_rationale": "the collision is not a defect of the frozen suite (no duplicate emission, no invalid seed) but a property of two deterministic generators; collapsing it re-composes 10 benchmarks' suites for no measurable benefit and would force an E3 re-freeze right before pilot_002",
     "residual_risk": "a reader may find the frontier definition inelegant; the provenance report documents it",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "A"
+   },
+   "author_choice": "A",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "A",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "FREEZE_AS_IS: frozen E3 suite unchanged; static-base and LLM-seed identities are NOT collapsed before mutation; no E3 regeneration; no enhanced-spec change (spec_key, mutation frontier, frozen specs, LLM/static identity handling untouched)",
+   "confirmed_comparability": "UNAFFECTED incrementally (enhanced cells are already not directly comparable across the E3 freeze)",
+   "required_changes": [],
+   "required_refreezes": [],
+   "evidence_reference": [
+    "e3_2_evidence.json items.E32-07"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
   },
   {
    "id": "E32-08",
    "short_name": "assembly writer newline policy HOST_DEPENDENT x clang_tidy byte-offset conversion: CRLF sources shift clang_tidy line/column identities",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "CHANGE_THEN_FREEZE",
    "freeze_target": "OPTION A: HOST_DEPENDENT writer + tools.py unchanged (defect frozen in, pilot_001-identical). OPTION B: writer pinned to LF (assembly condition and raw artifact hashes move). OPTION C: clang-tidy FileOffset converted against the raw bytes in tools.py (static condition re-freeze), optionally with B.",
    "pilot_001_comparability": {
     "value": "LIMITED_WITH_DISCLOSURE",
@@ -1371,7 +1429,7 @@
     "reason": "pilot_001 base clang_tidy locations are shifted (identity field), iteration records are correct; counts, check_ids, blocking flags and states are unaffected; line-level identities are comparable only after re-derivation from the stored FileOffsets - under every option, because the defect is in the historical records",
     "disclosure_text": "pilot_001's clang_tidy findings of the base run carry line/column values computed against CR-stripped text from CRLF sources; review measurement from the stored raw_stdout FileOffsets: 510 of 1286 located clang_tidy findings on the wrong line in 150 of 306 records with findings, 161 of them blocking; column wrong for all 1286; 6 end-of-file findings recorded with line null. Counts, check ids and blocking verdicts are unaffected; per-line identities and the iteration-1 repair feedback line numbers are not comparable without re-derivation from the stored clang-tidy offsets."
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "MULTIPLE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -1406,13 +1464,38 @@
     "recommendation": "C",
     "recommendation_rationale": "the location defect was found by the adversarial review of this wave and reproduced first-hand (gemini_36_flash geometry/10 serial: CRLF lines 41/15/29/49 vs LF 39/15/28/48, all blocking); freezing a known identity defect into the main pilot (A) is not defensible when the fix is a byte-offset conversion; C removes the root cause and, unlike B, does not depend on the host; B alone leaves the latent defect. The cost is the static-condition re-freeze that E32-02 B and E32-09 B require anyway.",
     "residual_risk": "C changes tools.py and therefore the static condition (readiness re-proof, tool-state fixtures re-run); pilot_001 clang_tidy identities must be re-derived for any cross-pilot comparison; the residual non-ASCII column drift observed on LF sources by the review needs the same raw-byte conversion",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "C"
+   },
+   "author_choice": "C",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "C",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "CHANGE_THEN_FREEZE: thesis/evaluation/tools.py offset_to_line_col converts clang-tidy's byte FileOffset against the RAW BYTES of the analysed file (line = count of \\n bytes before the offset + 1; column = 1-based byte count since the last \\n, clang's own column convention; \\r\\n is one line end) and ClangTidyTool._parse_fixes reads the source with read_bytes(); the assembly writer newline policy (HOST_DEPENDENT) is NOT changed; check_id, severity, blocking, low_confidence and the raw output parsing are unchanged - only the location mapping",
+   "confirmed_comparability": "clang_tidy static cells (36): LIMITED_WITH_DISCLOSURE - pilot_001 base-run locations of CRLF sources are shifted (review measurement: 510 of 1286 located findings on the wrong line in 150 of 306 records, column wrong for all 1286, 6 EOF findings with line null), pilot_002 locations are correct; counts, check ids, blocking flags and states are comparable; line-level identities only via DERIVED correction (the stored raw_stdout carries clang-tidy's own file:line:column per finding), never by rewriting the historical records. static_feedback / combined_feedback repair cells (72): LIMITED_WITH_DISCLOSURE (already METHOD_CHANGED) - 158 pilot_001 iteration-1 prompts rendered shifted clang_tidy line numbers",
+   "required_changes": [
+    "thesis/evaluation/tools.py: offset_to_line_col(bytes) + _parse_fixes raw-byte cache (location mapping only)"
+   ],
+   "required_refreezes": [
+    "static_analysis_condition (inputs tools.clang_tidy.implementation_sha256, tools_module_sha256)",
+    "static_repair_readiness.json re-measured",
+    "cross_pilot_comparability.json areas.F_static_repair (clang_tidy per_tool text + disclosure)"
+   ],
+   "evidence_reference": [
+    "e3_2_evidence.json items.E32-08",
+    "e3_2_evidence.json measurements.records_facts (crlf)",
+    "thesis/evaluation/test_e3_2_author_confirmation.py fixtures A-P",
+    "e3_2_author_confirmation.json container_measurements.clang_tidy"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
   },
   {
    "id": "E32-09",
    "short_name": "gcc_analyzer FP-class demotion (Phase-0 predicate T1-T5) designed, not applied",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "CHANGE_THEN_FREEZE",
    "freeze_target": "OPTION A: gcc_analyzer unchanged (every -Wanalyzer-* finding blocking; counts declared not quotable as defect counts). OPTION B: apply the T1-T5 demotion as low_confidence marking (finding kept, not deleted) in tools.py before pilot_002 - static condition re-freeze, readiness re-measured; pilot_001 counts re-derived with the same message predicate for the comparison.",
    "pilot_001_comparability": {
     "under_option_A": "UNAFFECTED (gcc_analyzer cells keep COMPARABLE_WITH_LIMITATIONS)",
@@ -2070,7 +2153,7 @@
      }
     ]
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "MULTIPLE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -2097,13 +2180,56 @@
     "recommendation": "B",
     "recommendation_rationale": "Phase-0 measured 787/794 (99.1 %) of the three families as analyzer FP-class on pilot_001 and declared the counts not quotable; the same predicate on the CURRENT base records demotes 172 of 181 blocking findings; running the main pilot with a known >= 99 % false-positive blocking signal as repair input would make the repair loop's static arm chase artefacts, and the counts could not be reported as defects anyway. Demotion as marking (not deletion) keeps every finding recorded and the pilot_001 comparison re-derivable. It also covers 66 of the 72 blocking findings that E32-01 B would have removed by truncation.",
     "residual_risk": "T5 (NULL '0' dereference) is the aggressive rule: a genuine dereference of a constant-propagated nullptr would be demoted too (0 such cases in pilot_001; the event path is now stored, so the anchored variant can be implemented); malloc-leak/out-of-bounds stay blocking unless E32-11 B is chosen; B is a static-condition change and requires the readiness re-freeze and a re-run of the tool-state fixtures",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "B"
+   },
+   "author_choice": "B",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "B",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "CHANGE_THEN_FREEZE: thesis/evaluation/tools.py applies the frozen Phase-0 predicate (T1-T5, thesis/docs/pilot-001-corrected-numbers.md section 5) to the blocking findings of -Wanalyzer-null-dereference / -Wanalyzer-possible-null-dereference / -Wanalyzer-use-of-uninitialized-value in GccAnalyzerTool.run: a matching finding is KEPT (message, check_id, file, line, column, event path, raw output untouched) and marked low_confidence = true; `blocking` stays the tool's assessment exactly as in the existing central low_confidence semantics (tool_config.mark_low_confidence for parcoach / clang-tidy MPI-Checker): the repair feedback renders it as a verify-first hint and the stop criterion applies stages.repair.low_confidence_stop_mode = grace_once (counts once while NEW, then no longer). No rule extension: other families (out-of-bounds, ...) never match; T5 stays 'dereference of NULL '0'' in the null-dereference family only. Per-rule counts are recorded in the tool entry's analysis_details.fp_demotion",
+   "confirmed_comparability": "gcc_analyzer static cells (36): LIMITED_WITH_DISCLOSURE - raw finding presence, check ids, states and blocking counts are comparable (pilot_001 records unchanged); the derived confidence class is re-derivable on the stored messages with the same predicate (base records: 176 of 181 blocking findings match, incl. E32-11); the static_feedback / combined_feedback repair cells (72) are not directly comparable in trajectory: pilot_001 iterated on undemoted blocking sets, pilot_002 starts these samples with graced low-confidence hints (samples whose blocking set consists only of demoted findings on the base records: mpi 47 of 49 (45 via T1-T5, 2 more via the malloc-leak signature), omp 7 of 8, serial 4 of 4)",
+   "required_changes": [
+    "thesis/evaluation/tools.py: GCC_ANALYZER_DEMOTION_FAMILIES / GCC_ANALYZER_FP_DEMOTION_RULES / gcc_analyzer_fp_demotion_rule / apply_gcc_analyzer_fp_demotion wired into GccAnalyzerTool.run",
+    "thesis/evaluation/tool_config.py: mark_low_confidence returns the count of ALL low_confidence findings so num_low_confidence includes the tool-side marks"
+   ],
+   "required_refreezes": [
+    "static_analysis_condition (inputs tools.gcc_analyzer.implementation_sha256, tools_module_sha256, shared_modules_sha256)",
+    "static_repair_readiness.json re-measured",
+    "cross_pilot_comparability.json areas.F_static_repair (gcc_analyzer per_tool text, repair disclosure)"
+   ],
+   "evidence_reference": [
+    "thesis/docs/pilot-001-corrected-numbers.md section 5 (predicate) and section 6 (malloc-leak)",
+    "e3_2_evidence.json items.E32-09",
+    "e3_2_evidence.json measurements.derived.demotion_*",
+    "thesis/evaluation/test_e3_2_author_confirmation.py (predicate fixtures, re-derivation 176/181)"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
+  },
+  {
+   "id": "E32-10",
+   "short_name": "search/37 n = 0 deliberately not decided (technically excluded)",
+   "pilot_002_configuration": "FREEZE_AS_IS",
+   "freeze_target": "no n = 0 convention; the input stays outside every pilot_002 stage by the technical constraint",
+   "pilot_001_comparability": {
+    "value": "UNAFFECTED",
+    "affected_comparison_cells": [],
+    "reason": "benchmark not in pilot_001; input unreachable"
+   },
+   "classification": "NO_METHODICAL_IMPACT",
+   "result_impact": "NONE",
+   "evidence_complete": true,
+   "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
+   "decided_by": "agent (mechanical: no methodology content; see configuration_rationale)",
+   "configuration_rationale": "MECHANICAL: an input that no stage can produce needs no contract sentence; adding one would be untestable and would require a third prompt regeneration"
   },
   {
    "id": "E32-11",
    "short_name": "gcc_analyzer -Wanalyzer-malloc-leak: same allocation-failure modelling, outside the decided demotion scope, 'flagged for a separate demotion decision'",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "CHANGE_THEN_FREEZE",
    "freeze_target": "OPTION A: malloc-leak stays blocking (= current config). OPTION B: -Wanalyzer-malloc-leak added to the demotion predicate's check_id set (only meaningful together with E32-09 B; same static re-freeze).",
    "pilot_001_comparability": {
     "under_option_A": "UNAFFECTED",
@@ -2255,7 +2381,7 @@
      }
     ]
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "MULTIPLE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -2282,13 +2408,36 @@
     "recommendation": "B (only together with E32-09 B; A if E32-09 A)",
     "recommendation_rationale": "the Phase-0 document classifies malloc-leak as 'the same allocation-failure modeling' and every current malloc-leak message carries the T1 signature; demoting the three families but not this one would leave the same artefact class blocking for 2 samples. The decision is conditional on E32-09: without the demotion there is nothing to join.",
     "residual_risk": "a genuine leak of model-allocated memory on a real path would be demoted too (Phase-0: 24 of 47 are later-new-throws paths where the sample delete[]s both buffers; none genuine in pilot_001)",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "B"
+   },
+   "author_choice": "B",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "B (only together with E32-09 B; A if E32-09 A)",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "CHANGE_THEN_FREEZE (joined with E32-09 B, no separate re-freeze): -Wanalyzer-malloc-leak is a member of GCC_ANALYZER_DEMOTION_FAMILIES, so a malloc-leak finding is demoted ONLY when its message carries a T1-T4 signature (T5 is null-dereference-only); a malloc-leak finding without a signature stays blocking; no blanket demotion by check_id",
+   "confirmed_comparability": "gcc_analyzer cells: same LIMITED_WITH_DISCLOSURE re-derivation as E32-09 B (base records: 4 blocking malloc-leak findings in 2 records, all T1; the two samples that stayed blocking only via malloc-leak now start with graced hints)",
+   "valid_because": "AUTHOR_CHOICE_E32_09 = B (the combination E32-09 A + E32-11 B would have been BLOCKED_INVALID_AUTHOR_DECISION_COMBINATION)",
+   "required_changes": [
+    "thesis/evaluation/tools.py: '-Wanalyzer-malloc-leak' in GCC_ANALYZER_DEMOTION_FAMILIES (same predicate)"
+   ],
+   "required_refreezes": [
+    "none in addition to the joint static re-freeze of E32-09 B"
+   ],
+   "evidence_reference": [
+    "thesis/docs/pilot-001-corrected-numbers.md section 6",
+    "e3_2_evidence.json items.E32-11",
+    "e3_2_evidence.json measurements.derived.malloc_leak_on_current_records"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
   },
   {
    "id": "E32-12",
    "short_name": "search/35 benchmark-local validation attempts numTries = 5 vs suite-wide MAX_VALIDATION_ATTEMPTS = 2 (explicitly left un-normalized in wave 2B)",
-   "pilot_002_configuration": "DECISION_PENDING_AUTHOR",
+   "pilot_002_configuration": "FREEZE_AS_IS",
    "freeze_target": "OPTION A: numTries = 5 kept (drivers tree unchanged; the cross-pilot canonical-condition note corrected in text only). OPTION B: numTries = MAX_VALIDATION_ATTEMPTS like search/38 (drivers tree -> static condition re-freeze, cross-pilot candidate_subset_state cpu_cc sha re-pinned).",
    "pilot_001_comparability": {
     "under_option_A": "UNAFFECTED (both pilots run 5 attempts); disclosure note: the cross-pilot artifact's canonical condition text is inaccurate for search/35",
@@ -2314,7 +2463,7 @@
      }
     ]
    },
-   "classification": "DECISION_PENDING_AUTHOR",
+   "classification": "AUTHOR_DECIDED",
    "result_impact": "NONE",
    "evidence_complete": true,
    "measurement_condition_sha256": "4f4926040da3e517c1ca040b5b5128fe7126a9c85871ba75030bad0b4a5a22b9",
@@ -2341,10 +2490,29 @@
     "recommendation": "A",
     "recommendation_rationale": "the observed pilot_001 verdicts are invariant under either attempt count, so the choice does not change any recorded result; A keeps the drivers tree, the static condition and the cross-pilot state pins untouched right before pilot_002, and the stricter local contract is documented. B is the cleaner contract and can be adopted together with any other drivers-tree re-freeze.",
     "residual_risk": "under A the cross-pilot artifact's canonical-condition text remains inaccurate for search/35 (a note, not a value change); under B a future search/35 candidate that fails only on attempts 3-5 would pass",
-    "persisted_as_author_decision": false
-   }
+    "persisted_as_author_decision": true,
+    "author_choice": "A"
+   },
+   "author_choice": "A",
+   "author_confirmed": true,
+   "confirmation_basis": "EXPLICIT_AUTHOR_CHOICE",
+   "decided_by": "AUTHOR",
+   "recommendation_was": "A",
+   "choice_equals_recommendation": true,
+   "confirmed_configuration": "FREEZE_AS_IS: search/35 keeps numTries = 5 (drivers/cpp/benchmarks/search/35_*/cpu.cc unchanged; drivers_tree_sha256 unchanged); no normalization to MAX_VALIDATION_ATTEMPTS = 2; the benchmark-local exception is documented as a disclosure / methodology note (cross_pilot_comparability.json shared_state.evaluation_condition.benchmark_local_exceptions)",
+   "confirmed_comparability": "UNAFFECTED (both pilots run 5 validation attempts on search/35; the canonical-condition text of the cross-pilot artifact is corrected in text only, no contract change)",
+   "required_changes": [],
+   "required_refreezes": [],
+   "evidence_reference": [
+    "e3_2_evidence.json items.E32-12",
+    "drivers/cpp/benchmarks/search/35_search_search_for_last_struct_by_key/cpu.cc:78",
+    "drivers/cpp/utilities.hpp:34-35"
+   ],
+   "implemented_in": "thesis/evaluation/e3_2_author_confirmation.json",
+   "classification_before_confirmation": "DECISION_PENDING_AUTHOR"
   }
  ],
+ "pending_author_items": [],
  "unresolved_items": [],
  "decision_packages": {
   "E32-01": {
@@ -2370,7 +2538,8 @@
    "recommendation": "A",
    "recommendation_rationale": "the adversarial review refuted the noise-removal reading of the flag: the vanished findings are model-line program points the analyzer no longer REACHES (budget truncation), not header noise (file attribution already removes header findings) - 66 of 72 vanished blocking findings do carry the Phase-0 FP-class signature, but that class is handled by E32-09 without cutting coverage. B as measured trades 51 finding sets and the MPI coverage states for nothing the methodology wants; PARCOACH's use of the define is unrelated (robustness of a tool that cannot model the C++ bindings).",
    "residual_risk": "under A the analyzer keeps spending budget on unused binding headers (documented, pilot_001-identical); a future 'flag + explicit budget' configuration could recover the same coverage on a smaller TU but is unmeasured and would be a separate CHANGE_THEN_FREEZE with its own readiness proof",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "A"
   },
   "E32-02": {
    "decision_question": "Shall infer stay configured for OpenMP samples in pilot_002 (recording NOT_ANALYZED on every omp kernel and vetoing clean stops), or be narrowed to serial/mpi?",
@@ -2395,7 +2564,8 @@
    "recommendation": "B",
    "recommendation_rationale": "132/132 pilot_001 OpenMP infer records abort in infer's clang-11 frontend and the current image reproduces it on every re-run sample; a tool that cannot analyse any OpenMP kernel contributes no verdict but, if required, vetoes every clean stop of the omp arm. Narrowing states the limitation once in the frozen configuration and recovers 25 of 80 issue-free clean stops; the remaining 55 are vetoed by llov's region-not-analyzed semantics, which is a deliberate tool-state decision, not an infer question. The cost is a static-condition re-freeze (same class as E32-09 B).",
    "residual_risk": "narrowing hides the gap from the per-record view (NOT_APPLICABLE instead of NOT_ANALYZED); a future infer with OpenMP support would need a re-freeze; the reporting must state that infer covers serial/mpi only; the E32-06 placeholder remains unfingerprinted",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "B"
   },
   "E32-03": {
    "decision_question": "Under which degenerate-input contract shall geometry/12, /13 and /14 be frozen: the explicit convention now in the prompts ('return 0' / 'area 0') with size 0 still DISALLOWED, the same convention with size 0 re-allowed (the reason for DISALLOWED no longer holds), or the precondition contract (n >= 3 / n >= 2 plus enforced min_size) that the decision artifact calls the preferred long-term contract?",
@@ -2428,7 +2598,8 @@
    "recommendation": "A",
    "recommendation_rationale": "all three contracts are consistent with the oracle and the correctness stage cannot reach the degenerate branch; A keeps the E3 freeze, the prompt regeneration set and the readiness proofs intact, while B re-opens the enhanced freeze (4 seeds, 23 productive keys) plus a catalog schema change, and C re-opens it for a size-0 case of no measured discriminative value; both the precondition and the size-0 re-allowance can be adopted at the next enhanced regeneration without touching pilot_002",
    "residual_risk": "under A the prompt grades a sentinel convention (return 0) that some readers may consider inventive, and the catalog keeps a DISALLOWED value whose stated reason no longer holds (E32-04 records the superseded text; the VALUE is decided here)",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "A"
   },
   "E32-07": {
    "decision_question": "Shall the enhanced mutation frontier keep the frozen E3 suite (static-base and LLM seed identities not collapsed against each other), or be canonicalized jointly and re-frozen?",
@@ -2453,7 +2624,8 @@
    "recommendation": "A",
    "recommendation_rationale": "the collision is not a defect of the frozen suite (no duplicate emission, no invalid seed) but a property of two deterministic generators; collapsing it re-composes 10 benchmarks' suites for no measurable benefit and would force an E3 re-freeze right before pilot_002",
    "residual_risk": "a reader may find the frontier definition inelegant; the provenance report documents it",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "A"
   },
   "E32-08": {
    "decision_question": "clang_tidy's byte FileOffset is converted against universal-newline text (tools.py:1242 read_text, :1246 offset_to_line_col), so CRLF-assembled sources (the Windows host writer) yield shifted line/column identities for clang_tidy findings while LF sources (container-assembled iterations) yield correct ones. Shall pilot_002 keep the host-dependent writer and the current conversion, pin the writer to LF, or fix the conversion (raw bytes) - the latter two re-freeze the assembly or static condition?",
@@ -2486,7 +2658,8 @@
    "recommendation": "C",
    "recommendation_rationale": "the location defect was found by the adversarial review of this wave and reproduced first-hand (gemini_36_flash geometry/10 serial: CRLF lines 41/15/29/49 vs LF 39/15/28/48, all blocking); freezing a known identity defect into the main pilot (A) is not defensible when the fix is a byte-offset conversion; C removes the root cause and, unlike B, does not depend on the host; B alone leaves the latent defect. The cost is the static-condition re-freeze that E32-02 B and E32-09 B require anyway.",
    "residual_risk": "C changes tools.py and therefore the static condition (readiness re-proof, tool-state fixtures re-run); pilot_001 clang_tidy identities must be re-derived for any cross-pilot comparison; the residual non-ASCII column drift observed on LF sources by the review needs the same raw-byte conversion",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "C"
   },
   "E32-09": {
    "decision_question": "Shall pilot_002 run gcc_analyzer as in pilot_001 (every -Wanalyzer-* finding blocking) or with the Phase-0 FP-class demotion (T1-T5 -> low_confidence) applied before the run?",
@@ -2511,7 +2684,8 @@
    "recommendation": "B",
    "recommendation_rationale": "Phase-0 measured 787/794 (99.1 %) of the three families as analyzer FP-class on pilot_001 and declared the counts not quotable; the same predicate on the CURRENT base records demotes 172 of 181 blocking findings; running the main pilot with a known >= 99 % false-positive blocking signal as repair input would make the repair loop's static arm chase artefacts, and the counts could not be reported as defects anyway. Demotion as marking (not deletion) keeps every finding recorded and the pilot_001 comparison re-derivable. It also covers 66 of the 72 blocking findings that E32-01 B would have removed by truncation.",
    "residual_risk": "T5 (NULL '0' dereference) is the aggressive rule: a genuine dereference of a constant-propagated nullptr would be demoted too (0 such cases in pilot_001; the event path is now stored, so the anchored variant can be implemented); malloc-leak/out-of-bounds stay blocking unless E32-11 B is chosen; B is a static-condition change and requires the readiness re-freeze and a re-run of the tool-state fixtures",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "B"
   },
   "E32-11": {
    "decision_question": "Shall -Wanalyzer-malloc-leak (flagged by the Phase-0 analysis as the same allocation-failure modelling as the demoted families, but left outside the decided demotion scope 'for a separate decision') stay blocking in pilot_002 or join the demotion predicate?",
@@ -2536,7 +2710,8 @@
    "recommendation": "B (only together with E32-09 B; A if E32-09 A)",
    "recommendation_rationale": "the Phase-0 document classifies malloc-leak as 'the same allocation-failure modeling' and every current malloc-leak message carries the T1 signature; demoting the three families but not this one would leave the same artefact class blocking for 2 samples. The decision is conditional on E32-09: without the demotion there is nothing to join.",
    "residual_risk": "a genuine leak of model-allocated memory on a real path would be demoted too (Phase-0: 24 of 47 are later-new-throws paths where the sample delete[]s both buffers; none genuine in pilot_001)",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "B"
   },
   "E32-12": {
    "decision_question": "search/35 validates with a benchmark-local numTries = 5 (drivers/cpp/benchmarks/search/35_.../cpu.cc:78) while the suite-wide contract is MAX_VALIDATION_ATTEMPTS = 2 (utilities.hpp:34-35) and search/38's identical hardcode was normalized in wave 2B (cpu.cc:66-73) with 35 explicitly left as is. Shall pilot_002 keep 5 attempts for search/35 or normalize it to the suite-wide contract?",
@@ -2561,18 +2736,52 @@
    "recommendation": "A",
    "recommendation_rationale": "the observed pilot_001 verdicts are invariant under either attempt count, so the choice does not change any recorded result; A keeps the drivers tree, the static condition and the cross-pilot state pins untouched right before pilot_002, and the stricter local contract is documented. B is the cleaner contract and can be adopted together with any other drivers-tree re-freeze.",
    "residual_risk": "under A the cross-pilot artifact's canonical-condition text remains inaccurate for search/35 (a note, not a value change); under B a future search/35 candidate that fails only on attempts 3-5 would pass",
-   "persisted_as_author_decision": false
+   "persisted_as_author_decision": true,
+   "author_choice": "A"
   }
  },
  "author_confirmation": {
-  "status": "PENDING",
-  "instructions": "the author confirms each pending item by choosing an option; the confirmed options are then persisted (a later wave) and only then may SAFE_TO_PROCEED_TO_POPULATION_FREEZE become true",
+  "status": "CONFIRMED",
+  "date": "2026-09-12",
+  "confirmation_head": "0cb83fab0467590fc2724ddd18b2057a72da604c",
+  "author_choices": {
+   "E32-01": "A",
+   "E32-02": "B",
+   "E32-03": "A",
+   "E32-07": "A",
+   "E32-08": "C",
+   "E32-09": "B",
+   "E32-11": "B",
+   "E32-12": "A"
+  },
+  "choices_short": "A/B/A/A/C/B/B/A",
+  "choices_source": "explicit author message (E3.2 Author Confirmation contract): the values are transcribed verbatim; none is derived from a recommendation, a majority vote, a review or an agent preference",
+  "agent_selected_author_option": false,
+  "combination_rule_checked": "E32-09 = B and E32-11 = B: valid (E32-09 A + E32-11 B would have been invalid)",
+  "implementation_and_refreeze": "thesis/evaluation/e3_2_author_confirmation.json",
   "no_recommendation_is_persisted_as_a_decision": true
  },
  "SAFE_TO_PROCEED_TO_AUTHOR_DECISION": true,
  "SAFE_TO_PROCEED_TO_POPULATION_FREEZE": false,
  "volatile": {
-  "generated_at_utc": "2026-09-12T15:02:12Z"
+  "generated_at_utc": "2026-09-12T15:02:12Z",
+  "author_confirmed_at_utc": "2026-09-12T20:10:33Z"
  },
- "decisions_sha256": "a1bc609e52eeffe707667b1a553c61eb8586796ca0c07d3810411a2cf7b3aa65"
+ "conditions_after_author_confirmation": {
+  "static_analysis_condition_sha256_before": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+  "static_analysis_condition_sha256_after": "83d74bb6aab0afd9b46d8055df9db4c03ab4f81f21bff452ba32866f0c2e1b7f",
+  "repair_condition_sha256": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+  "repair_condition_changed": false,
+  "static_condition_changed_inputs": [
+   "/shared_modules_sha256",
+   "/tools/clang_tidy/implementation_sha256",
+   "/tools/gcc_analyzer/implementation_sha256",
+   "/tools/infer/execution_models",
+   "/tools_module_sha256"
+  ]
+ },
+ "SAFE_TO_PROCEED_TO_TECHNICAL_PROVENANCE_CLEANUP": true,
+ "previous_decisions_sha256": "a1bc609e52eeffe707667b1a553c61eb8586796ca0c07d3810411a2cf7b3aa65",
+ "schema_note": "classification AUTHOR_DECIDED marks an item confirmed by an explicit author choice (classification_before_confirmation keeps the category that required the author); decided_items[*].decision_package equals decision_packages[id]",
+ "decisions_sha256": "6e41f1a68d0417d02b03955103d643320f34a79e662c9c06ab4669197a77c48e"
 }

@@ -324,3 +324,146 @@ Disclosure texts (to be rendered only if the corresponding option is confirmed):
 * `RUN_ID_CHANGED = false`
 
 Next step: **AUTHOR CONFIRMATION OF E3.2 DECISIONS** (no new measurement wave); `SAFE_TO_PROCEED_TO_AUTHOR_DECISION = true`, `SAFE_TO_PROCEED_TO_POPULATION_FREEZE = false`.
+
+## 8. Author confirmation (2026-09-12, start HEAD `0cb83fab0467590fc2724ddd18b2057a72da604c`)
+
+Explicit author choices (verbatim from the author's confirmation, none derived from a recommendation): **A/B/A/A/C/B/B/A** — E32-01 A, E32-02 B, E32-03 A, E32-07 A, E32-08 C, E32-09 B, E32-11 B, E32-12 A. Persisted in `e3_2_decisions.json` with `decided_by = AUTHOR`, `confirmation_basis = EXPLICIT_AUTHOR_CHOICE`; `E3_2_DECISION = ACCEPTED`; pending/unresolved = []. Source evidence SHA `5de7565669a31e69` (artifact unchanged), decisions SHA `a1bc609e52eeffe7` -> `6e41f1a68d0417d0`. Implementation record: `thesis/evaluation/e3_2_author_confirmation.json` (SHA `c2d9d447cf9434f4`).
+
+### 8.1 Implemented (only the chosen options)
+
+| item | choice | implementation | condition moved |
+|---|---|---|---|
+| E32-01 | A | no change; regression-proven: GccAnalyzerTool.run argv without OMPI_SKIP_MPICXX for serial/omp/mpi, ParcoachTool keeps -DOMPI_SKIP_MPICXX (test_e3_2_author_confirmation.py, group E32-01 A) | False |
+| E32-02 | B | thesis/config/config.yaml stages.static_analysis.tools.infer.execution_models: [serial, omp, mpi] -> [serial, mpi] (config only; HARD_CAPABILITIES and InferTool.execution_models unchanged; orchestrator.py / feedback.py unchanged) | static (tools.infer.execution_models) |
+| E32-03 | A | no change; enhanced_policy.json / frozen E3 / prompts / semantic decisions byte-identical (git diff HEAD --stat shows none; E3 verifier reproducible) | False |
+| E32-07 | A | no change; frozen E3 artifact byte-identical | False |
+| E32-08 | C | thesis/evaluation/tools.py: offset_to_line_col(data: bytes, offset) counts b'\n' bytes and byte columns; ClangTidyTool._parse_fixes caches Path(file_path).read_bytes(); nothing else in the clang_tidy path changed (classification tables + is_blocking_check pinned byte-identical to 0cb83fa in the test) | static (tools.clang_tidy.implementation_sha256, tools_module_sha256) |
+| E32-09 | B | thesis/evaluation/tools.py: GCC_ANALYZER_DEMOTION_FAMILIES, GCC_DIAGNOSTIC_QUOTED_RE, GCC_ANALYZER_VECTOR_INTERNAL_TOKENS, GCC_ANALYZER_RESERVED_IDENT_RE, GCC_ANALYZER_FP_DEMOTION_RULES (machine-readable T1-T5 with condition + source evidence), gcc_diagnostic_quoted_expr, gcc_analyzer_fp_demotion_rule, apply_gcc_analyzer_fp_demotion; called in GccAnalyzerTool.run after the model-file filter; per-rule counts in analysis_details.fp_demotion; _IMPLEMENTATION_DEPS/_IMPLEMENTATION_TABLES extended. thesis/evaluation/tool_config.py: mark_low_confidence returns the count of all low_confidence findings (marking unchanged) | static (tools.gcc_analyzer.implementation_sha256, tools_module_sha256, shared_modules_sha256) |
+| E32-11 | B | '-Wanalyzer-malloc-leak' in GCC_ANALYZER_DEMOTION_FAMILIES; same T1-T4 signatures (T5 is null-dereference-only); no separate re-freeze | joint with E32-09 |
+| E32-12 | A | no change; search/35 cpu.cc numTries = 5, drivers_tree_sha256 unchanged; cross_pilot_comparability.json evaluation_condition text corrected + benchmark_local_exceptions note (disclosure only) | False |
+
+gcc_analyzer demotion semantics: a matching finding is kept unchanged and marked `low_confidence = true`; `blocking` stays the tool's assessment exactly as in the existing central low-confidence policy (parcoach / clang-tidy MPI-Checker): the feedback renders it as a verify-first hint and `grace_once` counts it once while new. Per-rule counts are recorded in `analysis_details.fp_demotion`.
+
+### 8.2 Conditions (re-frozen ONCE from the final state)
+
+| condition | before | after | why |
+|---|---|---|---|
+| static_analysis_condition | `327b235a8014cb68` | `1f7733276dd17d0e` | changed inputs: /shared_modules_sha256, /tools/clang_tidy/implementation_sha256, /tools/gcc_analyzer/implementation_sha256, /tools/infer/execution_models, /tools_module_sha256 |
+| repair_condition | `e6f5c32bbf329484` | `e6f5c32bbf329484` | unchanged: no input of the repair condition changed |
+| runtime_condition (readiness) | `a2f46b1a5e35e601` | `516288da9998fd1c` | image identities changed: False; re-measured by the readiness gate (READY) |
+| assembly_condition | `a1488514eb2482a2` | `a1488514eb2482a2` | unchanged |
+| enhanced E3 frozen specs | `49b0229c508f0630` | `49b0229c508f0630` | unchanged (E3 verifier reproducible) |
+| cross-pilot fingerprint | `57436c61d1cbf46f` | `7356e25356af4fa9` | granular reclassification (see 8.4) |
+
+### 8.3 Container measurements (pareval-thesis)
+
+clang-tidy raw-byte mapping vs clang-tidy's own text output (source of truth for line/column):
+
+| sample | variant | CR bytes | state | findings | (line, col) == text output |
+|---|---|---|---|---|---|
+| gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0 | crlf_as_stored | 57 | COMPLETED | 4 | True |
+| gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0 | lf_twin | 0 | COMPLETED | 4 | True |
+| gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0 | utf8_crlf | 58 | COMPLETED | 4 | True |
+| openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0 | crlf_as_stored | 71 | COMPLETED | 1 | True |
+| openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0 | lf_twin | 0 | COMPLETED | 1 | True |
+| openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0 | utf8_crlf | 72 | COMPLETED | 1 | True |
+
+CRLF == LF identity for every sample: True; UTF-8+CRLF == LF shifted by the inserted line: True.
+
+gcc_analyzer real run on pilot_001 MPI sources (findings kept, marks added):
+
+| sample | state | findings | blocking | low_confidence | fp_demotion | stored pilot_001 findings/blocking | messages unchanged |
+|---|---|---|---|---|---|---|---|
+| openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0 | PARTIAL | 17 | 1 | 1 | {"T5": 1} | 17/1 | True |
+| deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0 | PARTIAL | 21 | 5 | 5 | {"T1": 3, "T5": 2} | 21/5 | True |
+| qwen37_max__scan__30_scan_prefix_sum__mpi__sample_0 | PARTIAL | 24 | 7 | 5 | {"T1": 3, "T5": 2} | 24/7 | True |
+
+### 8.4 Cross-pilot (source of truth `cross_pilot_comparability.json`)
+
+* **static_analysis.gcc_analyzer**: 36 iteration-0 cells (12 benchmarks x 3 execution models): + LIMITED_WITH_DISCLOSURE for the derived blocking/low-confidence class and as repair input; raw finding presence / states / stored blocking counts COMPARABLE_WITH_LIMITATIONS as before
+* **static_analysis.clang_tidy**: 36 cells: + LIMITED_WITH_DISCLOSURE for line/column identity (pilot_001 CRLF locations shifted; derived correction from raw_stdout)
+* **static_analysis.infer x omp**: 12 cells: class unchanged METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; pilot_002 records NOT_APPLICABLE
+* **repair.static_feedback / combined_feedback**: 72 cells: class unchanged METHOD_CHANGED, granular disclosures (omp: Infer no longer required - 26 static_feedback / 25 combined_feedback pilot_001 clean stops flip to complete coverage under the pilot_002 required set; all: demotion changes the repair input; all: clang_tidy line references)
+* **unchanged**: compiler, cppcheck, parcoach, llov, test_feedback, correctness 99/99/198, enhanced, candidate subset
+
+Re-derived (read-only) pilot_001 clean stops under the pilot_002 required tool set: static_feedback {"clean_with_complete_coverage": 159, "would_be_stopped_analysis_incomplete": 181, "gap:llov:NOT_ANALYZED": 58, "gap:gcc_analyzer:PARTIAL": 102, "gap:parcoach:TIMEOUT": 19, "gap:parcoach:TOOL_ERROR": 25, "gap:llov:TOOL_ERROR": 30, "gap:llov:PARTIAL": 7}, combined_feedback {"clean_with_complete_coverage": 150, "would_be_stopped_analysis_incomplete": 142, "gap:llov:NOT_ANALYZED": 43, "gap:gcc_analyzer:PARTIAL": 76, "gap:parcoach:TIMEOUT": 15, "gap:parcoach:TOOL_ERROR": 23, "gap:llov:TOOL_ERROR": 27, "gap:llov:PARTIAL": 6}; flipped to complete coverage: {"combined_feedback": 25, "static_feedback": 26} (all omp, gap:infer only).
+clang_tidy base-run location re-derivation from raw_stdout: {"records_with_findings": 306, "findings": 1292, "located": 1286, "line_differs": 486, "records_with_shifted_location": 306, "line_equal_column_differs": 793, "line_differs_blocking": 140, "line_and_column_equal_text": 3, "line_null": 6, "no_text_match": 4}.
+gcc_analyzer demotion re-derivation per execution model: {"serial": {"records": 132, "records_with_blocking": 4, "blocking_findings": 5, "blocking_findings_demoted": 5, "records_whose_blocking_set_is_fully_demoted": 4}, "omp": {"records": 132, "records_with_blocking": 8, "blocking_findings": 29, "blocking_findings_demoted": 28, "records_whose_blocking_set_is_fully_demoted": 7}, "mpi": {"records": 132, "records_with_blocking": 49, "blocking_findings": 147, "blocking_findings_demoted": 143, "records_whose_blocking_set_is_fully_demoted": 47}}.
+
+### 8.5 Disclosures
+
+* **D1_infer_omp_coverage_scope** — scope: static_analysis.infer on every OpenMP sample; repair stop criterion of static_feedback / combined_feedback on OpenMP. Historical: pilot_001 ran Infer on OpenMP; the clang-11 frontend aborted the translation of every kernel (132/132 base records), recorded as a clean COMPLETED run; under the tool-state model NOT_ANALYZED, which the re-assessment counted as a coverage gap (gap:infer in 120 static_feedback / 101 combined_feedback clean stops). pilot_002: Infer configured for serial and mpi only; OpenMP records carry NOT_APPLICABLE; Infer is not a required tool on OpenMP; an issue-free OpenMP sample can stop clean when gcc_analyzer, clang_tidy, cppcheck, compiler and llov are complete. Allowed: Infer serial/mpi cells (COMPARABLE_WITH_LIMITATIONS); OpenMP clean-stop counts of pilot_001 re-derived under the pilot_002 required set (159 static_feedback / 150 combined_feedback with complete coverage). Forbidden: any OpenMP Infer verdict count (there is none on either side); pilot_001 stored OpenMP clean-stop counts (340/292) against pilot_002 without the re-derivation. Thesis wording: _Infer is applied to serial and MPI samples only; the pinned Infer release cannot translate OpenMP kernels, so OpenMP coverage rests on gcc_analyzer, clang-tidy, cppcheck and LLOV. In pilot_001 Infer was invoked on OpenMP samples but analysed none of them._
+* **D2_clang_tidy_pilot_001_crlf_location_bug** — scope: line and column of every pilot_001 base-run clang_tidy finding whose source was written with CRLF (Windows host); iteration-1 static_feedback / combined_feedback prompts rendered from them. Historical: byte FileOffset converted against newline-normalised text: of 1286 located base-run findings 486 are on the wrong line (140 blocking), 793 on the right line with a wrong column, 3 exact, 6 EOF findings stored with line null; counts, check ids, blocking flags and states are correct. pilot_002: FileOffset converted against the raw source bytes: line and column equal clang-tidy's own text output for LF, CRLF and UTF-8 sources (measured in the container). Allowed: finding counts, check ids, blocking flags, analysis states; line-level identities after the derived correction from the stored raw_stdout (clang-tidy's own file:line:column). Forbidden: stored pilot_001 line/column values against pilot_002 line/column values; line-referenced repair-feedback content of pilot_001 iteration 1. Thesis wording: _pilot_001's clang-tidy locations for CRLF-written sources are shifted by a conversion defect fixed before pilot_002; the historical records are kept unchanged and any location-level comparison uses locations re-derived from the stored clang-tidy output._
+* **D3_gcc_analyzer_t1_t5_confidence_demotion** — scope: gcc_analyzer findings of -Wanalyzer-null-dereference, -Wanalyzer-possible-null-dereference, -Wanalyzer-use-of-uninitialized-value whose message carries a Phase-0 T1-T5 signature (std::vector allocation modelled as fallible). Historical: every such finding was blocking and a repair target (pilot_001: 787 of 794 in-family blocking findings match the predicate; base run 172 of 177 in the three families). pilot_002: the same findings are recorded unchanged but marked low_confidence; the feedback renders them as verify-first hints; under grace_once a new low-confidence finding counts once and no longer when it persists; residue (3 uninitialized-value, 2 out-of-bounds) stays blocking. Allowed: raw finding presence, check ids, states and stored blocking counts; the derived class re-derived on the pilot_001 messages with the same predicate. Forbidden: repair trajectories / iteration counts of static_feedback and combined_feedback samples that carried only demoted findings (pilot_001 iterated on them as blocking); gcc_analyzer blocking counts as defect counts (Phase-0: not quotable). Thesis wording: _gcc -fanalyzer reports on the counterfactual allocation-failure paths of std::vector (Phase-0 signature classes T1-T5) are recorded but treated as low-confidence hints in pilot_002; pilot_001 treated them as blocking defects, so its repair trajectories on these samples are not directly comparable._
+* **D4_malloc_leak_demotion_scope** — scope: -Wanalyzer-malloc-leak findings whose message carries a T1-T4 signature (vector-internal storage, iterator internals, <unknown>, operator new). Historical: blocking (pilot_001 base run: 4 findings in 2 records, both T1; 47 over all seven run directories, 20 token-bearing / 24 operator-new / 3 unknown). pilot_002: demoted to low_confidence only under a signature; a malloc-leak finding without a signature stays blocking; no blanket demotion by check_id. Allowed: as D3. Forbidden: as D3; additionally the two pilot_001 sparse_la/45 mpi samples that stayed blocking only via malloc-leak. Thesis wording: _leak reports that name the same allocation-failure artefacts are demoted under the same signatures; genuine leaks of model-allocated memory keep their blocking status._
+* **D5_search_35_five_validation_attempts** — scope: correctness validation of search/35 (all execution models, both pilots). Historical: validate() retries up to numTries = 5 (benchmark-local) while the suite default is MAX_VALIDATION_ATTEMPTS = 2; search/38 was normalized in wave 2B, search/35 deliberately not. pilot_002: unchanged (E32-12 A): 5 attempts; drivers tree byte-identical. Allowed: search/35 verdicts across pilots (same validation power on both sides; the benchmark is in the DIRECTLY_COMPARABLE candidate subset). Forbidden: treating search/35's validation power as identical to the suite default when comparing across benchmarks. Thesis wording: _search/35 validates with five attempts instead of the suite default of two; this benchmark-local exception is identical in both pilots._
+* **D6_geometry_sentinel_convention_size_zero_untested** — scope: geometry/12, /13, /14 degenerate inputs (n < 3 resp. n < 2). Historical: not in the pilot_001 population. pilot_002: the frozen prompt states the sentinel convention (return 0 / area 0); enhanced tests never exercise size 0 (size_constraint.min_size 1, size_zero_policy DISALLOWED); the catalog reason strings of E32-04 are superseded by the prompt sentences and stay as a documented metadata limitation. Allowed: n/a (no pilot_001 cells). Forbidden: claiming that the degenerate-input convention was tested. Thesis wording: _for geometry/12-14 the degenerate-input convention is stated in the prompt but not exercised by the enhanced tests (size 0 is disallowed by the frozen policy)._
+
+### 8.6 Adversarial implementation review (question: was each author choice implemented exactly?)
+
+6 attack dimensions, 12 findings verified by two independent verifiers each: 9 confirmed (all MINOR: comment/test-hygiene/metadata; each fixed, no author choice touched), 3 refuted. No BLOCKING or MUST_FIX finding.
+* E3201-M1 (E32-01, MINOR): E32-01 record keeps pre-confirmation status fields that contradict its own author_confirmed=true (metadata only, not a code deviation) — fix: decided items now carry classification AUTHOR_DECIDED (classification_before_confirmation keeps DECISION_PENDING_AUTHOR) and the embedded decision_package equals the live package (persisted_as_author_decision true); decisions_sha256 recomputed
+* E32-02-F2 (E32-02, MINOR): Fixture proves scope/entry/required-set but not the runner path nor the 'no Infer parser/tool/version change' half of the choice — fix: test pins tools.tool_implementation_sha256('infer') and TU_STRATEGY['infer'] at their 0cb83fa values (Infer implementation unchanged) in addition to HARD_CAPABILITIES / InferTool.execution_models
+* E32-08-R2 (E32-08, MINOR): Fixture F comment misstates the pilot_001 behaviour ('would say 22'); pilot_001 actually dropped that location as (0,0) — fix: fixture F comment corrected: the pilot_001 conversion dropped the location as (0, 0) / line null (offset beyond the decoded text)
+* E32-09-R2 (E32-09 B, MINOR): Comment/table inaccuracies in the demotion block and a now-stale gcc_analyzer config comment — fix: tools.py comment corrected to '172 of the 175 blocking findings of the three families (181 over all families)'; config.yaml gcc_analyzer comment points to the code-side demotion; test asserts that every rule id of GCC_ANALYZER_FP_DEMOTION_RULES is produced by a canonical fixture and vice versa (drift guard)
+* F1 (E32-12, MINOR): E32-12 regression check uses a non-existent benchmark path and a substring match — fix: test uses the real path drivers/cpp/benchmarks/search/35_search_search_for_last_struct_by_key/cpu.cc with a regex on `const size_t numTries = 5;` and pins drivers_tree_sha256
+* F2 (E32-03/E32-07/E32-12 (decision artifact), MINOR): implemented_in / implementation_and_refreeze reference a file that does not exist and has no producer — fix: thesis/evaluation/e3_2_author_confirmation.json is produced by this wave under exactly that name (container_measurements.clang_tidy included)
+* F3 (E32-03/E32-07/E32-12 (decision artifact), MINOR): Decided items still carry classification DECISION_PENDING_AUTHOR — fix: same fix as E3201-M1
+* OR-01 (E3.2 decisions artifact / new test (provenance pointer), MINOR): Persisted artifact and test docstring point at a file that does not exist: thesis/evaluation/e3_2_author_confirmation.json — fix: same fix as F2
+* OR-02 (E32-12 A regression check in test_e3_2_author_confirmation.py, MINOR): search/35 check hard-codes a non-existent benchmark directory and only passes via the glob fallback — fix: same fix as F1
+
+### 8.7 Tests
+
+| test / gate | result |
+|---|---|
+| test_e3_2_author_confirmation | PASS — All 116 E3.2 author-confirmation checks passed. |
+| test_evaluation | PASS — All 27 evaluation-framework tests passed. |
+| test_tool_state | PASS — All tool-state test groups passed. |
+| test_static_repair_provenance | PASS — All static/repair provenance test groups passed. |
+| test_orchestrator | PASS — All 12 orchestrator test groups passed. |
+| test_feedback | PASS — All 8 repair-feedback tests passed. |
+| test_backfill | PASS — All 7 backfill test groups passed. |
+| test_post_run_verification | PASS — All post-run verification fixtures passed. |
+| test_repair_scope | PASS — All repair scope completeness tests passed. |
+| test_stage_enforcement | PASS — All stage enforcement tests passed. |
+| test_cross_process_authorization | PASS — All cross-process authorization tests passed. |
+| test_semantic_decisions | PASS — All semantic-decision test groups passed. |
+| test_timing_semantics | PASS — All timing semantics tests passed. |
+| test_manifest_fragments | PASS — All manifest fragment test groups passed. |
+| test_provider_chokepoint | PASS — All provider chokepoint / authorization tests passed. |
+| test_comparator_semantics | PASS — all comparator-semantics checks passed |
+| check_semantic_decisions | PASS — SEMANTIC_GATE = PASS_WITH_DISCLOSURE |
+| check_static_repair_readiness | PASS — evidence: C:\Users\jerab\Desktop\ParEval-thesis\thesis\evaluation\static_repair_readiness.json |
+| check_cross_pilot_gate | PASS — CROSS_PILOT_GATE_STALE = false (repo-state check; the RUNTIME condition match - effective invocation and actual environment - is determined  |
+| check_timing_semantics | PASS — written: C:/Users/jerab/AppData/Local/Temp/claude/C--Users-jerab-Desktop-ParEval-thesis/632014e8-b691-476d-9f45-6ee30cca3c51/scratchpad/e32a |
+| check_prompt_oracle_consistency | PASS — Convention summary: consistent=23 |
+| assembly_gate_1 | PASS — GATE_1_PILOT001_ASSEMBLY_BYTE_REGRESSION; ASSEMBLY_SEMANTICS_CHANGED = false |
+| verify_e3_frozen_artifacts | PASS — E3_FROZEN_ARTIFACTS_REPRODUCIBLE = true |
+
+### 8.8 Flags
+
+* `AUTHOR_CHOICES_EXPLICIT = true`
+* `AUTHOR_CHOICES = A/B/A/A/C/B/B/A`
+* `AGENT_SELECTED_AUTHOR_OPTION = false`
+* `GENERATION_PERFORMED = false`
+* `LLM_API_CALLS = 0`
+* `PILOT001_HISTORICAL_TREE_CHANGED = false`
+* `POPULATION_CHANGED = false`
+* `RUN_ID_CHANGED = false`
+* `REUSE_DECIDED = false`
+* `PUBLICATION_DECIDED = false`
+* `E32_01_IMPLEMENTED_AS_A = true`
+* `E32_02_IMPLEMENTED_AS_B = true`
+* `E32_03_IMPLEMENTED_AS_A = true`
+* `E32_07_IMPLEMENTED_AS_A = true`
+* `E32_08_IMPLEMENTED_AS_C = true`
+* `E32_09_IMPLEMENTED_AS_B = true`
+* `E32_11_IMPLEMENTED_AS_B = true`
+* `E32_12_IMPLEMENTED_AS_A = true`
+* `STATIC_SPLIT_INVOCATION_GAP_CLOSED = false`
+* `ITERATION_ZERO_COVERAGE_RESIDUAL_CLOSED = false`
+* `EVIDENCE_ARTIFACT_CHANGED = false`
+
+pilot_001 tree fingerprint before/after: 2038 files, inventory `c861b33f575e0d96` / `c861b33f575e0d96` (unchanged). Open items not closed here: STATIC_SPLIT_INVOCATION_COVERAGE_GAP: OPEN_TECHNICAL_FINDING (PARCOACH/LLOV invocation coverage; next wave); ITERATION_ZERO_COVERAGE_RESIDUAL: CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE (next wave); docker_readiness_observation: open: the known transient first-inspect flake is unchanged; during this wave the Docker Desktop Linux VM became unreachable once (backend log: 'connect tcp 192.168.65.7:2376: no route to host') while a bind-mounted container ran, and needed a Docker Desktop restart - recorded, no probe/retry/warm-up policy introduced (OPEN_FOR_FINAL_ENVIRONMENT_GATE); TSan_ASLR: OPEN_FOR_FINAL_ENVIRONMENT_GATE; population / run_id / reuse / publication: NOT_YET_DECIDED / NOT_YET_CONFIGURED / UNDECIDED / OPEN.
+
+Next step: **FINAL TECHNICAL PROVENANCE CLEANUP**; `AUTHOR_CONFIRMATION_COMPLETE = true`, `SAFE_TO_PROCEED_TO_TECHNICAL_PROVENANCE_CLEANUP = true`, `SAFE_TO_PROCEED_TO_POPULATION_FREEZE = false`.

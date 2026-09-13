@@ -1,0 +1,815 @@
+{
+ "schema_version": "e3_2_author_confirmation.v1",
+ "wave": "E3.2 Author Confirmation - persist author choices, apply required changes, re-freeze conditions, re-prove pilot_002 readiness",
+ "date": "2026-09-12",
+ "source_head": "0cb83fab0467590fc2724ddd18b2057a72da604c",
+ "evidence_source_head": "c7a6dbc41d9c54786ec3c23db451d35f756054c1",
+ "source_evidence_sha256": "5de7565669a31e69d908b5048065805cab8f601b6cac90434f19fc81e88a3c16",
+ "source_decisions_sha256": "a1bc609e52eeffe707667b1a553c61eb8586796ca0c07d3810411a2cf7b3aa65",
+ "decisions_sha256_after_confirmation": "6e41f1a68d0417d02b03955103d643320f34a79e662c9c06ab4669197a77c48e",
+ "evidence_artifact_git_blob": "3064f47679b115be389c95a026a1b79d05f826f2",
+ "author_choices": {
+  "E32-01": "A",
+  "E32-02": "B",
+  "E32-03": "A",
+  "E32-07": "A",
+  "E32-08": "C",
+  "E32-09": "B",
+  "E32-11": "B",
+  "E32-12": "A"
+ },
+ "choices_short": "A/B/A/A/C/B/B/A",
+ "choices_source": "explicit author message (E3.2 Author Confirmation contract): the values are transcribed verbatim; none is derived from a recommendation, a majority vote, a review or an agent preference",
+ "combination_rule": "E32-09 B with E32-11 B: valid",
+ "implemented_changes": {
+  "E32-01": {
+   "author_choice": "A",
+   "implementation": "no change; regression-proven: GccAnalyzerTool.run argv without OMPI_SKIP_MPICXX for serial/omp/mpi, ParcoachTool keeps -DOMPI_SKIP_MPICXX (test_e3_2_author_confirmation.py, group E32-01 A)",
+   "condition_moved": false
+  },
+  "E32-02": {
+   "author_choice": "B",
+   "implementation": "thesis/config/config.yaml stages.static_analysis.tools.infer.execution_models: [serial, omp, mpi] -> [serial, mpi] (config only; HARD_CAPABILITIES and InferTool.execution_models unchanged; orchestrator.py / feedback.py unchanged)",
+   "condition_moved": "static (tools.infer.execution_models)"
+  },
+  "E32-03": {
+   "author_choice": "A",
+   "implementation": "no change; enhanced_policy.json / frozen E3 / prompts / semantic decisions byte-identical (git diff HEAD --stat shows none; E3 verifier reproducible)",
+   "condition_moved": false
+  },
+  "E32-07": {
+   "author_choice": "A",
+   "implementation": "no change; frozen E3 artifact byte-identical",
+   "condition_moved": false
+  },
+  "E32-08": {
+   "author_choice": "C",
+   "implementation": "thesis/evaluation/tools.py: offset_to_line_col(data: bytes, offset) counts b'\\n' bytes and byte columns; ClangTidyTool._parse_fixes caches Path(file_path).read_bytes(); nothing else in the clang_tidy path changed (classification tables + is_blocking_check pinned byte-identical to 0cb83fa in the test)",
+   "condition_moved": "static (tools.clang_tidy.implementation_sha256, tools_module_sha256)"
+  },
+  "E32-09": {
+   "author_choice": "B",
+   "implementation": "thesis/evaluation/tools.py: GCC_ANALYZER_DEMOTION_FAMILIES, GCC_DIAGNOSTIC_QUOTED_RE, GCC_ANALYZER_VECTOR_INTERNAL_TOKENS, GCC_ANALYZER_RESERVED_IDENT_RE, GCC_ANALYZER_FP_DEMOTION_RULES (machine-readable T1-T5 with condition + source evidence), gcc_diagnostic_quoted_expr, gcc_analyzer_fp_demotion_rule, apply_gcc_analyzer_fp_demotion; called in GccAnalyzerTool.run after the model-file filter; per-rule counts in analysis_details.fp_demotion; _IMPLEMENTATION_DEPS/_IMPLEMENTATION_TABLES extended. thesis/evaluation/tool_config.py: mark_low_confidence returns the count of all low_confidence findings (marking unchanged)",
+   "finding_semantics": "low_confidence = true; blocking unchanged (existing central low_confidence semantics); nothing deleted or edited",
+   "condition_moved": "static (tools.gcc_analyzer.implementation_sha256, tools_module_sha256, shared_modules_sha256)"
+  },
+  "E32-11": {
+   "author_choice": "B",
+   "implementation": "'-Wanalyzer-malloc-leak' in GCC_ANALYZER_DEMOTION_FAMILIES; same T1-T4 signatures (T5 is null-dereference-only); no separate re-freeze",
+   "condition_moved": "joint with E32-09"
+  },
+  "E32-12": {
+   "author_choice": "A",
+   "implementation": "no change; search/35 cpu.cc numTries = 5, drivers_tree_sha256 unchanged; cross_pilot_comparability.json evaluation_condition text corrected + benchmark_local_exceptions note (disclosure only)",
+   "condition_moved": false
+  },
+  "git_diff_stat_before_commit": [
+   "thesis/config/config.yaml                          |  17 +-",
+   " thesis/evaluation/cross_pilot_comparability.json   | 157 +++++++-",
+   " thesis/evaluation/e3_2_decisions.json              | 439 +++++++++++++++------",
+   " thesis/evaluation/e3_2_evidence_addendum.md        | 143 +++++++",
+   " .../static_repair_pilot002_readiness_report.md     |  11 +",
+   " thesis/evaluation/static_repair_readiness.json     |  38 +-",
+   " thesis/evaluation/test_evaluation.py               |   8 +-",
+   " thesis/evaluation/tool_config.py                   |   9 +-",
+   " thesis/evaluation/tools.py                         | 182 ++++++++-",
+   " 9 files changed, 837 insertions(+), 167 deletions(-)"
+  ]
+ },
+ "conditions_before": {
+  "static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
+  "repair_condition_sha256": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+  "runtime_condition_sha256": "a2f46b1a5e35e60150fc7c77ef7c40185fd6d6b6aed51ddc02c9e524af53f446",
+  "runtime_image_ids": {
+   "main": "sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa",
+   "parcoach": "sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030",
+   "llov": "sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341"
+  },
+  "assembly_condition_sha256": "a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c",
+  "enhanced_e3_frozen_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+  "cross_pilot_fingerprint_sha256": "57436c61d1cbf46fcbb09f1a873c5455eef337a0aa51b3230bd70a64effba46d",
+  "readiness_gate": "READY",
+  "readiness_created_at_utc": "2026-09-06T18:14:09.014328Z"
+ },
+ "conditions_after": {
+  "static_analysis_condition_sha256": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+  "static_condition_changed_inputs": {
+   "/shared_modules_sha256": {
+    "before": "c3d59ec954e8001ce29413f1a6dc4a2de1b431583c7e679cb19048cd90a5667a",
+    "after": "761517e747d5674ded7e83135e3749bdfc49a8bf2c7294611b46e9232ef82966"
+   },
+   "/tools/clang_tidy/implementation_sha256": {
+    "before": "07ab1522b2c517b648b7438442664243ea69c11dbaad11f86c1eba8cca87b86a",
+    "after": "97b00ee61c47f1c159fb8615631663b785329e9a34c37f515eb190b3de25dc62"
+   },
+   "/tools/gcc_analyzer/implementation_sha256": {
+    "before": "26d3f9a2f64481db9851489d07411bfd922113f2d53e8dc1485ed0ac8b38902a",
+    "after": "912643bc5298550ea648eaf8deae61058492ca2fd19aee4d11426c6f20d77c68"
+   },
+   "/tools/infer/execution_models": {
+    "before": "[\"serial\", \"omp\", \"mpi\"]",
+    "after": "[\"serial\", \"mpi\"]"
+   },
+   "/tools_module_sha256": {
+    "before": "9ed277a0bb3b74eaca64ccf5ab772f25589d513bc155a7dbe1311459d60465b6",
+    "after": "e3f6e5cc0bc4d727d13bcd16e59e6851b072a0a7524c2ee0d1968763f2e06c06"
+   }
+  },
+  "static_condition_unchanged_inputs_include": [
+   "drivers_tree_sha256 (E32-12 A / E32-03 A / E32-07 A)",
+   "build (macros, cxxflags per execution model)",
+   "tools.compiler/cppcheck/parcoach/llov implementation and scopes",
+   "external_tool_commands / external_tools",
+   "low_confidence_stop_mode grace_once",
+   "tool_state_schema"
+  ],
+  "repair_condition_sha256": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+  "repair_condition_changed": false,
+  "repair_condition_reason": "unchanged: static_provenance.repair_condition hashes the repair settings, feedback template/module and orchestrator.py only - none of the changed inputs (tool scope, clang-tidy location mapping, gcc_analyzer classification, tool_config count) is an input of that condition; the repair loop consumes the new tool applicability states and low_confidence findings as ordinary input through the existing grace_once / gap policy",
+  "runtime_condition_sha256": "516288da9998fd1ce61a34ce5ff4c396ad84364031d38d78509caadf0cf815b3",
+  "runtime_condition_changed": true,
+  "runtime_image_ids": {
+   "main": "sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa",
+   "parcoach": "sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030",
+   "llov": "sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341"
+  },
+  "runtime_image_identities_changed": false,
+  "assembly_condition_sha256": "a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c",
+  "assembly_condition_changed": false,
+  "enhanced_e3_frozen_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+  "enhanced_e3_changed": false,
+  "cross_pilot_fingerprint_sha256": "7356e25356af4fa9016c239bf32cced4d0431240348605c2de07110b09aba73a",
+  "readiness_gate": "READY",
+  "readiness_schema": "static_repair_readiness.v2"
+ },
+ "container_measurements": {
+  "image": "pareval-thesis sha256:eb1c2e93cfab (a staged copy of the working tree - drivers, thesis packages, the four needed pilot_001 records/sources - mounted at /repo; analysed sources copied to a temp dir; the historical tree itself was never mounted or written)",
+  "clang_tidy_vs_own_text_output": {
+   "method": "the productive ClangTidyTool is run on a CRLF pilot_001 source, its LF twin and a UTF-8+CRLF variant; the parsed (line, column) set is compared with the file:line:column of clang-tidy's OWN text output (raw_stdout) - the source of truth for the location convention",
+   "rows": [
+    {
+     "sample": "gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0",
+     "variant": "crlf_as_stored",
+     "cr_count": 57,
+     "state": "COMPLETED",
+     "findings": 4,
+     "line_col_identity_equals_clang_tidy_text_output": true
+    },
+    {
+     "sample": "gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0",
+     "variant": "lf_twin",
+     "cr_count": 0,
+     "state": "COMPLETED",
+     "findings": 4,
+     "line_col_identity_equals_clang_tidy_text_output": true
+    },
+    {
+     "sample": "gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0",
+     "variant": "utf8_crlf",
+     "cr_count": 58,
+     "state": "COMPLETED",
+     "findings": 4,
+     "line_col_identity_equals_clang_tidy_text_output": true
+    },
+    {
+     "sample": "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "variant": "crlf_as_stored",
+     "cr_count": 71,
+     "state": "COMPLETED",
+     "findings": 1,
+     "line_col_identity_equals_clang_tidy_text_output": true
+    },
+    {
+     "sample": "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "variant": "lf_twin",
+     "cr_count": 0,
+     "state": "COMPLETED",
+     "findings": 1,
+     "line_col_identity_equals_clang_tidy_text_output": true
+    },
+    {
+     "sample": "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "variant": "utf8_crlf",
+     "cr_count": 72,
+     "state": "COMPLETED",
+     "findings": 1,
+     "line_col_identity_equals_clang_tidy_text_output": true
+    }
+   ],
+   "cross_variant": [
+    {
+     "sample": "gemini_36_flash__geometry__10_geometry_convex_hull__serial__sample_0",
+     "crlf_equals_lf_line_col": true,
+     "utf8_crlf_equals_lf_shifted_by_one_line": true
+    },
+    {
+     "sample": "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "crlf_equals_lf_line_col": true,
+     "utf8_crlf_equals_lf_shifted_by_one_line": true
+    }
+   ],
+   "all_identities_equal_text_output": true,
+   "crlf_equals_lf_for_every_sample": true
+  },
+  "gcc_analyzer_real_run": {
+   "method": "the productive GccAnalyzerTool is run on three pilot_001 MPI sources with T1/T5/malloc-leak findings; the entry is compared with the stored pilot_001 entry",
+   "rows": [
+    {
+     "sample": "openai_gpt55__scan__30_scan_prefix_sum__mpi__sample_0",
+     "state": "PARTIAL",
+     "num_findings": 17,
+     "num_blocking": 1,
+     "num_low_confidence": 1,
+     "fp_demotion": {
+      "T5": 1
+     },
+     "stored_pilot_001_num_findings": 17,
+     "stored_pilot_001_num_blocking": 1,
+     "blocking_not_demoted": [],
+     "messages_unchanged_vs_stored": true
+    },
+    {
+     "sample": "deepseek_v4_pro__sparse_la__45_sparse_la_sparse_solve__mpi__sample_0",
+     "state": "PARTIAL",
+     "num_findings": 21,
+     "num_blocking": 5,
+     "num_low_confidence": 5,
+     "fp_demotion": {
+      "T1": 3,
+      "T5": 2
+     },
+     "stored_pilot_001_num_findings": 21,
+     "stored_pilot_001_num_blocking": 5,
+     "blocking_not_demoted": [],
+     "messages_unchanged_vs_stored": true
+    },
+    {
+     "sample": "qwen37_max__scan__30_scan_prefix_sum__mpi__sample_0",
+     "state": "PARTIAL",
+     "num_findings": 24,
+     "num_blocking": 7,
+     "num_low_confidence": 5,
+     "fp_demotion": {
+      "T1": 3,
+      "T5": 2
+     },
+     "stored_pilot_001_num_findings": 24,
+     "stored_pilot_001_num_blocking": 7,
+     "blocking_not_demoted": [
+      [
+       "-Wanalyzer-out-of-bounds",
+       34,
+       "heap-based buffer under-read [CWE-127]"
+      ],
+      [
+       "-Wanalyzer-use-of-uninitialized-value",
+       34,
+       "use of uninitialized value ‘MEM[(double * const &)&local_sum"
+      ]
+     ],
+     "messages_unchanged_vs_stored": true
+    }
+   ]
+  }
+ },
+ "cross_pilot_effect": {
+  "source_of_truth": "thesis/evaluation/cross_pilot_comparability.json (areas.F_static_repair; per_tool + repair.e3_2_author_confirmation + fingerprints + e3_2_author_confirmation_wave; shared_state.evaluation_condition.benchmark_local_exceptions)",
+  "status_before": "CURRENT (check_cross_pilot_gate exit 0 at HEAD 0cb83fa)",
+  "status_after": "CURRENT (legitimately reclassified; self fingerprint recomputed; no hash-refresh-only change)",
+  "classification": "PILOT_SUBSET_ONLY_QUANTITATIVE_COMPARISON_DEFENSIBLE_WITH_EXCLUSIONS",
+  "per_tool_classes_before": {
+   "compiler": "DIRECTLY_COMPARABLE",
+   "gcc_analyzer": "COMPARABLE_WITH_LIMITATIONS",
+   "clang_tidy": "COMPARABLE_WITH_LIMITATIONS",
+   "cppcheck": "COMPARABLE_WITH_LIMITATIONS",
+   "infer": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE for omp; COMPARABLE_WITH_LIMITATIONS for serial/mpi",
+   "parcoach": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+   "llov": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+  },
+  "per_tool_classes_after": {
+   "compiler": "DIRECTLY_COMPARABLE",
+   "gcc_analyzer": "COMPARABLE_WITH_LIMITATIONS for raw finding presence, analysis states and stored blocking counts; LIMITED_WITH_DISCLOSURE for the derived blocking/low-confidence class and as repair input (E3.2 E32-09 B / E32-11 B)",
+   "clang_tidy": "COMPARABLE_WITH_LIMITATIONS for counts, check ids, blocking flags and states; LIMITED_WITH_DISCLOSURE for line/column identities (E3.2 E32-08 C)",
+   "cppcheck": "COMPARABLE_WITH_LIMITATIONS",
+   "infer": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE for omp; COMPARABLE_WITH_LIMITATIONS for serial/mpi",
+   "parcoach": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE",
+   "llov": "METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE"
+  },
+  "affected_cells": {
+   "static_analysis.gcc_analyzer": "36 iteration-0 cells (12 benchmarks x 3 execution models): + LIMITED_WITH_DISCLOSURE for the derived blocking/low-confidence class and as repair input; raw finding presence / states / stored blocking counts COMPARABLE_WITH_LIMITATIONS as before",
+   "static_analysis.clang_tidy": "36 cells: + LIMITED_WITH_DISCLOSURE for line/column identity (pilot_001 CRLF locations shifted; derived correction from raw_stdout)",
+   "static_analysis.infer x omp": "12 cells: class unchanged METHOD_CHANGED_NOT_DIRECTLY_COMPARABLE; pilot_002 records NOT_APPLICABLE",
+   "repair.static_feedback / combined_feedback": "72 cells: class unchanged METHOD_CHANGED, granular disclosures (omp: Infer no longer required - 26 static_feedback / 25 combined_feedback pilot_001 clean stops flip to complete coverage under the pilot_002 required set; all: demotion changes the repair input; all: clang_tidy line references)",
+   "unchanged": "compiler, cppcheck, parcoach, llov, test_feedback, correctness 99/99/198, enhanced, candidate subset"
+  },
+  "rederived_evidence": {
+   "clean_stops_stored_method_reproduced": {
+    "combined_feedback": {
+     "clean_with_complete_coverage": 125,
+     "would_be_stopped_analysis_incomplete": 167,
+     "gap:infer:NOT_ANALYZED": 101,
+     "gap:llov:NOT_ANALYZED": 43,
+     "gap:gcc_analyzer:PARTIAL": 76,
+     "gap:parcoach:TIMEOUT": 15,
+     "gap:parcoach:TOOL_ERROR": 23,
+     "gap:llov:TOOL_ERROR": 27,
+     "gap:llov:PARTIAL": 6
+    },
+    "static_feedback": {
+     "clean_with_complete_coverage": 133,
+     "would_be_stopped_analysis_incomplete": 207,
+     "gap:infer:NOT_ANALYZED": 120,
+     "gap:llov:NOT_ANALYZED": 58,
+     "gap:gcc_analyzer:PARTIAL": 102,
+     "gap:parcoach:TIMEOUT": 19,
+     "gap:parcoach:TOOL_ERROR": 25,
+     "gap:llov:TOOL_ERROR": 30,
+     "gap:llov:PARTIAL": 7
+    },
+    "test_feedback": {
+     "clean_with_complete_coverage": 337
+    }
+   },
+   "clean_stops_under_pilot_002_required_set": {
+    "combined_feedback": {
+     "clean_with_complete_coverage": 150,
+     "would_be_stopped_analysis_incomplete": 142,
+     "gap:llov:NOT_ANALYZED": 43,
+     "gap:gcc_analyzer:PARTIAL": 76,
+     "gap:parcoach:TIMEOUT": 15,
+     "gap:parcoach:TOOL_ERROR": 23,
+     "gap:llov:TOOL_ERROR": 27,
+     "gap:llov:PARTIAL": 6
+    },
+    "static_feedback": {
+     "clean_with_complete_coverage": 159,
+     "would_be_stopped_analysis_incomplete": 181,
+     "gap:llov:NOT_ANALYZED": 58,
+     "gap:gcc_analyzer:PARTIAL": 102,
+     "gap:parcoach:TIMEOUT": 19,
+     "gap:parcoach:TOOL_ERROR": 25,
+     "gap:llov:TOOL_ERROR": 30,
+     "gap:llov:PARTIAL": 7
+    },
+    "test_feedback": {
+     "clean_with_complete_coverage": 337
+    }
+   },
+   "clean_stops_flipped_to_complete_coverage": {
+    "combined_feedback": 25,
+    "static_feedback": 26
+   },
+   "clang_tidy_location_rederivation_base_run": {
+    "records_with_findings": 306,
+    "findings": 1292,
+    "located": 1286,
+    "line_differs": 486,
+    "records_with_shifted_location": 306,
+    "line_equal_column_differs": 793,
+    "line_differs_blocking": 140,
+    "line_and_column_equal_text": 3,
+    "line_null": 6,
+    "no_text_match": 4
+   },
+   "gcc_analyzer_demotion_rederivation_base_run": {
+    "serial": {
+     "records": 132,
+     "records_with_blocking": 4,
+     "blocking_findings": 5,
+     "blocking_findings_demoted": 5,
+     "records_whose_blocking_set_is_fully_demoted": 4
+    },
+    "omp": {
+     "records": 132,
+     "records_with_blocking": 8,
+     "blocking_findings": 29,
+     "blocking_findings_demoted": 28,
+     "records_whose_blocking_set_is_fully_demoted": 7
+    },
+    "mpi": {
+     "records": 132,
+     "records_with_blocking": 49,
+     "blocking_findings": 147,
+     "blocking_findings_demoted": 143,
+     "records_whose_blocking_set_is_fully_demoted": 47
+    }
+   }
+  },
+  "pilot_001_records_rewritten": false
+ },
+ "disclosures": {
+  "D1_infer_omp_coverage_scope": {
+   "scope": "static_analysis.infer on every OpenMP sample; repair stop criterion of static_feedback / combined_feedback on OpenMP",
+   "historical_state": "pilot_001 ran Infer on OpenMP; the clang-11 frontend aborted the translation of every kernel (132/132 base records), recorded as a clean COMPLETED run; under the tool-state model NOT_ANALYZED, which the re-assessment counted as a coverage gap (gap:infer in 120 static_feedback / 101 combined_feedback clean stops)",
+   "pilot_002_state": "Infer configured for serial and mpi only; OpenMP records carry NOT_APPLICABLE; Infer is not a required tool on OpenMP; an issue-free OpenMP sample can stop clean when gcc_analyzer, clang_tidy, cppcheck, compiler and llov are complete",
+   "allowed_comparison": "Infer serial/mpi cells (COMPARABLE_WITH_LIMITATIONS); OpenMP clean-stop counts of pilot_001 re-derived under the pilot_002 required set (159 static_feedback / 150 combined_feedback with complete coverage)",
+   "forbidden_comparison": "any OpenMP Infer verdict count (there is none on either side); pilot_001 stored OpenMP clean-stop counts (340/292) against pilot_002 without the re-derivation",
+   "thesis_wording": "Infer is applied to serial and MPI samples only; the pinned Infer release cannot translate OpenMP kernels, so OpenMP coverage rests on gcc_analyzer, clang-tidy, cppcheck and LLOV. In pilot_001 Infer was invoked on OpenMP samples but analysed none of them."
+  },
+  "D2_clang_tidy_pilot_001_crlf_location_bug": {
+   "scope": "line and column of every pilot_001 base-run clang_tidy finding whose source was written with CRLF (Windows host); iteration-1 static_feedback / combined_feedback prompts rendered from them",
+   "historical_state": "byte FileOffset converted against newline-normalised text: of 1286 located base-run findings 486 are on the wrong line (140 blocking), 793 on the right line with a wrong column, 3 exact, 6 EOF findings stored with line null; counts, check ids, blocking flags and states are correct",
+   "pilot_002_state": "FileOffset converted against the raw source bytes: line and column equal clang-tidy's own text output for LF, CRLF and UTF-8 sources (measured in the container)",
+   "allowed_comparison": "finding counts, check ids, blocking flags, analysis states; line-level identities after the derived correction from the stored raw_stdout (clang-tidy's own file:line:column)",
+   "forbidden_comparison": "stored pilot_001 line/column values against pilot_002 line/column values; line-referenced repair-feedback content of pilot_001 iteration 1",
+   "thesis_wording": "pilot_001's clang-tidy locations for CRLF-written sources are shifted by a conversion defect fixed before pilot_002; the historical records are kept unchanged and any location-level comparison uses locations re-derived from the stored clang-tidy output."
+  },
+  "D3_gcc_analyzer_t1_t5_confidence_demotion": {
+   "scope": "gcc_analyzer findings of -Wanalyzer-null-dereference, -Wanalyzer-possible-null-dereference, -Wanalyzer-use-of-uninitialized-value whose message carries a Phase-0 T1-T5 signature (std::vector allocation modelled as fallible)",
+   "historical_state": "every such finding was blocking and a repair target (pilot_001: 787 of 794 in-family blocking findings match the predicate; base run 172 of 177 in the three families)",
+   "pilot_002_state": "the same findings are recorded unchanged but marked low_confidence; the feedback renders them as verify-first hints; under grace_once a new low-confidence finding counts once and no longer when it persists; residue (3 uninitialized-value, 2 out-of-bounds) stays blocking",
+   "allowed_comparison": "raw finding presence, check ids, states and stored blocking counts; the derived class re-derived on the pilot_001 messages with the same predicate",
+   "forbidden_comparison": "repair trajectories / iteration counts of static_feedback and combined_feedback samples that carried only demoted findings (pilot_001 iterated on them as blocking); gcc_analyzer blocking counts as defect counts (Phase-0: not quotable)",
+   "thesis_wording": "gcc -fanalyzer reports on the counterfactual allocation-failure paths of std::vector (Phase-0 signature classes T1-T5) are recorded but treated as low-confidence hints in pilot_002; pilot_001 treated them as blocking defects, so its repair trajectories on these samples are not directly comparable."
+  },
+  "D4_malloc_leak_demotion_scope": {
+   "scope": "-Wanalyzer-malloc-leak findings whose message carries a T1-T4 signature (vector-internal storage, iterator internals, <unknown>, operator new)",
+   "historical_state": "blocking (pilot_001 base run: 4 findings in 2 records, both T1; 47 over all seven run directories, 20 token-bearing / 24 operator-new / 3 unknown)",
+   "pilot_002_state": "demoted to low_confidence only under a signature; a malloc-leak finding without a signature stays blocking; no blanket demotion by check_id",
+   "allowed_comparison": "as D3",
+   "forbidden_comparison": "as D3; additionally the two pilot_001 sparse_la/45 mpi samples that stayed blocking only via malloc-leak",
+   "thesis_wording": "leak reports that name the same allocation-failure artefacts are demoted under the same signatures; genuine leaks of model-allocated memory keep their blocking status."
+  },
+  "D5_search_35_five_validation_attempts": {
+   "scope": "correctness validation of search/35 (all execution models, both pilots)",
+   "historical_state": "validate() retries up to numTries = 5 (benchmark-local) while the suite default is MAX_VALIDATION_ATTEMPTS = 2; search/38 was normalized in wave 2B, search/35 deliberately not",
+   "pilot_002_state": "unchanged (E32-12 A): 5 attempts; drivers tree byte-identical",
+   "allowed_comparison": "search/35 verdicts across pilots (same validation power on both sides; the benchmark is in the DIRECTLY_COMPARABLE candidate subset)",
+   "forbidden_comparison": "treating search/35's validation power as identical to the suite default when comparing across benchmarks",
+   "thesis_wording": "search/35 validates with five attempts instead of the suite default of two; this benchmark-local exception is identical in both pilots."
+  },
+  "D6_geometry_sentinel_convention_size_zero_untested": {
+   "scope": "geometry/12, /13, /14 degenerate inputs (n < 3 resp. n < 2)",
+   "historical_state": "not in the pilot_001 population",
+   "pilot_002_state": "the frozen prompt states the sentinel convention (return 0 / area 0); enhanced tests never exercise size 0 (size_constraint.min_size 1, size_zero_policy DISALLOWED); the catalog reason strings of E32-04 are superseded by the prompt sentences and stay as a documented metadata limitation",
+   "allowed_comparison": "n/a (no pilot_001 cells)",
+   "forbidden_comparison": "claiming that the degenerate-input convention was tested",
+   "thesis_wording": "for geometry/12-14 the degenerate-input convention is stated in the prompt but not exercised by the enhanced tests (size 0 is disallowed by the frozen policy)."
+  }
+ },
+ "tests": {
+  "test_e3_2_author_confirmation": {
+   "result": "PASS",
+   "summary": "All 116 E3.2 author-confirmation checks passed."
+  },
+  "test_evaluation": {
+   "result": "PASS",
+   "summary": "All 27 evaluation-framework tests passed."
+  },
+  "test_tool_state": {
+   "result": "PASS",
+   "summary": "All tool-state test groups passed."
+  },
+  "test_static_repair_provenance": {
+   "result": "PASS",
+   "summary": "All static/repair provenance test groups passed."
+  },
+  "test_orchestrator": {
+   "result": "PASS",
+   "summary": "All 12 orchestrator test groups passed."
+  },
+  "test_feedback": {
+   "result": "PASS",
+   "summary": "All 8 repair-feedback tests passed."
+  },
+  "test_backfill": {
+   "result": "PASS",
+   "summary": "All 7 backfill test groups passed."
+  },
+  "test_post_run_verification": {
+   "result": "PASS",
+   "summary": "All post-run verification fixtures passed."
+  },
+  "test_repair_scope": {
+   "result": "PASS",
+   "summary": "All repair scope completeness tests passed."
+  },
+  "test_stage_enforcement": {
+   "result": "PASS",
+   "summary": "All stage enforcement tests passed."
+  },
+  "test_cross_process_authorization": {
+   "result": "PASS",
+   "summary": "All cross-process authorization tests passed."
+  },
+  "test_semantic_decisions": {
+   "result": "PASS",
+   "summary": "All semantic-decision test groups passed."
+  },
+  "test_timing_semantics": {
+   "result": "PASS",
+   "summary": "All timing semantics tests passed."
+  },
+  "test_manifest_fragments": {
+   "result": "PASS",
+   "summary": "All manifest fragment test groups passed."
+  },
+  "test_provider_chokepoint": {
+   "result": "PASS",
+   "summary": "All provider chokepoint / authorization tests passed."
+  },
+  "test_comparator_semantics": {
+   "result": "PASS",
+   "summary": "all comparator-semantics checks passed"
+  },
+  "check_semantic_decisions": {
+   "result": "PASS",
+   "summary": "SEMANTIC_GATE = PASS_WITH_DISCLOSURE"
+  },
+  "check_static_repair_readiness": {
+   "result": "PASS",
+   "summary": "evidence: C:\\Users\\jerab\\Desktop\\ParEval-thesis\\thesis\\evaluation\\static_repair_readiness.json"
+  },
+  "check_cross_pilot_gate": {
+   "result": "PASS",
+   "summary": "CROSS_PILOT_GATE_STALE = false (repo-state check; the RUNTIME condition match - effective invocation and actual environment - is determined separately by thesis"
+  },
+  "check_timing_semantics": {
+   "result": "PASS",
+   "summary": "written: C:/Users/jerab/AppData/Local/Temp/claude/C--Users-jerab-Desktop-ParEval-thesis/632014e8-b691-476d-9f45-6ee30cca3c51/scratchpad/e32ac/timing_semantics.j"
+  },
+  "check_prompt_oracle_consistency": {
+   "result": "PASS",
+   "summary": "Convention summary: consistent=23"
+  },
+  "assembly_gate_1": {
+   "result": "PASS",
+   "summary": "GATE_1_PILOT001_ASSEMBLY_BYTE_REGRESSION; ASSEMBLY_SEMANTICS_CHANGED = false"
+  },
+  "verify_e3_frozen_artifacts": {
+   "result": "PASS",
+   "summary": "E3_FROZEN_ARTIFACTS_REPRODUCIBLE = true"
+  }
+ },
+ "all_tests_pass": true,
+ "adversarial_implementation_review": {
+  "workflow": "wf_94328cda-f5e (6 attack dimensions: E32-01 A, E32-02 B, E32-08 C, E32-09/11 B, E32-03/07/12 A, over-reach/condition ownership; every finding verified by one refuter and one independent reproducer; 30 agents)",
+  "question": "Was each author choice implemented exactly? (never: was the choice right?)",
+  "dimensions": 6,
+  "attacked": 12,
+  "confirmed": 9,
+  "refuted": 3,
+  "blocking_or_must_fix": 0,
+  "author_choice_changed_by_review": false,
+  "confirmed_findings": [
+   {
+    "id": "E3201-M1",
+    "item": "E32-01",
+    "dimension": "E32-01A",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "E32-01 record keeps pre-confirmation status fields that contradict its own author_confirmed=true (metadata only, not a code deviation)",
+    "fix_applied": "decided items now carry classification AUTHOR_DECIDED (classification_before_confirmation keeps DECISION_PENDING_AUTHOR) and the embedded decision_package equals the live package (persisted_as_author_decision true); decisions_sha256 recomputed"
+   },
+   {
+    "id": "E32-02-F2",
+    "item": "E32-02",
+    "dimension": "E32-02B",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "Fixture proves scope/entry/required-set but not the runner path nor the 'no Infer parser/tool/version change' half of the choice",
+    "fix_applied": "test pins tools.tool_implementation_sha256('infer') and TU_STRATEGY['infer'] at their 0cb83fa values (Infer implementation unchanged) in addition to HARD_CAPABILITIES / InferTool.execution_models"
+   },
+   {
+    "id": "E32-08-R2",
+    "item": "E32-08",
+    "dimension": "E32-08C",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "Fixture F comment misstates the pilot_001 behaviour ('would say 22'); pilot_001 actually dropped that location as (0,0)",
+    "fix_applied": "fixture F comment corrected: the pilot_001 conversion dropped the location as (0, 0) / line null (offset beyond the decoded text)"
+   },
+   {
+    "id": "E32-09-R2",
+    "item": "E32-09 B",
+    "dimension": "E32-09B-11B",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "Comment/table inaccuracies in the demotion block and a now-stale gcc_analyzer config comment",
+    "fix_applied": "tools.py comment corrected to '172 of the 175 blocking findings of the three families (181 over all families)'; config.yaml gcc_analyzer comment points to the code-side demotion; test asserts that every rule id of GCC_ANALYZER_FP_DEMOTION_RULES is produced by a canonical fixture and vice versa (drift guard)"
+   },
+   {
+    "id": "F1",
+    "item": "E32-12",
+    "dimension": "E32-03A-07A-12A",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "E32-12 regression check uses a non-existent benchmark path and a substring match",
+    "fix_applied": "test uses the real path drivers/cpp/benchmarks/search/35_search_search_for_last_struct_by_key/cpu.cc with a regex on `const size_t numTries = 5;` and pins drivers_tree_sha256"
+   },
+   {
+    "id": "F2",
+    "item": "E32-03/E32-07/E32-12 (decision artifact)",
+    "dimension": "E32-03A-07A-12A",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "implemented_in / implementation_and_refreeze reference a file that does not exist and has no producer",
+    "fix_applied": "thesis/evaluation/e3_2_author_confirmation.json is produced by this wave under exactly that name (container_measurements.clang_tidy included)"
+   },
+   {
+    "id": "F3",
+    "item": "E32-03/E32-07/E32-12 (decision artifact)",
+    "dimension": "E32-03A-07A-12A",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "Decided items still carry classification DECISION_PENDING_AUTHOR",
+    "fix_applied": "same fix as E3201-M1"
+   },
+   {
+    "id": "OR-01",
+    "item": "E3.2 decisions artifact / new test (provenance pointer)",
+    "dimension": "overreach",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "Persisted artifact and test docstring point at a file that does not exist: thesis/evaluation/e3_2_author_confirmation.json",
+    "fix_applied": "same fix as F2"
+   },
+   {
+    "id": "OR-02",
+    "item": "E32-12 A regression check in test_e3_2_author_confirmation.py",
+    "dimension": "overreach",
+    "severity": "MINOR",
+    "verifier_severity": [
+     "MINOR"
+    ],
+    "title": "search/35 check hard-codes a non-existent benchmark directory and only passes via the glob fallback",
+    "fix_applied": "same fix as F1"
+   }
+  ],
+  "refuted_findings": [
+   {
+    "id": "E32-02-F1",
+    "item": "E32-02",
+    "title": "Decision artifact points to a not-yet-existing implementation record",
+    "why_refuted": "The raw fact is reproducible: thesis/evaluation/e3_2_decisions.json (working tree) references thesis/evaluation/e3_2_author_confirmation.json 10 times (8x decided_items[*].implemented_in at lines 291, 572, 636, 760, 1483, 2198, 2421, 2496; 1x E32-08 evidence_reference line 1481 'e3_2_author_confirmation.json container_measurements.clang_tidy'; 1x author_confirmation.implementation_and_refreeze lin"
+   },
+   {
+    "id": "E32-08-R1",
+    "item": "E32-08",
+    "title": "Lone CR is not a line terminator in offset_to_line_col (per author spec), diverging from clang's own line table; unreachable for assembled sources and unpinned by any fixture",
+    "why_refuted": "Every factual statement in the claim reproduces, but the claim does not describe a deviation from the author choice nor a reachable defect, so it is not a finding against E32-08 C.\n\n1. Implementation matches the author's operational definition exactly. thesis/evaluation/tools.py:1155-1163 (git diff HEAD) counts b\"\\n\" for the line and takes bytes since the last b\"\\n\" for the column - verbatim the a"
+   },
+   {
+    "id": "E32-09-R1",
+    "item": "E32-09 B",
+    "title": "Quote-style dependency is fail-closed with no guard: a C-locale run would silently reproduce Option A while the static condition claims Option B",
+    "why_refuted": "The review question is whether E32-09 B was implemented exactly as the author chose. The author's predicate text (thesis/docs/pilot-001-corrected-numbers.md section 5, line 406) defines quoted_expr as \"text inside the U+2018/U+2019 quotes of message\"; the working-tree implementation (thesis/evaluation/tools.py:562 GCC_DIAGNOSTIC_QUOTED_RE = re.compile(\"‘([^’]*)’\"), gcc_diagnostic_quoted_expr at :5"
+   }
+  ],
+  "checked_and_clean": {
+   "E32-01A": [
+    "gcc_analyzer argv unchanged: git diff HEAD on thesis/evaluation/tools.py has 8 hunks (lines 519, 665, 732, 1004, 1217, 1239, 2168, 2182 of HEAD numbering); none touches GccAnalyzerTool.run's argv. AST-level extraction of the `argv = config.base_command(...)` statement (WT thesis/evaluation/tools.py:746-759) is byte-identical HEAD vs working tree: extra_flags = [\"-fanalyzer\", \"-Wanalyzer-too-complex\", \"-c\", f\"-D{DRIVER_PROBLEM_SIZE_DEFINE}\"], no -DOMPI_SKIP_MPICXX.",
+    "No OMPI_SKIP_MPICXX introduced anywhere for gcc_analyzer: grep over tools.py, tool_config.py, build_config.py, config.yaml, test_evaluation.py, test_e3_2_author_confirmation.py. tools.py has exactly two occurrences at HEAD (1717 docstring, 1797 compile_argv) and exactly two in the working tree (1860, 1940), both inside ParcoachTool; the +143 line shift equals the inserted E32-09/11 block (tools.py:522-645). `git diff HEAD -U0 -- tools.py | grep OMPI|MPICXX|extra_flags|base_command|argv` yields nothing.",
+    "PARCOACH define unchanged: ParcoachTool.compile_argv (WT tools.py:1935-1950) byte-identical to HEAD (1792-1807), still carries \"-DOMPI_SKIP_MPICXX\", \"-DUSE_MPI\". parcoach implementation_sha256 identical HEAD vs WT (b20e0e0de37a...).",
+    "Shared build path unchanged: thesis/evaluation/build_config.py, framework.py, run_static_analysis.py not modified (git status: only config.yaml, e3_2_decisions.json, test_evaluation.py, tool_config.py, tools.py modified + new test file). config.yaml diff touches only stages.static_analysis.tools.infer.execution_models (+ comment); gcc_analyzer config block untouched. Static condition component /build/{serial,omp,mpi}/{macro,cxxflags} identical HEAD vs WT (mpi: cxxflags [], macro USE_MPI). DRIVER_PROBLEM_SIZE_DEFINE unchanged (compiler implementation hash identical 908eec98...).",
+    "gcc_analyzer implementation hash change is exclusively E32-09/11: HEAD 26d3f9a2... -> WT 912643bc.... Every input hashed at HEAD (parse_gcc_clang_diagnostics, driver_system_includes, parse_gcc_analyzer_paths, cap_analyzer_path, attach_gcc_analyzer_paths, findings_in_model_file, ANALYZER_NON_DEFECT_WARNINGS, ANALYZER_PATH_MAX_EVENTS) is source-identical; GccAnalyzerTool's source differs only by the fp_demotion call (tools.py:794-797) and the analysis_details \"fp_demotion\" key (tools.py:866); the added deps/tables (_IMPLEMENTATION_DEPS tools.py:2310-2315, _IMPLEMENTATION_TABLES 2330-2334) are the E32-09/11 predicate symbols. Counterfactual: removing only those wiring lines and registrations from the working-tree file restores HEAD's exact hash 26d3f9a2f64481db9851489d07411bfd922113f2d53e8dc1485ed0ac8b38902a.",
+    "Static condition claim verified: working tree static_analysis_condition_sha256 = 83d74bb6aab0afd9b46d8055df9db4c03ab4f81f21bff452ba32866f0c2e1b7f (matches e3_2_decisions.json conditions_after_author_confirmation). Per-input diff against a HEAD reconstruction shows exactly the five claimed changed inputs (shared_modules_sha256, tools.clang_tidy.implementation_sha256, tools.gcc_analyzer.implementation_sha256, tools.infer.execution_models, tools_module_sha256); /tools/parcoach/* and /build/* identical; drivers_tree_sha256 of the working tree (a6105f1d...) equals the frozen static_repair_readiness.json value (a reconstruction-side drivers_tree difference was traced to 10 LF-vs-CRLF driver files in this checkout, pre-existing and outside the wave). Only gcc_analyzer and clang_tidy per-tool hashes moved; compiler/cppcheck/infer/parcoach/llov identical. Repair condition e6f5c32b... matches readiness.",
+    "Wave's E32-01 claim is consistent with the code: decided_items[E32-01] has author_choice A, decided_by AUTHOR, required_changes [], required_refreezes [], confirmed_configuration describing exactly the current argv (base_command + -fanalyzer/-Wanalyzer-too-complex/-c/-DDRIVER_PROBLEM_SIZE) and PARCOACH's independent define; the gcc_analyzer implementation_sha256 re-freeze is attributed to E32-09 (required_refreezes, e3_2_decisions.json:2187-2189) joined by E32-11 (2413), never to E32-01. So 'E32-01 moves no condition' is true at item level.",
+    "New test file thesis/evaluation/test_e3_2_author_confirmation.py:543-552 only asserts absence of OMPI_SKIP_MPICXX in inspect.getsource(GccAnalyzerTool.run) and in get_build_config(model).base_command(...) for serial/omp/mpi, and presence of -DOMPI_SKIP_MPICXX in ParcoachTool source; it introduces no define and writes nothing into the repo (tempfile only). Run result: 112/113 checks pass, all 5 E32-01 checks [ok]; the single failure is 'static condition of the final state equals the frozen readiness value' (readiness re-measurement pending, docker down - excluded per instructions). thesis/evaluation/test_evaluation.py: 27/27 pass.",
+    "Noted, not a finding (excluded by instructions): decided_items[*].implemented_in references thesis/evaluation/e3_2_author_confirmation.json, which does not exist yet (it is the pending container-measurement/readiness artifact)."
+   ],
+   "E32-02B": [
+    "thesis/config/config.yaml:470-481 - stages.static_analysis.tools.infer.execution_models is exactly [serial, mpi]; the only non-comment change for infer; enabled and bufferoverrun_max_level untouched; no profile overlay (profiles: smoke/pilot/repair_smoke/model_check/full carry no static tool keys); no other config file.",
+    "thesis/evaluation/tool_config.py - git diff touches only mark_low_confidence (count of all low_confidence findings); HARD_CAPABILITIES['infer'] == _ALL (line 61) and _DEFAULTS['infer'] == {enabled: True} unchanged; resolve_tool_settings(config.yaml,'static_analysis')['infer'].execution_models == ('serial','mpi'); every other tool's scope unchanged (compiler/gcc_analyzer/clang_tidy/cppcheck all three, parcoach mpi, llov omp).",
+    "thesis/evaluation/tools.py InferTool (line 1456-) - untouched by the diff: execution_models ('serial','omp','mpi') at line 1485, _parse_report, bufferoverrun filter, argv; _IMPLEMENTATION_DEPS/_IMPLEMENTATION_TABLES for infer unchanged; tool_implementation_sha256('infer') identical HEAD vs working tree (fe31b23c74e06c66...).",
+    "git diff HEAD: no change in thesis/repair/ (orchestrator.py, feedback.py, run_backfill.py, run_repair.py), docker/, framework.py, run_static_analysis.py, static_provenance.py, verify_tool_states.py, check_static_repair_readiness.py, verify_pilot_run.py, pilot_run_contract.py, stage_runtime.py; untracked files = only the new test.",
+    "run_static_analysis.run_model:494-498 - config scope gate writes not_applicable_entry (analysis_state NOT_APPLICABLE, ran False, error \"not applicable: 'omp' outside configured execution_models\") for omp samples; end-to-end run with the productive settings and fake tool bodies confirmed (omp: NOT_APPLICABLE, serial/mpi: normal entries, record analysis_gaps [], summary per_tool.infer execution_models [serial, mpi], applicable 2, tools_with_analysis_gaps [], tools_with_missing_entries []).",
+    "thesis/repair/orchestrator.py required_static_tools (509-523) is config-driven via resolve_tool_settings + applies_to: omp -> [compiler, gcc_analyzer, clang_tidy, cppcheck, llov]; serial -> [..., infer]; mpi -> [..., infer, parcoach]; evaluate_stop on an omp record with infer NOT_APPLICABLE -> stopped_clean with analysis_gaps 0; a legacy NOT_ANALYZED infer entry on omp no longer vetoes (not required); an llov gap still yields stopped_analysis_incomplete. internal_static_settings, pending_external, external_coverage and run_backfill.pending use the same resolver (infer is not external).",
+    "framework.record_analysis_gap / tool_verdict / legacy_analysis_state - NOT_APPLICABLE is not in ANALYSIS_GAP_STATES; explicit analysis_state wins; legacy 'not applicable' prefix maps to NOT_APPLICABLE.",
+    "thesis/evaluation/verify_pilot_run.check_static (533-570) - required tools derived from the live config scope (execution_model in s.execution_models); NOT_APPLICABLE can only occur on non-required tools so TERMINAL_GAP_STATES never counts infer/omp.",
+    "thesis/evaluation/pilot_run_contract.static_toolset_view -> infer {enabled true, execution_models [serial, mpi]}; stage_runtime.expected_runtime_stages still expects static.main with infer; parcoach/llov unaffected.",
+    "thesis/evaluation/check_static_repair_readiness.py - MINIMAL_FIXTURES['infer'] = serial-only fixtures ('infer clean', 'infer null dereference'); INTERNAL_TOOLS unchanged; no omp expectation for infer.",
+    "thesis/evaluation/verify_tool_states.py:439-441 'infer OpenMP kernel: frontend abort is never clean' calls tool.run() directly (register_default_tools(config=None), no scope gate) and asserts the tool's hard behaviour NOT_ANALYZED - deliberately unaffected by the config narrowing; no false verdict; the readiness gate does not consume it.",
+    "thesis/evaluation/static_provenance.py - TU_STRATEGY['infer'] unchanged; static condition in the working tree = 83d74bb6aab0afd9..., repair condition = e6f5c32bbf329484... (as claimed); per-sample tool_execution_condition carries settings.execution_models (only matters for a fresh run_id).",
+    "thesis/repair/feedback.py - no scope usage, no gap rendering, no diff; NOT_APPLICABLE entries carry no findings.",
+    "check_cross_pilot_gate.evaluation_condition_projection covers build/correctness only (no static scopes); pilot_preflight compares the readiness sha (stale -> UNRESOLVED, expected pending re-measurement); repair_scope.py, probe_runtime_identity.py, verify_detection.py (infer fixtures serial), build_static_repair_inventory.py (pilot_001 historical) hard-code no infer-on-omp expectation.",
+    "thesis/evaluation/e3_2_decisions.json E32-02: author_choice B, author_confirmed true, decided_by AUTHOR, confirmation_basis EXPLICIT_AUTHOR_CHOICE, confirmed_configuration text matches the implementation (config only, NOT_APPLICABLE via run_static_analysis.not_applicable_entry, required_static_tools no longer requires infer on omp, tool semantics/version/image unchanged, stop algorithm unchanged); required_changes = config.yaml only; static_condition_changed_inputs lists the five claimed paths; decisions_sha256 self-hash = canonical sha of the file minus decisions_sha256+volatile (13d76812...), previous_decisions_sha256 == HEAD's decisions_sha256 (a1bc609e...).",
+    "Test runs (read-only, temp dirs): test_e3_2_author_confirmation.py 112/113 (only failure: static condition vs stale readiness value - pending re-measurement, not reported); test_evaluation.py 27/27; test_tool_state.py all groups; thesis/repair/test_orchestrator.py 12/12; test_feedback.py 8/8; test_post_run_verification.py, test_stage_enforcement.py, test_repair_scope.py, test_semantic_decisions.py all pass; test_static_repair_provenance.py 1 failure = 'preflight accepts the runtime the readiness was proven on' (stale readiness artifact, expected)."
+   ],
+   "E32-08C": [
+    "offset_to_line_col (thesis/evaluation/tools.py:1139-1163) is purely byte-based: signature `data: bytes`, `preceding = data[:offset]`, `count(b\"\\n\")`, `rfind(b\"\\n\")`, byte column; no decode, no universal-newline path, no LF-only special case, no str/bytes mix (a str argument raises TypeError, asserted by the test).",
+    "Off-by-one checks: offset 0 -> (1,1); first byte after a CRLF -> (2,1); the \\r and \\n bytes of a CRLF are attributed to the preceding line ((1,3),(1,4) for b\"ab\\r\\ncd\\r\\n\"), matching clang's line table; EOF offset == len(data) accepted and mapped to (lines+1, 1) with a trailing newline and to the last line without; len+1 and -1 rejected as (0,0) exactly as at HEAD.",
+    "Column convention: byte count since the last \\n + 1 equals clang's SourceManager column (byte-based), verified with 2-byte UTF-8 characters before the finding on the same line (column 12 vs code-point 10) and with UTF-8 + CRLF; identical to a clang line-table reference for every offset of LF, CRLF, multi-CRLF-with-empty-lines, no-trailing-newline, UTF-8 and empty inputs.",
+    "ClangTidyTool._parse_fixes (tools.py:1344-1403) vs HEAD: only the cache type (dict[str, bytes]), Path(file_path).read_bytes() and the b\"\" fallback changed; DiagnosticName/check_id, Level->CLANG_TIDY_LEVEL severity, message, FilePath/model-file filter, FileOffset default, blocking=is_blocking_check(...) and yaml.safe_load of the fixes file are byte-identical; low_confidence is still set only by tool_config.mark_low_confidence (tool_config diff changes only the returned count; clang-tidy findings arrive with the default False, so the MPI-Checker family marking is unchanged - test O confirms [False, False, True, False]).",
+    "ClangTidyTool.run and raw_stdout handling untouched (diff hunks in ClangTidyTool are confined to _parse_fixes); CLANG_TIDY_CHECKS / CLANG_TIDY_BLOCKING_GROUPS / CLANG_TIDY_BLOCKING_EXCEPTIONS / CLANG_TIDY_LEVEL and is_blocking_check unchanged - the test's 'pinned at 0cb83fa' hash e7df9332... recomputed independently from git show HEAD: matches.",
+    "Call sites: grep over the repo (excluding thesis/tool_validation, thesis/results, .venv) finds offset_to_line_col only at tools.py:1389 (passes the bytes cache) plus the two test files (both pass bytes); no residual str caller exists.",
+    "Hash surface: _IMPLEMENTATION_DEPS[\"clang_tidy\"] contains offset_to_line_col and ClangTidyTool, so the fix is inside the hashed implementation; tool_implementation_sha256(\"clang_tidy\") moved 07ab1522... (HEAD) -> 97b00ee6... while cppcheck's is unchanged; static_analysis_condition_sha256 now = 83d74bb6... as claimed; drivers_tree_sha256 unchanged.",
+    "Scope of the change: git status shows no modification under thesis/assembly (writer newline policy HOST_DEPENDENT untouched, assemble_sources.py:41-44) and none under thesis/results (historical pilot_001 records not corrected); e3_2_decisions.json decided_items[7] carries decided_by AUTHOR, author_choice C and a confirmed_configuration text that matches the implemented semantics.",
+    "Fixture coverage in test_e3_2_author_confirmation.py::test_clang_tidy_raw_byte_mapping is real, not cosmetic: CRLF (B, K-P via a CRLF file on disk), 40 consecutive CRLF lines (C), UTF-8 on an earlier line (F), UTF-8 multibyte on the same line as the finding with the code-point control (F), UTF-8+CRLF (G), first byte of the file and of line 2 (H), EOF with and without trailing newline and out-of-range (J), exhaustive LF-vs-CRLF (line, column) identity for every non-newline byte (D/E), negative controls reproducing the pilot_001 shift (B, C, P-EOF; replayed against HEAD: (3,16) vs (3,14), (0,0) vs (5,1)). Minor coverage notes only: G's multibyte character is on the line before the finding (same-line multibyte is covered by F on an LF file), and consecutive empty CRLF lines are covered by my probe rather than a fixture.",
+    "Test runs: ./.venv/Scripts/python.exe thesis/evaluation/test_e3_2_author_confirmation.py -> 112 of 113 pass; the single failure ('static condition of the final state equals the frozen readiness value') is static_repair_readiness.json still holding 327b235a... = the pending docker re-measurement, per instructions not a finding. thesis/evaluation/test_evaluation.py -> all 27 pass, including the updated bytes-based offset test and the _parse_fixes test at test_evaluation.py:~480-521 (that fixture writes the source with write_text default newline, so its bytes are host-dependent; FileOffset 13 lands on line 2 under both LF and CRLF, so the assertion is host-independent).",
+    "Caveat noted, not a finding: e3_2_decisions.json references thesis/evaluation/e3_2_author_confirmation.json (implemented_in and 'container_measurements.clang_tidy' in E32-08's evidence_reference; also cited in the test docstring) and that file does not exist yet - it is the container-measurement artifact of the pending readiness re-measurement."
+   ],
+   "E32-09B-11B": [
+    "(1) Nothing deleted, nothing but low_confidence modified: apply_gcc_analyzer_fp_demotion (tools.py:633-645) only executes `finding.low_confidence = True`; probe and test_demotion_keeps_findings confirm pre/post to_dict() differ solely in low_confidence for demoted findings and are byte-identical for others; len unchanged; num_findings/num_blocking unchanged; idempotent; analysis_details.fp_demotion is additive (tools.py:866).",
+    "(2) Predicate not wider than Phase-0 section 5: T1 is substring on the whole message exactly as the spec says ('message contains any of'), identical to the evidence script; T2 (`_M_current` in quoted OR /__\\w+\\$/ on quoted OR quoted.startswith('*__')), T3 ('<unknown>' in quoted), T4 ('operator new' in quoted) all evaluated on quoted_expr, not the message (probe: reserved identifier / 'operator new' / '<unknown>' outside the quotes -> None); T5 restricted to check_id == -Wanalyzer-null-dereference AND quoted == '0' (possible-null '0', uninit '0', malloc-leak '0' -> None); non-blocking findings -> None (tools.py:605); other tools -> None; other families incl. -Wanalyzer-out-of-bounds even with a T1 token or '<unknown>' -> None; -Wanalyzer-too-complex never demoted (blocking=False).",
+    "(3) Not narrower in a way that changes the measured consequence: quoted_expr takes the first U+2018/U+2019 pair, same as the evidence script's .search; all messages of the four families ('dereference of NULL ‘X’', 'dereference of possibly-NULL ‘X’', 'use of uninitialized value ‘X’', 'leak of ‘X’') carry exactly one pair, so the first-pair choice has no effect. Order of operations in GccAnalyzerTool.run verified: parse -> blocking=True (l.780) -> too_complex/bailout -> findings_in_model_file (l.792) -> apply_gcc_analyzer_fp_demotion (l.797) -> attach_gcc_analyzer_paths (l.804); blocking is already set when the precondition runs; the model-file filter keeps the same Finding objects, so counts in fp_demotion are exactly the recorded findings; attach_gcc_analyzer_paths only sets .path; run_static_analysis.mark_low_confidence (tool_config.py:302-324) never resets a mark (only sets True under config conditions) and gcc_analyzer has no low_precision settings.",
+    "(4) malloc-leak is never blanket-demoted: it is in GCC_ANALYZER_DEMOTION_FAMILIES but the function returns None unless T1-T4 matches (T5 is structurally impossible for it); probe and test_malloc_leak_signed_demotion: 'leak of ‘buf’', 'leak of ‘new_data’', 'leak of ‘0’', 'leak of memory' -> None; 'leak of ‘…_Vector_base…’' -> T1, 'leak of ‘operator new(64)’' -> T4, 'leak of ‘<unknown>’' -> T3. On pilot_001 base records all 4 blocking malloc-leaks are T1 (deepseek_v4_pro and qwen37_max sparse_la/45 mpi), matching E32-11's measured consequence.",
+    "(5) blocking stays the tool's assessment and this IS the existing central low_confidence semantics: parcoach (tools.py:1838 blocking=True + config low_precision_warning: true) and clang-tidy MPI-Checker keep blocking with low_confidence=True; feedback.collect_findings (feedback.py:235-241) buckets low_confidence first and renders it with the verify-first prefix; orchestrator.evaluate_stop (orchestrator.py:604-622) applies grace_once only to findings that are low_confidence AND blocking - so blocking=False would have been 'ignore' mode, contradicting option B's 'graced once' text and the author's explicit sentence 'blocking stays the tool's assessment'. Record-level num_blocking / has_blocking_findings / tool_verdict=DEFECT_FOUND are unchanged by demotion (framework.py:377-393, run_static_analysis.py:224-234), which the author's confirmed_comparability text acknowledges ('blocking counts are comparable ... the derived confidence class is re-derivable'); the repair orchestrator does not use has_blocking_findings/num_blocking for target selection (grep: none in thesis/repair/orchestrator.py). test_repair_stop_with_new_inputs proves: iteration 0 counts the demoted finding once (ACTIVE), iteration 1 with the same key -> stopped_clean, an undemoted out-of-bounds keeps the sample ACTIVE.",
+    "(6) Residue kept blocking, verified on the pilot_001 base records (read-only scan): residue = deepseek_v4_flash scan/30 mpi @37 uninit ‘MEM[(double * const &)&local_prefix + 8][…]’ + oob @37; qwen37_max scan/30 mpi @34 uninit ‘MEM[…local_sum…]’ + oob @34; qwen36_35b_a3b scan/30 omp @14 uninit ‘num_threads’ - i.e. exactly 3 uninit + 2 out-of-bounds, none matched by any rule; by_rule = T1 72 (68 + 4 malloc-leak), T2 5, T3 19, T5 80 = 176 demoted of 181, identical to the E3.2 evidence (172 + 4).",
+    "Tests: thesis/evaluation/test_e3_2_author_confirmation.py runs 113 checks; all gcc_analyzer/malloc-leak/stop-semantics/pilot_001 re-derivation checks pass; the single failure ('static condition of the final state equals the frozen readiness value') and the test_static_repair_provenance.py failure ('preflight accepts the runtime the readiness was proven on') are both the pending readiness re-measurement (static condition re-frozen, readiness not yet re-proven) - excluded from scope by the task. test_evaluation.py (27 groups), test_tool_state.py, test_orchestrator.py (12), test_feedback.py (8) all pass. Fixtures were challenged with 23 extra edge cases (two quote pairs, nested quotes, only-open quote, empty quotes, U+FFFD/backtick/ASCII quotes, case variants, 'operator new []' spacing, severity=error, check_id with trailing space, clang-style ids, T1-before-T4 precedence) - every result matches the Phase-0 text.",
+    "Provenance/hash: _IMPLEMENTATION_DEPS['gcc_analyzer'] includes gcc_diagnostic_quoted_expr / gcc_analyzer_fp_demotion_rule / apply_gcc_analyzer_fp_demotion; _IMPLEMENTATION_TABLES['gcc_analyzer'] includes the families, both regexes, the token tuple and the rule table; _canonical_table handles compiled regexes via .pattern/.flags (parcoach precedent), so the two new regex constants hash deterministically.",
+    "Config: git diff HEAD -- thesis/config/config.yaml touches only stages.static_analysis.tools.infer.execution_models (E32-02); gcc_analyzer config unchanged (no low_precision settings), consistent with E32-09 B being a tools.py predicate and not a family switch.",
+    "tool_config.mark_low_confidence change (returns count of ALL low_confidence findings afterwards): no behavioural change for parcoach/clang_tidy (their findings were not pre-marked); for gcc_analyzer num_low_confidence / record.low_confidence_count now include the tool-side marks; verify_tool_states.low_confidence_marked (marked >= 1 for parcoach) and test_evaluation's family/tool-wide marking checks still hold.",
+    "Decisions artifact: e3_2_decisions.json decided_items E32-09 and E32-11 carry author_choice 'B', author_confirmed true, confirmation_basis EXPLICIT_AUTHOR_CHOICE, decided_by AUTHOR, pilot_002_configuration CHANGE_THEN_FREEZE; author_confirmation.author_choices == {E32-09: B, E32-11: B}, combination rule checked. Observation (not reported as a finding per the task's exclusion of the pending re-freeze step): both items' implemented_in and author_confirmation.implementation_and_refreeze point to thesis/evaluation/e3_2_author_confirmation.json, which does not exist in the working tree yet."
+   ],
+   "E32-03A-07A-12A": [
+    "git status --porcelain (untracked-files=all) and git diff HEAD --stat: only thesis/config/config.yaml, thesis/evaluation/e3_2_decisions.json, thesis/evaluation/test_evaluation.py, thesis/evaluation/tool_config.py, thesis/evaluation/tools.py modified and thesis/evaluation/test_e3_2_author_confirmation.py untracked; nothing tracked or untracked under drivers/, thesis/enhanced_tests/ (incl. frozen/ and enhanced_policy.json), thesis/prompts/ (184 tracked files), thesis/evaluation/semantic_decisions_pilot002.json, thesis/evaluation/cross_pilot_comparability.json, thesis/evaluation/run_enhanced_tests.py",
+    "E32-12 A: drivers/cpp/benchmarks/search/35_search_search_for_last_struct_by_key/cpu.cc:78 `const size_t numTries = 5;` (kokkos.cc:77 also 5, gpu.cu uses MAX_VALIDATION_ATTEMPTS as before); git diff HEAD on that directory is empty",
+    "E32-12 A: static_provenance.drivers_tree_sha256() computed on the worktree = a6105f1d3b9b384ebb7c2f4fbe1e7a71277001cbcd5abedf0bef7092fcf72ee2 (expected); static_repair_readiness.json:35 and cross_pilot_comparability.json:1666 carry the same value; no cross-pilot contract change (cross_pilot_comparability.json byte-identical to HEAD; the disclosure-note key benchmark_local_exceptions is not yet present - that update is the deferred step and is NOT counted as a finding)",
+    "Static condition cross-check: reconstructed the HEAD condition from a git-archive snapshot in the scratchpad (EOL-matched to the worktree) and reproduced static_analysis_condition_sha256 = 327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3 exactly; current worktree condition = 83d74bb6aab0afd9b46d8055df9db4c03ab4f81f21bff452ba32866f0c2e1b7f matching conditions_after_author_confirmation.static_analysis_condition_sha256_after; input-level diff is exactly {/shared_modules_sha256, /tools/clang_tidy/implementation_sha256, /tools/gcc_analyzer/implementation_sha256, /tools/infer/execution_models [serial,omp,mpi]->[serial,mpi], /tools_module_sha256}; drivers_tree_sha256 and the parcoach/llov implementation hashes unchanged; repair condition e6f5c32b... unchanged (test check passes)",
+    "E32-03 A: thesis/enhanced_tests/enhanced_policy.json unchanged (raw sha256 1173ac98... equals enhanced_e3_regeneration_manifest.json policy_sha256); geometry/12,13,14 size_constraint keep min_size 1 / size_zero_policy DISALLOWED / technical_min_size null; thesis/prompts/ unchanged; no enhanced-E3 regeneration (frozen/e3_pre_specs.jsonl sha256 0fe9561e... and frozen/e3_final_specs.jsonl sha256 49b0229c... equal verify_e3_frozen_artifacts.py EXPECTED_PRE_SHA/EXPECTED_FINAL_SHA); verify_e3_frozen_artifacts.py run read-only -> E3_FROZEN_ARTIFACTS_REPRODUCIBLE = true",
+    "E32-07 A: thesis/enhanced_tests/ entirely unchanged (specs.py spec_key, e3_regenerate.py mutation frontier, frozen specs, capabilities.py identity handling all at HEAD state); frozen E3 hashes pinned and verified as above",
+    "thesis/evaluation/e3_2_decisions.json: eight items E32-01/02/03/07/08/09/11/12 present in decided_items with author_choice A/B/A/A/C/B/B/A, decided_by = AUTHOR, confirmation_basis = EXPLICIT_AUTHOR_CHOICE, per-item author_confirmed = true, choice_equals_recommendation true; author_confirmation.status CONFIRMED with author_choices map and choices_short A/B/A/A/C/B/B/A, agent_selected_author_option false; pending_author_items [] and unresolved_items []; E3_2_DECISION = ACCEPTED (HEAD: ACCEPTED_PENDING_AUTHOR_CONFIRMATION); SAFE_TO_PROCEED_TO_POPULATION_FREEZE still false (readiness re-measurement pending, as expected)",
+    "thesis/evaluation/e3_2_decisions.json: decision_packages for all eight items retain decision_question/options/recommendation/recommendation_rationale/residual_risk byte-identical to HEAD; the only package-level changes are persisted_as_author_decision false->true and author_choice added; the eight items' pre-existing fields (short_name, freeze_target, pilot_001_comparability, classification, result_impact, evidence_complete, measurement_condition_sha256, decision_package) were carried from HEAD pending_author_items unchanged except pilot_002_configuration DECISION_PENDING_AUTHOR -> FREEZE_AS_IS / CHANGE_THEN_FREEZE; mechanical items E32-04/05/06/10 have 0 diffs vs HEAD; E32-03 confirmed_configuration / E32-07 confirmed_configuration / E32-12 confirmed_configuration texts match the author choices verbatim (no precondition freeze, no size-0 re-enable, no E3 regeneration, enhanced_policy.json unchanged; no spec_key/frontier/frozen spec/identity change; numTries = 5, drivers tree unchanged, disclosure only); E32-11 valid_because documents the E32-09 B combination rule",
+    "thesis/evaluation/e3_2_decisions.json: decisions_sha256 13d768123e1e515cb14a17801deac353a47c78ddb351068eb3b5e0d15eefa62d reproduces from sha256(json.dumps(obj without 'volatile' and 'decisions_sha256', sort_keys=True, separators=(',',':'), ensure_ascii=False).encode('utf-8')); previous_decisions_sha256 a1bc609e... equals HEAD's decisions_sha256; semantic_decisions_registry.sha256_lf_normalized 90dfec3e... equals the LF-normalized sha256 of the unchanged semantic_decisions_pilot002.json; evidence_artifact.evidence_artifact_sha256 5de75656... equals e3_2_evidence.json's own evidence_sha256, which reproduces under the same canonical rule",
+    "thesis/evaluation/e3_2_evidence.json: not in git diff HEAD --stat; git hash-object (with filters) 3064f476... equals HEAD blob; content identical after CRLF->LF (worktree CRLF is core.autocrlf=true checkout, same as every other CRLF file in the repo); its internal hashes (static 327b235a..., repair e6f5c32b..., measurement_condition 4f492604...) untouched",
+    "Tests: ./.venv/Scripts/python.exe thesis/evaluation/test_evaluation.py -> All 27 evaluation-framework tests passed; ./.venv/Scripts/python.exe thesis/evaluation/test_e3_2_author_confirmation.py -> 112 of 113 checks pass, the only failure being 'static condition of the final state equals the frozen readiness value' (327b235a vs 83d74bb6), i.e. the deferred docker readiness re-measurement, excluded per instructions; all E32-01/03/07/12 FREEZE_AS_IS checks pass; the E32-03/07 presence-only check is acceptable because byte identity is actually pinned by verify_e3_frozen_artifacts.py (frozen specs) and by the enhanced_policy_sha256 in pilot_run_contract.py / execution_provenance.py",
+    "Read-only discipline: no repo file written; the only artifacts created were in the session scratchpad (HEAD snapshot for the condition reconstruction) and have been removed; thesis/results and thesis/tool_validation were not touched or grepped (one broad grep over thesis/ was aborted to background and superseded by directory-scoped greps)"
+   ],
+   "overreach": [
+    "Diff footprint: `git diff HEAD --numstat` = config.yaml (+10/-1), e3_2_decisions.json (+291/-99), test_evaluation.py (+7/-1), tool_config.py (+7/-2), tools.py (+165/-16) plus untracked test_e3_2_author_confirmation.py; `-w` numstat identical (no whitespace-only edits); every tools.py hunk (@@ 522, 794, 866, 1139-1158, 1362-1387, 2314, 2330) is one of: demotion block, run() wiring, analysis_details.fp_demotion, offset_to_line_col(bytes), _parse_fixes raw-byte cache, _IMPLEMENTATION_DEPS/_TABLES registration. No hunk touches framework.py, orchestrator.py, feedback.py, run_static_analysis.py, build_config.py, assembly/*, drivers/*, enhanced_tests/*.",
+    "E32-02 B config-only: config.yaml hunk is exactly `infer.execution_models: [serial, mpi]` plus YAML comments; HARD_CAPABILITIES['infer'] and InferTool.execution_models unchanged (serial, omp, mpi); existing run_static_analysis.py:494-497 writes not_applicable_entry (STATE_NOT_APPLICABLE, ran=False) for out-of-scope models; orchestrator.required_static_tools (unchanged code) drops infer on omp via settings.applies_to; framework.record_analysis_gap returns None for NOT_APPLICABLE; no Infer parser/version/feedback change (InferTool implementation hash identical HEAD vs now: fe31b23c74e0).",
+    "E32-08 C: offset_to_line_col now takes bytes, line = count(b'\\n')+1, column = offset - rfind(b'\\n') (1-based bytes since last \\n), offset == len(data) accepted (EOF), out-of-range -> (0,0) -> line/column None as before; _parse_fixes reads Path(file_path).read_bytes() (only change in that method; YAML read, model-file filter, check_id, severity via CLANG_TIDY_LEVEL, blocking via is_blocking_check unchanged). CLANG_TIDY_CHECKS / CLANG_TIDY_BLOCKING_GROUPS / CLANG_TIDY_BLOCKING_EXCEPTIONS / CLANG_TIDY_LEVEL and is_blocking_check byte-identical to HEAD (canonical table comparison + pinned sha e7df9332... in the new test). No other caller of offset_to_line_col exists outside tests. Assembly writer (thesis/assembly/*) untouched; thesis/results tree has no file newer than e3_2_evidence.json (historical records not corrected).",
+    "E32-09 B / E32-11 B predicate vs thesis/docs/pilot-001-corrected-numbers.md section 5: preconditions tool == gcc_analyzer AND blocking; families exactly {null-dereference, possible-null-dereference, use-of-uninitialized-value, malloc-leak}; T1 on the whole message with tokens _Vector_base/_M_impl/_M_start/_M_finish; T2 on quoted_expr ('_M_current' in, /__\\w+\\$/ search, startswith '*__'); T3 '<unknown>' in quoted_expr; T4 'operator new' in quoted_expr; T5 check_id == -Wanalyzer-null-dereference AND quoted_expr == '0'; quoted_expr = first U+2018...U+2019 pair. malloc-leak demoted only via T1-T4 signatures (no blanket check_id rule, T5 unreachable for it). -Wanalyzer-out-of-bounds and every other family never match. apply_gcc_analyzer_fp_demotion sets only finding.low_confidence = True (blocking, message, check_id, file, line, column, path, raw_stdout/raw_stderr untouched; nothing removed); wired in GccAnalyzerTool.run after findings_in_model_file, before attach_gcc_analyzer_paths (in-place; no Finding objects recreated). ANALYZER_NON_DEFECT_WARNINGS and ANALYZER_PATH_MAX_EVENTS identical to HEAD. Re-derivation on pilot_001 base records reproduces the E3.2 evidence exactly: 181 blocking, 176 demoted (T1 72 = 68 + 4 malloc-leak, T2 5, T3 19, T5 80), residue 3 uninit + 2 out-of-bounds.",
+    "tool_config.mark_low_confidence: marking condition (`low_precision_warning or check_id.startswith(prefix)`) byte-identical to HEAD; only the counter moved under `if finding.low_confidence:` so the return value counts all marked findings. The only tool-side pre-marker in the codebase is the new gcc_analyzer demotion (grep of `low_confidence = True` in thesis/evaluation, thesis/repair: tool_config.py:320 and tools.py:642 only), so num_low_confidence changes semantics for no other tool; run_dynamic_analysis.py unaffected. No verifier (verify_pilot_run.py, repair_scope.py, pilot_run_contract.py, orchestrator.py, feedback.py, verify_tool_states.py, framework.py) reads num_low_confidence.",
+    "analysis_details.fp_demotion: consumers of analysis_details (framework.compiler_build_failed / effective_tool_state read build_ok / tu_rejected only; verify_tool_states compares only the fixture's listed keys; legacy_analysis_state does not read analysis_details) tolerate the extra key; no key whitelist on tool entries in verify_pilot_run.py / repair_scope.py / pilot_run_contract.py; tool_execution_fingerprint is computed from the condition, not from result content, so no hashed record fingerprint semantics change. test_tool_state.py passes (all groups).",
+    "Static condition ownership: working-tree static_analysis_condition_sha256 (include_identities=False) = 83d74bb6aab0afd9... exactly as claimed; per-tool implementation hashes HEAD vs working tree (HEAD tools.py loaded from `git show`): clang_tidy 07ab1522->97b00ee6 (ClangTidyTool + offset_to_line_col changed), gcc_analyzer 26d3f9a2->912643bc (GccAnalyzerTool + 3 new deps + 5 new tables), compiler/cppcheck/infer/parcoach/llov identical; drivers_tree_sha256 now = a6105f1d... = readiness value; build_config.py/framework.py unchanged, so shared_modules moved only through tool_config.py; config changed only tools.infer.execution_models. Changed inputs are therefore exactly the five claimed (/shared_modules_sha256, /tools/clang_tidy/implementation_sha256, /tools/gcc_analyzer/implementation_sha256, /tools/infer/execution_models, /tools_module_sha256).",
+    "Repair condition ownership: repair_condition inputs are stages.repair config, orchestrator.py, feedback.py (feedback_template_fingerprint), TOOL_STATE_SCHEMA_VERSION - none changed; computed repair_condition_sha256 = e6f5c32bbf329484... = static_repair_readiness.json value (also asserted by the new test).",
+    "Cross-pilot gate shared_state: all 12 hashed files (drivers/cpp/utilities.hpp, harness-markers.hpp, enhanced-fill.hpp, models/{serial,omp,mpi}-driver.cc, build_config.py, run_correctness.py, framework.py, run_enhanced_tests.py, enhanced_tests/specs.py, baseline_selftest.py) re-hashed against the working tree: all match the recorded sha256. thesis/assembly/cleaning.py and assemble_sources.py untouched.",
+    "E32-01 A: GccAnalyzerTool.run compile argv unchanged (extra flags -fanalyzer, -Wanalyzer-too-complex, -c, -D DRIVER_PROBLEM_SIZE only; no OMPI_SKIP_MPICXX); ParcoachTool keeps its own -DOMPI_SKIP_MPICXX; build_config.py untouched. E32-03 A / E32-07 A: thesis/enhanced_tests (frozen specs, enhanced_policy.json, specs.py) untouched by the diff; geometry/12,13,14 min_size 1 / DISALLOWED confirmed. E32-12 A: drivers tree untouched (drivers_tree_sha256 unchanged), search/35 cpu.cc keeps numTries = 5.",
+    "e3_2_decisions.json: the four mechanical items (E32-04/05/06/10) byte-identical to HEAD; the eight pending items moved to decided_items with only pilot_002_configuration changed plus added author fields; decision_packages differ only in author_choice / persisted_as_author_decision; author_choices A/B/A/A/C/B/B/A match the author's stated choices; semantic_decisions_registry, evidence_artifact, source_head identical; previous_decisions_sha256 = HEAD's decisions_sha256 (a1bc609e...); decisions_sha256 self-consistent; conditions_after_author_confirmation records 327b235a -> 83d74bb6 and repair e6f5c32b unchanged, matching the computed values.",
+    "Test runs (read-only): test_e3_2_author_confirmation.py 112/113 pass - the single failure 'static condition of the final state equals the frozen readiness value' and test_static_repair_provenance.py's 'preflight accepts the runtime the readiness was proven on' both fail only because static_repair_readiness.json still carries 327b235a (readiness re-measurement deferred, docker down) - expected, not reported as findings. test_evaluation.py 27/27, test_tool_state.py all groups, test_repair_scope.py, test_feedback.py 8/8, test_semantic_decisions.py all pass. Python 3.8 compatibility of the LLOV-container modules preserved (tools.py and tool_config.py keep `from __future__ import annotations`; no new syntax).",
+    "Line-ending representation: all five edited files and the unchanged hashed modules are uniformly CRLF in the working tree (no mixed-EOL introduced by the wave)."
+   ]
+  }
+ },
+ "pilot_001_tree_fingerprint_before": {
+  "file_count": 2038,
+  "newest_mtime_ns": 1787311779212898700,
+  "inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870"
+ },
+ "pilot_001_tree_fingerprint_after": {
+  "file_count": 2038,
+  "newest_mtime_ns": 1787311779212898700,
+  "inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870"
+ },
+ "flags": {
+  "AUTHOR_CHOICES_EXPLICIT": true,
+  "AUTHOR_CHOICES": "A/B/A/A/C/B/B/A",
+  "AGENT_SELECTED_AUTHOR_OPTION": false,
+  "GENERATION_PERFORMED": false,
+  "LLM_API_CALLS": 0,
+  "PILOT001_HISTORICAL_TREE_CHANGED": false,
+  "POPULATION_CHANGED": false,
+  "RUN_ID_CHANGED": false,
+  "REUSE_DECIDED": false,
+  "PUBLICATION_DECIDED": false,
+  "E32_01_IMPLEMENTED_AS_A": true,
+  "E32_02_IMPLEMENTED_AS_B": true,
+  "E32_03_IMPLEMENTED_AS_A": true,
+  "E32_07_IMPLEMENTED_AS_A": true,
+  "E32_08_IMPLEMENTED_AS_C": true,
+  "E32_09_IMPLEMENTED_AS_B": true,
+  "E32_11_IMPLEMENTED_AS_B": true,
+  "E32_12_IMPLEMENTED_AS_A": true,
+  "STATIC_SPLIT_INVOCATION_GAP_CLOSED": false,
+  "ITERATION_ZERO_COVERAGE_RESIDUAL_CLOSED": false,
+  "EVIDENCE_ARTIFACT_CHANGED": false
+ },
+ "open_items_not_closed_here": {
+  "STATIC_SPLIT_INVOCATION_COVERAGE_GAP": "OPEN_TECHNICAL_FINDING (PARCOACH/LLOV invocation coverage; next wave)",
+  "ITERATION_ZERO_COVERAGE_RESIDUAL": "CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE (next wave)",
+  "docker_readiness_observation": "open: the known transient first-inspect flake is unchanged; during this wave the Docker Desktop Linux VM became unreachable once (backend log: 'connect tcp 192.168.65.7:2376: no route to host') while a bind-mounted container ran, and needed a Docker Desktop restart - recorded, no probe/retry/warm-up policy introduced (OPEN_FOR_FINAL_ENVIRONMENT_GATE)",
+  "TSan_ASLR": "OPEN_FOR_FINAL_ENVIRONMENT_GATE",
+  "population / run_id / reuse / publication": "NOT_YET_DECIDED / NOT_YET_CONFIGURED / UNDECIDED / OPEN"
+ },
+ "pending_author_items": [],
+ "unresolved_items": [],
+ "E3_2_DECISION": "ACCEPTED",
+ "author_confirmation_complete": true,
+ "SAFE_TO_PROCEED_TO_TECHNICAL_PROVENANCE_CLEANUP": true,
+ "volatile": {
+  "generated_at_utc": "2026-09-13T09:43:37Z",
+  "fingerprint_before_measured_at_utc": "2026-09-12T19:29:10Z",
+  "fingerprint_after_measured_at_utc": "2026-09-13T09:42:41Z",
+  "readiness_created_at_utc": "2026-09-13T09:29:40.188755Z",
+  "container_measurement_durations_excluded": true
+ },
+ "confirmation_sha256": "c2d9d447cf9434f48c9ec2c6cf1ee0a87883f06c9d9538e1ccde90303641a8d4"
+}

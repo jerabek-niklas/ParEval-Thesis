@@ -451,6 +451,12 @@ stages:
       # clang_tidy — already gating — flags 20.4%. If the full run shows this
       # is still too loud, add low_precision_families here (no code change):
       #   low_precision_families: ["-Wanalyzer-use-of-uninitialized-value"]
+      # E3.2 author decisions E32-09 B / E32-11 B: the evidence-based Phase-0
+      # T1-T5 demotion (std::vector allocation-failure artefacts of the
+      # null-dereference / possible-null-dereference / use-of-uninitialized-
+      # value / malloc-leak families -> low_confidence, finding kept) is
+      # implemented in tools.py (GCC_ANALYZER_FP_DEMOTION_RULES), not via a
+      # family switch here; it is hashed into the static condition.
       gcc_analyzer:
         enabled: true
         execution_models: [serial, omp, mpi]
@@ -469,7 +475,16 @@ stages:
         execution_models: [serial, omp, mpi]
       infer:
         enabled: true
-        execution_models: [serial, omp, mpi]
+        # E3.2 author decision E32-02 B (thesis/evaluation/e3_2_decisions.json):
+        # the pinned Infer 1.1.0 (clang-11 frontend) aborts the translation
+        # of EVERY OpenMP kernel ("Aborting translation of method", measured
+        # 132/132 on pilot_001 and again in the E3.2 evidence wave), so no
+        # OpenMP sample can ever receive an Infer verdict. The configured
+        # scope excludes OpenMP: omp records carry an explicit NOT_APPLICABLE
+        # Infer entry (not NOT_ANALYZED) and the repair stop criterion does
+        # not require Infer there. Tool semantics and version are unchanged;
+        # pilot_001 ran [serial, omp, mpi].
+        execution_models: [serial, mpi]
         # InferBO (--bufferoverrun) runs inside the same infer invocation.
         # Findings are kept only up to this confidence level; the measured
         # level table (results/inferbo_levels.csv) is unambiguous:

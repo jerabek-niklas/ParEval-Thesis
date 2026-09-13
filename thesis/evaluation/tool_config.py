@@ -300,11 +300,15 @@ def resolve_tool_settings(
 
 
 def mark_low_confidence(findings: Iterable[Any], tool_settings: ToolSettings) -> int:
-    """Set Finding.low_confidence per the tool's settings; returns count.
+    """Set Finding.low_confidence per the tool's settings; returns the number
+    of low_confidence findings afterwards.
 
     Tool-level low_precision_warning marks every finding; otherwise only
     findings whose check_id starts with a configured family prefix are
-    marked (the clang_tidy case).
+    marked (the clang_tidy case). A finding the tool itself already marked
+    (gcc_analyzer's evidence-based FP-class demotion, tools.py) keeps its
+    mark and is counted too, so `num_low_confidence` is the count of ALL
+    low_confidence findings of the entry.
     """
     marked = 0
 
@@ -314,6 +318,7 @@ def mark_low_confidence(findings: Iterable[Any], tool_settings: ToolSettings) ->
             for prefix in tool_settings.low_precision_families
         ):
             finding.low_confidence = True
+        if finding.low_confidence:
             marked += 1
 
     return marked
