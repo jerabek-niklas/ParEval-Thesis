@@ -286,6 +286,18 @@ def repair_plan_view(config: Dict[str, Any]) -> "OrderedDict[str, Any]":
     return plan
 
 
+def provenance_policies_view() -> "OrderedDict[str, Any]":
+    """The provenance policies the post-run verifier applies to a run frozen
+    with this contract (their versions, read from the productive modules)."""
+    from thesis.evaluation import repair_scope, stage_runtime, writer_attribution
+
+    return OrderedDict([
+        ("writer_attribution", writer_attribution.REPAIR_WRITER_ATTRIBUTION_VERSION),
+        ("iteration_zero_writer_attribution", repair_scope.ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY),
+        ("split_invocation_coverage", stage_runtime.SPLIT_INVOCATION_COVERAGE_POLICY),
+    ])
+
+
 def build_contract(config_path: Path, profile_name: str,
                    run_id_override: "Optional[str]" = None,
                    primary_compiler: str = "g++") -> "OrderedDict[str, Any]":
@@ -319,6 +331,10 @@ def build_contract(config_path: Path, profile_name: str,
     # frozen derivation inputs of the EXPECTED RUNTIME STAGE MATRIX
     contract["static_toolset"] = static_toolset_view(config)
     contract["repair_plan"] = repair_plan_view(config)
+    # provenance policies the run is verified under (technical provenance
+    # cleanup): a run frozen with them is expected to carry per-model
+    # invocation histories and split-container invocation coverage
+    contract["provenance_policies"] = provenance_policies_view()
     contract["policy_state"] = OrderedDict([
         ("population_status", population_policy.get("status")),
         ("expected_base_run_status", base_run_policy.get("status")),

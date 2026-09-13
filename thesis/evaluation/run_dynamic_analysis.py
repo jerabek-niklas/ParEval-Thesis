@@ -288,6 +288,8 @@ def run_model(
     output_file_name: str,
     tools_skipped: "list[dict[str, str]] | None" = None,
     skip_unavailable_tools: bool = False,
+    invocation_label: "str | None" = None,
+    writer_attribution: "dict[str, Any] | None" = None,
 ) -> dict[str, Any]:
     """One model's dynamic analysis.
 
@@ -308,6 +310,27 @@ def run_model(
         tools_skipped = gate_skipped
 
     output_path = intermediate_dir / run_id / model_id / output_file_name
+
+    # Provenance (ADDITIVE, repair_writer_attribution.v1): the per-model
+    # invocation history survives every rewrite of the summary, so the
+    # repair loop's iteration-0 dynamic analysis - which writes into the
+    # BASE run's directory - stays attributable after the records are
+    # complete. Opened BEFORE the first record (status `invoked`), closed
+    # after the last one (`completed`), so an interrupted run leaves its
+    # partial records attributed to the writer that invoked it. The
+    # summary's own fields keep describing the latest invocation as before.
+    from thesis.evaluation import writer_attribution as wa
+
+    summary_path = output_path.parent / "dynamic_analysis_summary.json"
+    try:
+        invocation_index = wa.open_invocation(
+            summary_path, {"model_id": model_id}, invocation_label, writer_attribution,
+            tools_requested=sorted(tool_settings))
+    except Exception as exc:  # noqa: BLE001
+        # provenance never aborts a result stage: the verifier reports the
+        # missing / unreadable history (UNRESOLVED), the records are produced
+        print(f"[{model_id}] WARNING: dynamic_analysis_summary.json not writable: {exc}")
+        invocation_index = None
 
     records = load_existing_records(output_path)
 
@@ -394,9 +417,33 @@ def run_model(
         "tools_skipped": tools_skipped,
         "created_at_utc": common.utc_now_iso(),
     }
-    common.write_json(
-        output_path.parent / "dynamic_analysis_summary.json", summary
-    )
+    try:
+        wa.close_invocation(summary_path, -1 if invocation_index is None else invocation_index,
+                            {"tools_run": list(summary["tools_run"]),
+                             "tools_skipped": tools_skipped, "samples": samples_seen},
+                            document_updates=summary, label=invocation_label,
+                            writer_attribution=writer_attribution)
+        summary = dict(summary, invocations=wa.load_history(summary_path)[0].get("invocations"))
+    except Exception as exc:  # noqa: BLE001
+        # the summary is still refreshed, but NEVER at the cost of the
+        # invocation history: keep every existing entry and record this
+        # invocation with its own identity
+        print(f"[{model_id}] WARNING: dynamic_analysis_summary.json not writable: {exc}")
+        try:
+            document, unreadable = wa.load_history(summary_path)
+            entries = list(document.get("invocations") or [])
+            entries.append(wa.invocation_entry(
+                invocation_label, writer_attribution, status=wa.STATUS_COMPLETED,
+                opened_entry_lost=True, created_at_utc=summary["created_at_utc"],
+                tools_run=list(summary["tools_run"]), tools_skipped=tools_skipped,
+                samples=samples_seen))
+            fallback = dict(summary, invocations=entries)
+            if unreadable is not None:
+                fallback["unreadable_previous"] = unreadable
+            common.write_json(summary_path, fallback)
+            summary = fallback
+        except Exception as exc2:  # noqa: BLE001
+            print(f"[{model_id}] WARNING: dynamic_analysis_summary.json left as is: {exc2}")
 
     print(
         f"[{model_id}] samples: {samples_seen}, "
@@ -518,6 +565,8 @@ def main() -> None:
             output_file_name=output_file_name,
             tools_skipped=tools_skipped,
             skip_unavailable_tools=args.skip_unavailable_tools,
+            invocation_label="run_dynamic_analysis --tools %s" % (
+                " ".join(args.tools) if args.tools else "<config>"),
         )
 
 

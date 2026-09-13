@@ -116,6 +116,18 @@ def wave_proves_analysis(phase: "Optional[str]", iteration: "Any") -> bool:
 # >= 1 still had to register a repair_evaluation invocation (see
 # iteration_zero_analysis below).
 ITERATION_ZERO_INVOCATION_POLICY = "CONTRACT_STAGE_COVERAGE_FAIL_CLOSED"
+# Positive WRITER provenance for the three internal stages (technical
+# provenance cleanup wave): the repair loop labels every internal stage run
+# it performs - static since the pre-run enforcement wave, correctness and
+# dynamic now - in the per-model invocation history of the run it writes
+# into (writer_attribution.py). "Who invoked this stage?" is answered from
+# that history, never from "are records still missing today?", so the
+# attribution survives records that are complete by the time the verifier
+# looks. An unreadable or malformed history is a verdict, never silently
+# "no repair attribution".
+ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY = "POSITIVE_WRITER_PROVENANCE_STATIC_CORRECTNESS_DYNAMIC"
+ITERATION_ZERO_COVERAGE_RESIDUAL = "CLOSED_BY_WRITER_ATTRIBUTION"
+WRITER_ATTRIBUTION_STAGES = ("static", "correctness", "dynamic")
 
 
 # ---------------------------------------------------------------------------
@@ -279,44 +291,116 @@ def _variant_feedback_sources(config, variant):
 # `_run_analysis_stages` passes this label into run_static_analysis.run_model,
 # which APPENDS it to the model's static_analysis_summary.json invocations -
 # an artifact the loop never rewrites away. It is the one durable, positive
-# trace that the repair loop itself analysed an iteration.
+# trace that the repair loop itself analysed an iteration. The same
+# convention now labels the correctness and dynamic runs (writer_attribution.
+# REPAIR_INVOCATION_LABEL) and is parsed strictly there.
 REPAIR_STATIC_INVOCATION_LABEL = "repair %s/%s iteration %d (internal static)"
-_REPAIR_STATIC_LABEL = re.compile(
-    r"^repair (?P<model>.+)/(?P<variant>[^/]+) iteration (?P<iteration>\d+) "
-    r"\(internal static\)$")
 
 
-def repair_labelled_static_invocations(config, base_run_id, model_id, variant):
-    """Iterations of THIS loop that appear as a repair-written invocation in
-    the BASE run's static_analysis_summary.json.
+def repair_labelled_internal_invocations(config, base_run_id, model_id, variant,
+                                         internal_stage, max_iterations=None,
+                                         contracted_variants=None, stage_contracted=None,
+                                         contract_sha256=None, authorization_sha256=None,
+                                         repair_evaluation_invocation_sha256s=None,
+                                         policy_declared=True) -> "OrderedDict[str, Any]":
+    """Iterations of THIS loop that the BASE run's per-model invocation history
+    of `internal_stage` (static_analysis_summary.json /
+    correctness_summary.json / dynamic_analysis_summary.json) attributes to
+    the repair loop - positive writer provenance (writer_attribution.py).
 
     The records leg alone cannot see an iteration-0 analysis after the fact:
     _run_analysis_stages(0) writes into the base run's own stage files, so the
-    gap it filled is gone by the time the verifier looks. The label survives.
-    Returns (iterations, problem); a summary that cannot be read is reported,
-    never silently treated as "no repair invocation"."""
+    gap it filled is gone by the time the verifier looks. The attribution
+    survives. Returns iterations / problems / unreadable: a history that
+    cannot be read is reported as `unreadable`, a malformed or contradicting
+    entry as a problem - never silently "no repair invocation". Every
+    runner writes its history on every invocation, so a history that is
+    ABSENT although the stage is contracted and the model's records exist
+    is a lost provenance artifact - reported as unreadable, never as
+    "no repair attribution" (`stage_contracted`)."""
+    from thesis.evaluation import writer_attribution as wa
+
+    result = OrderedDict([("internal_stage", internal_stage), ("summary_path", None),
+                          ("summary_present", False), ("iterations", []), ("entries", 0),
+                          ("duplicates", 0), ("problems", []), ("unreadable", None)])
     try:
         from thesis.repair import orchestrator
 
         paths = orchestrator.LoopPaths(config, base_run_id, model_id, variant)
-        summary_path = paths.stage_path(0, "static_analysis").parent / \
-            "static_analysis_summary.json"
+        summary_path = paths.iter_intermediate_dir(0) / wa.SUMMARY_FILE_NAMES[internal_stage]
+        stage_name = {"static": "static_analysis", "correctness": "correctness_tests",
+                      "dynamic": "dynamic_analysis"}[internal_stage]
+        records_path = paths.stage_path(0, stage_name)
     except Exception as exc:  # noqa: BLE001
-        return [], "%s: %s" % (type(exc).__name__, exc)
+        result["unreadable"] = "%s: %s" % (type(exc).__name__, exc)
+        return result
+    result["summary_path"] = str(summary_path)
+    expected_history = bool(stage_contracted) and records_path.is_file()
+    lost = ("the runners write it on every invocation, so the history is a lost provenance "
+            "artifact" if policy_declared else
+            "the run does not declare the writer-attribution policy (it predates it or was "
+            "not contracted under it), so the iteration-0 writer cannot be attributed")
     if not summary_path.is_file():
-        return [], None
+        if expected_history:
+            result["unreadable"] = ("%s absent although %s is contracted and %s exists - %s"
+                                    % (summary_path.name, stage_name, records_path.name, lost))
+        return result
+    result["summary_present"] = True
     summary, error = _read_json(summary_path)
-    if error:
-        return [], "static_analysis_summary.json: %s" % error
-    iterations: "List[int]" = []
-    for invocation in (summary or {}).get("invocations") or []:
-        label = (invocation or {}).get("label") if isinstance(invocation, dict) else None
-        if not isinstance(label, str):
-            continue
-        match = _REPAIR_STATIC_LABEL.match(label)
-        if match and match.group("model") == model_id and match.group("variant") == variant:
-            iterations.append(int(match.group("iteration")))
-    return sorted(set(iterations)), None
+    if error or summary is None:
+        result["unreadable"] = "%s: %s" % (summary_path.name, error or "empty document")
+        return result
+    for field, expected in (("model_id", model_id), ("run_id", base_run_id)):
+        if summary.get(field) not in (None, expected):
+            result["unreadable"] = ("%s names %s %r inside %s's %s history"
+                                    % (summary_path.name, field, summary.get(field), model_id,
+                                       internal_stage))
+            return result
+    if expected_history and not summary.get("invocations"):
+        # every runner appends an entry BEFORE its first record (static: with
+        # its records), so a history without any entry next to existing
+        # records is as impossible in production as an absent file
+        result["unreadable"] = ("%s carries no invocation entry although %s is contracted and "
+                                "%s exists - %s" % (summary_path.name, stage_name,
+                                                     records_path.name, lost))
+        return result
+    if summary.get("unreadable_previous") is not None:
+        # the writer found an unreadable predecessor and carried its bytes
+        # along: the history BEFORE that point is unknown
+        result["unreadable"] = ("%s: the writer recorded an unreadable earlier history "
+                                "(unreadable_previous)" % summary_path.name)
+    parsed = wa.repair_iterations(summary.get("invocations"), internal_stage=internal_stage,
+                                  base_run_id=base_run_id, model_id=model_id,
+                                  contracted_variants=contracted_variants, variant=variant,
+                                  max_iterations=max_iterations,
+                                  # the base run's history carries iteration 0 only
+                                  history_iteration=0,
+                                  contract_sha256=contract_sha256,
+                                  authorization_sha256=authorization_sha256,
+                                  repair_evaluation_invocation_sha256s=
+                                  repair_evaluation_invocation_sha256s)
+    result["iterations"] = parsed["iterations"]
+    result["entries"] = parsed["entries"]
+    result["duplicates"] = parsed["duplicates"]
+    # problems of another contracted loop's entries belong to that loop;
+    # model-wide problems (malformed entries, identity contradictions) to all
+    result["problems"] = ["%s: %s" % (summary_path.name, problem["problem"])
+                          for problem in parsed["problems"]
+                          if problem["variant"] in (None, variant)]
+    result["problems_of_other_loops"] = [
+        "%s (%s): %s" % (summary_path.name, problem["variant"], problem["problem"])
+        for problem in parsed["problems"] if problem["variant"] not in (None, variant)]
+    return result
+
+
+def repair_labelled_static_invocations(config, base_run_id, model_id, variant):
+    """Compatibility view of repair_labelled_internal_invocations(...,
+    "static"): (iterations, problem) - problem carries an unreadable
+    history or the first malformed entry, never None for either."""
+    result = repair_labelled_internal_invocations(config, base_run_id, model_id, variant,
+                                                  "static")
+    problem = result["unreadable"] or (result["problems"][0] if result["problems"] else None)
+    return list(result["iterations"]), problem
 
 
 def productive_missing_internal_stages(config, base_run_id, model_id, variant):
@@ -342,7 +426,8 @@ def iteration_zero_analysis(contract: "Optional[Dict[str, Any]]",
                             config: "Optional[Dict[str, Any]]",
                             variant: str,
                             base_run_id: "Optional[str]" = None,
-                            model_id: "Optional[str]" = None) -> "OrderedDict[str, Any]":
+                            model_id: "Optional[str]" = None,
+                            manifest: "Optional[Dict[str, Any]]" = None) -> "OrderedDict[str, Any]":
     """Does the productive loop NECESSARILY run its own analysis - and with it
     register the repair_evaluation invocation - already at ITERATION 0?
 
@@ -408,9 +493,18 @@ def iteration_zero_analysis(contract: "Optional[Dict[str, Any]]",
 
     records_missing: "List[str]" = []
     records_problem = None
-    labelled_iterations: "List[int]" = []
-    label_problem = None
+    labelled: "Dict[str, List[int]]" = OrderedDict((s, []) for s in WRITER_ATTRIBUTION_STAGES)
+    attribution_problems: "List[str]" = []
+    attribution_unreadable: "List[str]" = []
+    attribution_duplicates = 0
     records_probed = bool(base_run_id) and bool(model_id)
+    plan = (contract or {}).get("repair_plan") if isinstance(contract, dict) else None
+    plan = plan if isinstance(plan, dict) else {}
+    plan_max = plan.get("max_iterations")
+    plan_max = plan_max if isinstance(plan_max, int) and not isinstance(plan_max, bool) else None
+    plan_variants = plan.get("variants")
+    plan_variants = (list(plan_variants) if isinstance(plan_variants, list)
+                     and all(isinstance(v, str) for v in plan_variants) else None)
     if records_probed:
         records_missing, records_problem = productive_missing_internal_stages(
             config or {}, base_run_id, model_id, variant)
@@ -419,29 +513,80 @@ def iteration_zero_analysis(contract: "Optional[Dict[str, Any]]",
                            "(productive missing_internal_stages(0) = %s%s)"
                            % (", ".join(records_missing), model_id, records_missing,
                               "; probe: " + records_problem if records_problem else ""))
-        labelled_iterations, label_problem = repair_labelled_static_invocations(
-            config or {}, base_run_id, model_id, variant)
-        if labelled_iterations:
-            reasons.append("the base run's static_analysis_summary.json carries this loop's "
-                           "OWN repair-written invocation for iteration(s) %s - the loop "
-                           "analysed and therefore registered one"
-                           % ", ".join(str(i) for i in labelled_iterations))
-        if label_problem:
-            reasons.append("the static invocation provenance could not be read (%s)"
-                           % label_problem)
+        # the run's own provenance the attribution bindings are checked against
+        contract_sha = (contract or {}).get("contract_sha256") if isinstance(contract, dict) else None
+        authorization_sha = (manifest or {}).get("authorization_sha256")
+        fragment_shas: "Dict[str, List[str]]" = {}
+        for owner, invocation in (((manifest or {}).get("stage_invocations") or {}).items()):
+            if not isinstance(invocation, dict) or invocation.get("stage") != STAGE:
+                continue
+            scope = invocation.get("model_scope")
+            values = invocation.get("effective_values")
+            entry_variant = (values.get("variant") if isinstance(values, dict) else None) or {}
+            entry_variant = entry_variant.get("value") if isinstance(entry_variant, dict) else None
+            if scope == [model_id] and isinstance(entry_variant, str) \
+                    and isinstance(invocation.get("invocation_sha256"), str):
+                fragment_shas.setdefault(entry_variant, []).append(invocation["invocation_sha256"])
+        contracted_stage = {"static": "static_analysis" in (stages or []),
+                            "correctness": "correctness_tests" in (stages or []),
+                            "dynamic": "dynamic_analysis" in (stages or [])}
+        # a contract frozen under this wave declares the policy; an older run
+        # gets the truthful diagnosis (still UNRESOLVED)
+        declared = ((contract or {}).get("provenance_policies") or {}) if isinstance(contract, dict) else {}
+        policy_declared = bool(declared.get("writer_attribution"))
+        # positive writer provenance, one history per internal stage
+        for stage in WRITER_ATTRIBUTION_STAGES:
+            found = repair_labelled_internal_invocations(
+                config or {}, base_run_id, model_id, variant, stage,
+                max_iterations=plan_max, contracted_variants=plan_variants,
+                stage_contracted=contracted_stage[stage], contract_sha256=contract_sha,
+                authorization_sha256=authorization_sha,
+                repair_evaluation_invocation_sha256s=fragment_shas,
+                policy_declared=policy_declared)
+            labelled[stage] = list(found["iterations"])
+            attribution_problems += found["problems"]
+            attribution_duplicates += int(found["duplicates"])
+            if found["unreadable"]:
+                attribution_unreadable.append("%s: %s" % (stage, found["unreadable"]))
+            if found["iterations"]:
+                reasons.append("the base run's %s carries this loop's OWN repair-written "
+                               "%s invocation for iteration(s) %s - the loop analysed and "
+                               "therefore registered one"
+                               % (found["summary_path"].rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
+                                  if found["summary_path"] else stage, stage,
+                                  ", ".join(str(i) for i in found["iterations"])))
+        if attribution_unreadable:
+            reasons.append("the writer attribution could not be read (%s)"
+                           % "; ".join(attribution_unreadable))
+        if attribution_problems:
+            reasons.append("the writer attribution is malformed or contradicts the loop (%s)"
+                           % "; ".join(attribution_problems))
 
+    labelled_any = [i for stage in WRITER_ATTRIBUTION_STAGES for i in labelled[stage]]
     missing = sorted(set(contract_missing) | set(records_missing))
-    certain = bool(missing) or bool(labelled_iterations) or bool(label_problem)
+    # fail-closed: a positive attribution, an unreadable history and a
+    # malformed one all keep the invocation REQUIRED
+    certain = (bool(missing) or bool(labelled_any) or bool(attribution_unreadable)
+               or bool(attribution_problems))
+    label_problem = (attribution_unreadable[0] if attribution_unreadable
+                     else (attribution_problems[0] if attribution_problems else None))
     return OrderedDict([
         ("policy", ITERATION_ZERO_INVOCATION_POLICY),
+        ("writer_attribution_policy", ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY),
         ("variant", variant),
         ("model_id", model_id),
         ("certain", certain),
         ("missing_internal_stages", missing),
         ("contract_missing_stages", contract_missing),
         ("records_missing_stages", records_missing),
-        ("repair_labelled_static_iterations", labelled_iterations),
+        ("repair_labelled_static_iterations", labelled["static"]),
+        ("repair_labelled_correctness_iterations", labelled["correctness"]),
+        ("repair_labelled_dynamic_iterations", labelled["dynamic"]),
+        ("repair_labelled_iterations_by_stage", labelled),
         ("repair_label_problem", label_problem),
+        ("writer_attribution_problems", attribution_problems),
+        ("writer_attribution_unreadable", attribution_unreadable),
+        ("writer_attribution_duplicates", attribution_duplicates),
         ("records_probed", records_probed),
         ("records_probe_problem", records_problem),
         ("feedback_sources", sources),
@@ -471,15 +616,23 @@ def observed_repair_invocation_scopes(manifest: "Optional[Dict[str, Any]]",
 
     scopes: "List[OrderedDict]" = []
     for invocation in ei.invocations_for_stage(manifest, STAGE):
+        if not isinstance(invocation, dict):
+            scopes.append(OrderedDict([("model_id", None), ("variant", None), ("keyable", False),
+                                       ("problems", ["the invocation fragment is not an object"]),
+                                       ("invocation_sha256", None)]))
+            continue
         model_scope = invocation.get("model_scope")
         models = list(model_scope) if isinstance(model_scope, (list, tuple)) else (
             [model_scope] if isinstance(model_scope, str) else [])
-        variant = ((invocation.get("effective_values") or {}).get("variant") or {})
+        values = invocation.get("effective_values")
+        variant = (values.get("variant") if isinstance(values, dict) else None) or {}
         variant_value = variant.get("value") if isinstance(variant, dict) else variant
         identity_problems = []
         if len(models) != 1 or not isinstance(models[0], str) or not models[0]:
             identity_problems.append("model_scope does not name exactly one model: %r"
                                      % (model_scope,))
+        if not isinstance(values, dict) or not all(isinstance(v, dict) for v in values.values()):
+            identity_problems.append("effective_values is not an object of {value, source} entries")
         if not isinstance(variant_value, str) or not variant_value:
             identity_problems.append("effective_values.variant does not name one variant: %r"
                                      % (variant_value,))
@@ -487,11 +640,17 @@ def observed_repair_invocation_scopes(manifest: "Optional[Dict[str, Any]]",
         if base_run_id is not None and invocation.get("run_id") not in (None, base_run_id):
             problems.append("the invocation fragment belongs to run %r, not %r"
                             % (invocation.get("run_id"), base_run_id))
-        if contract:
-            problems += ei.check_against_contract(invocation, contract)
-            recomputed = ei.invocation_fingerprint(invocation)
-            if recomputed != invocation.get("invocation_sha256"):
-                problems.append("the invocation fragment does not match its own fingerprint")
+        if contract and not identity_problems:
+            # a fragment of a wrong SHAPE is unkeyable above; the contract and
+            # fingerprint checks assume the productive shape and are guarded
+            try:
+                problems += ei.check_against_contract(invocation, contract)
+                recomputed = ei.invocation_fingerprint(invocation)
+                if recomputed != invocation.get("invocation_sha256"):
+                    problems.append("the invocation fragment does not match its own fingerprint")
+            except Exception as exc:  # noqa: BLE001
+                identity_problems.append("the invocation fragment is not interpretable (%s: %s)"
+                                         % (type(exc).__name__, exc))
         scopes.append(OrderedDict([
             ("model_id", models[0] if len(models) == 1 else None),
             ("variant", variant_value if isinstance(variant_value, str) else None),
@@ -543,10 +702,11 @@ def _read_json(path: Path) -> "Tuple[Optional[Dict[str, Any]], Optional[str]]":
         parsed = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         return None, "%s: %s" % (type(error).__name__, error)
-    if parsed is not None and not isinstance(parsed, dict):
-        # every caller does <json>.get(...): returning a list or a string here
-        # would crash the whole verifier instead of producing a verdict for
-        # this loop, so a wrong SHAPE is reported like an unreadable file
+    if not isinstance(parsed, dict):
+        # every caller does <json>.get(...): returning a list, a string or
+        # null here would crash the whole verifier instead of producing a
+        # verdict for this loop, so a wrong SHAPE is reported like an
+        # unreadable file
         return None, "not a JSON object (%s)" % type(parsed).__name__
     return parsed, None
 
@@ -884,7 +1044,7 @@ def build_repair_matrix(contract: "Optional[Dict[str, Any]]", config: "Dict[str,
         key = "%s/%s" % (loop["model_id"], loop["variant"])
         if key not in zero_analysis:
             zero_analysis[key] = iteration_zero_analysis(
-                contract, config, loop["variant"], base_run_id, loop["model_id"])
+                contract, config, loop["variant"], base_run_id, loop["model_id"], manifest)
     for loop in expected["loops"]:
         key = (loop["model_id"], loop["variant"])
         actual = loops_by_key.get(key)
@@ -994,6 +1154,12 @@ def build_repair_matrix(contract: "Optional[Dict[str, Any]]", config: "Dict[str,
         ])),
         ("iteration_zero_invocation_policy", ITERATION_ZERO_INVOCATION_POLICY),
         ("iteration_zero_analysis", OrderedDict(sorted(zero_analysis.items()))),
+        ("iteration_zero_writer_attribution_policy", ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY),
+        ("iteration_zero_coverage_residual", ITERATION_ZERO_COVERAGE_RESIDUAL),
+        # the productive orchestrator registers the repair_evaluation runtime
+        # stamp ONLY inside _run_analysis_stages: a stamp on a run whose loops
+        # all claim to have analysed nothing contradicts the writer
+        ("repair_evaluation_stamp_present", repair_evaluation_stamp_present(manifest)),
         ("iteration_artifacts", artifacts),
         ("iteration_identity_violations", iteration_violations),
         ("sample_totals", totals),
@@ -1003,6 +1169,17 @@ def build_repair_matrix(contract: "Optional[Dict[str, Any]]", config: "Dict[str,
         ("status", aggregate),
         ("detail", detail),
     ])
+
+
+def repair_evaluation_stamp_present(manifest: "Optional[Dict[str, Any]]") -> bool:
+    """Does the run carry a stage runtime stamp for repair_evaluation? Only
+    orchestrator._run_analysis_stages registers one (stage_runtime.enforce_stage),
+    so its presence proves that SOME loop ran an internal analysis."""
+    from thesis.evaluation import stage_runtime
+
+    owner = stage_runtime.STAGE_DOMAINS[STAGE][0]
+    stamps = (manifest or {}).get("stage_runtime_evidence") or {}
+    return isinstance(stamps, dict) and owner in stamps
 
 
 def _identity(loop: "Dict[str, Any]") -> "OrderedDict":
@@ -1053,6 +1230,13 @@ def _row(loop, actual, invocation_count, narrowing, max_iterations, batch_possib
     # mere existence of an iteration directory proves nothing: _assemble
     # creates it even when no response was assemblable.
     zero_certain = bool((zero_analysis or {}).get("certain"))
+    # positive writer provenance (writer_attribution.py): a malformed or
+    # contradicting attribution is a FAIL of this loop, an unreadable history
+    # leaves the loop UNRESOLVED - both regardless of the invocation
+    attribution_problems = list((zero_analysis or {}).get("writer_attribution_problems") or [])
+    attribution_unreadable = list((zero_analysis or {}).get("writer_attribution_unreadable") or [])
+    problems += ["writer attribution: %s" % p for p in attribution_problems]
+    unresolved += ["writer attribution unreadable: %s" % u for u in attribution_unreadable]
     wave_evidence = wave_proves_analysis((actual or {}).get("wave_phase"),
                                          (actual or {}).get("wave_iteration"))
     invocation_required = (actual is None
@@ -1062,6 +1246,16 @@ def _row(loop, actual, invocation_count, narrowing, max_iterations, batch_possib
     if invocation_count > 1:
         invocation_status = FAIL
         problems.append("%d invocations registered for one logical scope" % invocation_count)
+    elif invocation_count == 1 and not invocation_required:
+        # the orchestrator registers the repair_evaluation invocation ONLY
+        # inside _run_analysis_stages: an invocation that no analysed
+        # iteration, wave phase, iteration-0 necessity or writer attribution
+        # explains means the provenance of that analysis is lost
+        invocation_status = UNRESOLVED
+        unresolved.append("a repair_evaluation invocation is registered for this loop but no "
+                          "analysis explains it (no analysed iteration, no wave evidence, no "
+                          "writer attribution) - the writer provenance of that invocation is "
+                          "lost")
     elif invocation_count == 1:
         invocation_status = PASS
     elif not invocation_required and actual is not None:
@@ -1247,6 +1441,14 @@ def _row(loop, actual, invocation_count, narrowing, max_iterations, batch_possib
         ("wave_proves_analysis", wave_evidence),
         ("iteration_zero_analysis_certain", zero_certain),
         ("iteration_zero_analysis", zero_analysis or {}),
+        ("repair_labelled_static_iterations",
+         list((zero_analysis or {}).get("repair_labelled_static_iterations") or [])),
+        ("repair_labelled_correctness_iterations",
+         list((zero_analysis or {}).get("repair_labelled_correctness_iterations") or [])),
+        ("repair_labelled_dynamic_iterations",
+         list((zero_analysis or {}).get("repair_labelled_dynamic_iterations") or [])),
+        ("writer_attribution_problem", "; ".join(attribution_problems + attribution_unreadable)
+         or None),
         ("invocation_required", invocation_required),
         ("iteration_artifacts", [a["run_dir"] for a in own_artifacts]),
         ("limitations", limitation),

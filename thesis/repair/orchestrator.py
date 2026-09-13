@@ -1157,6 +1157,22 @@ class RepairLoop:
         if not enforcement.get("enforced"):
             self.log("pre-run enforcement: NOT_APPLICABLE (%s)" % enforcement.get("reason"))
 
+        # Positive writer attribution (repair_writer_attribution.v1): every
+        # internal stage run here is labelled as INVOKED BY THIS LOOP for
+        # THIS iteration - static via the label the pre-run enforcement
+        # wave introduced, correctness and dynamic the same way now. At
+        # iteration 0 the runners write into the BASE run's directory, so
+        # this trace is the only thing that later proves the repair loop
+        # (not the base evaluation) produced the records. Provenance only:
+        # the runners' arguments, the stop semantics and the records are
+        # exactly what they were.
+        from thesis.evaluation import writer_attribution as wa
+
+        def attribution(internal_stage: str) -> Dict[str, Any]:
+            return wa.repair_attribution(
+                self.paths.base_run_id, self.model_id, self.variant, iteration,
+                internal_stage, enforcement=enforcement)
+
         context = framework.EvaluationContext(
             repo_root=REPO_ROOT,
             drivers_cpp_dir=REPO_ROOT / "drivers" / "cpp",
@@ -1203,6 +1219,7 @@ class RepairLoop:
                 expected_tools=expected,
                 invocation_label="repair %s/%s iteration %d (internal static)"
                 % (self.model_id, self.variant, iteration),
+                writer_attribution=attribution("static"),
             )
 
         if "correctness" in stages:
@@ -1235,6 +1252,9 @@ class RepairLoop:
                         "run_timeout_seconds", run_correctness.DEFAULT_RUN_TIMEOUT
                     )
                 ),
+                invocation_label="repair %s/%s iteration %d (internal correctness)"
+                % (self.model_id, self.variant, iteration),
+                writer_attribution=attribution("correctness"),
             )
 
         if "dynamic" in stages:
@@ -1256,6 +1276,9 @@ class RepairLoop:
                 model_id=self.model_id,
                 tool_settings=settings,
                 output_file_name=stage_output_file(self.config, "dynamic_analysis"),
+                invocation_label="repair %s/%s iteration %d (internal dynamic)"
+                % (self.model_id, self.variant, iteration),
+                writer_attribution=attribution("dynamic"),
             )
 
     # -- external tools (parcoach/llov containers) ------------------------

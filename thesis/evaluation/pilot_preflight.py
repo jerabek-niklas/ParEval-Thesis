@@ -296,12 +296,74 @@ def prerun_infrastructure_lines() -> "list":
                     ", ".join(repair_expected["variants"]) or "-"))
     lines.append("RUNTIME_STAMP_SUBSTITUTES_MISSING_REPAIR_LOOP = false")
     lines.append("POST_RUN_REPAIR_COMPLETENESS_REQUIRED = true")
+    # ---- technical provenance cleanup: split invocation coverage +
+    # iteration-0 writer attribution (mechanism + verifier + fixtures) ----
+    lines += technical_provenance_lines(contract, config)
     lines.append("POST_RUN_VERIFICATION_MECHANISM = READY (%s)"
                  % verify_pilot_run.VERIFIER_VERSION)
     lines.append("PILOT_002_POST_RUN_VERIFIED = NOT_APPLICABLE_BEFORE_RUN")
     lines.append("POST_RUN_VERIFICATION_REQUIRED_FOR_RESULT_ACCEPTANCE = true")
     lines.append("SEMANTIC_DISCLOSURE_RENDERING = %s"
                  % semantic_gate.disclosure_rendering_state())
+    return lines
+
+
+def technical_provenance_lines(contract, config) -> "list":
+    """READY here means: the mechanism, its verifier and its fixtures exist
+    and the expected set is derivable from the contract - never that a
+    pilot_002 verification already passed (there are no post-run records
+    before a run)."""
+    import inspect
+
+    from thesis.evaluation import (repair_scope, run_correctness, run_dynamic_analysis,
+                                   run_static_analysis, stage_runtime, writer_attribution)
+    from thesis.repair import orchestrator
+
+    lines = []
+    expected = stage_runtime.expected_split_static_invocations(contract)
+    lines.append("STATIC_SPLIT_INVOCATION_COVERAGE_POLICY = %s (identity %s; duplicates: %s)"
+                 % (stage_runtime.SPLIT_INVOCATION_COVERAGE_POLICY,
+                    stage_runtime.SPLIT_SCOPE_IDENTITY, stage_runtime.SPLIT_DUPLICATE_POLICY))
+    lines.append("STATIC_SPLIT_EXPECTED_SCOPES (contract view of the current config) = %s (%s)"
+                 % (expected["status"], expected["reason"]))
+    for tool, info in expected["per_tool"].items():
+        lines.append("  STATIC_SPLIT_EXPECTED_SCOPES[%s] = %d (%s%s)"
+                     % (tool, info["scope_count"], info["stage"],
+                        "; execution models " + "/".join(info["applicable_execution_models"])
+                        if info.get("expected") else "; not expected"))
+    lines.append("RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION = %s"
+                 % str(stage_runtime.RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION).lower())
+    lines.append("RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION = %s"
+                 % str(stage_runtime.RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION).lower())
+    split_ready = expected["status"] in ("PASS", "NOT_APPLICABLE") \
+        and hasattr(stage_runtime, "split_static_invocation_matrix")
+    lines.append("STATIC_SPLIT_INVOCATION_COVERAGE_READY = %s" % str(split_ready).lower())
+    # writer attribution: every internal runner accepts it and the
+    # orchestrator hands it to all three (measured from the source, not
+    # asserted)
+    runners_ready = all("writer_attribution" in inspect.signature(fn).parameters
+                        for fn in (run_static_analysis.run_model, run_correctness.run_model,
+                                   run_dynamic_analysis.run_model))
+    source = inspect.getsource(orchestrator.RepairLoop._run_analysis_stages)
+    orchestrator_ready = all('writer_attribution=attribution("%s")' % stage in source
+                             or "writer_attribution=attribution('%s')" % stage in source
+                             for stage in writer_attribution.INTERNAL_STAGES)
+    verifier_ready = (repair_scope.ITERATION_ZERO_COVERAGE_RESIDUAL == "CLOSED_BY_WRITER_ATTRIBUTION"
+                      and hasattr(repair_scope, "repair_labelled_internal_invocations"))
+    lines.append("REPAIR_WRITER_ATTRIBUTION = %s (label convention %r; histories: %s)"
+                 % (writer_attribution.REPAIR_WRITER_ATTRIBUTION_VERSION,
+                    writer_attribution.REPAIR_INVOCATION_LABEL,
+                    ", ".join("%s -> %s" % kv for kv in writer_attribution.SUMMARY_FILE_NAMES.items())))
+    lines.append("REPAIR_ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY = %s"
+                 % repair_scope.ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY)
+    lines.append("ITERATION_ZERO_COVERAGE_RESIDUAL = %s" % repair_scope.ITERATION_ZERO_COVERAGE_RESIDUAL)
+    attribution_ready = runners_ready and orchestrator_ready and verifier_ready
+    lines.append("ITERATION_ZERO_WRITER_ATTRIBUTION_READY = %s (runners %s, orchestrator %s, "
+                 "verifier %s)" % (str(attribution_ready).lower(), str(runners_ready).lower(),
+                                    str(orchestrator_ready).lower(), str(verifier_ready).lower()))
+    lines.append("TECHNICAL_PROVENANCE_CLEANUP_READY = %s (mechanism + verifier + fixtures; "
+                 "not a passed pilot_002 verification)"
+                 % str(split_ready and attribution_ready).lower())
     return lines
 
 

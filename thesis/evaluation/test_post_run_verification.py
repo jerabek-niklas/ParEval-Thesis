@@ -177,8 +177,10 @@ class World:
         self._freeze_contract(contract_run_id)
         self._assemble()
         self._bind_contract()
-        self.stamp_stages(skip=self.skip_stamps)
+        # records first: whether a repair loop registers its repair_evaluation
+        # invocation at iteration 0 depends on the base records it finds
         self._write_stage_records()
+        self.stamp_stages(skip=self.skip_stamps)
         if self.repair_loops:
             self.write_repair_loops()
 
@@ -360,16 +362,16 @@ class World:
                 continue
             if stage == "repair_evaluation":
                 # the productive repair loop registers ONE invocation per
-                # (model, variant): model_scope=[model], variant in the values
+                # (model, variant) - and ONLY when it analyses an iteration
+                # itself: every loop that reached iteration >= 1, or at
+                # iteration 0 a loop whose base records / contract leave a
+                # stage for it to run (repair_scope.iteration_zero_analysis)
                 for model, variant in self.expected_repair_loops():
                     if (model, variant) in self.skip_repair_invocations:
                         continue
-                    values = dict(effective_values)
-                    values["variant"] = {"value": variant, "source": "CLI"}
-                    stage_runtime.enforce_stage(
-                        self.config, self.run_id, stage, effective_values=values,
-                        profile="fixture", model_scope=[model], prober=fake_prober,
-                        writer=writer)
+                    if not self.loop_registers_invocation(model, variant):
+                        continue
+                    self.register_repair_invocation(model, variant)
                 stamped.append(stage)
                 continue
             stage_runtime.enforce_stage(
@@ -377,6 +379,34 @@ class World:
                 profile="fixture", prober=fake_prober, writer=writer)
             stamped.append(stage)
         return stamped
+
+    def loop_registers_invocation(self, model, variant):
+        """Does the productive loop analyse an iteration - and register its
+        repair_evaluation invocation - in this world?"""
+        from thesis.evaluation import repair_scope as rs
+        from thesis.repair import orchestrator
+
+        if self.repair_iteration >= 1:
+            # an iteration >= 1 is analysed unless its samples ended in a
+            # status the orchestrator writes BEFORE any analysis
+            status = self.repair_sample_status or orchestrator.STATUS_CLEAN
+            if status not in (orchestrator.STATUS_UNUSABLE, orchestrator.STATUS_API_EXHAUSTED):
+                return True
+        # iteration 0: the loop analyses whatever the base run did not cover
+        return bool(rs.iteration_zero_analysis(self.contract, self.config, variant,
+                                               self.run_id, model)["certain"])
+
+    def register_repair_invocation(self, model, variant):
+        """The repair_evaluation invocation exactly as the productive loop
+        registers it for (model, variant)."""
+        from thesis.evaluation import stage_runtime
+
+        effective_values, writer = self.STAGE_INVOCATIONS["repair_evaluation"]
+        values = dict(effective_values)
+        values["variant"] = {"value": variant, "source": "CLI"}
+        return stage_runtime.enforce_stage(
+            self.config, self.run_id, "repair_evaluation", effective_values=values,
+            profile="fixture", model_scope=[model], prober=fake_prober, writer=writer)
 
     def _write_stage_records(self):
         for model in self.models:
@@ -404,6 +434,71 @@ class World:
                         "benchmark": entry.get("benchmark"), "spec": spec,
                         "status": "pass", "exit_code": 0, "duration_seconds": 0.01})
             self.register_enhanced_fingerprint(model)
+            self.write_dynamic_records(model)
+            self.write_stage_histories(model)
+
+    def write_dynamic_records(self, model):
+        """Base dynamic records when the world's config enables the dynamic
+        stage: the productive runner without tools writes exactly this shape
+        (one record per assembled sample, no tool entries) plus one base entry
+        in its invocation history."""
+        from thesis.evaluation import writer_attribution as wa
+
+        stage = (self.config.get("stages") or {}).get("dynamic_analysis") or {}
+        if not stage.get("enabled"):
+            return
+        path = self.model_dir(model) / "dynamic_analysis.jsonl"
+        if path.exists():
+            path.unlink()
+        for entry in self.assembled(model):
+            common.append_jsonl(path, {"schema_version": "dynamic_analysis.v2",
+                                       "sample_id": entry["sample_id"], "model_id": model,
+                                       "run_id": self.run_id,
+                                       "execution_model": entry.get("execution_model") or "serial",
+                                       "tools": {}, "has_blocking_findings": False,
+                                       "low_confidence_count": 0})
+        samples = len(self.assembled(model))
+        atomic_io.atomic_write_json(self.model_dir(model) / "dynamic_analysis_summary.json", {
+            "model_id": model, "samples": samples, "tools_run": [], "tools_skipped": [],
+            "invocations": [wa.invocation_entry("run_dynamic_analysis --tools <config>", None,
+                                                status=wa.STATUS_COMPLETED, tools_run=[],
+                                                tools_skipped=[], samples=samples)]})
+
+    def write_stage_histories(self, model):
+        """The per-model invocation histories every productive runner writes
+        (base-writer entries): static_analysis_summary.json - one entry per
+        container invocation exactly as a split run produces them - and
+        correctness_summary.json. A history that is absent although its stage
+        is contracted and its records exist is a lost provenance artifact for
+        the verifier, so a faithful base run carries them."""
+        from thesis.evaluation import writer_attribution as wa
+        from thesis.evaluation.tool_config import resolve_tool_settings
+
+        settings = resolve_tool_settings(self.config, "static_analysis")
+        enabled = [name for name, tool in settings.items() if tool.enabled]
+        main_tools = [name for name in enabled if name not in ("parcoach", "llov")]
+        invocations = []
+        for tools in [main_tools] + [[name] for name in enabled if name in ("parcoach", "llov")]:
+            if not tools:
+                continue
+            entry = wa.invocation_entry("run_static_analysis --tools %s" % " ".join(tools), None,
+                                        created_at_utc=common.utc_now_iso(),
+                                        tools_requested=list(tools), tools_run=list(tools),
+                                        tools_skipped=[], entries_run={t: 2 for t in tools},
+                                        replace_tool_entries=[], rerun_gaps=False,
+                                        replace_legacy_record=False, primary_compiler="g++")
+            invocations.append(entry)
+        atomic_io.atomic_write_json(self.model_dir(model) / "static_analysis_summary.json", {
+            "schema_version": "static_analysis_summary.v3", "model_id": model,
+            "invocations": invocations})
+        samples = len(self.assembled(model))
+        atomic_io.atomic_write_json(self.model_dir(model) / "correctness_summary.json", {
+            "schema_version": "correctness_summary.v1", "run_id": self.run_id,
+            "model_id": model, "samples": samples, "verdicts": {"pass": samples},
+            "invocations": [wa.invocation_entry(
+                "run_correctness", None, status=wa.STATUS_COMPLETED,
+                started_at_utc=common.utc_now_iso(), created_at_utc=common.utc_now_iso(),
+                samples=samples, verdicts={"pass": samples})]})
 
     def tool_entry(self, state, error=None, tool="compiler"):
         return {"tool": tool, "ran": True, "exit_code": 0, "num_findings": 0,

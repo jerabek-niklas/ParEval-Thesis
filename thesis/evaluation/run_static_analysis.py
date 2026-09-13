@@ -59,7 +59,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from thesis.config.load_config import load_config  # noqa: E402
 from thesis.generation import common  # noqa: E402
-from thesis.evaluation import framework  # noqa: E402
+from thesis.evaluation import atomic_io, framework  # noqa: E402
 from thesis.evaluation import static_provenance as provenance  # noqa: E402
 from thesis.evaluation.framework import (  # noqa: E402
     ANALYSIS_GAP_STATES,
@@ -397,6 +397,7 @@ def run_model(
     rerun_gaps: bool = False,
     replace_legacy_record: bool = False,
     invocation_label: str | None = None,
+    writer_attribution: "dict[str, Any] | None" = None,
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / "static_analysis.jsonl"
     summary_path = output_path.parent / "static_analysis_summary.json"
@@ -559,10 +560,23 @@ def run_model(
             "(nothing historical was legitimized by that)."
         )
 
-    previous = load_summary(summary_path)
+    # the history is read shape-safely (an unreadable or wrongly shaped
+    # predecessor is kept under unreadable_previous, never dropped) and the
+    # summary is written atomically below - provenance never aborts the
+    # stage after the records landed
+    from thesis.evaluation import writer_attribution as wa
+
+    previous, unreadable_previous = wa.load_history(summary_path)
     invocations = list(previous.get("invocations") or [])
+    # writer attribution (repair_writer_attribution.v1): the repair loop's
+    # iteration-0 analysis writes into THIS base-run summary; the label
+    # (pre-run enforcement wave) and the structured block say who invoked
+    # the stage, so the post-run verifier can prove it after the records
+    # are complete. Additive: no record field, no result semantics.
     invocations.append(OrderedDict([
         ("label", invocation_label),
+        ("writer", (writer_attribution or {}).get("writer") or "base"),
+        ("repair_writer", OrderedDict(writer_attribution) if writer_attribution else None),
         ("created_at_utc", common.utc_now_iso()),
         ("tools_requested", list(tool_settings)),
         ("tools_run", [t.name for t in available_tools]),
@@ -590,7 +604,12 @@ def run_model(
     # only (never the coverage statement - that is per_tool)
     summary["tools_run"] = [t.name for t in available_tools]
     summary["tools_skipped"] = tools_skipped or []
-    common.write_json(summary_path, summary)
+    if unreadable_previous is not None:
+        summary["unreadable_previous"] = unreadable_previous
+    try:
+        atomic_io.atomic_write_json(summary_path, summary)
+    except Exception as exc:  # noqa: BLE001 - provenance never aborts the stage
+        print(f"[{model_id}] WARNING: static_analysis_summary.json not writable: {exc}")
 
     print(
         f"[{model_id}] samples: {samples_seen}, "

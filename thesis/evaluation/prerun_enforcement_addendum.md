@@ -1375,8 +1375,8 @@ environment gate, not changed here.
 | `POST_RUN_REPAIR_COMPLETENESS_REQUIRED` | true |
 | `RUNTIME_STAMP_SUBSTITUTES_MISSING_REPAIR_LOOP` | false |
 | `ITERATION_ZERO_INVOCATION_POLICY` | CONTRACT_STAGE_COVERAGE_FAIL_CLOSED |
-| `ITERATION_ZERO_COVERAGE_RESIDUAL` | CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE (non-blocking) |
-| `STATIC_SPLIT_INVOCATION_COVERAGE_GAP` | OPEN_TECHNICAL_FINDING (parcoach, llov) |
+| `ITERATION_ZERO_COVERAGE_RESIDUAL` | CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE (non-blocking) -> CLOSED_BY_WRITER_ATTRIBUTION in section 1.3 (2026-09-13) |
+| `STATIC_SPLIT_INVOCATION_COVERAGE_GAP` | OPEN_TECHNICAL_FINDING (parcoach, llov) -> CLOSED in section 1.3 (2026-09-13) |
 | `SAFE_TO_PROCEED_TO_E3_2_DECISION` | true |
 
 Next step after this wave: **E3.2 re-freeze / accepted-disclosure decision**
@@ -1385,3 +1385,70 @@ OMPI_SKIP_MPICXX or the MPI finding-set effects here); only after that the
 pilot_002 population freeze. Population `NOT_YET_DECIDED`, base run id
 `NOT_YET_CONFIGURED`, reuse `UNDECIDED`, publication open, TSan/ASLR
 `OPEN_FOR_FINAL_ENVIRONMENT_GATE`, pilot_002 not run.
+
+## 1.3 Technical provenance cleanup (2026-09-13, start HEAD `78307026eeec`)
+
+Both technical provenance gaps left open by wave 1.2 are closed; result semantics are untouched (`RESULT_SEMANTICS_CHANGED = false`, `PROVENANCE_SEMANTICS_CHANGED = true`). Machine-readable record: `thesis/evaluation/technical_provenance_cleanup.json` (sha `a71ee6580b837b38`).
+
+### 1.3.1 PARCOACH / LLOV per-model invocation coverage - CLOSED
+
+`stage_runtime.expected_split_static_invocations(contract)` derives the expected logical scopes `(stage, tool, model_id)` from the FROZEN contract only (`model_ids` x split tools enabled in `static_toolset` x tool scope INTERSECT contracted population; nothing hard-coded - the productive contract view currently yields 11 PARCOACH + 11 LLOV scopes). `split_static_invocation_matrix` reports MEMBERSHIP (observed scopes allowed and consistent) separately from COVERAGE (every expected scope evidenced) and the verifier emits `split_static_invocation_expected_set`, `split_static_invocation_membership`, `split_static_invocation_coverage` and one `split_static_invocation:<stage>/<model>` check per scope; `post_run_verification.json` carries `split_static_invocation_coverage` (`expected_scope_count`, `observed_scope_count`, `covered_scope_count`, `missing_scopes`, `unexpected_scopes`, `contradicting_scopes`, `per_tool`).
+
+| expected scope | verdict |
+|---|---|
+| valid contract-bound invocation present | PASS |
+| records present, invocation missing | UNRESOLVED (results exist, execution not provenance-bound) |
+| records missing, invocation missing | UNRESOLVED here; `static_coverage` FAILs the run - never excused |
+| deliberate narrowing evidence (frozen resolved_config subset / drift on the model list) | FAIL |
+| invocation for a non-applicable scope, model outside the contract | FAIL |
+| contract / fingerprint contradiction, unkeyable fragment | FAIL |
+| consistent duplicates (per-model + whole-run fragment, same condition) | PASS, reported |
+| contradictory duplicates | FAIL |
+
+A whole-run fragment (`model_scope` null) covers a model only together with that model's own `static_analysis_summary.json` invocation that ran the tool. `RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION = false`, `RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION = false`. The wave-1.2 measurement fixture now reports `STATIC_SPLIT_INVOCATION_COVERAGE_GAP = CLOSED` for both tools (records present + invocation missing -> UNRESOLVED).
+
+### 1.3.2 Iteration-0 correctness / dynamic writer attribution - CLOSED
+
+`thesis/evaluation/writer_attribution.py` (`repair_writer_attribution.v1`) defines ONE attribution for the three internal stages: the label `repair %s/%s iteration %d (internal %s)` (byte-identical to the static label of wave 1.2) plus a structured block binding `base_run_id`, `model_id`, `variant`, `iteration`, `internal_stage` and the repair_evaluation enforcement context (contract, authorization, invocation and stage-runtime shas). `RepairLoop._run_analysis_stages` hands it to all three runners; the runners persist it in their per-model invocation histories: `static_analysis_summary.json` `invocations[]` (existing), `correctness_summary.json` (new sidecar, `correctness_summary.v1`), `dynamic_analysis_summary.json` `invocations[]` (new append-only history). Base runners write `writer = base` and no block. No result record gained a field; verdicts, findings, timeouts, launch grid and stop semantics are unchanged.
+
+`repair_scope.iteration_zero_analysis` reads the three histories (`repair_labelled_static_iterations`, `repair_labelled_correctness_iterations`, `repair_labelled_dynamic_iterations`, `writer_attribution_problems`, `writer_attribution_unreadable`) and keeps the `repair_evaluation` invocation REQUIRED for any labelled iteration - positive WHO-WROTE provenance that survives complete records. Fail-closed: an unreadable history -> UNRESOLVED row; a malformed entry, a wrong model / base run, an uncontracted variant, an iteration beyond `max_iterations` or two attributions binding different provenance -> FAIL row; identical resume entries are one consistent observation. A loop whose base stages were complete and that ran no internal stage keeps `invocation NOT_APPLICABLE` (no blanket requirement). `ITERATION_ZERO_COVERAGE_RESIDUAL = CLOSED_BY_WRITER_ATTRIBUTION`.
+
+### 1.3.3 Conditions
+
+| condition | before | after | why |
+|---|---|---|---|
+| static_analysis_condition | `1f7733276dd17d0e` | `1f7733276dd17d0e` | unchanged: no input touched |
+| repair_condition | `e6f5c32bbf329484` | `98b8be0f753dcbc1` | `orchestrator_sha256` only (raw hash of orchestrator.py: the attribution hand-off) |
+| runtime_condition (readiness) | `516288da9998fd1c` | `0d5f4889334dea26` | the bound repair sha only; image identities unchanged; gate READY |
+| assembly_condition | `a1488514eb2482a2` | `a1488514eb2482a2` | unchanged |
+| enhanced E3 frozen specs | `49b0229c508f0630` | `49b0229c508f0630` | unchanged |
+| cross-pilot fingerprint | `7356e25356af4fa9` | `acaf4584983c3de1` | run_correctness.py coarse shared-state refresh after a recorded function-level assessment; result classes unchanged |
+
+### 1.3.4 Tests, review, flags
+
+`test_provenance_cleanup.py`: 149 checks (split coverage A-M incl. narrowing, foreign run id, whole-run fragments; writer attribution A-P incl. the core regression 'correctness-only iteration-0 repair + deleted repair_evaluation invocation -> NON-PASS' and the counter-direction 'no internal analysis -> PASS / NOT_APPLICABLE'; the productive orchestrator and runners are exercised end-to-end with the compiler probe and the correctness sample runner stubbed). Full suite: all PASS. Adversarial review: round 1: 22 confirmed (all fixed), 5 refuted; round 2: 14 confirmed (all fixed), 2 refuted; open BLOCKING/MUST_FIX after round 2: 0.
+
+* `E3_2_DECISION = ACCEPTED`
+* `AUTHOR_CHOICES_CHANGED = false`
+* `GENERATION_PERFORMED = false`
+* `LLM_API_CALLS = 0`
+* `PILOT001_HISTORICAL_TREE_CHANGED = false`
+* `CORRECTNESS_VERDICT_SEMANTICS_CHANGED = false`
+* `DYNAMIC_FINDING_SEMANTICS_CHANGED = false`
+* `STATIC_FINDING_SEMANTICS_CHANGED = false`
+* `REPAIR_STOP_SEMANTICS_CHANGED = false`
+* `ASSEMBLY_SEMANTICS_CHANGED = false`
+* `ENHANCED_SEMANTICS_CHANGED = false`
+* `TIMING_SEMANTICS_CHANGED = false`
+* `RESULT_SEMANTICS_CHANGED = false`
+* `PROVENANCE_SEMANTICS_CHANGED = true`
+* `POPULATION_CHANGED = false`
+* `RUN_ID_CHANGED = false`
+* `REUSE_DECIDED = false`
+* `PUBLICATION_DECIDED = false`
+* `STATIC_SPLIT_INVOCATION_COVERAGE_GAP = CLOSED`
+* `ITERATION_ZERO_COVERAGE_RESIDUAL = CLOSED`
+* `TECHNICAL_PROVENANCE_CLEANUP = COMPLETE`
+* `SAFE_TO_PROCEED_TO_POPULATION_AND_METHODOLOGY_FREEZE = true`
+
+Open for the FINAL ENVIRONMENT GATE (not here): Docker first-inspect observation (reproduced three times in this wave, once as a NOT_READY readiness artifact written by a review-workflow agent and re-measured READY; no policy introduced), TSan/ASLR. Population NOT_YET_DECIDED, base run id NOT_YET_CONFIGURED, reuse UNDECIDED, publication OPEN. Next step: **PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE**.

@@ -28,6 +28,11 @@ Checked (per the pre-run contract):
                (PARTIAL / NOT_ANALYZED / TOOL_ERROR / TIMEOUT) is a
                COVERAGE LIMITATION - the invocation completed, so it does
                not fail the run
+  split        PARCOACH / LLOV per-model invocation MEMBERSHIP and
+               COVERAGE against the contract-derived expected scopes
+               (stage_runtime.split_static_invocation_matrix): records
+               and runtime stamps never substitute for a missing
+               per-model invocation
   enhanced     exact (sample_id, spec_key) coverage against the contracted
                spec set, and candidate-source drift against the registered
                model execution fingerprint
@@ -339,24 +344,102 @@ def check_effective_invocation(report: Report, contract: "Optional[Dict[str, Any
         problems = []
         rendered = []
         for invocation in invocations:
+            if not isinstance(invocation, dict):
+                problems.append("a registered invocation fragment is not an object")
+                continue
             scope = invocation.get("model_scope")
             prefix = "" if not scope else "%s: " % ",".join(
-                scope if isinstance(scope, (list, tuple)) else [str(scope)])
-            problems += [prefix + problem
-                         for problem in ei.check_against_contract(invocation, contract)]
-            if ei.invocation_fingerprint(invocation) != invocation.get("invocation_sha256"):
-                problems.append(prefix + "the invocation fragment does not match its own "
-                                         "fingerprint")
-            rendered.append(prefix + ", ".join(
-                "%s=%s[%s]" % (name, (entry or {}).get("value"), (entry or {}).get("source"))
-                for name, entry in sorted((invocation.get("effective_values") or {}).items())))
+                str(s) for s in (scope if isinstance(scope, (list, tuple)) else [scope]))
+            # a fragment of a wrong SHAPE is a verdict (FAIL), never a crash
+            try:
+                problems += [prefix + problem
+                             for problem in ei.check_against_contract(invocation, contract)]
+                if ei.invocation_fingerprint(invocation) != invocation.get("invocation_sha256"):
+                    problems.append(prefix + "the invocation fragment does not match its own "
+                                             "fingerprint")
+                values = invocation.get("effective_values")
+                if not isinstance(values, dict):
+                    raise TypeError("effective_values is not an object")
+                rendered.append(prefix + ", ".join(
+                    "%s=%s[%s]" % (name, (entry or {}).get("value"), (entry or {}).get("source"))
+                    for name, entry in sorted(values.items())))
+            except Exception as exc:  # noqa: BLE001 - malformed fragment
+                problems.append(prefix + "the invocation fragment is not interpretable (%s: %s)"
+                                % (type(exc).__name__, exc))
         report.add(check_id, PASS if not problems else FAIL,
                    "; ".join(problems) if problems else
                    "effective values match the contract in %d invocation(s): %s"
                    % (len(invocations), " | ".join(rendered)),
                    {"invocations": len(invocations),
-                    "effective_values": [i.get("effective_values") for i in invocations],
-                    "override_policy": invocations[0].get("override_policy")})
+                    "effective_values": [i.get("effective_values") for i in invocations
+                                         if isinstance(i, dict)],
+                    "override_policy": next((i.get("override_policy") for i in invocations
+                                             if isinstance(i, dict)), None)})
+
+
+def check_split_static_invocations(report: Report, contract: "Optional[Dict[str, Any]]",
+                                   manifest: "Optional[Dict[str, Any]]",
+                                   intermediate: Path, run_id: str
+                                   ) -> "OrderedDict[str, Any]":
+    """WAS EVERY CONTRACTED (stage, tool, model) SPLIT-CONTAINER INVOCATION
+    ACTUALLY REGISTERED? membership (are the observed scopes allowed and
+    consistent?) and coverage (is every expected scope evidenced?) are
+    reported separately; a single valid fragment never covers a
+    multi-model stage, records never substitute for the invocation, and
+    the runtime stamp never does either."""
+    from thesis.evaluation import stage_runtime as sr
+
+    matrix = sr.split_static_invocation_matrix(manifest, contract, intermediate, run_id)
+    expected = matrix["expected_set"]
+    if contract is None:
+        report.add("split_static_invocation_expected_set", UNRESOLVED, expected["reason"],
+                   {"policy": matrix["policy"]})
+        return matrix
+    report.add("split_static_invocation_expected_set",
+               PASS if expected["status"] in (PASS, "NOT_APPLICABLE") else expected["status"],
+               "%s (%s): %s" % (matrix["policy"], matrix["identity"], expected["reason"]),
+               {"status": expected["status"], "expected_scope_count": matrix["expected_scope_count"],
+                "per_tool": expected["per_tool"], "not_expected": expected["not_expected"],
+                "model_ids": expected["model_ids"],
+                "runtime_stamp_substitutes_split_invocation": False,
+                "record_coverage_substitutes_split_invocation": False})
+    if expected["status"] == "NOT_APPLICABLE":
+        report.add("split_static_invocation_membership",
+                   FAIL if matrix["membership"] == FAIL else PASS,
+                   matrix["detail"], {"unexpected": matrix["unexpected_scopes"]})
+        return matrix
+    if expected["status"] != PASS:
+        report.add("split_static_invocation_coverage", UNRESOLVED, matrix["detail"],
+                   {"expected_scope_count": 0})
+        return matrix
+    report.add("split_static_invocation_membership", matrix["membership"],
+               "%d fragment(s) observed for %d scope(s); unexpected %d, contradicting %d, "
+               "unkeyable %d, consistent duplicates %d (%s)"
+               % (matrix["observed_fragment_count"], matrix["observed_scope_count"],
+                  len(matrix["unexpected_scopes"]), len(matrix["contradicting_scopes"]),
+                  len(matrix["unkeyable_fragments"]), len(matrix["consistent_duplicate_scopes"]),
+                  matrix["duplicate_policy"]),
+               {"unexpected": matrix["unexpected_scopes"],
+                "contradicting": matrix["contradicting_scopes"],
+                "unkeyable": matrix["unkeyable_fragments"],
+                "consistent_duplicates": matrix["consistent_duplicate_scopes"]})
+    report.add("split_static_invocation_coverage", matrix["coverage"], matrix["detail"],
+               {"expected_scope_count": matrix["expected_scope_count"],
+                "observed_scope_count": matrix["observed_scope_count"],
+                "covered_scope_count": matrix["covered_scope_count"],
+                "missing_scopes": matrix["missing_scopes"],
+                "unexpected_scopes": matrix["unexpected_scopes"],
+                "contradicting_scopes": matrix["contradicting_scopes"],
+                "per_tool": matrix["per_tool"], "narrowing": matrix["narrowing"],
+                "runtime_stamp_substitutes_split_invocation": False,
+                "record_coverage_substitutes_split_invocation": False})
+    for row in matrix["rows"]:
+        report.add("split_static_invocation:%s/%s" % (row["stage"], row["model_id"]),
+                   row["status"], row["detail"],
+                   {"tool": row["tool"], "fragments": row["fragments"],
+                    "records_with_entry": row["records_with_entry"],
+                    "summary_invocations_running_tool": row["summary_invocations_running_tool"]})
+    return matrix
 
 
 def check_invocation(report: Report, contract: "Optional[Dict[str, Any]]",
@@ -713,6 +796,22 @@ def reconcile_repair_evaluation_expectation(report: Report,
     if not rows or not all(not row.get("invocation_required")
                            and not row.get("invocation_count") for row in rows):
         return
+    if matrix.get("repair_evaluation_stamp_present"):
+        # the stamp is registered by _run_analysis_stages only: SOME loop ran
+        # an internal analysis, yet no loop is attributed - the writer
+        # provenance of that analysis is lost. Never downgrade to
+        # NOT_APPLICABLE on that contradiction; say so instead.
+        for check in report.checks:
+            if check["check"] == "effective_invocation:%s" % rs.STAGE \
+                    and check["status"] == UNRESOLVED:
+                check["detail"] = ("%s - the run carries a %s runtime stamp (registered "
+                                   "only by the loop's own internal analysis) but no loop "
+                                   "is attributed: the writer provenance of that analysis "
+                                   "is lost" % (check["detail"], rs.STAGE))
+                check["evidence"] = dict(check.get("evidence") or {},
+                                         repair_evaluation_stamp_present=True,
+                                         downgrade_refused=True)
+        return
     reason = ("the repair matrix proves that none of the %d contracted loop(s) analysed an "
               "iteration, so the productive orchestrator registers no %s at all "
               "(repair_scope_matrix.v1)" % (len(rows), rs.STAGE))
@@ -879,6 +978,8 @@ def verify(config: Dict[str, Any], run_id: str,
     check_authorization(report, config, run_id, contract, manifest)
     runtime_matrix = check_stage_runtime(report, contract, manifest)
     check_effective_invocation(report, contract, manifest)
+    split_matrix = check_split_static_invocations(report, contract, manifest, intermediate,
+                                                  run_id)
 
     raw_run = raw / run_id
     observed_models = sorted(p.name for p in raw_run.iterdir()
@@ -931,6 +1032,25 @@ def verify(config: Dict[str, Any], run_id: str,
         ("models", models),
         ("runtime_matrix", runtime_matrix),
         ("retrospective_runtime_substitution_allowed", False),
+        ("split_static_invocations", split_matrix),
+        ("split_static_invocation_coverage", OrderedDict([
+            ("policy", split_matrix["policy"]),
+            ("membership", split_matrix["membership"]),
+            ("coverage", split_matrix["coverage"]),
+            ("expected_scope_count", split_matrix["expected_scope_count"]),
+            ("observed_scope_count", split_matrix["observed_scope_count"]),
+            ("covered_scope_count", split_matrix["covered_scope_count"]),
+            ("missing_scopes", split_matrix["missing_scopes"]),
+            ("unexpected_scopes", split_matrix["unexpected_scopes"]),
+            ("contradicting_scopes", split_matrix["contradicting_scopes"]),
+            ("unkeyable_fragments", split_matrix["unkeyable_fragments"]),
+            ("observed_fragment_count", split_matrix["observed_fragment_count"]),
+            ("consistent_duplicate_scopes", split_matrix["consistent_duplicate_scopes"]),
+            ("narrowing", split_matrix["narrowing"]),
+            ("per_tool", split_matrix["per_tool"]),
+            ("runtime_stamp_substitutes_split_invocation", False),
+            ("record_coverage_substitutes_split_invocation", False),
+        ])),
         ("repair_matrix", repair_matrix),
         ("repair_scope", OrderedDict([
             ("status", repair_matrix["status"]),

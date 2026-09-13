@@ -31,8 +31,9 @@ Python 3.8 compatible.
 """
 from __future__ import annotations
 
+import json
 import threading
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -729,3 +730,726 @@ def not_expected_runtime_stages(contract: "Optional[Dict[str, Any]]",
                           else "NOT_APPLICABLE"),
                          ("reason", reason)])
             for stage, reason in reasons.items()]
+
+# ---------------------------------------------------------------------------
+# Split-container invocation coverage (technical provenance cleanup wave)
+#
+# The PARCOACH and LLOV containers are invoked once per model
+# (`run_static_analysis.py --model-id <m> --tools <tool>`, the productive
+# external_tool_commands) or once for every enabled model (the documented
+# base-run container command without --model-id), and every invocation
+# registers ONE effective invocation fragment - `invocation.<stage>@<model>
+# @tools-<tool>` resp. `invocation.<stage>@tools-<tool>` - BEFORE it writes a
+# record, and appends one entry with its condition to each processed model's
+# static_analysis_summary.json. `effective_invocation:<stage>` checks every
+# fragment that exists against the contract - MEMBERSHIP. It never asked
+# whether every contracted model HAS one - COVERAGE - so a run whose PARCOACH
+# findings exist for all eleven models but whose invocation provenance
+# survived for one of them verified PASS (STATIC_SPLIT_INVOCATION_COVERAGE_GAP).
+# Static record coverage catches a container that never ran (no entries); it
+# cannot see a lost invocation behind complete records, and a stage runtime
+# stamp proves the runtime of the container, not which models it was invoked
+# for.
+#
+# The expected scopes come from the FROZEN CONTRACT only: model_ids x the
+# split tools its static toolset enables x the execution models that toolset
+# scope shares with the contracted population. No model count and no tool
+# scope is hard-coded here.
+# ---------------------------------------------------------------------------
+
+SPLIT_INVOCATION_COVERAGE_POLICY = "split_static_invocation_coverage.v1"
+SPLIT_SCOPE_IDENTITY = "(stage, tool, model_id)"
+RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION = False
+RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION = False
+# Fragments of the same stage whose non-scope effective values agree cover
+# their scopes jointly (a per-model container run and a whole-run container
+# run, a resumed run re-registering idempotently); differing values under one
+# scope contradict each other, and so does a model history that records an
+# execution under a condition no fragment carries.
+SPLIT_DUPLICATE_POLICY = "CONSISTENT_DUPLICATES_ALLOWED_CONTRADICTIONS_FAIL"
+# A whole-run fragment (model_scope null) proves the invocation CONDITION;
+# the model's own summary entry under the SAME condition proves the model
+# was processed under it. Neither alone covers a scope.
+SPLIT_WHOLE_RUN_RULE = "WHOLE_RUN_FRAGMENT_COVERS_ONLY_WITH_MATCHING_MODEL_HISTORY"
+
+SCOPE_PASS = "PASS"
+SCOPE_UNRESOLVED = "UNRESOLVED"
+SCOPE_FAIL = "FAIL"
+
+# effective values that do NOT belong to the invocation's scope: two fragments
+# covering one scope, and a fragment and the model history it covers, must
+# agree on every one of them. The static summary records the same values per
+# invocation (run_static_analysis.run_model), replace_tool_entries as the
+# list of tools (non-empty <=> the fragment's True).
+_SPLIT_CONDITION_FIELDS = ("primary_compiler", "replace_tool_entries", "rerun_gaps",
+                           "replace_legacy_record")
+
+
+def _safe_text(value: Any, limit: int = 120) -> str:
+    try:
+        text = json.dumps(value, sort_keys=True, default=str)
+    except Exception:  # noqa: BLE001
+        text = repr(value)
+    return text[:limit]
+
+
+def expected_split_static_invocations(contract: "Optional[Dict[str, Any]]"
+                                      ) -> "OrderedDict[str, Any]":
+    """Every logical split-container invocation scope the FROZEN contract
+    demands: one per (stage, tool, model_id), with the execution models the
+    tool is contracted to analyse and the contract binding it must carry.
+
+    status PASS            the expected set is derivable from the contract
+           NOT_APPLICABLE  the contract expects no split-container tool
+           UNRESOLVED      the contract does not determine it (no contract,
+                           no frozen toolset, no model set, malformed shapes)
+                           - fail-closed: coverage can then never be PASS
+    """
+    result: "OrderedDict[str, Any]" = OrderedDict([
+        ("policy", SPLIT_INVOCATION_COVERAGE_POLICY),
+        ("identity", SPLIT_SCOPE_IDENTITY),
+        ("status", SCOPE_UNRESOLVED),
+        ("reason", None),
+        ("contract_sha256", None),
+        ("model_ids", []),
+        ("population_execution_models", []),
+        ("scopes", []),
+        ("per_tool", OrderedDict()),
+        ("not_expected", []),
+    ])
+    try:
+        return _expected_split_static_invocations(contract, result)
+    except Exception as exc:  # noqa: BLE001 - a contract of an unusable shape
+        result["status"] = SCOPE_UNRESOLVED
+        result["reason"] = "the frozen contract could not be interpreted: %s: %s" % (
+            type(exc).__name__, exc)
+        result["scopes"] = []
+        return result
+
+
+def _expected_split_static_invocations(contract, result):
+    if not isinstance(contract, dict):
+        result["reason"] = "no frozen contract: the expected split invocation scopes are unknown"
+        return result
+    result["contract_sha256"] = contract.get("contract_sha256")
+    stages = contract.get("expected_stages")
+    if not isinstance(stages, list):
+        result["reason"] = "the frozen contract carries no usable expected_stages list"
+        return result
+    if "static_analysis" not in stages:
+        result["status"] = "NOT_APPLICABLE"
+        result["reason"] = "the contract does not expect static analysis"
+        return result
+    model_ids = contract.get("model_ids")
+    if not isinstance(model_ids, list) or not model_ids \
+            or not all(isinstance(m, str) and m for m in model_ids):
+        result["reason"] = "the frozen contract carries no usable model_ids list"
+        return result
+    toolset = _static_toolset(contract)
+    if not toolset:
+        result["reason"] = ("the frozen contract carries no frozen static toolset (pre-v2 "
+                            "contract or a toolset resolution error), so the split-container "
+                            "expectation cannot be derived")
+        return result
+    population = _contracted_execution_models(contract)
+    if not isinstance(population, list) or not all(isinstance(m, str) for m in population):
+        result["reason"] = "the frozen contract carries no usable execution_models list"
+        return result
+    result["model_ids"] = sorted(model_ids)
+    result["population_execution_models"] = list(population)
+    scopes = []
+    for tool, (stage, _domain) in SPLIT_CONTAINER_TOOLS.items():
+        entry = toolset.get(tool)
+        if not isinstance(entry, dict):
+            result["reason"] = ("the frozen static toolset entry of %s is not an object (%s)"
+                                % (tool, _safe_text(entry)))
+            result["scopes"] = []
+            result["status"] = SCOPE_UNRESOLVED
+            return result
+        scope = entry.get("execution_models")
+        if scope is not None and (not isinstance(scope, list)
+                                  or not all(isinstance(m, str) for m in scope)):
+            result["reason"] = ("the frozen execution_models of %s is not a list of names (%s)"
+                                % (tool, _safe_text(scope)))
+            result["scopes"] = []
+            result["status"] = SCOPE_UNRESOLVED
+            return result
+        if not entry.get("enabled"):
+            result["not_expected"].append(OrderedDict([
+                ("tool", tool), ("stage", stage),
+                ("reason", "%s is not enabled in the frozen static toolset" % tool)]))
+            result["per_tool"][tool] = OrderedDict([("stage", stage), ("expected", False),
+                                                    ("scope_count", 0)])
+            continue
+        if not _applicable(scope, population):
+            result["not_expected"].append(OrderedDict([
+                ("tool", tool), ("stage", stage),
+                ("reason", "%s is applicable to %s only, which the contracted population (%s) "
+                           "does not contain"
+                           % (tool, ", ".join(scope or ["(none)"]), ", ".join(population) or "(unknown)"))]))
+            result["per_tool"][tool] = OrderedDict([("stage", stage), ("expected", False),
+                                                    ("scope_count", 0)])
+            continue
+        applicable = sorted(set(scope or []) & set(population)) if scope and population \
+            else list(scope or population or [])
+        for model_id in sorted(model_ids):
+            scopes.append(OrderedDict([
+                ("stage", stage), ("tool", tool), ("model_id", model_id),
+                ("applicable_execution_models", applicable),
+                ("contract_binding", OrderedDict([
+                    ("contract_sha256", contract.get("contract_sha256")),
+                    ("model_ids_source", "contract.model_ids"),
+                    ("toolset_source", "contract.static_toolset.%s" % tool),
+                    ("population_source", "contract.execution_models"),
+                ])),
+            ]))
+        result["per_tool"][tool] = OrderedDict([("stage", stage), ("expected", True),
+                                                ("applicable_execution_models", applicable),
+                                                ("scope_count", len(model_ids))])
+    result["scopes"] = scopes
+    result["status"] = SCOPE_PASS if scopes else "NOT_APPLICABLE"
+    result["reason"] = ("%d expected split invocation scope(s) derived from the frozen contract "
+                        "(%d model(s) x %s)" % (len(scopes), len(model_ids),
+                                                ", ".join(t for t, v in result["per_tool"].items()
+                                                          if v["expected"]) or "no split tool")
+                        if scopes else "no contracted split-container tool applies to the "
+                                       "contracted population")
+    return result
+
+
+# the three switches default to False in the productive runner (source
+# DEFAULT); a fragment or history entry that does not record one is read as
+# that default, so an override can never hide behind an absent field
+_SPLIT_SWITCH_DEFAULTS = OrderedDict([("replace_tool_entries", False), ("rerun_gaps", False),
+                                      ("replace_legacy_record", False)])
+
+
+def _fragment_condition(values: "Dict[str, Any]") -> "OrderedDict[str, Any]":
+    condition: "OrderedDict[str, Any]" = OrderedDict()
+    for field in _SPLIT_CONDITION_FIELDS:
+        entry = values.get(field)
+        if isinstance(entry, dict):
+            value = entry.get("value")
+            if field in _SPLIT_SWITCH_DEFAULTS:
+                value = bool(value)
+            condition[field] = value
+        elif field in _SPLIT_SWITCH_DEFAULTS:
+            condition[field] = _SPLIT_SWITCH_DEFAULTS[field]
+    return condition
+
+
+def _summary_condition(invocation: "Dict[str, Any]") -> "OrderedDict[str, Any]":
+    """The condition a static summary invocation entry records, in the
+    fragment's terms (the switches as bools, absent switches as their
+    defaults)."""
+    condition: "OrderedDict[str, Any]" = OrderedDict()
+    for field in _SPLIT_CONDITION_FIELDS:
+        if field not in invocation:
+            if field in _SPLIT_SWITCH_DEFAULTS:
+                condition[field] = _SPLIT_SWITCH_DEFAULTS[field]
+            continue
+        value = invocation.get(field)
+        if field in _SPLIT_SWITCH_DEFAULTS:
+            value = bool(value)
+        condition[field] = value
+    return condition
+
+
+def _conditions_agree(a: "Dict[str, Any]", b: "Dict[str, Any]") -> bool:
+    """Two recorded conditions agree when every field KNOWN on both sides is
+    equal (an unrecorded field cannot contradict)."""
+    for field in set(a) & set(b):
+        if a[field] != b[field]:
+            return False
+    return True
+
+
+def _split_fragment_view(owner: str, invocation: Any, contract: "Dict[str, Any]",
+                         run_id: "Optional[str]", contracted_models: "Any") -> "OrderedDict[str, Any]":
+    """One registered invocation fragment, classified: which (stage, tool,
+    model) scopes it claims and why it is unkeyable / unexpected /
+    contradicting. A body of a wrong SHAPE is reported and never handed to
+    the contract check (which assumes the productive shape)."""
+    from thesis.evaluation import effective_invocation as ei
+
+    view: "OrderedDict[str, Any]" = OrderedDict([
+        ("owner", owner), ("stage", None), ("tools", []), ("model_scope", None),
+        ("whole_run", False), ("problems", []), ("unexpected_models", []),
+        ("condition", OrderedDict()),
+    ])
+    if not isinstance(invocation, dict):
+        view["problems"].append("fragment %s is not an object" % owner)
+        return view
+    stage = invocation.get("stage")
+    if not isinstance(stage, str):
+        view["problems"].append("stage %s is not a string" % _safe_text(stage))
+        stage = None
+    view["stage"] = stage
+    if invocation.get("schema_version") != ei.EFFECTIVE_INVOCATION_VERSION:
+        view["problems"].append("schema_version %s is not %s"
+                                % (_safe_text(invocation.get("schema_version")),
+                                   ei.EFFECTIVE_INVOCATION_VERSION))
+    if run_id is not None and invocation.get("run_id") != run_id:
+        view["problems"].append("fragment belongs to run %s, not %r"
+                                % (_safe_text(invocation.get("run_id")), run_id))
+    values = invocation.get("effective_values")
+    if not isinstance(values, dict) or not all(isinstance(v, dict) for v in values.values()):
+        view["problems"].append("effective_values is not an object of {value, source} entries")
+        values = {}
+    tools_entry = values.get("tools")
+    tools = tools_entry.get("value") if isinstance(tools_entry, dict) else None
+    if not isinstance(tools, list) or not all(isinstance(t, str) for t in tools):
+        view["problems"].append("effective_values.tools is not a list of tool names")
+        tools = []
+    view["tools"] = sorted(tools)
+    scope = invocation.get("model_scope")
+    if scope is None:
+        view["whole_run"] = True
+    elif isinstance(scope, list) and scope and all(isinstance(m, str) and m for m in scope):
+        view["model_scope"] = sorted(scope)
+        if len(scope) > 1:
+            # the static runner takes exactly one --model-id: a split fragment
+            # names one model or every enabled model (null), never a list
+            view["problems"].append("model_scope names %d models; a split-container invocation "
+                                    "carries one model or null" % len(scope))
+        if isinstance(contracted_models, set):
+            view["unexpected_models"] = sorted(m for m in scope if m not in contracted_models)
+    else:
+        view["problems"].append("model_scope %s is neither null nor a non-empty list of model ids"
+                                % _safe_text(scope))
+    if view["problems"]:
+        return view
+    try:
+        if ei.invocation_fingerprint(invocation) != invocation.get("invocation_sha256"):
+            view["problems"].append("the fragment does not match its own fingerprint")
+    except Exception as exc:  # noqa: BLE001 - unkeyable content
+        view["problems"].append("fingerprint not computable: %s" % exc)
+    try:
+        from thesis.evaluation import manifest_fragments as mf
+
+        expected_owner = ei.invocation_owner(stage, scope, values)
+        # the merged manifest keys fragments by their sanitised file name
+        if owner not in (expected_owner, mf._safe(expected_owner)):
+            view["problems"].append("owner %s does not match the fragment body (%s)"
+                                    % (owner, expected_owner))
+    except Exception as exc:  # noqa: BLE001
+        view["problems"].append("owner not derivable from the body: %s" % exc)
+    try:
+        # the model-set problem is classified as UNEXPECTED (below), every
+        # other contract contradiction as a problem of the fragment
+        view["problems"] += [p for p in ei.check_against_contract(invocation, contract)
+                             if not p.startswith("model_scope ")]
+    except Exception as exc:  # noqa: BLE001
+        view["problems"].append("contract check not computable: %s: %s" % (type(exc).__name__, exc))
+    view["condition"] = _fragment_condition(values)
+    return view
+
+
+def _model_tool_evidence(intermediate_dir: "Optional[Path]", run_id: "Optional[str]",
+                         model_id: str, tool: str) -> "OrderedDict[str, Any]":
+    """What the model's own static artifacts say about the tool: records with
+    an entry of the tool (any state, NOT_APPLICABLE included - the container
+    writes those itself) and the per-model summary invocations that ran it,
+    each with the condition it recorded. A file of a wrong shape is reported
+    as unreadable, never a crash and never evidence."""
+    evidence: "OrderedDict[str, Any]" = OrderedDict([
+        ("records_with_entry", 0), ("records_total", 0), ("records_unreadable", None),
+        ("summary_invocations", []), ("summary_unreadable", None),
+    ])
+    if intermediate_dir is None or run_id is None:
+        return evidence
+    model_dir = Path(intermediate_dir) / run_id / model_id
+    records_path = model_dir / "static_analysis.jsonl"
+    if records_path.is_file():
+        try:
+            for line in records_path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                evidence["records_total"] += 1
+                tools = record.get("tools") if isinstance(record, dict) else None
+                if isinstance(tools, dict) and tool in tools:
+                    evidence["records_with_entry"] += 1
+        except Exception as exc:  # noqa: BLE001 - unreadable or wrongly shaped
+            evidence["records_unreadable"] = "%s: %s" % (type(exc).__name__, exc)
+    summary_path = model_dir / "static_analysis_summary.json"
+    if not summary_path.is_file():
+        if evidence["records_total"] > 0:
+            # the static runner writes its summary together with its records:
+            # records without a history are a lost provenance artifact
+            evidence["summary_unreadable"] = ("static_analysis_summary.json absent although %d "
+                                              "static record(s) exist - the runner writes it on "
+                                              "every invocation" % evidence["records_total"])
+    else:
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            if not isinstance(summary, dict):
+                raise ValueError("not a JSON object (%s)" % type(summary).__name__)
+            if summary.get("model_id") not in (None, model_id):
+                raise ValueError("summary names model %s inside %s's directory"
+                                 % (_safe_text(summary.get("model_id")), model_id))
+            invocations = summary.get("invocations")
+            if not invocations and evidence["records_total"] > 0:
+                raise ValueError("no invocation entry although %d static record(s) exist - the "
+                                 "runner appends one on every invocation"
+                                 % evidence["records_total"])
+            if invocations is None:
+                invocations = []
+            if not isinstance(invocations, list):
+                raise ValueError("invocations is not a list")
+            for index, invocation in enumerate(invocations):
+                if not isinstance(invocation, dict):
+                    raise ValueError("invocation %d is not an object" % index)
+                tools_run = invocation.get("tools_run")
+                if tools_run is not None and not isinstance(tools_run, list):
+                    raise ValueError("invocation %d: tools_run is not a list" % index)
+                if not tools_run or tool not in tools_run:
+                    continue
+                skipped = invocation.get("tools_skipped") or []
+                skipped_names = [s.get("tool") if isinstance(s, dict) else s
+                                 for s in (skipped if isinstance(skipped, list) else [])]
+                if tool in skipped_names:
+                    continue
+                # the repair loop's internal static run never runs the split
+                # tools (orchestrator.internal_static_settings excludes the
+                # external ones): only a base-writer entry can evidence the
+                # container invocation
+                label = invocation.get("label")
+                if invocation.get("writer") not in (None, "base") or (
+                        isinstance(label, str) and label.startswith("repair ")):
+                    continue
+                evidence["summary_invocations"].append(OrderedDict([
+                    ("index", index), ("label", label if isinstance(label, str) else None),
+                    ("condition", _summary_condition(invocation)),
+                ]))
+        except Exception as exc:  # noqa: BLE001
+            evidence["summary_unreadable"] = "%s: %s" % (type(exc).__name__, exc)
+            evidence["summary_invocations"] = []
+    return evidence
+
+
+def _narrowing_evidence(manifest: "Optional[Dict[str, Any]]",
+                        contract: "Dict[str, Any]") -> "OrderedDict[str, Any]":
+    """Run-level provenance that the model set was DELIBERATELY narrowed
+    below the contract: the frozen resolved_config enables a strict subset
+    of the contracted models. A recorded config drift that touched the model
+    list carries no before/after set, so it is reported, never probative."""
+    contracted = set(m for m in (contract.get("model_ids") or []) if isinstance(m, str))
+    frozen = ((manifest or {}).get("resolved_config") or {})
+    frozen = frozen.get("models") if isinstance(frozen, dict) else None
+    enabled = None
+    if isinstance(frozen, list):
+        enabled = sorted(str(m.get("id")) for m in frozen
+                         if isinstance(m, dict) and m.get("enabled", False) and m.get("id"))
+    drift = [d for d in ((manifest or {}).get("config_drift") or [])
+             if isinstance(d, dict)
+             and any(str(k).startswith("models") for k in (d.get("changed_keys") or []))]
+    narrowed = bool(enabled is not None and contracted and set(enabled) < contracted)
+    reason = None
+    if narrowed:
+        reason = ("the run's frozen resolved_config enables only %s of the %d contracted "
+                  "model(s)" % (", ".join(enabled), len(contracted)))
+    return OrderedDict([("narrowed", narrowed), ("reason", reason),
+                        ("frozen_enabled_models", enabled),
+                        ("model_list_drift_records", len(drift)),
+                        ("model_list_drift_note", ("a recorded config drift touched the model list "
+                                                   "after the run started; it carries no model set, "
+                                                   "so narrowing can neither be proven nor excluded "
+                                                   "from it") if drift else None)])
+
+
+def split_static_invocation_matrix(manifest: "Optional[Dict[str, Any]]",
+                                   contract: "Optional[Dict[str, Any]]",
+                                   intermediate_dir: "Optional[Path]" = None,
+                                   run_id: "Optional[str]" = None) -> "OrderedDict[str, Any]":
+    """MEMBERSHIP and COVERAGE of the split-container invocations, separately.
+
+    membership  every observed split fragment is an allowed scope (contracted
+                model, contracted+applicable tool, correct stage/tool
+                identity, own fingerprint and owner, contract-bound) and the
+                fragments and model histories that share a scope agree on
+                their condition
+    coverage    every EXPECTED scope carries at least one valid, contract-
+                bound invocation (a function of the expected scopes only)
+    status      the combined verdict (FAIL if either fails, else UNRESOLVED
+                if coverage is, else PASS)
+
+    Per expected scope:
+        VALID INVOCATION PRESENT                    PASS
+        RECORDS PRESENT, INVOCATION MISSING         UNRESOLVED (the results
+                                                    exist, the methodical
+                                                    execution is not bound)
+        RECORDS MISSING, INVOCATION MISSING         UNRESOLVED here; static
+                                                    record coverage FAILs the
+                                                    run on its own
+        DELIBERATE NARROWING EVIDENCE               FAIL
+        INVOCATION FOR A NON-APPLICABLE SCOPE       FAIL (membership)
+        CONTRACT / FINGERPRINT / OWNER CONTRADICTION FAIL (membership)
+        UNKEYABLE / MALFORMED FRAGMENT              FAIL (membership)
+        HISTORY UNDER A CONDITION NO FRAGMENT CARRIES FAIL (contradiction)
+
+    A whole-run fragment (model_scope null: the runner was started for every
+    enabled model) covers a model only together with that model's own summary
+    invocation of the tool UNDER THE SAME CONDITION - the fragment proves the
+    invocation condition, the per-model history proves the model was
+    processed under it.
+    """
+    from thesis.evaluation import effective_invocation as ei
+
+    expected = expected_split_static_invocations(contract)
+    matrix: "OrderedDict[str, Any]" = OrderedDict([
+        ("policy", SPLIT_INVOCATION_COVERAGE_POLICY),
+        ("identity", SPLIT_SCOPE_IDENTITY),
+        ("duplicate_policy", SPLIT_DUPLICATE_POLICY),
+        ("whole_run_rule", SPLIT_WHOLE_RUN_RULE),
+        ("runtime_stamp_substitutes_split_invocation", RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION),
+        ("record_coverage_substitutes_split_invocation", RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION),
+        ("expected_set", expected),
+        ("membership", SCOPE_UNRESOLVED), ("coverage", SCOPE_UNRESOLVED),
+        ("status", SCOPE_UNRESOLVED), ("detail", None),
+        ("expected_scope_count", len(expected["scopes"])),
+        ("observed_scope_count", 0), ("covered_scope_count", 0),
+        ("observed_fragment_count", 0),
+        ("missing_scopes", []), ("unexpected_scopes", []), ("contradicting_scopes", []),
+        ("unkeyable_fragments", []), ("consistent_duplicate_scopes", []),
+        ("narrowing", OrderedDict([("narrowed", False), ("reason", None)])),
+        ("per_tool", OrderedDict()), ("rows", []),
+    ])
+    split_stages = {stage for stage, _d in SPLIT_CONTAINER_TOOLS.values()}
+
+    def is_split_fragment(owner, invocation):
+        stage = invocation.get("stage") if isinstance(invocation, dict) else None
+        if isinstance(stage, str) and stage in split_stages:
+            return True
+        return isinstance(owner, str) and any(owner == s or owner.startswith(s + "@")
+                                              for s in split_stages)
+
+    registered = [(str(owner), inv) for owner, inv in ei.registered_invocations(manifest).items()
+                  if is_split_fragment(owner, inv)]
+    if expected["status"] == "NOT_APPLICABLE":
+        matrix["membership"] = matrix["coverage"] = matrix["status"] = "NOT_APPLICABLE"
+        matrix["detail"] = expected["reason"]
+        # an observed split fragment on a run that contracts no split tool is
+        # an unexpected invocation: membership must still say so
+        if registered:
+            matrix["unexpected_scopes"] = [
+                OrderedDict([("owner", o), ("stage", (i or {}).get("stage") if isinstance(i, dict) else None),
+                             ("reason", "no split-container tool is contracted")])
+                for o, i in registered]
+            matrix["observed_fragment_count"] = len(registered)
+            matrix["membership"] = matrix["status"] = SCOPE_FAIL
+            matrix["detail"] = "%d split-container invocation(s) registered although the contract " \
+                               "expects none" % len(registered)
+        return matrix
+    if expected["status"] != SCOPE_PASS:
+        matrix["detail"] = expected["reason"]
+        return matrix
+
+    contracted_models = set(expected["model_ids"])
+    expected_by_stage: "Dict[str, Dict[str, Any]]" = {}
+    for scope in expected["scopes"]:
+        expected_by_stage.setdefault(scope["stage"], {})[scope["model_id"]] = scope
+    tool_of_stage = {stage: tool for tool, (stage, _d) in SPLIT_CONTAINER_TOOLS.items()}
+    stage_of_tool = {tool: stage for tool, (stage, _d) in SPLIT_CONTAINER_TOOLS.items()}
+
+    # ---- observed fragments -------------------------------------------------
+    observed: "Dict[Tuple[str, str, str], List[OrderedDict]]" = {}
+    unexpected: "List[OrderedDict]" = []
+    unkeyable: "List[OrderedDict]" = []
+    contradicting: "List[OrderedDict]" = []
+    whole_run: "Dict[str, List[OrderedDict]]" = {}
+    for owner, invocation in sorted(registered, key=lambda x: x[0]):
+        view = _split_fragment_view(owner, invocation, contract, run_id, contracted_models)
+        stage = view["stage"]
+        tool = tool_of_stage.get(stage) if stage is not None else None
+        if tool is None:
+            view["problems"].append("stage %s is not a split-container stage" % _safe_text(stage))
+        elif view["tools"] and tool not in view["tools"]:
+            view["problems"].append("stage %s registered without %s in its tools (%s)"
+                                    % (stage, tool, ", ".join(view["tools"]) or "none"))
+        foreign_tools = [t for t in view["tools"] if t in stage_of_tool and t != tool]
+        if foreign_tools:
+            view["problems"].append("stage %s claims the split tool(s) %s of another stage"
+                                    % (stage, ", ".join(foreign_tools)))
+        if view["problems"]:
+            unkeyable.append(OrderedDict([("owner", owner), ("stage", stage),
+                                          ("problems", view["problems"])]))
+            continue
+        if stage not in expected_by_stage:
+            # the stage's tool is contracted but not applicable / not enabled
+            unexpected.append(OrderedDict([
+                ("owner", owner), ("stage", stage), ("model_scope", view["model_scope"]),
+                ("reason", "%s is not an expected split tool of this contract (%s)"
+                           % (tool, "; ".join(n["reason"] for n in expected["not_expected"]
+                                              if n["tool"] == tool) or "not contracted"))]))
+            continue
+        if view["unexpected_models"]:
+            for model_id in view["unexpected_models"]:
+                unexpected.append(OrderedDict([
+                    ("owner", owner), ("stage", stage), ("model_id", model_id),
+                    ("reason", "model %s is not part of the contracted model set" % model_id)]))
+            continue
+        if view["whole_run"]:
+            whole_run.setdefault(stage, []).append(view)
+            continue
+        for model_id in view["model_scope"]:
+            observed.setdefault((stage, tool, model_id), []).append(view)
+
+    narrowing = _narrowing_evidence(manifest, contract)
+
+    # ---- rows per expected scope ---------------------------------------------
+    rows: "List[OrderedDict]" = []
+    covered = 0
+    observed_scopes = 0
+    missing: "List[OrderedDict]" = []
+    duplicates: "List[OrderedDict]" = []
+    per_tool_counts: "Dict[str, Counter]" = {}
+    for scope in expected["scopes"]:
+        stage, tool, model_id = scope["stage"], scope["tool"], scope["model_id"]
+        key = (stage, tool, model_id)
+        per_model = list(observed.get(key, []))
+        whole = list(whole_run.get(stage, []))
+        evidence = _model_tool_evidence(intermediate_dir, run_id, model_id, tool)
+        history = evidence["summary_invocations"]
+        problems: "List[str]" = []
+        notes: "List[str]" = []
+        covering = list(per_model)
+        # a whole-run fragment covers this model only with a matching history
+        for view in whole:
+            if any(_conditions_agree(view["condition"], h["condition"]) for h in history):
+                covering.append(view)
+            else:
+                notes.append("whole-run fragment %s ignored: %s's own static summary records no "
+                             "base invocation of %s under its condition"
+                             % (view["owner"], model_id, tool))
+        if evidence["summary_unreadable"]:
+            notes.append("static summary unreadable: %s" % evidence["summary_unreadable"])
+        if evidence["records_unreadable"]:
+            notes.append("static records unreadable: %s" % evidence["records_unreadable"])
+        # every base invocation the model's history records must be carried by
+        # a fragment that covers this scope. With NO covering fragment the scope
+        # is simply missing (records present, invocation missing); with a
+        # covering fragment, a history entry under another condition is a
+        # second, unregistered execution of the same scope - a contradiction
+        # between the registered provenance and what happened
+        unregistered = [entry for entry in history
+                        if not any(_conditions_agree(v["condition"], entry["condition"])
+                                   for v in covering)]
+        if covering:
+            for entry in unregistered:
+                problems.append("%s's static summary records a base invocation of %s (entry %d: %s) "
+                                "under a condition no covering fragment carries"
+                                % (model_id, tool, entry["index"], _safe_text(entry["condition"])))
+        elif unregistered:
+            notes.append("%s's static summary records %d base invocation(s) of %s (%s) with no "
+                         "fragment carrying that condition"
+                         % (model_id, len(unregistered), tool,
+                            "; ".join(_safe_text(e["condition"]) for e in unregistered)))
+        conditions = []
+        for view in covering:
+            condition = json.dumps(view["condition"], sort_keys=True)
+            if condition not in conditions:
+                conditions.append(condition)
+        if len(conditions) > 1:
+            problems.append("%d fragments cover this scope under different conditions: %s"
+                            % (len(covering), " | ".join(conditions)))
+        if per_model or any(v in covering for v in whole):
+            observed_scopes += 1
+        if problems:
+            status = SCOPE_FAIL
+            detail = "; ".join(problems)
+            contradicting.append(OrderedDict([("stage", stage), ("tool", tool),
+                                              ("model_id", model_id), ("problems", problems)]))
+        elif covering:
+            status = SCOPE_PASS
+            detail = "%d valid contract-bound invocation(s) (%s)" % (
+                len(covering), ", ".join(v["owner"] for v in covering))
+            covered += 1
+            if len(covering) > 1:
+                duplicates.append(OrderedDict([("stage", stage), ("tool", tool),
+                                               ("model_id", model_id), ("fragments", len(covering))]))
+                detail += " - consistent duplicates"
+        elif narrowing["narrowed"] and model_id not in set(narrowing.get("frozen_enabled_models") or []):
+            # only the models the frozen config disabled were deliberately left
+            # out; an enabled model that lost its fragment is missing, not narrowed
+            status = SCOPE_FAIL
+            detail = "no invocation and the run's provenance shows a deliberate narrowing: %s" \
+                     % narrowing["reason"]
+            missing.append(OrderedDict([("stage", stage), ("tool", tool), ("model_id", model_id),
+                                        ("status", status)]))
+        elif evidence["records_with_entry"] > 0:
+            status = SCOPE_UNRESOLVED
+            detail = ("records present (%d of %d records carry a %s entry) but no invocation "
+                      "provenance - the results exist, the methodical execution is not "
+                      "contract-bound" % (evidence["records_with_entry"],
+                                          evidence["records_total"], tool))
+            missing.append(OrderedDict([("stage", stage), ("tool", tool), ("model_id", model_id),
+                                        ("status", status), ("records_present", True)]))
+        else:
+            status = SCOPE_UNRESOLVED
+            detail = ("no invocation provenance and no %s record entry for %s - static record "
+                      "coverage decides the run; the missing invocation is not excused by it"
+                      % (tool, model_id))
+            missing.append(OrderedDict([("stage", stage), ("tool", tool), ("model_id", model_id),
+                                        ("status", status), ("records_present", False)]))
+        if status == SCOPE_PASS and (evidence["summary_unreadable"] or evidence["records_unreadable"]):
+            # the model's own artifacts cannot be read: the history could hide a
+            # contradiction, so the scope is not provable - fail-closed
+            status = SCOPE_UNRESOLVED
+            detail = "invocation present but the model's static artifacts are not readable: " + detail
+            missing.append(OrderedDict([("stage", stage), ("tool", tool), ("model_id", model_id),
+                                        ("status", status), ("evidence_unreadable", True)]))
+        if notes:
+            detail += "; " + "; ".join(notes)
+        counts = per_tool_counts.setdefault(tool, Counter())
+        counts[status] += 1
+        rows.append(OrderedDict([
+            ("stage", stage), ("tool", tool), ("model_id", model_id),
+            ("applicable_execution_models", scope["applicable_execution_models"]),
+            ("fragments", [v["owner"] for v in covering]),
+            ("records_with_entry", evidence["records_with_entry"]),
+            ("records_total", evidence["records_total"]),
+            ("summary_invocations_running_tool", len(history)),
+            ("evidence_unreadable", [n for n in notes if "unreadable" in n] or None),
+            ("status", status), ("detail", detail),
+        ]))
+
+    membership_problems = len(unexpected) + len(unkeyable) + len(contradicting)
+    matrix["membership"] = SCOPE_FAIL if membership_problems else SCOPE_PASS
+    if any(r["status"] == SCOPE_FAIL for r in rows):
+        coverage = SCOPE_FAIL
+    elif any(r["status"] == SCOPE_UNRESOLVED for r in rows):
+        coverage = SCOPE_UNRESOLVED
+    else:
+        coverage = SCOPE_PASS
+    matrix["coverage"] = coverage
+    if matrix["membership"] == SCOPE_FAIL or coverage == SCOPE_FAIL:
+        matrix["status"] = SCOPE_FAIL
+    else:
+        matrix["status"] = coverage
+    matrix["observed_scope_count"] = observed_scopes
+    matrix["observed_fragment_count"] = len(registered)
+    matrix["covered_scope_count"] = covered
+    matrix["missing_scopes"] = missing
+    matrix["unexpected_scopes"] = unexpected
+    matrix["contradicting_scopes"] = contradicting
+    matrix["unkeyable_fragments"] = unkeyable
+    matrix["consistent_duplicate_scopes"] = duplicates
+    matrix["narrowing"] = narrowing
+    matrix["rows"] = rows
+    for tool, info in expected["per_tool"].items():
+        counts = per_tool_counts.get(tool, Counter())
+        matrix["per_tool"][tool] = OrderedDict([
+            ("stage", info["stage"]), ("expected_scope_count", info["scope_count"]),
+            ("covered_scope_count", counts.get(SCOPE_PASS, 0)),
+            ("unresolved_scope_count", counts.get(SCOPE_UNRESOLVED, 0)),
+            ("fail_scope_count", counts.get(SCOPE_FAIL, 0)),
+        ])
+    matrix["detail"] = ("%d/%d expected split invocation scope(s) covered; %d missing; %d unexpected; "
+                        "%d contradicting; %d unkeyable fragment(s); %d consistent duplicate scope(s)%s%s"
+                        % (covered, len(rows), len(missing), len(unexpected), len(contradicting),
+                           len(unkeyable), len(duplicates),
+                           "; " + narrowing["reason"] if narrowing["narrowed"] else "",
+                           "; " + narrowing["model_list_drift_note"]
+                           if narrowing.get("model_list_drift_note") else ""))
+    return matrix

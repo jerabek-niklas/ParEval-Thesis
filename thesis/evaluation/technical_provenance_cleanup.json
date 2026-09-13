@@ -1,0 +1,1253 @@
+{
+ "schema_version": "technical_provenance_cleanup.v1",
+ "wave": "FINAL TECHNICAL PROVENANCE CLEANUP - split-container invocation coverage + iteration-0 correctness/dynamic writer attribution",
+ "date": "2026-09-13",
+ "start_head": "78307026eeec47fa1c23f8fb23b0ee72aa4d1da0",
+ "parent": "0cb83fab0467590fc2724ddd18b2057a72da604c",
+ "e3_2": {
+  "E3_2_DECISION": "ACCEPTED",
+  "author_choices": "A/B/A/A/C/B/B/A",
+  "author_choices_changed": false,
+  "evidence_artifact_changed": false,
+  "decisions_artifact_changed": false,
+  "confirmation_artifact_changed": false
+ },
+ "gap_1_static_split_invocation_coverage": {
+  "before": "OPEN_TECHNICAL_FINDING (parcoach, llov): effective_invocation:<stage> checked membership only; records present + per-model invocation fragment missing verified PASS",
+  "after": "CLOSED",
+  "policy": "split_static_invocation_coverage.v1",
+  "identity": "(stage, tool, model_id)",
+  "expected_scope_derivation": "contract.model_ids x split tools enabled in contract.static_toolset x (tool execution_models INTERSECT contract.execution_models); no model count and no tool scope hard-coded (stage_runtime.expected_split_static_invocations)",
+  "membership_vs_coverage": "split_static_invocation_membership (observed scopes allowed + consistent) and split_static_invocation_coverage (every expected scope evidenced) are separate checks; per-scope checks split_static_invocation:<stage>/<model>",
+  "scope_verdicts": {
+   "valid_invocation_present": "PASS",
+   "records_present_invocation_missing": "UNRESOLVED",
+   "records_missing_invocation_missing": "UNRESOLVED (static record coverage FAILs the run; never excused)",
+   "deliberate_narrowing_evidence": "FAIL",
+   "unexpected_non_applicable_invocation": "FAIL",
+   "contract_or_fingerprint_contradiction": "FAIL",
+   "unkeyable_or_malformed": "FAIL"
+  },
+  "consistent_duplicate_policy": "CONSISTENT_DUPLICATES_ALLOWED_CONTRADICTIONS_FAIL",
+  "whole_run_fragment_rule": "WHOLE_RUN_FRAGMENT_COVERS_ONLY_WITH_MATCHING_MODEL_HISTORY: a fragment with model_scope null covers a model only together with a base entry of that model's static_analysis_summary.json that ran the tool under the SAME recorded condition (primary_compiler, replace_tool_entries, rerun_gaps, replace_legacy_record); with covering fragments a history entry under another condition is a contradiction (FAIL); a scope without any covering fragment is missing (UNRESOLVED), its unregistered condition noted",
+  "RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION": false,
+  "RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION": false,
+  "productive_contract_view": {
+   "parcoach_expected_scopes": 11,
+   "llov_expected_scopes": 11,
+   "source": "pilot_preflight technical_provenance_lines on the built contract (11 enabled models; parcoach mpi, llov omp)"
+  }
+ },
+ "gap_2_iteration_zero_writer_attribution": {
+  "before": "CORRECTNESS_DYNAMIC_WRITER_NOT_ATTRIBUTABLE: only static carried the repair invocation label; a correctness/dynamic-only iteration-0 repair with a lost repair_evaluation invocation verified PASS once the records were complete",
+  "after": "CLOSED_BY_WRITER_ATTRIBUTION",
+  "schema": "repair_writer_attribution.v1",
+  "policy": "POSITIVE_WRITER_PROVENANCE_STATIC_CORRECTNESS_DYNAMIC",
+  "label_convention": "repair %s/%s iteration %d (internal %s)",
+  "storage": {
+   "static": "static_analysis_summary.json invocations[] (existing history; entries gain writer + repair_writer)",
+   "correctness": "correctness_summary.json (new per-model sidecar, correctness_summary.v1) invocations[]",
+   "dynamic": "dynamic_analysis_summary.json invocations[] (new append-only history; the summary's own fields unchanged)"
+  },
+  "binding": [
+   "base_run_id",
+   "model_id",
+   "variant",
+   "iteration",
+   "internal_stage",
+   "contract_sha256",
+   "authorization_sha256",
+   "repair_evaluation_invocation_sha256",
+   "repair_evaluation_stage_runtime_sha256"
+  ],
+  "writer_side": "orchestrator.RepairLoop._run_analysis_stages builds writer_attribution.repair_attribution(...) from its repair_evaluation enforcement and hands it to run_static_analysis/run_correctness/run_dynamic_analysis.run_model; base runners pass a plain label and no block; run_backfill labels its own invocations",
+  "verifier_side": "repair_scope.repair_labelled_internal_invocations per stage; iteration_zero_analysis keeps the repair_evaluation invocation REQUIRED for any labelled iteration; unreadable history -> UNRESOLVED row; malformed / wrong identity / uncontracted variant / iteration > max_iterations / contradicting provenance -> FAIL row; identical resume entries -> one consistent observation",
+  "static_writer_attribution_reused": true,
+  "invoked_by_repair_vs_stage_complete": "the attribution says INVOKED/WRITTEN BY REPAIR; record coverage still decides completion",
+  "no_blanket_requirement": "a loop whose base stages were complete and that ran no internal stage keeps invocation NOT_APPLICABLE",
+  "absent_history_rule": "a history that is absent although its stage is contracted and the model's records exist is a lost provenance artifact -> UNRESOLVED (the runners write it on every invocation); a repair_evaluation runtime stamp on a run where no loop is attributed refuses the NOT_APPLICABLE downgrade (repair_matrix.repair_evaluation_stamp_present)",
+  "history_protocol": "entries are opened with status invoked BEFORE the first record and closed with status completed after the last one (atomic writes, identity-bound close); an interrupted run leaves its partial records attributed to their writer; a sidecar that cannot be written never aborts the result stage"
+ },
+ "conditions": {
+  "static_analysis_condition_before": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+  "static_analysis_condition_after": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+  "static_analysis_condition_changed": false,
+  "static_reason": "none of its inputs (tools.py, framework.py, build_config.py, tool_config.py, drivers tree, config tool scopes, external commands, stop mode) changed",
+  "repair_condition_before": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+  "repair_condition_after": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40",
+  "repair_condition_changed": true,
+  "repair_changed_inputs": [
+   "/orchestrator_sha256"
+  ],
+  "repair_reason": "orchestrator_sha256 is a raw hash of thesis/repair/orchestrator.py, which now hands the writer attribution to the three internal runners (provenance only; stop/retry/variant/max_iterations semantics, feedback template and every other input identical)",
+  "runtime_condition_before": "516288da9998fd1ce61a34ce5ff4c396ad84364031d38d78509caadf0cf815b3",
+  "runtime_condition_after": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+  "runtime_changed_input": "the bound repair_condition_sha256 only",
+  "runtime_image_identities_changed": false,
+  "runtime_image_ids": {
+   "main": "sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa",
+   "parcoach": "sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030",
+   "llov": "sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341"
+  },
+  "readiness_gate": "READY",
+  "assembly_condition_sha256": "a1488514eb2482a27fd07ba3170a7d0ef5ce2d07358852b95e5a86b08c14cb4c",
+  "assembly_changed": false,
+  "enhanced_frozen_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+  "enhanced_changed": false,
+  "cross_pilot_fingerprint_before": "7356e25356af4fa9016c239bf32cced4d0431240348605c2de07110b09aba73a",
+  "cross_pilot_fingerprint_after": "acaf4584983c3de1de22584972b6628e37876da146d1cb5489877ca146fcc70d",
+  "cross_pilot_result_classes_changed": false,
+  "cross_pilot_refresh": "run_correctness.py shared-state fingerprint (coarse) refreshed after the recorded function-level assessment; E_invocation.technical_provenance_cleanup_wave added; per-tool / repair / correctness classes untouched"
+ },
+ "function_level_assessment": {
+  "thesis/evaluation/run_correctness.py": {
+   "changed": [
+    "main",
+    "run_model"
+   ],
+   "added": [
+    "=CORRECTNESS_SUMMARY_SCHEMA_VERSION",
+    "close_invocation_summary",
+    "open_invocation_summary"
+   ],
+   "removed": [],
+   "unchanged_count": 26
+  },
+  "thesis/evaluation/run_dynamic_analysis.py": {
+   "changed": [
+    "main",
+    "run_model"
+   ],
+   "added": [],
+   "removed": [],
+   "unchanged_count": 12
+  },
+  "thesis/evaluation/run_static_analysis.py": {
+   "changed": [
+    "run_model"
+   ],
+   "added": [],
+   "removed": [],
+   "unchanged_count": 15
+  },
+  "thesis/repair/orchestrator.py": {
+   "changed": [
+    "RepairLoop",
+    "RepairLoop._run_analysis_stages"
+   ],
+   "added": [],
+   "removed": [],
+   "unchanged_count": 113
+  },
+  "thesis/repair/run_backfill.py": {
+   "changed": [
+    "StageExecutor",
+    "StageExecutor.run_correctness",
+    "StageExecutor.run_dynamic",
+    "StageExecutor.run_static"
+   ],
+   "added": [],
+   "removed": [],
+   "unchanged_count": 27
+  },
+  "thesis/evaluation/repair_scope.py": {
+   "changed": [
+    "_read_json",
+    "_row",
+    "build_repair_matrix",
+    "iteration_zero_analysis",
+    "observed_repair_invocation_scopes",
+    "repair_labelled_static_invocations"
+   ],
+   "added": [
+    "=ITERATION_ZERO_COVERAGE_RESIDUAL",
+    "=ITERATION_ZERO_WRITER_ATTRIBUTION_POLICY",
+    "=WRITER_ATTRIBUTION_STAGES",
+    "repair_evaluation_stamp_present",
+    "repair_labelled_internal_invocations"
+   ],
+   "removed": [
+    "=_REPAIR_STATIC_LABEL"
+   ],
+   "unchanged_count": 41
+  },
+  "thesis/evaluation/stage_runtime.py": {
+   "changed": [],
+   "added": [
+    "=RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION",
+    "=RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION",
+    "=SCOPE_FAIL",
+    "=SCOPE_PASS",
+    "=SCOPE_UNRESOLVED",
+    "=SPLIT_DUPLICATE_POLICY",
+    "=SPLIT_INVOCATION_COVERAGE_POLICY",
+    "=SPLIT_SCOPE_IDENTITY",
+    "=SPLIT_WHOLE_RUN_RULE",
+    "=_SPLIT_CONDITION_FIELDS",
+    "=_SPLIT_SWITCH_DEFAULTS",
+    "_conditions_agree",
+    "_expected_split_static_invocations",
+    "_fragment_condition",
+    "_model_tool_evidence",
+    "_narrowing_evidence",
+    "_safe_text",
+    "_split_fragment_view",
+    "_summary_condition",
+    "expected_split_static_invocations",
+    "split_static_invocation_matrix"
+   ],
+   "removed": [],
+   "unchanged_count": 42
+  },
+  "thesis/evaluation/verify_pilot_run.py": {
+   "changed": [
+    "check_effective_invocation",
+    "reconcile_repair_evaluation_expectation",
+    "verify"
+   ],
+   "added": [
+    "check_split_static_invocations"
+   ],
+   "removed": [],
+   "unchanged_count": 32
+  },
+  "thesis/evaluation/pilot_preflight.py": {
+   "changed": [
+    "prerun_infrastructure_lines"
+   ],
+   "added": [
+    "technical_provenance_lines"
+   ],
+   "removed": [],
+   "unchanged_count": 7
+  },
+  "thesis/evaluation/pilot_run_contract.py": {
+   "changed": [
+    "build_contract"
+   ],
+   "added": [
+    "provenance_policies_view"
+   ],
+   "removed": [],
+   "unchanged_count": 31
+  },
+  "thesis/evaluation/effective_invocation.py": {
+   "changed": [
+    "invocations_for_stage"
+   ],
+   "added": [],
+   "removed": [],
+   "unchanged_count": 26
+  }
+ },
+ "flags": {
+  "E3_2_DECISION": "ACCEPTED",
+  "AUTHOR_CHOICES_CHANGED": false,
+  "GENERATION_PERFORMED": false,
+  "LLM_API_CALLS": 0,
+  "PILOT001_HISTORICAL_TREE_CHANGED": false,
+  "CORRECTNESS_VERDICT_SEMANTICS_CHANGED": false,
+  "DYNAMIC_FINDING_SEMANTICS_CHANGED": false,
+  "STATIC_FINDING_SEMANTICS_CHANGED": false,
+  "REPAIR_STOP_SEMANTICS_CHANGED": false,
+  "ASSEMBLY_SEMANTICS_CHANGED": false,
+  "ENHANCED_SEMANTICS_CHANGED": false,
+  "TIMING_SEMANTICS_CHANGED": false,
+  "RESULT_SEMANTICS_CHANGED": false,
+  "PROVENANCE_SEMANTICS_CHANGED": true,
+  "POPULATION_CHANGED": false,
+  "RUN_ID_CHANGED": false,
+  "REUSE_DECIDED": false,
+  "PUBLICATION_DECIDED": false,
+  "STATIC_SPLIT_INVOCATION_COVERAGE_GAP": "CLOSED",
+  "ITERATION_ZERO_COVERAGE_RESIDUAL": "CLOSED",
+  "TECHNICAL_PROVENANCE_CLEANUP": "COMPLETE",
+  "SAFE_TO_PROCEED_TO_POPULATION_AND_METHODOLOGY_FREEZE": true
+ },
+ "open_for_final_environment_gate": {
+  "docker_readiness_observation": "OPEN_FOR_FINAL_ENVIRONMENT_GATE: the known first-inspect flake reproduced three times in this wave - twice as a first readiness call UNRESOLVED ('No such image: pareval-thesis') with the immediate re-run READY under identical identities, and once as a NOT_READY static_repair_readiness.json (main image UNKNOWN, parcoach/llov FAIL, runtime not pinnable) written at 2026-09-13T14:24:26Z by a check_static_repair_readiness.py call issued from the round-2 adversarial review workflow (agent side effect, preserved as readiness_not_ready_agent_sideeffect.json); the gate was re-measured READY on the final state with identical image identities (eb1c2e93 / dbac7091 / 67d8c6c0); no probe/retry/warm-up policy introduced",
+  "TSan_ASLR": "OPEN_FOR_FINAL_ENVIRONMENT_GATE",
+  "population": "NOT_YET_DECIDED",
+  "pilot_002_run_id": "NOT_YET_CONFIGURED",
+  "reuse": "UNDECIDED",
+  "publication": "OPEN"
+ },
+ "tests": {
+  "test_provenance_cleanup": {
+   "result": "PASS",
+   "summary": "All 149 technical-provenance-cleanup checks passed."
+  },
+  "test_post_run_verification": {
+   "result": "PASS",
+   "summary": "All post-run verification fixtures passed."
+  },
+  "test_repair_scope": {
+   "result": "PASS",
+   "summary": "All repair scope completeness tests passed."
+  },
+  "test_stage_enforcement": {
+   "result": "PASS",
+   "summary": "All stage enforcement tests passed."
+  },
+  "test_cross_process_authorization": {
+   "result": "PASS",
+   "summary": "All cross-process authorization tests passed."
+  },
+  "test_provider_chokepoint": {
+   "result": "PASS",
+   "summary": "All provider chokepoint / authorization tests passed."
+  },
+  "test_static_repair_provenance": {
+   "result": "PASS",
+   "summary": "All static/repair provenance test groups passed."
+  },
+  "test_orchestrator": {
+   "result": "PASS",
+   "summary": "All 12 orchestrator test groups passed."
+  },
+  "test_backfill": {
+   "result": "PASS",
+   "summary": "All 7 backfill test groups passed."
+  },
+  "test_evaluation": {
+   "result": "PASS",
+   "summary": "All 27 evaluation-framework tests passed."
+  },
+  "test_tool_state": {
+   "result": "PASS",
+   "summary": "All tool-state test groups passed."
+  },
+  "test_semantic_decisions": {
+   "result": "PASS",
+   "summary": "All semantic-decision test groups passed."
+  },
+  "test_timing_semantics": {
+   "result": "PASS",
+   "summary": "All timing semantics tests passed."
+  },
+  "test_manifest_fragments": {
+   "result": "PASS",
+   "summary": "All manifest fragment test groups passed."
+  },
+  "test_feedback": {
+   "result": "PASS",
+   "summary": "All 8 repair-feedback tests passed."
+  },
+  "test_e3_2_author_confirmation": {
+   "result": "PASS",
+   "summary": "All 116 E3.2 author-confirmation checks passed."
+  },
+  "test_comparator_semantics": {
+   "result": "PASS",
+   "summary": "all comparator-semantics checks passed"
+  },
+  "check_prompt_oracle_consistency": {
+   "result": "PASS",
+   "summary": "Convention summary: consistent=23"
+  },
+  "assembly_gate_1": {
+   "result": "PASS",
+   "summary": "GATE_1_PILOT001_ASSEMBLY_BYTE_REGRESSION = PASS"
+  },
+  "verify_e3_frozen_artifacts": {
+   "result": "PASS",
+   "summary": "E3_FROZEN_ARTIFACTS_REPRODUCIBLE = true"
+  },
+  "check_semantic_decisions": {
+   "result": "PASS",
+   "summary": "SEMANTIC_GATE = PASS_WITH_DISCLOSURE"
+  },
+  "check_static_repair_readiness": {
+   "result": "PASS",
+   "summary": "evidence: C:\\Users\\jerab\\Desktop\\ParEval-thesis\\thesis\\evaluation\\static_repair_readiness.json"
+  },
+  "check_cross_pilot_gate": {
+   "result": "PASS",
+   "summary": "CROSS_PILOT_GATE_STALE = false (repo-state check; the RUNTIME condition match - effective invocation and actual environment - is determined separately by thesis"
+  },
+  "check_timing_semantics": {
+   "result": "PASS",
+   "summary": "written: C:/Users/jerab/AppData/Local/Temp/claude/C--Users-jerab-Desktop-ParEval-thesis/632014e8-b691-476d-9f45-6ee30cca3c51/scratchpad/tpc/timing_semantics_fin"
+  },
+  "pilot_preflight_mechanism_lines": {
+   "result": "PASS",
+   "summary": "RESULT: NOT_READY - pilot_002_not_authorized (open declarations/decisions or missing provenance; with the pilot_002 population and base-run-id targets still ope"
+  }
+ },
+ "all_tests_pass": true,
+ "fixture_checks": {
+  "count": 149,
+  "labels": [
+   "status PASS with one scope per contracted model and split tool",
+   "every scope carries stage, tool, model, applicable execution models and the contract binding",
+   "no model count is hard-coded: 3 contracted models -> 3 scopes per tool",
+   "no contract -> UNRESOLVED (never an empty PASS)",
+   "contract without a frozen toolset -> UNRESOLVED",
+   "contract without static analysis -> NOT_APPLICABLE",
+   "F: a split tool whose scope misses the contracted population is NOT expected (no scope, reason recorded)",
+   "F: ... and the run verifies PASS without any split invocation",
+   "A/C parcoach: all expected per-model invocations present -> coverage PASS, membership PASS, run PASS",
+   "A/C parcoach: per-tool counts are separate",
+   "B/D parcoach: one expected model invocation deleted while the tool records are complete -> NON-PASS (coverage UNRESOLVED, scope named)",
+   "B/D parcoach: static record coverage of m2 is PASS - records do not substitute for the invocation",
+   "K parcoach: the stage runtime stamp is present and PASS, yet coverage is not - a runtime stamp does not substitute",
+   "E parcoach: the surviving fragment (m1) covers ONE model only, not the stage",
+   "G parcoach: an invocation for a scope the contract does not apply -> membership FAIL",
+   "H parcoach: a fragment for a model outside the contract -> membership FAIL, run FAIL (the expected scopes themselves stay covered)",
+   "I parcoach: an invocation contradicting a contract-pinned value -> FAIL",
+   "I2 parcoach: a fragment whose fingerprint does not reproduce -> FAIL",
+   "J parcoach: a parcoach fragment that claims the tool of the other stage -> FAIL",
+   "foreign run_id parcoach: a fragment of another run never covers this run's scope",
+   "L parcoach: consistent duplicates (per-model + whole-run fragment) -> PASS, reported as consistent duplicates",
+   "L2 parcoach: a whole-run fragment covers a model only with that model's own summary evidence -> m2 stays UNRESOLVED",
+   "L3 parcoach: m2's history records an execution under a condition no fragment carries -> never borrowed by the whole-run fragment: UNRESOLVED (records present, invocation missing), noted, never PASS",
+   "L4 parcoach: the per-model rerun fragment under the same condition as the history -> PASS",
+   "M parcoach: fragments covering one scope under different conditions -> FAIL",
+   "M2 parcoach: a covered scope whose history records an unregistered second execution -> contradiction FAIL",
+   "narrowing parcoach: the frozen resolved_config enables a strict subset of the contracted models -> the missing scope is FAIL, not UNRESOLVED",
+   "drift parcoach: a config drift on the model list carries no model set -> the missing scope stays UNRESOLVED and the drift is only noted",
+   "records missing parcoach: static coverage FAILs and the split scope is not excused (UNRESOLVED, records_present false)",
+   "A/C llov: all expected per-model invocations present -> coverage PASS, membership PASS, run PASS",
+   "A/C llov: per-tool counts are separate",
+   "B/D llov: one expected model invocation deleted while the tool records are complete -> NON-PASS (coverage UNRESOLVED, scope named)",
+   "B/D llov: static record coverage of m2 is PASS - records do not substitute for the invocation",
+   "K llov: the stage runtime stamp is present and PASS, yet coverage is not - a runtime stamp does not substitute",
+   "E llov: the surviving fragment (m1) covers ONE model only, not the stage",
+   "G llov: an invocation for a scope the contract does not apply -> membership FAIL",
+   "H llov: a fragment for a model outside the contract -> membership FAIL, run FAIL (the expected scopes themselves stay covered)",
+   "I llov: an invocation contradicting a contract-pinned value -> FAIL",
+   "I2 llov: a fragment whose fingerprint does not reproduce -> FAIL",
+   "J llov: a llov fragment that claims the tool of the other stage -> FAIL",
+   "foreign run_id llov: a fragment of another run never covers this run's scope",
+   "L llov: consistent duplicates (per-model + whole-run fragment) -> PASS, reported as consistent duplicates",
+   "L2 llov: a whole-run fragment covers a model only with that model's own summary evidence -> m2 stays UNRESOLVED",
+   "L3 llov: m2's history records an execution under a condition no fragment carries -> never borrowed by the whole-run fragment: UNRESOLVED (records present, invocation missing), noted, never PASS",
+   "L4 llov: the per-model rerun fragment under the same condition as the history -> PASS",
+   "M llov: fragments covering one scope under different conditions -> FAIL",
+   "M2 llov: a covered scope whose history records an unregistered second execution -> contradiction FAIL",
+   "narrowing llov: the frozen resolved_config enables a strict subset of the contracted models -> the missing scope is FAIL, not UNRESOLVED",
+   "drift llov: a config drift on the model list carries no model set -> the missing scope stays UNRESOLVED and the drift is only noted",
+   "records missing llov: static coverage FAILs and the split scope is not excused (UNRESOLVED, records_present false)",
+   "the final report carries the machine-readable coverage block",
+   "RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION = false, RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION = false",
+   "attribution binds base run, model, variant, iteration, stage and the enforcement context",
+   "the static label convention is byte-identical to the pre-run enforcement wave",
+   "a runner entry with the block parses (structured source)",
+   "a label-only static entry parses strictly (label source)",
+   "a base runner entry is no attribution and no problem",
+   "malformed: block without fields -> problem (lacks)",
+   "malformed: iteration not an integer -> problem (iteration)",
+   "malformed: label contradicts the block -> problem (contradicts)",
+   "malformed: unknown stage -> problem (unknown)",
+   "malformed: not an object -> problem (not an object)",
+   "O: identical resume entries are one consistent observation; another loop's entry is neither evidence nor a problem",
+   "J: wrong model -> problem, iterations of the loop unaffected",
+   "wrong base run -> problem, iterations of the loop unaffected",
+   "L: iteration beyond max_iterations -> problem, iterations of the loop unaffected",
+   "K: uncontracted variant -> problem, iterations of the loop unaffected",
+   "stage recorded under another stage's history -> problem, iterations of the loop unaffected",
+   "P: two attributions of one label binding different provenance -> problem",
+   "a history that is not a list -> problem",
+   "a problem of ANOTHER loop's entry is attributed to that loop's variant",
+   "an iteration >= 1 entry inside the base run's history (iteration 0) -> problem",
+   "an attribution bound to a foreign contract sha -> problem",
+   "writer=repair without any attribution -> problem",
+   "a repair label with writer=base -> problem",
+   "a label-only correctness entry (never a productive format) -> problem",
+   "an unknown writer value -> problem",
+   "H/I: the base correctness runner writes writer=base and no repair_writer block",
+   "H/I: the base dynamic runner writes writer=base and no repair_writer block",
+   "... and a base run with such histories verifies PASS (no repair attribution)",
+   "B: before the internal run, correctness is the only missing stage",
+   "B: after the internal run the records are complete (missing_internal_stages(0) == [])",
+   "24: the productive correctness runner persisted the repair attribution (model, variant, iteration, stage, contract binding)",
+   "B: with the repair_evaluation invocation present the loop verifies PASS and the attribution is read",
+   "C (core regression): correctness-only iteration-0 repair, records complete, repair_evaluation invocation deleted -> NON-PASS",
+   "30: the attribution survives complete records - the reason names the correctness history, not a missing record",
+   "... other loops of the same model are not implicated",
+   "D: before the internal run, dynamic is the only missing stage",
+   "25: the productive dynamic runner persisted the repair attribution",
+   "D: PASS with the invocation present",
+   "E: dynamic-only iteration-0 repair + deleted invocation -> NON-PASS",
+   "F: correctness and dynamic missing, static complete",
+   "F: both stages attributed -> invocation required, NON-PASS without it",
+   "G: no internal analysis, no writer label, no invocation -> PASS / NOT_APPLICABLE (no blanket 'every loop needs an invocation')",
+   "A: static-only iteration-0 attribution (structured) still keeps the invocation required -> NON-PASS",
+   "O: three identical resume entries -> no false FAIL (PASS with the invocation)",
+   "J: a correctness attribution naming another model inside m1's history -> FAIL",
+   "K: a dynamic attribution with an uncontracted variant -> FAIL",
+   "L: an attribution with iteration > max_iterations -> FAIL",
+   "M: a malformed attribution block -> FAIL (fail-closed)",
+   "N: an unreadable attribution history -> NON-PASS (UNRESOLVED), never 'no attribution'",
+   "P: contradicting attributions for one iteration -> FAIL",
+   "absent correctness history although the stage is contracted and its records exist -> UNRESOLVED (lost provenance artifact), never PASS",
+   "... and a problem in m1's history never touches m2's loops",
+   "41/42: two identical internal runs -> two identical entries, one iteration, no FAIL",
+   "resume never loses the attribution: the invocation stays required",
+   "the runner was interrupted after one record",
+   "the history carries an INVOKED (never completed) repair entry for the partial records",
+   "the verifier attributes the partial stage to repair (invocation required) while record coverage - not the attribution - decides completion (correctness_coverage FAIL)",
+   "the resumed run adds a COMPLETED entry and keeps the interrupted one",
+   "... and the loop verifies PASS with its invocation present",
+   "static summary is a JSON list -> a verdict (UNRESOLVED), never a crash",
+   "static summary is a JSON string -> a verdict (UNRESOLVED), never a crash",
+   "static summary is JSON null -> a verdict (UNRESOLVED), never a crash",
+   "static summary invocations is not a list -> a verdict (FAIL), never a crash",
+   "static summary tools_run is not a list -> a verdict (UNRESOLVED), never a crash",
+   "static records with tools that is not an object -> a verdict (FAIL), never a crash",
+   "correctness history is JSON null -> a verdict (UNRESOLVED), never a crash",
+   "correctness history is a list -> a verdict (UNRESOLVED), never a crash",
+   "correctness history invocations is a string -> a verdict (FAIL), never a crash",
+   "fragment stage is a list -> membership FAIL with an unkeyable fragment (FAIL), never a crash",
+   "fragment effective_values is a string -> membership FAIL with an unkeyable fragment (FAIL), never a crash",
+   "fragment model_scope carries an int -> membership FAIL with an unkeyable fragment (FAIL), never a crash",
+   "fragment tools value is a string -> membership FAIL with an unkeyable fragment (FAIL), never a crash",
+   "fragment owner does not match the body -> membership FAIL with an unkeyable fragment (FAIL), never a crash",
+   "the runtime stamp of repair_evaluation survived (registered only by the loop's own analysis)",
+   "no loop is attributed, yet the effective_invocation check is NOT downgraded to NOT_APPLICABLE -> the run stays UNRESOLVED",
+   "without a stamp and without any internal analysis the downgrade still applies",
+   "R2-SPLIT-01: an unregistered second execution in m2's history -> FAIL",
+   "R2-SPLIT-01: ... deleting that history does not launder it - an absent history next to records -> UNRESOLVED, never PASS",
+   "R2-SPLIT-01: ... an emptied history next to records -> UNRESOLVED",
+   "R2-SPLIT-02/W1: a non-object split fragment and a malformed repair_evaluation fragment -> FAIL verdict (FAIL), never a crash",
+   "R2-SPLIT-03: the disabled model's missing scope is FAIL, the enabled model's missing scope stays UNRESOLVED (FAIL / UNRESOLVED)",
+   "R2-W3: an entry-less correctness history next to records -> UNRESOLVED",
+   "R2-W3: a history naming another model inside m1's directory -> UNRESOLVED",
+   "R2-W4: a repair_evaluation invocation with no analysed iteration, no wave evidence and no writer attribution -> UNRESOLVED (its writer provenance is lost)",
+   "R2-W5: the frozen contract declares the writer-attribution and split-coverage policies",
+   "R2-W2/RS-3: dynamic close failure - the base entry, the INVOKED repair entry and a COMPLETED repair entry carrying its identity all survive",
+   "R2-W2/RS-3: ... and the verifier still attributes iteration 0 to the repair loop",
+   "R2-RS-2: a deeply nested sidecar does not abort the correctness stage (ran), the records are produced",
+   "R2-RS-2: ... the history was rebuilt with the unreadable bytes kept and the repair entry",
+   "R2-RS-2: ... and the verifier reports the unreadable earlier history (UNRESOLVED, never PASS)",
+   "R2-W6: the static runner keeps an unreadable predecessor under unreadable_previous and appends the attributed entry",
+   "ITERATION_ZERO_COVERAGE_RESIDUAL = CLOSED_BY_WRITER_ATTRIBUTION",
+   "split coverage policy exported",
+   "preflight reports STATIC_SPLIT_INVOCATION_COVERAGE_READY = true",
+   "preflight reports ITERATION_ZERO_WRITER_ATTRIBUTION_READY = true",
+   "preflight reports TECHNICAL_PROVENANCE_CLEANUP_READY = true",
+   "the productive contract view expects one PARCOACH and one LLOV scope per enabled model (11), derived - not hard-coded"
+  ]
+ },
+ "adversarial_review": {
+  "question": "Can a false PASS be produced against the two closed gaps? Are result semantics unchanged? Is the verifier fail-closed?",
+  "rounds": [
+   {
+    "round": "round 1 (wf_77d0c482-928: 5 attack dimensions, every finding verified by a refuter and an independent reproducer; 59 agents)",
+    "confirmed": 22,
+    "refuted": 5,
+    "confirmed_findings": [
+     {
+      "id": "T1-A",
+      "dimension": "split-false-pass",
+      "severity": "BLOCKING",
+      "verifier_severity": [
+       "BLOCKING"
+      ],
+      "title": "Whole-run fragment + borrowed summary evidence: a LOST per-model fragment flips a FAIL (contradicting condition) into a PASS",
+      "fix_applied": "whole-run fragments cover a model only with a base history entry under the SAME recorded condition (primary_compiler, replace_tool_entries, rerun_gaps, replace_legacy_record; absent switches = False); with covering fragments a history entry under another condition -> contradiction FAIL; with none -> UNRESOLVED (records present, invocation missing) with the unregistered condition noted"
+     },
+     {
+      "id": "T1-C",
+      "dimension": "split-false-pass",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Whole-run summary evidence is never checked for identity or substance (model_id, writer, entries_run/tools_skipped)",
+      "fix_applied": "summary evidence requires summary.model_id == model, writer base/None, no repair label, tool not in tools_skipped"
+     },
+     {
+      "id": "1b-F1",
+      "dimension": "split-false-fail",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR",
+       "MUST_FIX"
+      ],
+      "title": "A config drift record on `models` is treated as proof of deliberate narrowing, but config_key_diff reports the whole `models` path for ANY element-level change",
+      "fix_applied": "a config drift on the model list is reported (model_list_drift_records/note), never probative; only the frozen resolved_config strict subset is narrowing evidence"
+     },
+     {
+      "id": "1b-F2",
+      "dimension": "split-false-fail",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Reporting contract: `coverage` is derived from membership problems, an out-of-contract model lands in `unkeyable_fragments` (absent from the report block), and `observed_scope_count` undercounts whole-run coverage",
+      "fix_applied": "coverage is a function of the expected-scope rows only; membership separate; out-of-contract models are unexpected_scopes; the report block carries unkeyable_fragments, observed_fragment_count, consistent duplicates and narrowing"
+     },
+     {
+      "id": "T2-F1",
+      "dimension": "iter0-false-pass",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "A sidecar containing JSON `null` crashes the whole verifier (regression vs HEAD)",
+      "fix_applied": "_read_json rejects JSON null like any wrong shape; the history reader treats it as unreadable -> UNRESOLVED"
+     },
+     {
+      "id": "T2-F2",
+      "dimension": "iter0-false-pass",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "BLOCKING (false PASS on the run's own evidence). The reviewer's MUST_FIX is defensible only if the panel deliberately scopes out 'two independent artifact losses' as it did for the static-label path; under the rubric given here a PASS built on a premise the same report refutes is a false PASS.",
+       "MUST_FIX"
+      ],
+      "title": "Deleting the sidecar after a productive iteration-0 fill reopens the false PASS, while the verifier ignores the surviving repair_evaluation runtime stamp that contradicts its own 'no loop analysed' conclusion",
+      "fix_applied": "an absent history while the stage is contracted and the model's records exist is a lost provenance artifact -> UNRESOLVED (all three stages); reconcile_repair_evaluation_expectation refuses the NOT_APPLICABLE downgrade under a repair_evaluation runtime stamp (repair_matrix.repair_evaluation_stamp_present)"
+     },
+     {
+      "id": "T2-F3",
+      "dimension": "iter0-false-pass",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Three attribution contradictions are accepted silently instead of FAILing (no false PASS, but the contract says contradicting/wrong-identity -> FAIL)",
+      "fix_applied": "iteration != 0 inside the base history -> problem; KNOWN contract / authorization / repair_evaluation-invocation bindings that differ from the run's -> problem; a repair label with writer=base -> problem"
+     },
+     {
+      "id": "T2-F4",
+      "dimension": "iter0-false-pass",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "The wave's evidence pointers name artifacts that do not exist in the working tree, and the addendum still records the residual as OPEN",
+      "fix_applied": "technical_provenance_cleanup.json and prerun_enforcement_addendum.md section 1.3 are written by this wave; the 1.2.14 table rows are annotated as closed"
+     },
+     {
+      "id": "T2-F5",
+      "dimension": "iter0-false-pass",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "In-flight open/close writer: the close fallback attributes a repair completion to writer 'base' with no label when the opened entry vanished",
+      "fix_applied": "close_invocation re-creates a lost opened entry WITH its label and attribution (opened_entry_lost true); histories are written atomically"
+     },
+     {
+      "id": "T3-1",
+      "dimension": "semantics-unchanged",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "Cross-pilot gate is STALE: the recorded run_correctness.py fingerprint and function-level assessment describe a version of the file that no longer exists",
+      "fix_applied": "the cross-pilot run_correctness.py fingerprint is refreshed from the FINAL file with the recorded function-level assessment"
+     },
+     {
+      "id": "T3-2",
+      "dimension": "semantics-unchanged",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "The provenance sidecar is now opened BEFORE the record loop and can abort a result stage before any record is written (a provenance file gates a result stage)",
+      "fix_applied": "load_history keeps a wrong-shaped invocations value under unreadable_previous; the runners wrap open/close in try/except so provenance never aborts a result stage"
+     },
+     {
+      "id": "T3-3",
+      "dimension": "semantics-unchanged",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "close_invocation matches the opened entry by index+status only; a summary replaced between open and close mis-attributes the completion (another loop's entry, or writer=base) and silently drops this loop's repair attribution",
+      "fix_applied": "close_invocation matches the opened entry by index, status AND identity (label + repair_writer); otherwise it appends a COMPLETED entry with that identity"
+     },
+     {
+      "id": "T4-01",
+      "dimension": "verifier-fail-closed",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "verify() crashes on a malformed per-model static_analysis_summary.json / static_analysis.jsonl instead of producing a verdict",
+      "fix_applied": "_model_tool_evidence guards every shape (summary not an object, invocations not a list, tools_run not a list, record tools not an object) and reports unreadable; an unreadable model artifact makes the scope at most UNRESOLVED"
+     },
+     {
+      "id": "T4-02",
+      "dimension": "verifier-fail-closed",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "Regression: a summary file containing JSON `null` crashes the verifier (old code tolerated it)",
+      "fix_applied": "as T2-F1"
+     },
+     {
+      "id": "T4-03",
+      "dimension": "verifier-fail-closed",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "A fragment body with an unhashable `stage`, or non-dict content in the NOT_APPLICABLE branch, crashes the matrix instead of yielding an unkeyable FAIL",
+      "fix_applied": "a non-string stage is normalised and reported as unkeyable; the NOT_APPLICABLE branch guards non-dict bodies"
+     },
+     {
+      "id": "T4-04",
+      "dimension": "verifier-fail-closed",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "_split_fragment_view's own shape guards are undermined by the unguarded check_against_contract call that follows them",
+      "fix_applied": "_split_fragment_view returns early on shape problems and wraps fingerprint/owner/contract checks; check_effective_invocation wraps its per-fragment checks (FAIL, never crash)"
+     },
+     {
+      "id": "T4-05",
+      "dimension": "verifier-fail-closed",
+      "severity": "BLOCKING",
+      "verifier_severity": [
+       "BLOCKING",
+       "MINOR"
+      ],
+      "title": "An invocation entry that claims writer='repair' but carries no repair_writer block and no repair label is silently treated as a base writer -> loop PASS / NOT_APPLICABLE",
+      "fix_applied": "parse_entry: unknown writer -> problem; writer=repair without attribution -> problem"
+     },
+     {
+      "id": "T4-06",
+      "dimension": "verifier-fail-closed",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "BLOCKING",
+       "MUST_FIX"
+      ],
+      "title": "close_invocation's fallback re-creates the entry as writer='base' with no attribution, so a repair-invoked stage whose opened entry vanished is recorded as base-written and verifies PASS",
+      "fix_applied": "as T2-F5 / T3-3"
+     },
+     {
+      "id": "T4-07",
+      "dimension": "verifier-fail-closed",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "'Deliberate narrowing' is asserted from any config drift whose key merely starts with 'models', including widenings and unrelated model-list edits",
+      "fix_applied": "as 1b-F1"
+     },
+     {
+      "id": "T4-09",
+      "dimension": "verifier-fail-closed",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Owner/body consistency is not checked: a fragment can be counted for two stages, or for a model its owner does not name, and a multi-model scope the runner cannot produce is accepted",
+      "fix_applied": "owner must equal effective_invocation.invocation_owner(stage, scope, values); a split fragment naming more than one model is unkeyable"
+     },
+     {
+      "id": "T4-10",
+      "dimension": "verifier-fail-closed",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Problems in another variant's entries FAIL every loop of the model; label-only correctness/dynamic entries are accepted and their `writer` field is ignored",
+      "fix_applied": "problems carry the offending entry's variant; only model-wide problems (malformed, identity contradictions, uncontracted variants) affect every loop; label-only entries accepted for static only, entry.writer checked"
+     },
+     {
+      "id": "T4-11",
+      "dimension": "verifier-fail-closed",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Contract/manifest shape assumptions can raise instead of returning UNRESOLVED (guarded in practice by load_frozen's sha check)",
+      "fix_applied": "expected_split_static_invocations wraps its derivation (UNRESOLVED with the exception), guards toolset entry and execution_models shapes; _narrowing_evidence coerces ids"
+     }
+    ],
+    "refuted_findings": [
+     {
+      "id": "T1-B",
+      "dimension": "split-false-pass",
+      "title": "ONE fragment with model_scope [m1,m2,m3] covers the whole multi-model stage without any per-model evidence (the null fragment is held to summary evidence, the explicit list is not)",
+      "why_refuted": "The mechanics reproduce exactly as stated (one fragment with model_scope [m1,m2,m3], records complete, no summaries -> overall PASS, coverage PASS, 6/6; the null-scope twin -> UNRESOLVED 3/6), but the behaviour is neither a false PASS nor a violation of the wave contract, so the claim does not stand at MUST_FIX/BLOCKING.\n\n1. It is not the prohibited \"single fragment covering a multi-model stage\". "
+     },
+     {
+      "id": "T1-D",
+      "dimension": "split-false-pass",
+      "title": "Fragments the productive builder would refuse, self-contradicting contract_expected_values and owner/content mismatches are accepted as valid coverage",
+      "why_refuted": "The observation reproduces exactly as stated (all three section-D shapes verify PASS), but the conclusion - that these shapes \"should be unkeyable -> FAIL\" under the wave contract - does not hold, and the premise that \"none of these shapes can arise from the productive runner\" is factually wrong for two of the three.\n\n1. Not a wave-contract violation. The contract's FAIL rules are: contract/finger"
+     },
+     {
+      "id": "T1-E",
+      "dimension": "split-false-pass",
+      "title": "Deliberate narrowing evidence is a strict-subset test, so a frozen config that disables a contracted model but adds a foreign one is not 'narrowed' (UNRESOLVED instead of the contracted FAIL)",
+      "why_refuted": "The behaviour reproduces exactly as described (m3 disabled + uncontracted 'ghost' enabled in the frozen resolved_config, m3 fragment missing -> overall UNRESOLVED, m3 scope UNRESOLVED, narrowing.narrowed=False, frozen_enabled_models=[ghost,m1,m2]). But it does not contradict the wave contract, so the claim is refuted as a defect. The narrowing rule is DEFINED as a strict-subset test in every place"
+     },
+     {
+      "id": "1b-F3",
+      "dimension": "split-false-fail",
+      "title": "`--rerun-gaps` on a contracted run: refused pre-run in the same fragment shape, but accepted-then-condemned post-run in the other shape (design tension, not a false verdict)",
+      "why_refuted": "The reproduction reproduces mechanically (S4a: same-shape --rerun-gaps refused pre-run, run stays PASS; S4b/S4c: cross-shape --rerun-gaps registers and the post-run split check FAILs with 'fragments cover this scope under different conditions: rerun_gaps false | true'). But it does not contradict the wave contract and is not attributable to the wave, so it is not a wave finding.\n\n1. Contract confo"
+     },
+     {
+      "id": "T4-08",
+      "dimension": "verifier-fail-closed",
+      "title": "A whole-run fragment is completed by ANY summary invocation that lists the tool - including repair-loop or backfill entries that register no split fragment - and a contradicting whole-run fragment without summary evidence is silently accepted",
+      "why_refuted": "Mechanically the reviewer's three fixtures reproduce exactly as described (see reproduction), and the code fact is true: thesis/evaluation/stage_runtime.py:953-955 counts every summary entry whose tools_run contains the tool, and :1129-1135 lets such an entry complete a whole-run fragment. But the claim does not contradict the wave contract and its premise is not reachable through any productive w"
+     }
+    ],
+    "attacks_attempted": {
+     "split-false-pass": [
+      "1 only 1 of 3 per-model parcoach fragments left, records complete, runtime stamp PASS, effective_invocation PASS -> overall UNRESOLVED, m2/m3 scopes UNRESOLVED (records_present true). Correct, no false PASS.",
+      "2a one fragment with model_scope [m1,m2] on a 3-model contract -> UNRESOLVED (m3 missing). Correct.",
+      "2b one fragment with FULL list model_scope [m1,m2,m3], no summaries -> PASS 6/6 (FINDING T1-B).",
+      "3a whole-run fragment (model_scope null), no per-model summaries -> UNRESOLVED for every model. Correct.",
+      "3b whole-run fragment + base summaries for all models -> PASS (legit documented base-run shape).",
+      "4a fragment with tools [parcoach, llov] -> FAIL (unkeyable: foreign split tool). Correct.",
+      "4b fragment with empty tools list -> FAIL. Correct.",
+      "4c fragment without a tools field -> FAIL. Correct.",
+      "4d fragment with tools [compiler, parcoach] -> PASS (legit: one CLI invocation stamping both domains; not a finding).",
+      "5 stale contract_expected_values (clang++) inside the fragment with effective g++ -> PASS (FINDING T1-D, MINOR).",
+      "6a delete m2 fragment file, keep the STALE snapshot listing m2 -> UNRESOLVED (load_manifest merges fragments; snapshot ignored). Correct.",
+      "6b delete the ENTIRE fragments dir, keep the snapshot -> coverage PASS from the snapshot but overall UNRESOLVED (start_authorization_present). No false PASS.",
+      "6c fragments dir gone, snapshot missing m2 -> UNRESOLVED. Correct.",
+      "6d fragment missing, snapshot edited to ADD m2 while fragments exist -> UNRESOLVED (fragments win). Correct.",
+      "7a foreign run_id inside the fragment content -> FAIL. 7b run_id None -> FAIL. Correct.",
+      "8 resumed run: enforce_stage registers the identical m2 fragment twice -> idempotent (1 file), PASS. Correct.",
+      "9a contract model m3 without generations, invocation present -> split scope PASS but overall FAIL (model_set_exact, population). 9b same with the invocation deleted -> scope UNRESOLVED, overall FAIL. No false PASS.",
+      "10a/10b model whose samples are serial only although the population contains mpi/omp: scopes still expected per (tool, model); with all invocations present PASS, with m2's parcoach invocation deleted UNRESOLVED (records_present false, static_coverage:m2 PASS). Fail-closed, by design; no finding.",
+      "11a whole-run fragment + m2 summary invocation recording another condition (rerun_gaps True / replace_* / clang++) with m2's per-model fragment lost -> PASS (FINDING T1-A); confirmed with production-shaped fragments as FAIL->PASS flip.",
+      "11b per-model fragment profile 'some_other_profile' vs whole-run 'fixture' -> 'consistent duplicates' PASS; profile is not a methodical value of the static runner (run_id default only) and profile_matches_contract checks the manifest, so no finding.",
+      "11c fragment carrying niter (FORBIDDEN_DUPLICATE) + output_file_name (NON_METHODICAL) + effective_run_timeout_seconds -> PASS (FINDING T1-D).",
+      "11d model_scope [m2, m2] -> PASS, reported as 'consistent duplicates' from one fragment (folded into T1-B).",
+      "11e whole-run primary_compiler g++[CLI] vs per-model g++[DEFAULT] -> consistent PASS (correct: same effective value).",
+      "Duplicate-abuse check: condition comparison uses only _SPLIT_CONDITION_FIELDS (primary_compiler, replace_tool_entries, rerun_gaps, replace_legacy_record, skip_unavailable_tools); tools/profile/extra fields are ignored - no way found to make CONTRADICTING condition fields look consistent between two fragments; the real hole is that the SUMMARY's condition is never compared (T1-A). Side note (false FAIL, not false PASS): a fragment lacking a condition key vs one with the key = False counts as a contradiction (fixture 2-field fragments vs production 4-field fragments).",
+      "12a whole-run + m2 summary copied from m1 (model_id m1) -> PASS (T1-C). 12b summary invocation writer 'repair' with parcoach in tools_run -> PASS (T1-C). 12c tools_run [parcoach] but entries_run {} and tools_skipped parcoach -> PASS (T1-C).",
+      "13a parcoach content under owner static.main@m2@tools-parcoach -> PASS for the parcoach scope and effective_invocation:static.main (T1-D). 13b llov content under a parcoach owner -> UNRESOLVED for parcoach/m2 (counted as an llov duplicate). 13c model_scope as a plain string -> FAIL. 13d wrong schema_version -> FAIL.",
+      "14a frozen resolved_config with m3 disabled + foreign 'ghost' enabled, m3 fragment missing -> UNRESOLVED, narrowing false (FINDING T1-E, MINOR).",
+      "15 contract shapes for expected_split_static_invocations: toolset execution_models None -> applicable = whole population (fail-closed); [] -> tool not expected; contract execution_models None -> tool scope used; duplicate model_ids -> duplicate scopes (cosmetic, builder does not emit duplicates); toolset {error} -> UNRESOLVED; toolset without the parcoach key -> not expected with reason. No hard-coded model count or tool scope: model_ids, enabled flags and execution_models come from the frozen contract; only the tool->stage identity map SPLIT_CONTAINER_TOOLS is static (necessarily).",
+      "Existing suite thesis/evaluation/test_provenance_cleanup.py re-run: 96/96 pass (baseline)."
+     ],
+     "split-false-fail": [
+      "S1 productive per-model container invocations (main()'s exact value shape: primary_compiler, tools, replace_tool_entries, rerun_gaps, replace_legacy_record) for every contracted model and both tools -> run PASS, membership PASS, coverage PASS, 4/4 (no false verdict).",
+      "S2 documented whole-run base invocation (no --model-id, model_scope null) + productive per-model summary invocations appended per model -> PASS 4/4 (my first attempt showed a false UNRESOLVED, which was my own scratch bug: the fixture helper write_static_summary OVERWRITES the summary file whereas run_model appends; with an appending helper the verdict is PASS).",
+      "S3 resume/rerun re-registering identical fragments (per-model twice, whole-run twice with duplicated summary entries) -> idempotent, PASS.",
+      "S4 --rerun-gaps: same fragment shape -> FragmentConflict -> InvocationRefused before records (verdict unaffected, PASS); cross shape (whole-run after per-model, per-model after whole-run) -> registered, then post-run contradiction FAIL (finding 1b-F3, design tension, verdict per the wave's rule).",
+      "S5 population contains mpi/omp but every sample of the model is serial: containers invoked per model -> PASS (records are NOT_APPLICABLE entries, static_coverage PASS); containers NOT invoked -> all four scopes UNRESOLVED with static_coverage PASS (per the contract's records-missing+invocation-missing rule; not a false verdict, the run is not contract-bound).",
+      "S6 serial+mpi population: llov NOT expected (per_tool llov expected_scope_count 0), parcoach only -> PASS; llov container run anyway -> membership FAIL / unexpected (per contract 'non-applicable scope -> FAIL'); serial-only population (fixture F) -> NOT_APPLICABLE, PASS.",
+      "S7 contracted model without generations (extra_models) with per-model invocations -> split membership/coverage PASS; the run FAILs only on model_set/population checks unrelated to this wave.",
+      "M1 whole-run base + repair-loop iteration-0 per-model container run for one model (same condition) -> PASS with consistent duplicates listed.",
+      "M2 per-model fragments + whole-run fragment where one model's summary lacks a later append -> PASS (per-model fragment covers; summary evidence from the per-model run also credits the whole-run fragment).",
+      "M3 whole-run parcoach container invoked without --tools so tools = [compiler, parcoach] (owner static.parcoach@tools-compiler+parcoach) -> PASS (tool present, no foreign split tool).",
+      "M4 single fragment with explicit model_scope [m1, m2] -> PASS (explicit per-model claim; consistent with the whole-run rule since whole-run still needs summary evidence).",
+      "M5 primary_compiler source CLI vs DEFAULT with identical value across whole-run and per-model fragments -> PASS (condition compares values only).",
+      "M6 contract execution_models None (unknown population) -> split tools expected fail-closed for every model (no crash).",
+      "B narrowing inference: benign `models` drift (max_output_tokens) via the productive ensure_run_manifest drift writer on a fully covered run -> PASS but narrowing.narrowed=true reported; with one lost invocation -> FAIL 'deliberate narrowing' instead of UNRESOLVED (finding 1b-F1).",
+      "C membership vs coverage: ghost-model fragment on a fully covered run -> coverage FAIL with covered==expected, missing==[], unexpected==[] (classified unkeyable, absent from the report block) (finding 1b-F2).",
+      "D report block: split_static_invocation_coverage carries policy, membership, coverage, expected/observed/covered counts, missing/unexpected/contradicting lists, per_tool and both *_SUBSTITUTES_* flags == False; code constants RUNTIME_STAMP_SUBSTITUTES_SPLIT_INVOCATION / RECORD_COVERAGE_SUBSTITUTES_SPLIT_INVOCATION are False; membership and coverage are separate report checks (split_static_invocation_membership / _coverage) plus per-scope checks -> as contracted, except the coupling in 1b-F2.",
+      "E observed_scope_count with whole-run fragments -> observed < covered (folded into 1b-F2).",
+      "F whole-run fragment + corrupt per-model summary -> that scope UNRESOLVED fail-closed (fine); note the row detail says 'carries no invocation that ran parcoach' although _model_tool_evidence recorded summary_unreadable - wording only, not surfaced.",
+      "G corrupt static_analysis.jsonl with the fragment present -> scope PASS, static_coverage FAIL (run FAIL, correct); without the fragment -> scope UNRESOLVED, run FAIL from static coverage (correct).",
+      "Preflight: pilot_preflight.technical_provenance_lines on the productive built contract (config.yaml 'pilot') prints STATIC_SPLIT_EXPECTED_SCOPES = PASS (22 = 11 models x parcoach, llov), per-tool 11/11 with execution models mpi/omp, both substitution flags false, READY true - derived from contract.model_ids x contract.static_toolset x population, no hard-coded count (stage_runtime.expected_split_static_invocations reads the contract only, config fallback not used).",
+      "Static review of crash paths in split_static_invocation_matrix / _split_fragment_view / _model_tool_evidence / _narrowing_evidence with non-dict fragments, malformed model_scope, missing effective_values, missing summary/records: all handled as unkeyable/UNRESOLVED; no crash found (only a corrupted manifest with a non-dict, truthy invocation in the NOT_APPLICABLE branch could raise AttributeError - not reachable through the productive writers).",
+      "Reasoned-only (not reproduced): if run_static_analysis.main() gains a new registered value between the base container run and the repair loop's iteration-0 container run, the condition comparison treats 'field absent' != 'field present with default' and would report a contradiction; mid-run code changes are already a methodical problem, so not filed.",
+      "Ran the wave's own suites read-only: test_provenance_cleanup.py (96 checks pass), test_repair_scope.py (pass), test_post_run_verification.py (pass). No repo file edited; no docker; thesis/results and thesis/tool_validation untouched."
+     ],
+     "iter0-false-pass": [
+      "Core regression, correctness-only: base static complete, base correctness.jsonl deleted for m1, productive run_internal(m1/combined_feedback,['correctness']) at iteration 0 (missing_internal_stages(0) ['correctness'] -> []), loop terminal at 0, fragment present -> PASS with repair_labelled_correctness_iterations [0], invocation_required True; then _remove_repair_invocation -> run UNRESOLVED, row UNRESOLVED, invocation UNRESOLVED, required True (NON-PASS, correct)",
+      "Core regression, dynamic-only (m2): same sequence with dynamic_analysis.jsonl -> PASS with fragment, UNRESOLVED without (correct)",
+      "Core regression, correctness+dynamic: both attributed ([0],[0]), static []; fragment deleted -> UNRESOLVED (correct)",
+      "Delete correctness_summary.json after the productive internal run + fragment deleted -> run PASS / row PASS / invocation NOT_APPLICABLE (FALSE PASS under two-artifact loss; finding T2-F2)",
+      "Delete dynamic_analysis_summary.json (m2) / both sidecars after the internal run + fragment deleted -> PASS (T2-F2)",
+      "Rewrite sidecar with invocations=[] / without an invocations key / with the repair entry rewritten as writer=base, fragment deleted -> PASS (T2-F2, same class as deletion)",
+      "Comparison: static-only structured attribution in static_analysis_summary.json without fragment -> UNRESOLVED; static_analysis_summary.json deleted -> PASS / NOT_APPLICABLE (identical behaviour to the correctness/dynamic sidecar; design consistent with the accepted static path)",
+      "Runtime stamp survives: after the productive internal run only runtime.stage.repair_evaluation.json remains (fragment + sidecar deleted) -> PASS with stage_runtime:repair_evaluation.main PASS and effective_invocation:repair_evaluation NOT_APPLICABLE 'none of the 6 contracted loop(s) analysed an iteration' (self-contradictory report; T2-F2)",
+      "History entry writer='base' with a repair label and no block -> counted as label-only repair attribution, UNRESOLVED without fragment / PASS with fragment, no problem flagged (not a false PASS; inconsistency, T2-F3c)",
+      "History entry writer='base' with a repair label AND a block -> FAIL 'entry.writer base contradicts the repair_writer block' (correct)",
+      "repair_writer block for iteration 0 with the variant of another contracted loop (static_feedback) inside m1's history -> this loop NOT_APPLICABLE/PASS row, the other loop required/UNRESOLVED (correct: belongs to that loop)",
+      "Two loops of one model: combined_feedback fills correctness at 0, test_feedback then finds nothing missing (productive resume rule) -> test_feedback NOT_APPLICABLE PASS, combined_feedback required; fragment deleted -> UNRESOLVED; attribution relabelled to test_feedback (tamper) -> test_feedback required/UNRESOLVED, run UNRESOLVED (no run-level false PASS)",
+      "Entry naming another model (m2 inside m1's history) -> FAIL 'names model m2' (correct)",
+      "Block iteration 3 > max_iterations 2 -> FAIL; label-only iteration 7 -> FAIL (correct)",
+      "Block iteration 2 (<= max 2) while the loop is terminal at iteration 0, and iteration 1 inside the BASE sidecar (impossible for the productive writer) -> accepted, PASS with corr=[1]/[2] (T2-F3a)",
+      "Entry label iteration 1 vs block iteration 0 -> FAIL; block.label contradicting its own fields -> FAIL (correct)",
+      "invocations is a dict / a string -> FAIL 'invocations is not a list' (correct)",
+      "invocations=[None] / repair_writer as string / empty list / empty dict / iteration True / iteration -1 / writer=base in block / schema v2 / base_run_id=other_run / dynamic block in correctness history / model_id '' or None -> all FAIL (correct)",
+      "Unreadable sidecar: '{' -> UNRESOLVED; '[1,2]' -> UNRESOLVED 'not a JSON object (list)'; '' -> UNRESOLVED; binary garbage (UnicodeDecodeError) -> UNRESOLVED; writer-recorded unreadable_previous -> UNRESOLVED (all correct, never PASS)",
+      "Sidecar content JSON `null` -> verifier CRASH AttributeError at repair_scope.py:335, for each of the three histories (T2-F1)",
+      "Runner side over a null previous sidecar: productive run_internal succeeds, records unreadable_previous='null', verifier UNRESOLVED (correct)",
+      "Label variants: trailing space or 'REPAIR' upper-case -> not a repair label -> PASS/NOT_APPLICABLE (equivalent to erasing the entry; strict-regex design, same class as T2-F2, not separately graded); 'iteration 00' and trailing newline -> parsed as iteration 0 (required); model 'm1/x' via greedy .+ -> FAIL 'names model m1/x' (correct)",
+      "Resume duplicates: three identical structured entries -> one iteration, no FAIL (correct); label-only + structured for one iteration -> consistent (correct); same label with contract sha a vs b -> FAIL 'bind different provenance'; None-sha, a-sha, b-sha -> FAIL (correct)",
+      "Sidecar header run_id/model_id foreign while the block is correct -> ignored, attribution counted (not validated; not a false PASS)",
+      "Block bound to a foreign contract/authorization/invocation sha with the fragment present -> PASS, no problem (T2-F3b)",
+      "Correctness block inside the dynamic history -> FAIL 'recorded in the dynamic history' (correct)",
+      "Counter direction: everything complete, no internal run, no labels, no repair_evaluation fragment -> run PASS, all rows NOT_APPLICABLE and not required, stage_runtime/effective_invocation repair_evaluation NOT_APPLICABLE (correct: no blanket requirement); base-writer histories (run_correctness / run_dynamic_analysis labels) present -> still PASS / NOT_APPLICABLE (correct)",
+      "Baseline: thesis/evaluation/test_provenance_cleanup.py passes 96/96 before and after the concurrent edits observed at 14:39-14:43 (writer_attribution.py, run_correctness.py, run_dynamic_analysis.py, test_provenance_cleanup.py); all attack results above were re-run against the later state and are unchanged",
+      "Documentation cross-check: evidence pointers technical_provenance_cleanup.json and addendum section 1.3 do not exist; addendum 1.2.14 still lists the residual as OPEN (T2-F4)"
+     ],
+     "semantics-unchanged": [
+      "AST-level comparison HEAD vs working tree of all five target files (scratch ast_compare.py, run twice because the tree moved mid-review; final snapshot hashes run_correctness f4d9e5c3, run_dynamic d677b481, run_static 92f335ec, orchestrator e8660bcc, run_backfill 6c60980e, writer_attribution 18892ca1). run_correctness: run_sample, compile_sample, run_verdict, parse_authenticated_validation, legacy_parse_validation, parse_mismatch_output, count/classify_baseline_incompatible, new_marker_nonce, all DEFAULT_* constants AST-identical (26 unchanged); run_model differs only by two None-default kwargs, an open-sidecar insert before the unlink and a close after the summary; the per-sample for-loop node is AST-identical; unlink+rewrite of correctness.jsonl preserved (verified with a stale record: deleted and rewritten). OUTCOME: no result-semantic change.",
+      "run_dynamic_analysis: apply_preflight_gate, load_existing_records, write_records_atomic, record_has_blocking, record_low_confidence_count, resolve_enabled_tools, preflight_failures AST-identical; run_model's per-sample tool loop and record fields AST-identical; the summary keeps all 9 previous top-level keys (verified by driving run_model in a temp dir) plus additive `invocations` (and `unreadable_previous` only when a prior file was unparseable). Return value now re-loaded from disk; no caller uses it (orchestrator, run_backfill, main all discard it). OUTCOME: no result-semantic change.",
+      "run_static_analysis: load_existing_records, summarize_records, record_analysis_gaps, not_applicable_entry, record merge/write, STATIC_ANALYSIS/SUMMARY schema constants AST-identical; only the invocations.append OrderedDict gained `writer` and `repair_writer`; summarize_records stores invocations verbatim and computes nothing from them. OUTCOME: no result-semantic change.",
+      "orchestrator: 114 definitions AST-identical incl. evaluate_stop, RepairLoop._decide, _to_analyzed, missing_internal_stages, compute_decisions, step, run_external_docker, STATE/WAVE schema, TERMINAL_STATUSES; _run_analysis_stages identical after stripping the writer_attribution/invocation_label kwargs and the two added statements (ast_orchestrator_strict.py). `attribution()` closure can only raise ValueError for a negative/non-int iteration; iteration is int(state['iteration']) in step(). enforce_stage's returned keys (contract_sha256, authorization_sha256, invocation_sha256, stage_runtime_sha256, enforced) match what repair_attribution reads. OUTCOME: no stop/retry/variant semantic change.",
+      "run_backfill: StageExecutor.run_static/run_correctness/run_dynamic identical after stripping invocation_label; run_enhanced, stage_coverage, plan_run etc. unchanged; neither backfill nor orchestrator read any per-model summary file (grep). OUTCOME: no change.",
+      "stage_runtime.py / repair_scope.py / verify_pilot_run.py / pilot_preflight.py: stage_runtime has ZERO changed existing definitions (only additions), so enforce_stage and the runtime stamps used by the runners at run time are unchanged; pilot_preflight only appends informational lines. OUTCOME: run-time enforcement unchanged.",
+      "Condition fingerprints recomputed with static_provenance on the working tree (recompute_conditions.py): static_analysis_condition_sha256 = 1f7733276dd17d0e... (MATCH; inputs framework.py/build_config.py/tool_config.py/tools.py/drivers/config.yaml all git-clean); repair_condition_sha256 = 98b8be0f753dcbc1... (MATCH); substituting HEAD's orchestrator.py (CRLF-normalized, as the Windows checkout stores it) reproduces the previous e6f5c32bbf329484... exactly, so only orchestrator_sha256 moved; runtime_condition_sha256 0d5f4889... reproduces from the readiness body and substituting the previous repair sha reproduces 516288da..., so only the bound repair sha moved. Note: orchestrator_sha256 is a raw byte hash and therefore line-ending dependent (LF blob gives 3f14dee1... instead) - pre-existing, host-local by design, not introduced by this wave.",
+      "Runner sidecar failure injection (runner_sidecar_attacks.py v1 for the earlier post-record design, v2 for the current open/close design): absent / valid prior / unparseable / non-dict JSON / binary garbage handled (unreadable_previous); int/bool-typed `invocations`, a directory, and a read-only file raise BEFORE records in the current design (finding T3-2); str/dict-typed `invocations` spread into garbage entries (verifier fail-closed -> FAIL rows). OUTCOME: pathological-only stage abort, reported MINOR.",
+      "Interrupted-run attack (run_sample raises KeyboardInterrupt on the first sample, then clean rerun): history = [invoked, completed] with identical labels; wa.repair_iterations -> iterations [0], duplicates 1, no problems. OUTCOME: consistent with the contract (identical resume entries = one observation; invoked never claims completion).",
+      "Concurrent-writer attack (sidecar replaced between open and close): close_invocation closes a foreign entry / falls back to a writer=base entry and this loop's attribution vanishes silently (finding T3-3). OUTCOME: real design hole, low reachability, MINOR.",
+      "Verified the repair driver runs loops sequentially in one process (run_repair.py builds a list of RepairLoop and steps them) so the RMW race needs operator-level parallel processes.",
+      "Searched for downstream consumers of correctness_summary.json / dynamic_analysis_summary.json / static_analysis_summary.json and for directory enumerations that might treat the new sidecar as an anomaly: only repair_scope.py and stage_runtime.py (verifier side) read them; no enumerator flags unknown files. OUTCOME: no verdict path depends on the summaries.",
+      "Test suites on the final tree: test_provenance_cleanup (101 checks) PASS, test_repair_scope PASS (385 s when run alone; an earlier run hit my 280 s timeout purely from host I/O contention - two concurrent instances plus ~170 leaked %TEMP%/tmp* fixture dirs from killed runs; faulthandler showed it inside unchanged manifest_fragments/atomic_io, not wave code), test_post_run_verification PASS, test_evaluation (27) PASS, test_tool_state PASS, test_static_repair_provenance PASS, test_stage_enforcement PASS, test_semantic_decisions PASS, test_timing_semantics PASS, test_manifest_fragments PASS, thesis/repair test_orchestrator (12 groups) / test_backfill (7) / test_feedback (8) PASS.",
+      "Cross-pilot gate: check_cross_pilot_gate.py PASSED against the earlier snapshot (run_correctness.py 7d02ea7b...) and is now STALE against the rewritten file f4d9e5c3... (finding T3-1); all other shared_state file hashes match the working tree; the artifact self-fingerprint 701df0e8... reproduces.",
+      "Prohibited-change scan: git status shows only the 12 modified + 2 new files; thesis/results (pilot_001), run_enhanced_tests.py, enhanced specs, assembly, timing_semantics.py, provider_call_sites.py, feedback.py, tools.py, framework.py, build_config.py, tool_config.py, drivers/ untouched. No result record gained a field (AST); no runtime stamp / record coverage substitution introduced in the runners. OUTCOME: no BLOCKING violation found.",
+      "Checked the iteration-0 EXTERNAL container path: PARCOACH/LLOV containers launched by the repair loop via run_external_docker use the static runner's main() label 'run_static_analysis --tools <tool>' and writer=base (no repair attribution); this is the split-container stage (target 1's fragment coverage), not one of the three internal stages the contract attributes - noted, not scored in this dimension."
+     ],
+     "verifier-fail-closed": [
+      "[unit] expected_split_static_invocations: contract without model_ids / model_ids None / model_ids with non-str -> UNRESOLVED (ok)",
+      "[unit] expected_split_static_invocations: static_toolset {'error':...} and static_toolset list -> UNRESOLVED (ok); expected_stages string -> UNRESOLVED (ok)",
+      "[unit] expected_split_static_invocations: static_toolset entry str/bool/list -> CRASH AttributeError (T4-11); execution_models int -> CRASH TypeError (T4-11); contract execution_models int -> CRASH (T4-11); contract is a list -> CRASH (T4-11); scope as string 'mpi' -> NOT_APPLICABLE (no crash)",
+      "[unit] expected_split_static_invocations: duplicate model_ids ['m1','m1'] -> 4 scopes / per_tool scope_count 2 (inconsistent counts, contract builder never produces duplicates; not reported)",
+      "[unit] split_static_invocation_matrix: stage_invocations is a list -> CRASH (pre-existing pattern in ei.registered_invocations/invocations_for_stage, not reported separately)",
+      "[unit] split_static_invocation_matrix: fragment content None / list / str -> FAIL unkeyable (ok in main branch); same in NOT_APPLICABLE branch -> CRASH (T4-03)",
+      "[unit+e2e] fragment body stage is a list/dict -> CRASH at :1074 (T4-03)",
+      "[unit+e2e] effective_values.tools.value is a string -> membership FAIL, scope UNRESOLVED, run FAIL (ok)",
+      "[unit] effective_values str/list, primary_compiler bare str/list -> CRASH inside check_against_contract called from _split_fragment_view (T4-04); e2e the pre-existing check_effective_invocation crashes first (invocation_fingerprint)",
+      "[unit] effective_values.primary_compiler None -> FAIL (ok)",
+      "[unit+e2e] model_scope with int/dict elements -> CRASH in check_against_contract join (T4-04; e2e masked by pre-existing crash in check_effective_invocation)",
+      "[unit] model_scope string / empty list -> FAIL unkeyable (ok)",
+      "[unit+e2e] one fragment with model_scope [m1,m2] -> covers both scopes, PASS (T4-09 design doubt)",
+      "[unit+e2e] owner/body mismatch (owner names m2, body m1; owner 'correctness@zzz' with parcoach body) -> accepted, no unkeyable verdict (T4-09)",
+      "[unit] owner says llov, body says parcoach stage -> routed by body, membership PASS (T4-09)",
+      "[unit] manifest None -> UNRESOLVED (ok)",
+      "[unit] manifest resolved_config list / mixed-type model ids -> CRASH in _narrowing_evidence (T4-11); resolved_config.models dict -> narrowing None (ok)",
+      "[unit] config_drift entry str / config_drift dict -> CRASH (unreachable e2e: merge_fragments crashes earlier on the same content, pre-existing); changed_keys int -> CRASH (tamper only, folded into T4-11 area, not separately reported); changed_keys string 'models' -> not narrowed (iterates chars; ok-ish); changed_keys [None] -> ok",
+      "[e2e] drift changed_keys ['models'] + missing scope -> FAIL 'deliberate narrowing' (T4-07); ['models_extra_note'] -> narrowed (prefix match, T4-07); drift with all invocations present -> run PASS, no other check consumes config_drift (T4-07)",
+      "[e2e] static_analysis_summary.json is a JSON list / string / invocations int / tools_run int -> CRASH in _model_tool_evidence (T4-01); malformed JSON -> handled (UNRESOLVED via repair scope reader, split row PASS)",
+      "[e2e] static_analysis_summary.json / correctness_summary.json containing JSON null -> CRASH at repair_scope.py:335 (T4-02); dynamic_analysis_summary.json as JSON list -> UNRESOLVED 'not a JSON object (list)' (ok)",
+      "[e2e] static_analysis.jsonl record with tools=5 -> CRASH in _model_tool_evidence (T4-01; check_static has the same pre-existing crash)",
+      "[unit] records: JSON-list record line, tools string, binary garbage file, summary as directory, invalid utf-8 -> handled (no crash)",
+      "[unit] NOT_APPLICABLE parcoach entry counts as records_with_entry -> confirmed correct evidence: run_static_analysis.py:488-497 writes not_applicable_entry only for available_tools, i.e. the container that owns the tool; verdict is UNRESOLVED either way, no finding",
+      "[e2e] whole-run fragment + summary evidence from a repair-labelled entry / a backfill-labelled entry -> scope PASS (T4-08)",
+      "[e2e] contradicting whole-run fragment (rerun_gaps=True) with no summary evidence -> silently ignored, membership PASS (T4-08)",
+      "[unit] wa.parse_entry: None / non-dict / label list / block label list / entry.writer list / huge iteration / model id containing '/' -> verdict or accepted without crash (ok)",
+      "[unit+e2e] entry writer='repair' with no block and base or null label -> silently base, loop PASS (T4-05)",
+      "[e2e] label-only correctness repair label with writer='base' -> accepted as repair, UNRESOLVED (T4-10, strict direction)",
+      "[e2e] structured block with writer='base' -> FAIL (ok); invocations dict -> FAIL (ok); invocations null -> no attribution, PASS (legitimate: no history)",
+      "[e2e] summary with unreadable_previous -> UNRESOLVED (ok)",
+      "[unit] wa.repair_iterations: invocations str/dict -> problem (ok); entries None/int/str -> problems (ok); contracted_variants as dict -> membership test works (ok); binding values as lists -> contradiction detected (ok); max_iterations True -> ignored as bool (ok); base_run_id None -> problem (ok)",
+      "[e2e] contradiction merge: (label-only, A, B) -> FAIL; (auth-only, contract-only, both-with-other-auth) -> FAIL via merged binding; merge cannot hide a contradiction (no finding); two entries differing only in repair_evaluation_stage_runtime_sha256 -> PASS (not in binding; by design, the runtime stamp is contract-checked elsewhere)",
+      "[e2e] over-max entry of variant static_feedback -> all three m1 loops FAIL (T4-10 over-strict)",
+      "[unit] repair_labelled_static_invocations compatibility wrapper: no external consumer (grep); returns ([0,1], first problem) with a malformed entry, ([], JSONDecodeError text) for bad JSON, ([], None) when absent; existing test_repair_scope label fixture still passes",
+      "[writer, in-flight] close_invocation fallback after the opened entry vanished -> entry writer='base', no attribution, verify PASS (T4-06)",
+      "[baseline] test_provenance_cleanup.py (96 checks at start, 101 after concurrent edits), test_repair_scope.py, test_post_run_verification.py all pass on the reviewed tree"
+     ]
+    }
+   },
+   {
+    "round": "round 2 (wf_86365a57-60f: re-attack after the fixes; 3 dimensions)",
+    "confirmed": 14,
+    "refuted": 2,
+    "confirmed_findings": [
+     {
+      "id": "R2-SPLIT-01",
+      "dimension": "split-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "BLOCKING",
+       "BLOCKING (MUST_FIX is the floor)"
+      ],
+      "title": "Absent or emptied static history turns a contradiction FAIL into PASS (F1 hole; inconsistent with F6)",
+      "fix_applied": "an absent or entry-less static_analysis_summary.json next to a model's static records is an unreadable model artifact: the scope is at most UNRESOLVED (summary_unreadable), never PASS - a hidden rerun can not be laundered by deleting the history"
+     },
+     {
+      "id": "R2-SPLIT-02",
+      "dimension": "split-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "F4 incomplete: a non-object invocation fragment content still crashes the verifier before any verdict",
+      "fix_applied": "_split_fragment_view / effective_invocation.invocations_for_stage guard non-object fragment content (unkeyable -> membership FAIL, no crash)"
+     },
+     {
+      "id": "R2-SPLIT-03",
+      "dimension": "split-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "Narrowing evidence FAILs every uncovered scope, including models the frozen config ENABLES",
+      "fix_applied": "narrowing evidence FAILs only the missing scopes of models the frozen resolved_config disables; a missing scope of an enabled model stays UNRESOLVED"
+     },
+     {
+      "id": "R2-SPLIT-04",
+      "dimension": "split-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR",
+       "MUST_FIX (latent: wrong non-PASS verdict on a faithful run, but unreachable with any productive config id and the affected run was already non-PASS/UNRESOLVED at HEAD through the same sanitizer; reviewer's MINOR understates the rubric class, practical priority is low)"
+      ],
+      "title": "F4 owner check FAILs a faithful run whose model id contains a character the fragment file-name sanitizer rewrites",
+      "fix_applied": "the owner check compares the sanitised file-name form (manifest_fragments._safe) as well as the raw owner"
+     },
+     {
+      "id": "R2-W1",
+      "dimension": "iter0-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "Verifier CRASHES on a wrong-shaped repair_evaluation invocation fragment (F4 shape guards were applied to the split-static path only)",
+      "fix_applied": "repair_scope.observed_repair_invocation_scopes and check_effective_invocation guard wrong-shaped repair_evaluation fragments (FAIL verdict, never a crash)"
+     },
+     {
+      "id": "R2-W2",
+      "dimension": "iter0-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "BLOCKING"
+      ],
+      "title": "Dynamic runner's close-failure fallback WIPES the whole invocation history and writes the lenient pre-wave shape -> repair attribution silently lost (F8 'provenance never aborts' implemented as 'provenance is destroyed')",
+      "fix_applied": "the dynamic runner's close-failure fallback re-reads the history and appends a COMPLETED entry carrying the invocation's identity (opened_entry_lost=true); it never rewrites the lenient pre-wave shape"
+     },
+     {
+      "id": "R2-W3",
+      "dimension": "iter0-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "BLOCKING"
+      ],
+      "title": "F6 is incomplete: a PRESENT history with ZERO entries next to existing records of a contracted stage is treated as 'no repair attribution' (PASS), while the ABSENT file is UNRESOLVED - the T2-F2 'empty the invocations list' / 'remove the invocations key' variants are NON-PASS only because of the run-level stamp guard",
+      "fix_applied": "a PRESENT history without any invocation entry next to records of a contracted stage is unreadable -> UNRESOLVED; a history naming another model_id / run_id inside the model directory is unreadable -> UNRESOLVED"
+     },
+     {
+      "id": "R2-W4",
+      "dimension": "iter0-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "BLOCKING",
+       "MINOR"
+      ],
+      "title": "Design limit: the stamp guard is run-level only and the invocation->attribution direction is never cross-checked, so one loop's cleansed attribution is invisible whenever another loop explains the stamp, and a registered invocation with nothing explaining it verifies PASS",
+      "fix_applied": "(2) a repair_evaluation invocation that no analysed iteration, wave evidence, iteration-0 necessity or writer attribution explains is UNRESOLVED (never PASS); (1) DESIGN LIMIT DOCUMENTED, NOT FIXED: the stamp guard is run-level; if one loop's attribution is cleansed while ANOTHER loop of the same run legitimately explains the repair_evaluation stamp, the cleansed loop is indistinguishable from a loop that ran no internal stage (its records complete, no positive provenance) - detectable only through the per-loop invocation fragment, which the attack also deletes; recorded in technical_provenance_cleanup.json"
+     },
+     {
+      "id": "R2-W5",
+      "dimension": "iter0-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Design consequence of F6: every pre-wave base run is now UNRESOLVED with a misleading 'lost provenance artifact' diagnosis, the pre-wave dynamic shape is excused while the pre-wave correctness shape is not, and nothing in the contract/manifest lets the verifier tell 'pre-wave' from 'lost'",
+      "fix_applied": "the frozen contract declares provenance_policies (writer_attribution, iteration_zero_writer_attribution, split_invocation_coverage); a run without the declaration is diagnosed as pre-policy (the writer cannot be attributed) instead of a lost artifact"
+     },
+     {
+      "id": "R2-W6",
+      "dimension": "iter0-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "BLOCKING",
+       "MINOR"
+      ],
+      "title": "Static runner's history writer was not migrated to writer_attribution.open/close: unreadable predecessor silently dropped (no unreadable_previous), JSON list/null predecessor crashes the runner AFTER the records were written, string `invocations` is exploded into per-character entries, write is non-atomic",
+      "fix_applied": "run_static_analysis reads its history through writer_attribution.load_history (unreadable predecessor kept under unreadable_previous) and writes the summary atomically inside try/except (provenance never aborts the stage)"
+     },
+     {
+      "id": "R2-RS-1",
+      "dimension": "semantics-round2",
+      "severity": "MUST_FIX",
+      "verifier_severity": [
+       "MUST_FIX"
+      ],
+      "title": "Cross-pilot repo-state gate is STALE: the recorded run_correctness.py fingerprint belongs to the round-1 file, not the working tree",
+      "fix_applied": "cross_pilot_comparability.json restored from HEAD and refreshed ONCE from the FINAL run_correctness.py with the recorded function-level assessment (26 ast-identical definitions; run_model/main changed; open/close_invocation_summary added)"
+     },
+     {
+      "id": "R2-RS-2",
+      "dimension": "semantics-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR",
+       "MUST_FIX"
+      ],
+      "title": "A hostile deeply nested sidecar aborts the correctness/dynamic stage before the first record (RecursionError escapes the provenance wrappers)",
+      "fix_applied": "every history read/write catches Exception (RecursionError included); the stage runs, the records are produced, the unreadable bytes are kept under unreadable_previous"
+     },
+     {
+      "id": "R2-RS-3",
+      "dimension": "semantics-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "BLOCKING",
+       "BLOCKING (floor: MUST_FIX) - a false PASS is reachable inside the wave's own threat model, and the fallback violates the writer-side history-preservation promise on a productive path with a realistic, unpatched trigger"
+      ],
+      "title": "Dynamic runner fallback write silently discards the invocation history it just opened",
+      "fix_applied": "as R2-W2"
+     },
+     {
+      "id": "R2-RS-4",
+      "dimension": "semantics-round2",
+      "severity": "MINOR",
+      "verifier_severity": [
+       "MINOR"
+      ],
+      "title": "Wave evidence list references two artifacts that do not exist",
+      "fix_applied": "technical_provenance_cleanup.json and prerun_enforcement_addendum.md section 1.3 are written by build_artifact.py before the cross-pilot evidence pointers are checked"
+     }
+    ],
+    "refuted_findings": [
+     {
+      "id": "R2-SPLIT-05",
+      "dimension": "split-round2",
+      "title": "A repair-writer history entry that lists a split tool is silently dropped instead of flagged - an unregistered second execution can hide behind a repair label",
+      "why_refuted": "The reproduction is real but the behaviour does not contradict the wave contract, so this is a design note, not a defect of the fix wave.\n\nFacts verified (read-only, HEAD 7830702 working tree):\n1. Re-ran the reviewer's a6b_per_model_covered_plus_repair_entry_other_condition: run PASS, membership PASS, coverage PASS, parcoach/m2 PASS with hist=1, non-pass checks []. a11 (same entry as writer=base) "
+     },
+     {
+      "id": "R2-SPLIT-06",
+      "dimension": "split-round2",
+      "title": "Narrowing evidence never cross-checks a COVERED scope of a model the frozen config disables",
+      "why_refuted": "The BEHAVIOUR reproduces exactly as claimed (run PASS; parcoach/m2 PASS on the whole-run fragment + matching m2 history; narrowing.narrowed=true, frozen_enabled_models=[m1,m3], model_list_drift_records=0; no non-PASS check), but it is not a defect against the wave contract, so I do not confirm it as a finding.\n\n1. Contract conformance. F2 defines the narrowing evidence as the frozen resolved_confi"
+     }
+    ],
+    "attacks_attempted": {
+     "split-round2": [
+      "T1-A exact reproduction (a01_t1a.py, parcoach and llov): 3-model world, production-shaped per-model fragments (all 5 condition fields), whole-run fragment, m2 --replace-tool-entries per-model fragment + matching history entry, then delete m2's per-model fragment -> AFTER: run FAIL, membership FAIL, coverage FAIL, parcoach/m2 FAIL with detail \"m2's static summary records a base invocation of parcoach (entry 1: {replace_tool_entries: true, ...}) under a condition no covering fragment carries\" - NON-PASS, detail explains it (the whole-run fragment covers m2 via its default entry and the rerun entry is unregistered). BEFORE deletion (both fragments registered, both evidenced) it is already FAIL '2 fragments cover this scope under different conditions' - by the declared duplicate policy; note that a fully-registered whole-run + per-model --replace-tool-entries rerun can therefore never verify PASS (design note, not filed).",
+      "a2: history replace_tool_entries [] vs whole-run fragment True -> all 3 scopes UNRESOLVED, whole-run ignored, note names the unregistered default condition. RIGHT.",
+      "a2b: history replace_tool_entries [parcoach] vs fragment False -> m2 UNRESOLVED with note. RIGHT.",
+      "a2c: history replace_tool_entries [\"compiler\"] vs fragment True -> bool coercion agrees -> PASS. Acceptable (same CLI switch).",
+      "a2d: history rerun_gaps \"false\" (string) -> bool True -> disagrees -> UNRESOLVED. Fail-closed, non-production shape.",
+      "a3: history entry without primary_compiler vs fragment g++ -> PASS ('unrecorded cannot contradict'). Design-accepted; production v3 entries always carry it. a3b: history clang++ vs fragment g++ -> UNRESOLVED, RIGHT. a3c: fragment without primary_compiler (non-production) + history clang++ -> PASS (unknown field), noted only.",
+      "a4: whole-run crashed after m1 (m2/m3 no history, records present) -> m2/m3 UNRESOLVED 'records present ... whole-run fragment ignored'. RIGHT (never a contradiction FAIL). a4b: records also absent -> UNRESOLVED rows + static_coverage FAIL -> run FAIL. RIGHT.",
+      "a5/a5b: tools_skipped names the split tool (dict and string forms) -> not evidence -> whole-run ignored -> UNRESOLVED. RIGHT. a5c: per-model fragment + skipped entry -> PASS hist=0 (fragment is the evidence; contradictory entry not flagged - noted).",
+      "a6: whole-run + ONLY a repair-writer entry listing parcoach -> UNRESOLVED (ignored). RIGHT. a6b: per-model covered + repair-writer entry listing parcoach under rerun_gaps -> PASS everywhere -> FINDING R2-SPLIT-05. a6c (writer base + repair label) and a6d (writer 'backfill') -> repair_loop FAIL via F7 parse problems; split row unaffected.",
+      "a7: summary model_id names m3 inside m2's dir -> per-model covered scope demoted to UNRESOLVED 'static artifacts are not readable'; whole-run variant -> UNRESOLVED. RIGHT. a7c: model_id absent -> accepted as own (PASS) - non-production shape, noted.",
+      "a8: fragment with model_scope [m2, m3] -> unkeyable ('model_scope names 2 models'), membership FAIL, m2/m3 UNRESOLVED. RIGHT.",
+      "a9: owner names another model / owner static.main with body static.parcoach / bare-stage owner for a whole-run fragment -> unkeyable 'owner ... does not match the fragment body', membership FAIL. RIGHT.",
+      "a10: stage static.parcoach with tools [compiler, parcoach] -> allowed, PASS (production-reachable via static_stages_for_tools projection). a10b: tools [llov, parcoach] -> unkeyable 'claims the split tool(s) llov of another stage' (not reachable today: no container has both; would FAIL the projection if one ever did - design note). a10c: static.parcoach without parcoach in tools -> unkeyable. RIGHT.",
+      "a11: per-model covered + second base entry with clang++ -> FAIL contradiction. RIGHT. a11b: second entry same condition -> PASS (consistent). RIGHT. a11c: whole-run default + registered per-model --replace-tool-entries rerun with history -> FAIL by duplicate policy (see T1-A note).",
+      "n1: frozen config disables m2, whole-run + m2 history -> PASS with narrowed:true only in the detail -> FINDING R2-SPLIT-06 (MINOR).",
+      "n2/n3: narrowing FAIL applied to an ENABLED model whose fragment is lost -> FINDING R2-SPLIT-03.",
+      "n4: model-list config drift + whole-run + m2 without history -> UNRESOLVED with the drift note, narrowed=false. RIGHT (F2).",
+      "n5: frozen config enables a superset (m9) -> narrowed=false, m2 UNRESOLVED as before; s1: whole-run fragment + uncontracted m9 directory/history -> nothing flags it (membership only sees fragment model scopes; no check compares frozen enabled models with contract.model_ids) - out-of-dimension note.",
+      "x14/x14b: static_analysis_summary.json deleted -> per-model covered scope PASS (row), whole-run scope UNRESOLVED; on the repair-contracted world the run is UNRESOLVED only through F6's repair rows; on a world without repair -> run PASS. x15/x15b: `invocations` key missing / null -> PASS on both worlds -> FINDING R2-SPLIT-01.",
+      "x16/x17/x19/x20: summary null / list / tools_run string / entry not an object -> summary_unreadable -> covered scope UNRESOLVED (both split rows of the model). RIGHT (F4). x18: bad JSONL line in records -> records_unreadable -> UNRESOLVED. RIGHT.",
+      "s2/s3/s4/s5/s6: fragment content null / list / string -> split matrix alone: unkeyable FAIL (RIGHT) but the full verifier CRASHES in check_effective_invocation / invocations_for_stage -> FINDING R2-SPLIT-02. effective_values null, tools string, model_scope string, model_scope [] -> unkeyable FAIL, no crash. RIGHT. s7: effective_values entry a bare bool -> effective_invocation FAIL 'not interpretable', split unkeyable. RIGHT.",
+      "s8: two whole-run fragments with different tool lists and conditions, models with both entries -> FAIL contradiction; model with one entry -> PASS with 'ignored' note. By policy.",
+      "s9: history entry with status 'invoked' -> still evidence (static runner never writes status; not production-relevant).",
+      "Unsafe model ids ('m=2', 'm 2', 'm(2)', 'm,2') through the PRODUCTIVE enforce_stage -> membership FAIL from the sanitized-owner mismatch -> FINDING R2-SPLIT-04 (MINOR).",
+      "Contract/manifest shapes: duplicate model_ids -> duplicated rows, PASS, no crash (cosmetic); non-string model id -> expected set UNRESOLVED; resolved_config.models dict / entries without id / enabled null / config_drift string / run_id None -> no crash.",
+      "Invariants: recomputed static_analysis_condition_sha256 = 1f7733276dd1... and repair_condition_sha256 = 98b8be0f753d... from thesis/config/config.yaml - unchanged. test_provenance_cleanup.py (134 checks), test_post_run_verification.py and test_stage_enforcement.py all pass on the working tree.",
+      "PROCESS NOTE: I briefly launched thesis/evaluation/check_static_repair_readiness.py to confirm the hashes before noticing its docstring says it starts the parcoach/llov containers itself; it hung for ~120s and I killed it (TaskStop) - no docker command was issued by me directly, the hashes were then recomputed in-process as above. Please check no stray container was left by that script."
+     ],
+     "iter0-round2": [
+      "T2-F2 reproduction, single loop (productive orchestrator fills correctness at iteration 0, fragment deleted): delete sidecar -> UNRESOLVED (F6 absent rule, row UNRESOLVED); relabel entry as base -> UNRESOLVED (stamp guard only; row PASS/NOT_APPLICABLE); empty invocations list -> UNRESOLVED (stamp guard only); remove invocations key -> UNRESOLVED (stamp guard only); sidecar with only the base entry while the stamp survives -> UNRESOLVED (stamp guard only); base-only entry without writer/repair_writer keys -> UNRESOLVED (stamp guard only); invocations=null -> UNRESOLVED (stamp guard only); sidecar=null -> UNRESOLVED (F5); sidecar={} -> UNRESOLVED (stamp guard only); sidecar empty file -> UNRESOLVED (unreadable); invocations='abc' -> FAIL; repair entry status=invoked only -> UNRESOLVED with correctness [0] attributed (correct)",
+      "Same variants with runtime.stage.repair_evaluation.json deleted too: empty list / no key / {} / null -> PASS (R2-W3); base-only / relabel -> PASS (by-construction limit, R2-W4)",
+      "Two loops (m1 and m2) both productively analysing correctness at iteration 0, m1 fragment deleted + m1 sidecar cleansed (base-only / relabel / empty / nokey) while m2 stays intact -> PASS in all four (R2-W3 / R2-W4); m1 sidecar absent -> UNRESOLVED (correct)",
+      "Iteration-1 correctness entry inside the base sidecar -> FAIL 'claims iteration 1 inside the history of iteration 0' (correct, F7)",
+      "Attribution bound to a foreign contract sha / authorization sha / repair_evaluation invocation sha -> FAIL each (correct); control bound to the run's own contract -> PASS with correctness [0] attributed",
+      "Label-only correctness entry (with and without writer=repair) -> FAIL 'without the structured attribution block' (correct, model-wide by design)",
+      "writer='repair' with repair_writer=null and a base label -> FAIL 'claims writer=repair without a repair attribution' (correct)",
+      "Static label-only entry with writer=base -> FAIL (correct); static label-only entry without writer key (pre-run enforcement wave shape) -> attributed [0] on the static_feedback loop, UNRESOLVED without the fragment / PASS with it (correct); label-only + structured same static label -> one attribution, no problem (correct); label-only static entry with tools_run fields -> attributed (correct)",
+      "Over-max (iteration 5) correctness entry of ANOTHER contracted variant -> this loop PASS, that loop FAIL (correct, variant-owned problem)",
+      "Malformed block naming another variant (block lacks fields; block iteration typed as string) -> model-wide FAIL incl. this loop - judged RIGHT by design: the productive runner never writes a malformed block, so the history's integrity is compromised model-wide",
+      "entry writer=base carrying a repair block; block.writer=base; block iteration=true / -1; entry.writer=5 / ['repair']; entry is a string / null; block={} with writer=repair; dynamic attribution inside the correctness history; block naming m2 inside m1's history; block naming a foreign base run -> FAIL each (correct)",
+      "Unreadable sidecar: '{not json', JSON null, JSON string, empty file, UTF-8 BOM (correctness and dynamic) -> UNRESOLVED each (correct); unreadable_previous='' / false -> UNRESOLVED (fail-closed, correct)",
+      "Dynamic history whose invocations value is a string / {} / [[]]; dynamic entry with a static-stage repair label -> FAIL each (correct)",
+      "Invoked-but-never-completed repair entry (productive interrupted run and a hand-edited status) -> attributed, invocation required; records decide completion (correct)",
+      "Concurrent-style open/close (writer_attribution.open_invocation then file replaced then close_invocation): base-only rewrite, another repair instance opened at our index, base runner opened at our index, our entry pre-marked completed, file corrupted, file deleted, invocations replaced by a string, entries replaced by non-dicts, document replaced by a JSON list, block key order shuffled, close with index -1, two same-identity opens racing -> in every case the completion is appended WITH the repair identity (opened_entry_lost=True) or the matching entry is closed; unreadable predecessors kept under unreadable_previous; the 'other instance with another invocation sha' case makes the verifier report 'two attributions bind different provenance' (consistent with the duplicate-invocation FAIL)",
+      "Counter-direction: everything complete, base entries only, no labels, no stamp, correctness_summary.json present (World) -> PASS, every row NOT_APPLICABLE, effective_invocation:repair_evaluation NOT_APPLICABLE (holds)",
+      "Pre-wave base run: correctness_summary.json absent -> UNRESOLVED for all loops of the model (design consequence, R2-W5); pre-wave dynamic summary without invocations key -> PASS (inconsistent leniency, R2-W3/R2-W5); static_analysis_summary.json absent / dynamic_analysis_summary.json absent with records present -> UNRESOLVED (F6 holds for all three stages); sidecar absent AND records absent -> records leg makes the invocation required, correctness coverage FAIL (correct)",
+      "Dynamic runner close_invocation raising OSError (productive loop._run_analysis_stages(0, ['dynamic']) under Stubbed) -> history wiped by the fallback, attribution lost, PASS with fragment kept (R2-W2); same for correctness -> INVOKED entry survives (correct)",
+      "Static runner with corrupt / list / null / string-invocations predecessor -> silent drop / AttributeError crash / per-character entries (R2-W6)",
+      "Wrong-shaped repair_evaluation invocation fragments (effective_values string/list, variant string/list, model_scope string/int, invocation_sha256 list, stage list) -> verifier CRASH for 5 of 8 shapes (R2-W1)",
+      "reconcile_repair_evaluation_expectation with the stamp present and no attributed loop -> effective_invocation stays UNRESOLVED with downgrade_refused (F6 holds); stage_runtime:repair_evaluation.main stays PASS",
+      "Considered but not a finding: repair_evaluation_stage_runtime_sha256 binding is never compared by the verifier (redundant given contract+authorization+invocation bindings and the per-(run,stage) uniqueness of the stamp); a label with a trailing newline parses (fail-closed direction only); run_backfill writes base-writer 'backfill <run> (stage)' labels into the base run - legitimately not repair"
+     ],
+     "semantics-round2": [
+      "AST inventory HEAD vs working tree (scratch ast_compare.py) for run_correctness.py, run_dynamic_analysis.py, run_static_analysis.py, orchestrator.py, run_backfill.py: run_correctness - 26 identical top-level defs, changed only run_model/main, added CORRECTNESS_SUMMARY_SCHEMA_VERSION/open_invocation_summary/close_invocation_summary; run_sample, compile_sample, run_verdict, parse_authenticated_validation, legacy_parse_validation, parse_mismatch_output, count/classify_baseline_incompatible, new_marker_nonce, DEFAULT_* all ast-identical. run_dynamic_analysis - 12 identical, only run_model/main changed. run_static_analysis - 15 identical, only run_model (invocation entry gains writer/repair_writer). orchestrator - 49 identical, only RepairLoop._run_analysis_stages. run_backfill - only StageExecutor.run_static/run_correctness/run_dynamic (labels). Outcome: no semantic change.",
+      "Statement-level diff of every changed function (scratch stmt_compare.py): every HEAD statement of run_correctness.run_model is present unchanged in order (unlink + append_jsonl loop + summary + return); dynamic per-sample loop, record construction (schema_version, run_id, model_id, sample_id, execution_model, tools, created_at_utc, has_blocking_findings, low_confidence_count) and write_records_atomic are untouched; the only replaced statement is the final common.write_json of the dynamic summary (now close_invocation with the same summary as document_updates + fallback). Outcome: no record field gained, no verdict/timeout/launch logic touched.",
+      "HEAD vs working-tree execution under identical stubs (scratch semantics_head_vs_wt.py, HEAD modules loaded from a `git archive HEAD` extraction): correctness.jsonl bytes identical HEAD vs WT with a stale 5-record correctness.jsonl replaced by exactly the 2 fresh records (unlink+rewrite unchanged); returned correctness summary identical {'model_id','samples','verdicts'}; dynamic records identical modulo created_at_utc; returned dynamic summary keeps every HEAD top-level field with equal values plus one extra key 'invocations'; on-disk dynamic summary is a superset with equal values. Outcome: result semantics unchanged.",
+      "Hostile correctness sidecar via the productive orchestrator with the sample runner stubbed (scratch sidecar_attacks.py): directory, read-only file (os.chmod S_IREAD; Windows os.replace PermissionError after 40 retries), JSON null, {'invocations': 5}, invocations list of ints, list of strings, empty file, non-UTF-8 garbage -> in every case 2 records written, run_model returned, WARNING printed for the unwritable ones, history rebuilt with unreadable_previous for the malformed ones. Outcome: pass (F8 holds). Deeply nested JSON (>= ~20000 levels) -> RecursionError escapes -> finding R2-RS-2.",
+      "Hostile dynamic sidecar: null / invocations int / list of ints / strings / empty / garbage -> records written, history carries unreadable_previous, no abort. Directory and read-only summary -> PermissionError after all records are written, from the fallback common.write_json; verified the HEAD runner aborts identically (HEAD summary=directory: ABORT PermissionError, records written=2; read-only: same). Outcome: pre-existing behaviour, not a regression, no finding.",
+      "Fallback path of the dynamic runner where atomic close fails but plain write succeeds (scratch dynamic_fallback_clobber.py): history (base entry + repair 'invoked' entry) erased from disk -> finding R2-RS-3; verifier still PASS because the loop's own repair_evaluation fragment exists (no false verdict).",
+      "close_invocation after the sidecar was replaced mid-run by a base-only history (scratch semantics_head_vs_wt.py part 4): the foreign base 'invoked' entry at index 0 is NOT closed as ours; a COMPLETED entry with the repair label + full repair_writer block and opened_entry_lost=true is appended (samples=2); no .tmp- leftovers; file ends with LF (atomic_write_json). Part 5: same index/status but another loop's identity at that index -> other loop's entry stays invoked, ours appended with its own identity. Outcome: F8 close semantics hold.",
+      "atomic_io.atomic_write_json usage: writer_attribution._write_document -> atomic_io.atomic_write_json (temp in same dir, fsync, os.replace with bounded Windows retry). Outcome: confirmed. Side note (no finding): on POSIX a directory target makes _replace raise without unlinking the temp file, leaving a *.tmp-* file in the model dir; remove_stale_temp_files exists.",
+      "Condition fingerprints on the working tree (scratch conditions.py, same call as check_static_repair_readiness: static_analysis_condition(config,'g++',None,include_identities=False)): static_analysis_condition_sha256 = 1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49 (unchanged), repair_condition_sha256 = 98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40 (matches static_repair_readiness.json). Substituting the HEAD orchestrator.py hash (CRLF checkout bytes, scratch repair_prev.py) reproduces the previous e6f5c32bbf32... exactly -> orchestrator_sha256 is the only changed input. Outcome: invariants confirmed.",
+      "Cross-pilot repo-state gate run read-only (check_cross_pilot_gate.py): run_correctness.py STALE, exit 1 -> finding R2-RS-1. All other shared-state files, benchmark state, generation/evaluation/assembly conditions and the artifact self-fingerprint verify ok.",
+      "Orchestrator attribution hand-off: wa.repair_attribution raises ValueError only for a non-int/negative iteration or unknown stage; iteration is int(state['iteration']) / literal 0 and stages are literals; enforcement is the dict returned by enforce_stage. Outcome: cannot raise in the productive loop; not wrapped but not reachable.",
+      "Import placement: `from thesis.evaluation import writer_attribution as wa` sits outside the try in run_correctness.py:774/:800 and run_dynamic_analysis.py:322, so a missing module would abort the stage; checked config.yaml external_tool_commands and docker/Dockerfile - the repo is bind-mounted (-v {host_repo}:/workspace), the LLOV/PARCOACH containers only run run_static_analysis.py which does not import the module, run_static_analysis.py keeps `from __future__ import annotations` (py3.8 in Dockerfile.llov). Outcome: not exploitable, no finding.",
+      "Zero-sample model: the correctness sidecar open now creates the model dir (atomic_write_bytes mkdir parents) where HEAD created nothing; verify_pilot_run discovers models from raw/<run>/<model>/generations.jsonl, not from intermediate dirs; the dynamic runner already created the dir at HEAD via common.write_json. Outcome: harmless, no finding.",
+      "Regression suites re-run read-only: test_provenance_cleanup.py (134 checks), test_post_run_verification.py, test_repair_scope.py, test_stage_enforcement.py, test_static_repair_provenance.py, test_tool_state.py, test_evaluation.py (27) - all pass.",
+      "Consumers of the returned dynamic summary / correctness summary: main(), run_backfill.StageExecutor and orchestrator._run_analysis_stages ignore the return value; missing_internal_stages decides completion from records only; no code hashes or reads dynamic_analysis_summary.json / correctness_summary.json except the verifier/repair_scope (which map unreadable_previous to UNRESOLVED). Outcome: the extra 'invocations' key and the merged on-disk document change no downstream semantics."
+     ]
+    }
+   }
+  ],
+  "regression_fixtures_for_round_2": "test_provenance_cleanup.test_round2_regressions (R2-SPLIT-01/02/03, R2-W1/W2/W3/W4(2)/W5/W6, R2-RS-2/RS-3); R2-SPLIT-04 covered by the owner-sanitisation path of the split matrix; R2-RS-1/RS-4 are artifact steps verified by build_artifact.py",
+  "design_limits_documented_not_fixed": [
+   "R2-W4(1): per-loop attribution cleansing while another loop of the same run explains the repair_evaluation stamp is undetectable by construction (positive provenance is per writer; the deleted per-loop invocation fragment is the only per-loop trace); consequence: the verifier proves WHO WROTE what is attributed, it cannot prove that nothing unattributed was written by a loop whose records are complete"
+  ],
+  "must_fix_confirmed_in_round_2": [
+   {
+    "id": "R2-SPLIT-01",
+    "title": "Absent or emptied static history turns a contradiction FAIL into PASS (F1 hole; inconsistent with F6)",
+    "fix_applied": "an absent or entry-less static_analysis_summary.json next to a model's static records is an unreadable model artifact: the scope is at most UNRESOLVED (summary_unreadable), never PASS - a hidden rerun can not be laundered by deleting the history"
+   },
+   {
+    "id": "R2-SPLIT-02",
+    "title": "F4 incomplete: a non-object invocation fragment content still crashes the verifier before any verdict",
+    "fix_applied": "_split_fragment_view / effective_invocation.invocations_for_stage guard non-object fragment content (unkeyable -> membership FAIL, no crash)"
+   },
+   {
+    "id": "R2-SPLIT-03",
+    "title": "Narrowing evidence FAILs every uncovered scope, including models the frozen config ENABLES",
+    "fix_applied": "narrowing evidence FAILs only the missing scopes of models the frozen resolved_config disables; a missing scope of an enabled model stays UNRESOLVED"
+   },
+   {
+    "id": "R2-W1",
+    "title": "Verifier CRASHES on a wrong-shaped repair_evaluation invocation fragment (F4 shape guards were applied to the split-static path only)",
+    "fix_applied": "repair_scope.observed_repair_invocation_scopes and check_effective_invocation guard wrong-shaped repair_evaluation fragments (FAIL verdict, never a crash)"
+   },
+   {
+    "id": "R2-W2",
+    "title": "Dynamic runner's close-failure fallback WIPES the whole invocation history and writes the lenient pre-wave shape -> repair attribution silently lost (F8 'provenance never aborts' implemented as 'provenance is destroyed')",
+    "fix_applied": "the dynamic runner's close-failure fallback re-reads the history and appends a COMPLETED entry carrying the invocation's identity (opened_entry_lost=true); it never rewrites the lenient pre-wave shape"
+   },
+   {
+    "id": "R2-W3",
+    "title": "F6 is incomplete: a PRESENT history with ZERO entries next to existing records of a contracted stage is treated as 'no repair attribution' (PASS), while the ABSENT file is UNRESOLVED - the T2-F2 'empty the invocations list' / 'remove the invocations key' variants are NON-PASS only because of the run-level stamp guard",
+    "fix_applied": "a PRESENT history without any invocation entry next to records of a contracted stage is unreadable -> UNRESOLVED; a history naming another model_id / run_id inside the model directory is unreadable -> UNRESOLVED"
+   },
+   {
+    "id": "R2-RS-1",
+    "title": "Cross-pilot repo-state gate is STALE: the recorded run_correctness.py fingerprint belongs to the round-1 file, not the working tree",
+    "fix_applied": "cross_pilot_comparability.json restored from HEAD and refreshed ONCE from the FINAL run_correctness.py with the recorded function-level assessment (26 ast-identical definitions; run_model/main changed; open/close_invocation_summary added)"
+   }
+  ],
+  "blocking_or_must_fix_open_after_round_2": [],
+  "verification_of_round_2_fixes": "regression fixtures (test_provenance_cleanup.test_round2_regressions) + the full host/container suite on the final state; NO third adversarial round was run against the round-2 fixes"
+ },
+ "regression_reproof": {
+  "host_suite": "every listed test re-run on the final working tree (logs final_<name>.log)",
+  "container_gates": "test_comparator_semantics + check_prompt_oracle_consistency re-run in pareval-thesis on a fresh staged copy of the final drivers + thesis packages",
+  "assembly_gate_1": "re-run on the host against pilot_001 (totals identical to the mid-wave run)",
+  "enhanced_frozen_artifacts": "verify_e3_frozen_artifacts re-run",
+  "timing_semantics": "check_timing_semantics re-run (identical result)"
+ },
+ "pilot_001_tree_fingerprint_before": {
+  "file_count": 2038,
+  "newest_mtime_ns": 1787311779212898700,
+  "inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870"
+ },
+ "pilot_001_tree_fingerprint_after": {
+  "file_count": 2038,
+  "newest_mtime_ns": 1787311779212898700,
+  "inventory_sha256": "c861b33f575e0d96ed05992246bb1d1b15db783762560ba0562f870799b28870"
+ },
+ "next_step": "PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE (not the final environment gate, not the pilot start)",
+ "volatile": {
+  "generated_at_utc": "2026-09-13T15:37:53Z",
+  "readiness_created_at_utc": "2026-09-13T15:26:14.870966Z",
+  "fingerprint_before_measured_at_utc": "2026-09-13T11:44:08Z",
+  "fingerprint_after_measured_at_utc": "2026-09-13T15:37:53Z"
+ },
+ "artifact_sha256": "a71ee6580b837b3877c0d9f8a2a51c121032fdf15dfb68f9768a87f2f1c306ce"
+}

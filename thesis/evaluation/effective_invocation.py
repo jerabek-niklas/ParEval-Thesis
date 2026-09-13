@@ -393,5 +393,5 @@ def invocations_for_stage(manifest: "Optional[Dict[str, Any]]",
                           stage: str) -> "List[Dict[str, Any]]":
     """Every registered invocation of `stage`, across model scopes."""
     return [invocation for owner, invocation in sorted(registered_invocations(manifest).items())
-            if (invocation or {}).get("stage") == stage
-            or owner == stage or owner.startswith(stage + "@")]
+            if (isinstance(invocation, dict) and invocation.get("stage") == stage)
+            or str(owner) == stage or str(owner).startswith(stage + "@")]

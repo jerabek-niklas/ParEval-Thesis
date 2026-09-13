@@ -622,6 +622,7 @@ class StageExecutor:
             run_id=run_id,
             model_id=model_id,
             tool_settings=settings,
+            invocation_label="backfill %s (static)" % run_id,
         )
 
     def run_correctness(self, run_id: str, model_id: str) -> None:
@@ -651,6 +652,7 @@ class StageExecutor:
             run_timeout=float(
                 stage.get("run_timeout_seconds", run_correctness.DEFAULT_RUN_TIMEOUT)
             ),
+            invocation_label="backfill %s (correctness)" % run_id,
         )
 
     def run_dynamic(self, run_id: str, model_id: str) -> None:
@@ -670,6 +672,7 @@ class StageExecutor:
             output_file_name=orchestrator.stage_output_file(
                 self.config, "dynamic_analysis"
             ),
+            invocation_label="backfill %s (dynamic)" % run_id,
         )
 
     def run_enhanced(self, run_id: str, model_id: str) -> None:

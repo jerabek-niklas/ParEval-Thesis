@@ -216,12 +216,47 @@
         "reason": "Declared single source of truth for compile and launch: base flags (-std=c++17 -O3), USE_* macros, compiler resolution (g++/mpicxx), -fopenmp, default launch grids (omp threads / mpi ranks 1,2,4,8). Essentially all content is measurement-condition semantics."
       },
       "thesis/evaluation/run_correctness.py": {
-        "sha256": "b2eb43e56e8e9b37207866d6192d0e7df86e09d614fde7ba7f84b44f4acda754",
+        "sha256": "4f4558bcb78b48f818493f59f623b377b100f9640070a79fd09965fc83948e67",
         "granularity": "coarse",
         "reason": "Refreshed 2026-09-07 (pre-run enforcement wave 1.1): the stage no longer registers `output_file_name` as an effective invocation value - the CLI inventory classifies the stage's own output file name as NON_METHODICAL (the measured content is unchanged), so it must not read as a pinned methodical override. Nothing but that one entry of the effective_values dict was touched; no verdict, parser, timing or measurement logic. Execution semantics unchanged.",
-        "previous_sha256": "59e26c6f0bbd6383c0f22c0affad856a94ccc010d92e96bf5fbd24735164136c",
+        "previous_sha256": "b2eb43e56e8e9b37207866d6192d0e7df86e09d614fde7ba7f84b44f4acda754",
         "change_classification": "PROVENANCE_ONLY",
-        "diff_numstat_vs_head": "3\t1\tthesis/evaluation/run_correctness.py"
+        "diff_numstat_vs_head": "3\t1\tthesis/evaluation/run_correctness.py",
+        "refresh_assessment": {
+          "wave": "technical_provenance_cleanup",
+          "date": "2026-09-13",
+          "start_head": "78307026eeec47fa1c23f8fb23b0ee72aa4d1da0",
+          "kind": "PROVENANCE_ONLY (coarse shared dependency; function-level assessment recorded)",
+          "changed_definitions": [
+            "main",
+            "run_model"
+          ],
+          "added_definitions": [
+            "=CORRECTNESS_SUMMARY_SCHEMA_VERSION",
+            "close_invocation_summary",
+            "open_invocation_summary"
+          ],
+          "removed_definitions": [],
+          "ast_identical_definitions": 26,
+          "verdict_relevant_definitions_unchanged": [
+            "run_sample",
+            "compile_sample",
+            "run_verdict",
+            "parse_authenticated_validation",
+            "legacy_parse_validation",
+            "count_baseline_incompatible",
+            "classify_baseline_incompatible",
+            "legacy_count_baseline_incompatible",
+            "parse_mismatch_output",
+            "new_marker_nonce",
+            "DEFAULT_NITER",
+            "DEFAULT_BUILD_TIMEOUT",
+            "DEFAULT_RUN_TIMEOUT"
+          ],
+          "what_changed": "run_model gained two optional keyword arguments (invocation_label, writer_attribution) and one call that appends this invocation to the per-model correctness_summary.json sidecar (correctness_summary.v1); main passes the base label 'run_correctness'. No record field, no verdict, no timeout, no launch or validation semantics changed; the evaluation condition projection reproduces unchanged.",
+          "result_semantics_changed": false,
+          "provenance_semantics_changed": true
+        }
       },
       "thesis/evaluation/framework.py": {
         "sha256": "0ef4956864b145fee21e470eb4524393d909dc1c67f5c3e5af804586bfda72aa",
@@ -1526,6 +1561,47 @@
             ],
             "api_calls": 0
           }
+        },
+        "technical_provenance_cleanup_wave": {
+          "wave": "technical_provenance_cleanup",
+          "date": "2026-09-13",
+          "start_head": "78307026eeec47fa1c23f8fb23b0ee72aa4d1da0",
+          "scope": "provenance completeness only: PARCOACH/LLOV per-model invocation coverage and iteration-0 correctness/dynamic writer attribution",
+          "change_classification_per_area": {
+            "post_run_verifier": "PROVENANCE_ONLY (split_static_invocation_coverage.v1 membership + coverage in the final status)",
+            "stage_runners": "PROVENANCE_ONLY (per-model invocation histories: correctness_summary.v1 sidecar, dynamic_analysis_summary invocations[], static invocation entry gains a structured repair_writer block)",
+            "repair_orchestrator": "PROVENANCE_ONLY (hands repair_writer_attribution.v1 to the three internal runners; stop semantics, retry, variants, max_iterations untouched)",
+            "execution_semantics": "UNCHANGED",
+            "result_semantics": "UNCHANGED"
+          },
+          "closed": {
+            "STATIC_SPLIT_INVOCATION_COVERAGE_GAP": "CLOSED (expected scopes derived from the frozen contract: model_ids x enabled split tools x applicable execution models; a lost per-model invocation behind complete records is UNRESOLVED, a narrowing FAIL; records and runtime stamps never substitute)",
+            "ITERATION_ZERO_COVERAGE_RESIDUAL": "CLOSED_BY_WRITER_ATTRIBUTION (positive writer provenance for static, correctness and dynamic; fail-closed parser)"
+          },
+          "condition_refresh": {
+            "static_analysis_condition_sha256": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+            "static_analysis_condition_changed": false,
+            "repair_condition_previous": "e6f5c32bbf329484f68d55626503fa90f15ef8380f00a642fbd05a50ef2b4b03",
+            "repair_condition_current": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40",
+            "repair_condition_changed_input": "orchestrator_sha256 (raw hash of thesis/repair/orchestrator.py: the attribution hand-off in _run_analysis_stages); every other input identical",
+            "runtime_condition_previous": "516288da9998fd1ce61a34ce5ff4c396ad84364031d38d78509caadf0cf815b3",
+            "runtime_condition_current": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+            "runtime_condition_changed_input": "the bound repair_condition_sha256 only; image identities unchanged",
+            "readiness_gate": "READY"
+          },
+          "not_changed": [
+            "comparability classes (per tool, repair, correctness 99/99/198, enhanced)",
+            "E3.2 author choices and evidence",
+            "static finding semantics, repair stop semantics, correctness verdict semantics, dynamic finding semantics",
+            "enhanced frozen specs, assembly, timing, provider chokepoints",
+            "pilot_001 artifacts (read only)"
+          ],
+          "evidence": [
+            "thesis/evaluation/technical_provenance_cleanup.json",
+            "thesis/evaluation/test_provenance_cleanup.py",
+            "thesis/evaluation/static_repair_readiness.json (re-measured)",
+            "thesis/evaluation/prerun_enforcement_addendum.md section 1.3"
+          ]
         }
       },
       "F_static_repair": {
@@ -1752,7 +1828,7 @@
           "tools_module_sha256": "e3f6e5cc0bc4d727d13bcd16e59e6851b072a0a7524c2ee0d1968763f2e06c06",
           "pilot_001": "NONE RECORDED (fields did not exist); reconstructed condition: tools.py blob identical to the pilot commit 6846d689 for tools.py/framework.py/run_static_analysis.py/tool_config.py; orchestrator.py/feedback.py differed only by the BI handling; drivers changed after the pilot (utilities.hpp, harness-markers.hpp, 7 of 12 benchmark cpu.cc/baseline.hpp) - HISTORICAL_PROVENANCE_LIMITATION",
           "runtime_condition_version": "static_repair_runtime.v1",
-          "static_repair_readiness_runtime_condition_sha256": "516288da9998fd1ce61a34ce5ff4c396ad84364031d38d78509caadf0cf815b3",
+          "static_repair_readiness_runtime_condition_sha256": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
           "static_repair_readiness_runtime_note": "Static/Repair.1: the readiness RUNTIME condition pins the MEASURED environment a READY proof rests on (per container: image id, RepoDigests, rootfs layer-set hash, measured tool identities, the LLOV plugin sha256 and the PARCOACH executable sha256 + program version). It is deliberately SEPARATE from static_analysis_condition_sha256, which excludes runtime identities so PARCOACH, LLOV and the main image can merge results under ONE static condition - and which therefore cannot see an image or tool swap. The runtime pin is a readiness/preflight artifact, not a merge condition, and it is host-local by construction. DESCRIPTIVE ONLY: check_cross_pilot_gate.py does not validate this value; the authoritative comparison is pilot_preflight.py re-measuring the runtime against thesis/evaluation/static_repair_readiness.json.",
           "previous_static_analysis_condition_sha256": "327b235a8014cb682befe013a6176895c0b65a0ba8938a56f34ed1736aa820a3",
           "static_condition_changed_inputs": [
@@ -1763,7 +1839,8 @@
             "/tools_module_sha256"
           ],
           "previous_tools_module_sha256": "9ed277a0bb3b74eaca64ccf5ab772f25589d513bc155a7dbe1311459d60465b6",
-          "static_repair_readiness_runtime_condition_sha256_previous": "8c382160852cad24c9f2d6bb826c287f706cf07a321e75b3865635ea1a502c3b"
+          "static_repair_readiness_runtime_condition_sha256_previous": "516288da9998fd1ce61a34ce5ff4c396ad84364031d38d78509caadf0cf815b3",
+          "static_repair_readiness_repair_condition_sha256": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40"
         },
         "evidence": [
           "thesis/evaluation/static_repair_pilot001_inventory.json (records read only)",
@@ -1916,9 +1993,9 @@
     "static/repair comparability REEVALUATED (areas.F_static_repair; not directly comparable as a whole; compiler DIRECTLY_COMPARABLE, gcc_analyzer/clang_tidy/cppcheck COMPARABLE_WITH_LIMITATIONS, infer-omp/parcoach/llov/repair METHOD_CHANGED); readiness artifact thesis/evaluation/static_repair_readiness.json consumed by pilot_preflight; E3.2 author confirmation 2026-09-12: gcc_analyzer and clang_tidy additionally LIMITED_WITH_DISCLOSURE (derived class / location identity), infer omp NOT_APPLICABLE in pilot_002, repair disclosures granular (areas.F_static_repair.repair.e3_2_author_confirmation)",
     "EFFECTIVE_INVOCATION_RUNTIME_CHECK (pilot preflight)",
     "ENVIRONMENT_RUNTIME_CHECK (pilot preflight; container is TAG_ONLY pinned)",
-    "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED)"
+    "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED); technical provenance cleanup 2026-09-13: split-container invocation coverage and iteration-0 writer attribution are part of the post-run verifier"
   ],
-  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged; E3.2 author confirmation (2026-09-12, start HEAD 0cb83fab0467590fc2724ddd18b2057a72da604c): areas.F_static_repair per_tool gcc_analyzer / clang_tidy / infer texts and repair disclosures reclassified granularly for the confirmed choices A/B/A/A/C/B/B/A, static condition re-frozen 327b235a8014cb68 -> 1f7733276dd17d0e (readiness re-measured), evaluation_condition text corrected for the search/35 validation-attempt exception (no projection change)",
-  "cross_pilot_fingerprint_sha256": "7356e25356af4fa9016c239bf32cced4d0431240348605c2de07110b09aba73a",
+  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged; E3.2 author confirmation (2026-09-12, start HEAD 0cb83fab0467590fc2724ddd18b2057a72da604c): areas.F_static_repair per_tool gcc_analyzer / clang_tidy / infer texts and repair disclosures reclassified granularly for the confirmed choices A/B/A/A/C/B/B/A, static condition re-frozen 327b235a8014cb68 -> 1f7733276dd17d0e (readiness re-measured), evaluation_condition text corrected for the search/35 validation-attempt exception (no projection change); technical provenance cleanup (2026-09-13, start HEAD 78307026eeec47fa1c23f8fb23b0ee72aa4d1da0): PARCOACH/LLOV per-model invocation coverage and iteration-0 correctness/dynamic writer attribution closed (provenance only); run_correctness.py shared-state fingerprint refreshed after a recorded function-level assessment (run_model/main gained provenance arguments; every verdict function ast-identical); repair condition e6f5c32bbf329484 -> 98b8be0f753dcbc1 (orchestrator.py raw hash), static condition unchanged, comparability classes unchanged",
+  "cross_pilot_fingerprint_sha256": "acaf4584983c3de1de22584972b6628e37876da146d1cb5489877ca146fcc70d",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

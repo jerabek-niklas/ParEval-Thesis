@@ -397,7 +397,9 @@ def _remove_repair_invocation(world, model, variant):
             path.unlink()
             removed += 1
     mf.write_snapshot(intermediate, world.run_id)
-    assert removed == 1, removed
+    # a loop the fixture world never registered (it analyses nothing at
+    # iteration 0) has nothing to lose - the invocation is absent either way
+    assert removed in (0, 1), removed
 
 
 def test_unexpected_duplicate_unkeyable():
@@ -690,6 +692,9 @@ def test_productive_layout_and_writer_semantics():
         world = World(Path(tmp), models=("m1", "m2"), repair_iteration=0,
                       stage_overrides=dict(SIX_LOOPS,
                                            dynamic_analysis={"enabled": True, "tools": {}}))
+        # the base run never produced m2's dynamic records (nor their history)
+        (world.model_dir("m2") / "dynamic_analysis.jsonl").unlink()
+        (world.model_dir("m2") / "dynamic_analysis_summary.json").unlink()
         missing = rs.productive_missing_internal_stages(
             world.config, world.run_id, "m2", "combined_feedback")[0]
         _remove_repair_invocation(world, "m2", "combined_feedback")
@@ -1247,7 +1252,9 @@ def test_legacy_invalid_disabled_contracts():
 
 
 # ---------------------------------------------------------------------------
-# PARCOACH / LLOV membership vs coverage: MEASURED, not fixed
+# PARCOACH / LLOV membership vs coverage: MEASURED (the technical provenance
+# cleanup wave closed the gap; the measurement stays as the regression that
+# proves it closed - see test_provenance_cleanup.py for the fixture matrix)
 # ---------------------------------------------------------------------------
 
 SPLIT_TOOLS = {"static_analysis": {"enabled": True, "tools": {
@@ -1280,16 +1287,32 @@ def measure_static_split_gap(tool, execution_model):
                 for record in records:
                     record["tools"].pop(tool, None)
                 world.rewrite_jsonl(path, records)
+                # a container that never ran left no history entry either
+                summary_path = world.model_dir("m2") / "static_analysis_summary.json"
+                summary = json.loads(summary_path.read_text(encoding="utf-8"))
+                summary["invocations"] = [i for i in summary["invocations"]
+                                          if tool not in (i.get("tools_run") or [])]
+                summary_path.write_text(json.dumps(summary), encoding="utf-8")
             report = world.verify(skip_enhanced=True)
+            split = report["split_static_invocation_coverage"]
             results[variant] = OrderedDict([
                 ("overall", report["status"]),
                 ("static_coverage_m2", status_of(report, "static_coverage:m2")),
                 ("effective_invocation", status_of(report, "effective_invocation:%s" % stage)),
                 ("stage_runtime", status_of(report, "stage_runtime:%s.%s" % (stage, tool))),
+                ("split_membership", split["membership"]),
+                ("split_coverage", split["coverage"]),
+                ("split_missing", ["%s/%s" % (m["tool"], m["model_id"])
+                                   for m in split["missing_scopes"]]),
+                ("split_scope_m2", status_of(report, "split_static_invocation:%s/m2" % stage)),
             ])
     caught_by_static = results["container_never_ran"]["static_coverage_m2"] == "FAIL"
     false_pass = results["records_present_invocation_missing"]["overall"] == "PASS"
-    classification = "OPEN_TECHNICAL_FINDING" if false_pass else "COSMETIC_ONLY"
+    closed = (not false_pass
+              and results["records_present_invocation_missing"]["split_coverage"] == "UNRESOLVED"
+              and results["records_present_invocation_missing"]["split_missing"] == ["%s/m2" % tool]
+              and results["container_never_ran"]["split_coverage"] == "UNRESOLVED")
+    classification = "OPEN_TECHNICAL_FINDING" if false_pass else ("CLOSED" if closed else "PARTIAL")
     return OrderedDict([("tool", tool), ("classification", classification),
                         ("caught_by_static_coverage_when_container_never_ran", caught_by_static),
                         ("false_pass_when_records_present_but_invocation_missing", false_pass),
@@ -1309,6 +1332,15 @@ def test_static_split_membership_vs_coverage():
               len(finding["measurements"]) == 2)
         check("%s: a container that never ran is caught by static coverage" % tool,
               finding["caught_by_static_coverage_when_container_never_ran"])
+        check("%s: records present + invocation missing is NO LONGER a PASS - the split "
+              "coverage names the missing model scope (UNRESOLVED)" % tool,
+              finding["classification"] == "CLOSED"
+              and finding["measurements"]["records_present_invocation_missing"]["split_scope_m2"]
+              == "UNRESOLVED")
+        check("%s: the membership check stays PASS (the surviving fragment is allowed) - "
+              "membership and coverage are separate verdicts" % tool,
+              finding["measurements"]["records_present_invocation_missing"]["split_membership"]
+              == "PASS")
     global STATIC_SPLIT_FINDINGS
     STATIC_SPLIT_FINDINGS = findings
 

@@ -694,8 +694,27 @@ def run_model(
     niter: int,
     build_timeout: float,
     run_timeout: float,
+    invocation_label: "str | None" = None,
+    writer_attribution: "dict[str, Any] | None" = None,
 ) -> dict[str, Any]:
     output_path = intermediate_dir / run_id / model_id / output_file_name
+
+    # Provenance sidecar (correctness_summary.v1, ADDITIVE): the per-model
+    # invocation history of this stage - who invoked it (base runner,
+    # backfill or the repair loop's internal iteration-N analysis; see
+    # writer_attribution.py). The entry is opened BEFORE the first record
+    # and closed after the last one, so partial records of an interrupted
+    # run stay attributed to their writer. The repair loop's iteration-0
+    # correctness analysis writes into the BASE run's directory, so without
+    # this trace nothing could prove afterwards that repair - not the base
+    # evaluation - produced the records. Never a field of a result record;
+    # the verdict semantics, timeouts and launch grid are untouched.
+    summary_path = output_path.parent / "correctness_summary.json"
+    invocation_index = open_invocation_summary(
+        summary_path, run_id, model_id, invocation_label, writer_attribution)
+    if invocation_index is None:
+        print(f"[{model_id}] WARNING: correctness_summary.json could not be opened - "
+              "the stage runs; the post-run verifier reports the missing history.")
 
     if output_path.exists():
         output_path.unlink()
@@ -721,12 +740,72 @@ def run_model(
         "verdicts": dict(verdicts),
     }
 
+    close_invocation_summary(summary_path, invocation_index, summary,
+                             invocation_label, writer_attribution)
+
     print(f"[{model_id}] samples: {samples_seen}")
     for verdict, count in sorted(verdicts.items()):
         print(f"    {verdict}: {count}")
     print(f"[{model_id}] output: {output_path}")
 
     return summary
+
+
+CORRECTNESS_SUMMARY_SCHEMA_VERSION = "correctness_summary.v1"
+
+
+def open_invocation_summary(
+    summary_path: Path,
+    run_id: str,
+    model_id: str,
+    invocation_label: "str | None",
+    writer_attribution: "dict[str, Any] | None",
+) -> "int | None":
+    """Open this invocation in <model_dir>/correctness_summary.json.
+
+    The file mirrors static_analysis_summary.json's `invocations` history:
+    one entry per run_model call, opened with status `invoked` before the
+    first record and closed with status `completed` after the last one
+    (close_invocation_summary). A resume that re-runs the stage appends an
+    identical entry - the verifier treats those as one consistent
+    observation. An unreadable existing file is NOT silently replaced:
+    its bytes are kept under `unreadable_previous` so the history is never
+    lost by the writer side."""
+    from thesis.evaluation import writer_attribution as wa
+
+    # provenance never aborts a result stage: a sidecar that cannot be
+    # written is reported by the post-run verifier (missing / unreadable
+    # history -> UNRESOLVED), the records are produced exactly as before
+    try:
+        return wa.open_invocation(
+            summary_path,
+            {"schema_version": CORRECTNESS_SUMMARY_SCHEMA_VERSION, "run_id": run_id,
+             "model_id": model_id},
+            invocation_label, writer_attribution)
+    except Exception as exc:  # noqa: BLE001 - provenance never aborts the stage
+        print(f"[{model_id}] WARNING: correctness_summary.json not writable: {exc}")
+        return None
+
+
+def close_invocation_summary(
+    summary_path: Path,
+    index: "int | None",
+    summary: dict[str, Any],
+    invocation_label: "str | None" = None,
+    writer_attribution: "dict[str, Any] | None" = None,
+) -> None:
+    """Close the entry opened by open_invocation_summary (matched by its
+    own label + attribution) with the run's facts (samples, verdicts) and
+    refresh the summary's own fields. Never raises into the stage."""
+    from thesis.evaluation import writer_attribution as wa
+
+    facts = {"samples": summary.get("samples"), "verdicts": dict(summary.get("verdicts") or {})}
+    try:
+        wa.close_invocation(summary_path, -1 if index is None else index, facts,
+                            document_updates=dict(facts), label=invocation_label,
+                            writer_attribution=writer_attribution)
+    except Exception as exc:  # noqa: BLE001 - provenance never aborts the stage
+        print(f"[{summary.get('model_id')}] WARNING: correctness_summary.json not writable: {exc}")
 
 
 def main() -> None:
@@ -842,6 +921,7 @@ def main() -> None:
             niter=niter,
             build_timeout=build_timeout,
             run_timeout=run_timeout,
+            invocation_label="run_correctness",
         )
 
 
