@@ -991,11 +991,15 @@ def test_productive_layout_and_writer_semantics():
               loop_status(report, "m1", "static_feedback") == "FAIL")
 
     with tempfile.TemporaryDirectory() as tmp:
-        world = World(Path(tmp), run_id="pilot__x_fixture", models=("m1", "m2"),
+        # a base run id with a '__' variant suffix is refused by the contract
+        # builder since the pilot_002 freeze (every '__' names a variant /
+        # iteration population); the iteration-run parsing is exercised on a
+        # base id with single underscores
+        world = World(Path(tmp), run_id="pilot_x_fixture", models=("m1", "m2"),
                       stage_overrides=SIX_LOOPS)
         _iteration_dir(world, "combined_feedback", 1, "m2")
         report = world.verify()
-        check("a base run id containing '__' still parses its iteration runs -> PASS",
+        check("a base run id with single underscores parses its iteration runs -> PASS",
               scope_check(report) == "PASS"
               and status_of(report, "repair_iteration_identity") == "PASS")
 

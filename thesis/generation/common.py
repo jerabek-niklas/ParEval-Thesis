@@ -1331,7 +1331,11 @@ def _run_generation(adapter: ProviderAdapter) -> None:
     bootstrap = run_authorization.bootstrap_provider_run(
         config, config_path, args.profile, run_id,
         pure_poll=bool(args.poll) and api_mode == "batch",
-        prior_submission=prior_submission)
+        prior_submission=prior_submission,
+        # a provider child authorizes for ITS model only: a first start from a
+        # single child is a narrowed start and is refused; generate.py
+        # authorizes the full population before it spawns the children
+        requested_model_scope=[model_config["id"]])
 
     if args.restart and generations_path.exists():
         generations_path.unlink()

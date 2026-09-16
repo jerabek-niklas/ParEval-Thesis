@@ -886,6 +886,11 @@ def test_continue_on_error_cannot_hide_infrastructure_failure():
 
     with tempfile.TemporaryDirectory() as tmp:
         world = ProviderWorld(Path(tmp), provider="anthropic")
+        # since the pilot_002 freeze the orchestrator performs T0 itself for
+        # the full population before spawning children; this fixture's draft
+        # contract is pre-authorized so the orchestrator REHYDRATES and the
+        # child's exit code (the subject of this test) is what stops it
+        world.authorize()
         original = generate.run_command
         # the child's REAL exit code for a pre-run infrastructure failure -
         # measured by the child-process tests above

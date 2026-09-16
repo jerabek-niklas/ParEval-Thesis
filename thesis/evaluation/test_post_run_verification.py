@@ -28,6 +28,7 @@ from thesis.assembly import assembly_provenance as ap  # noqa: E402
 from thesis.enhanced_tests import execution_provenance as ep  # noqa: E402
 from thesis.enhanced_tests.specs import build_benchmark_specs  # noqa: E402
 from thesis.evaluation import atomic_io, pilot_run_contract, run_manifest, verify_pilot_run  # noqa: E402
+from thesis.evaluation import condition_hashing as ch  # noqa: E402
 from thesis.generation import common  # noqa: E402
 
 FAILURES = []
@@ -111,8 +112,12 @@ def write_readiness_artifact(config, path):
     return fresh
 
 
-def generation_record(benchmark, prompt_text, raw_text, execution_model="serial"):
+def generation_record(benchmark, prompt_text, raw_text, execution_model="serial",
+                      run_id=RUN_ID):
     return {
+        "schema_version": "generation.v3",
+        "run_id": run_id,
+        "created_at_utc": common.utc_now_iso(),
         "sample_id": sample_id(benchmark, execution_model=execution_model),
         "prompt": {"problem_type": benchmark[0], "name": benchmark[1],
                    "parallelism_model": execution_model, "language": "cpp",
@@ -167,16 +172,25 @@ class World:
         self.contract_path = self.root / "frozen_contract.json"
         self.prompts_path = self.root / "prompts.json"
         self.readiness_path = self.root / "readiness.json"
+        # the fixture's OWN freeze (population / publication / cross-pilot
+        # policy / methodology) through the productive config seams, so the
+        # fixture contract is READY on the productive path - never a draft
+        self.cross_pilot_path = self.root / "cross_pilot.json"
+        self.freeze_dir = self.root / "freeze"
         self._write_prompts()
         self._write_config()
         from thesis.config.load_config import load_config
 
         self.config = load_config(self.config_path)
         self._write_readiness()
-        self._write_generations()
+        self._write_freeze()
         self._freeze_contract(contract_run_id)
-        self._assemble()
+        # T0 BEFORE any record, exactly as in production: the first start
+        # requires a FRESH run (NO_PILOT001_MEASUREMENT_REUSE) and every
+        # generation record must postdate the start authorization
         self._bind_contract()
+        self._write_generations()
+        self._assemble()
         # records first: whether a repair loop registers its repair_evaluation
         # invocation at iteration 0 depends on the base records it finds
         self._write_stage_records()
@@ -201,7 +215,14 @@ class World:
             "outputs": {"raw_dir": (self.root / "raw").as_posix(),
                         "intermediate_dir": (self.root / "intermediate").as_posix(),
                         "root": (self.root / "results").as_posix(),
-                        "readiness_artifact": self.readiness_path.as_posix()},
+                        "readiness_artifact": self.readiness_path.as_posix(),
+                        "cross_pilot_artifact": self.cross_pilot_path.as_posix(),
+                        "freeze_artifacts": {
+                            "population": (self.freeze_dir / "population.json").as_posix(),
+                            "publication_policy": (self.freeze_dir / "publication_policy.json").as_posix(),
+                            "methodology_freeze": (self.freeze_dir / "methodology_freeze.json").as_posix(),
+                            "run_freeze_receipt": (self.freeze_dir / "run_freeze_receipt.json").as_posix(),
+                            "result_acceptance": (self.freeze_dir / "result_acceptance.json").as_posix()}},
             "prompts": {"path": self.prompts_path.as_posix(), "prompt_field": "prompt",
                         "execution_models": list(self.execution_models),
                         "problem_types": None},
@@ -242,16 +263,34 @@ class World:
         (self.root / "specs.jsonl").write_text("", encoding="utf-8")
 
     def _write_generations(self):
+        from thesis.evaluation import run_authorization as ra
+
+        authorization = ra.load_authorization(self.config, self.run_id) or {}
         for model in self.models:
             path = Path(self.config["outputs"]["raw_dir"]) / self.run_id / model / "generations.jsonl"
             if path.exists():
                 path.unlink()
+            # the productive runner's per-model summary (generation_summary.v1)
+            # binds the run authorization; the verifier requires it
+            atomic_io.atomic_write_json(path.parent / "generation_summary.json", {
+                "schema_version": "generation_summary.v1", "run_id": self.run_id,
+                "model_id": model, "provider": "mock", "model_name": model,
+                "api_mode": "direct",
+                "run_authorization": {"mode": "FIRST_START",
+                                      "authorization_sha256": authorization.get("authorization_sha256"),
+                                      "contract_discovery": "explicit_contract_path",
+                                      "fresh_runtime_probed": True},
+                "counts": {"requested": len(self.samples), "success": len(self.samples),
+                           "skipped_existing": 0}})
             for benchmark, prompt_text, raw in ((BENCHMARK, PROMPT_TEXT, RAW),
                                                 (BENCHMARK2, PROMPT_TEXT2, RAW2)):
                 if benchmark in self.samples:
-                    record = generation_record(benchmark, prompt_text, raw, self.execution_model)
+                    record = generation_record(benchmark, prompt_text, raw, self.execution_model,
+                                               run_id=self.run_id)
                     record["sample_id"] = sample_id(benchmark, execution_model=self.execution_model,
                                                     model=model)
+                    # the productive record names its model identity (generation.v3)
+                    record["model"] = {"id": model, "provider": "mock", "model_name": model}
                     if (model, benchmark) in self.unsuccessful_generations:
                         record["status"] = dict(record["status"], success=False,
                                                 error_type="APITimeoutError")
@@ -259,13 +298,61 @@ class World:
                                                 cleaned_code=None)
                     common.append_jsonl(path, record)
 
+    def _write_freeze(self, reuse_decided=True, publication_decided=True,
+                      population_decided=True, base_run_configured=True):
+        """The fixture's freeze artifacts: population (the fixture author's
+        decision = its own selection), publication policy, a cross-pilot
+        policy artifact binding both, and the methodology freeze."""
+        from thesis.evaluation import pilot_freeze as pf
+
+        paths = pf.freeze_paths(self.config)
+        self.freeze_dir.mkdir(parents=True, exist_ok=True)
+        population = pf.build_population(
+            self.config, "fixture", pf.fixture_author_freeze(self.config, "fixture"), self.config_path)
+        atomic_io.atomic_write_json(paths["population"], population)
+        publication = pf.build_publication_policy(self.run_id)
+        atomic_io.atomic_write_json(paths["publication_policy"], publication)
+        gate = OrderedDict([
+            ("schema", "fixture cross-pilot policy artifact"),
+            ("state_commit", "fixture"),
+            ("reuse_status", pf.REUSE_STATUS_DECIDED if reuse_decided else "UNDECIDED"),
+            ("reuse_policy", OrderedDict([
+                ("status", "DECIDED" if reuse_decided else "UNDECIDED"),
+                ("policy", pf.REUSE_POLICY if reuse_decided else None),
+                ("pilot_002_base_measurements", "FRESH"), ("generation_reuse", False),
+                ("stage_result_reuse", False), ("repair_reuse", False),
+                ("pilot_001_role", "READ_ONLY"), ("comparability_is_not_reuse", True)])),
+            ("publication_policy", OrderedDict([
+                ("status", "DECIDED" if publication_decided else "OPEN"),
+                ("policy", pf.PUBLICATION_POLICY if publication_decided else None),
+                ("publication_policy_sha256", publication["publication_policy_sha256"])])),
+            ("expected_pilot_002_population", OrderedDict([
+                ("selection", "prefix"), ("prompt_limit", 2), ("num_samples_per_prompt", 1),
+                ("status", "DECIDED" if population_decided else "NOT_YET_DECIDED"),
+                ("population_sha256", population["population_sha256"])])),
+            ("expected_pilot_002_base_run", OrderedDict([
+                ("run_id", self.run_id if base_run_configured else None),
+                ("status", "CONFIGURED" if base_run_configured else "NOT_YET_CONFIGURED"),
+                ("forbid_iteration_variants", True)])),
+        ])
+        gate["cross_pilot_fingerprint_sha256"] = ch.canonical_sha256(gate)
+        atomic_io.atomic_write_json(self.cross_pilot_path, gate)
+        if not publication_decided:
+            paths["publication_policy"].unlink()
+        methodology = pf.build_methodology_freeze(self.config, "fixture", "g++", population,
+                                                  publication, self.config_path)
+        atomic_io.atomic_write_json(paths["methodology_freeze"], methodology)
+        self.freeze_paths = paths
+
     def _freeze_contract(self, contract_run_id):
         contract = pilot_run_contract.build_contract(
             self.config_path, "fixture", run_id_override=contract_run_id)
-        # the population decision is open repo-wide, so the fixture freezes a
-        # DRAFT: what is under test is the VERIFIER, not the open decision
+        if contract_run_id is None and contract["status"] != pilot_run_contract.STATUS_READY:
+            raise RuntimeError("fixture contract NOT_READY: %s" % "; ".join(contract["blockers"]))
+        # a contract for ANOTHER run id (deliberate mismatch fixtures) can only
+        # be a draft: the freeze artifacts are bound to the fixture run id
         self.contract_sha = pilot_run_contract.freeze_contract(
-            contract, self.contract_path, allow_draft=True)
+            contract, self.contract_path, allow_draft=contract_run_id is not None)
         self.contract = pilot_run_contract.load_frozen(self.contract_path)
 
     def _assemble(self):
@@ -284,9 +371,12 @@ class World:
 
         if runtime:
             ra.clear_context()
+            # the PRODUCTIVE first start: a READY contract and a FRESH run are
+            # required (the fixture authorizes before it writes any record);
+            # only a deliberate foreign-run-id contract is a draft
             ra.authorize_start(self.config, self.config_path, "fixture", self.run_id,
                                self.contract_path, prober=fake_prober,
-                               allow_draft_contract=True)
+                               allow_draft_contract=self.contract.get("status") != "READY")
         else:
             run_manifest.register_contract(self.config, self.run_id,
                                            sha or self.contract_sha, contract or self.contract)
@@ -313,7 +403,10 @@ class World:
                       "tools": {"value": ["asan_ubsan"], "source": "CONFIG"},
                       "skip_unavailable_tools": {"value": False, "source": "DEFAULT"}},
                      "dynamic_analysis")),
-        ("enhanced", ({"specs": {"value": "frozen", "source": "CLI"},
+        # specs: the productive runner marks the DEFAULT frozen artifact as
+        # source DEFAULT (CLI only when --specs names another file - an
+        # unpinned methodical override the plan NONE refuses)
+        ("enhanced", ({"specs": {"value": "frozen", "source": "DEFAULT"},
                        "jobs": {"value": "serial=1", "source": "CONFIG"},
                        "effective_enhanced_run_timeout_seconds": {"value": None,
                                                                   "source": "DEFAULT"}},
@@ -415,7 +508,7 @@ class World:
                 sid = entry["sample_id"]
                 common.append_jsonl(model_dir / "correctness.jsonl", {
                     "schema_version": "correctness.v2", "sample_id": sid, "model_id": model,
-                    "run_id": self.run_id,
+                    "run_id": self.run_id, "created_at_utc": common.utc_now_iso(),
                     "execution_model": entry.get("execution_model") or "serial", "verdict": "pass",
                     "compile": {"ok": True, "exit_code": 0, "timed_out": False,
                                 "duration_seconds": 2.0},
@@ -423,13 +516,13 @@ class World:
                               "duration_seconds": 0.01, "verdict": "pass"}]})
                 common.append_jsonl(model_dir / "static_analysis.jsonl", {
                     "schema_version": "static_analysis.v3", "sample_id": sid,
-                    "model_id": model, "run_id": self.run_id,
+                    "model_id": model, "run_id": self.run_id, "created_at_utc": common.utc_now_iso(),
                     "execution_model": entry.get("execution_model") or "serial",
                     "tools": self.static_tools_for(entry)})
                 for spec in self.expected_specs(entry):
                     common.append_jsonl(model_dir / "enhanced_tests.jsonl", {
                         "schema_version": "enhanced.v3", "sample_id": sid, "model_id": model,
-                        "run_id": self.run_id,
+                        "run_id": self.run_id, "created_at_utc": common.utc_now_iso(),
                         "execution_model": entry.get("execution_model") or "serial",
                         "benchmark": entry.get("benchmark"), "spec": spec,
                         "status": "pass", "exit_code": 0, "duration_seconds": 0.01})
@@ -453,7 +546,7 @@ class World:
         for entry in self.assembled(model):
             common.append_jsonl(path, {"schema_version": "dynamic_analysis.v2",
                                        "sample_id": entry["sample_id"], "model_id": model,
-                                       "run_id": self.run_id,
+                                       "run_id": self.run_id, "created_at_utc": common.utc_now_iso(),
                                        "execution_model": entry.get("execution_model") or "serial",
                                        "tools": {}, "has_blocking_findings": False,
                                        "low_confidence_count": 0})
@@ -933,11 +1026,22 @@ def main():
         world = World(Path(tmp))
         decision = pilot_run_contract.t0_guard(world.config_path, "fixture",
                                                world.contract_path, bind=False)
-        check("T0: an unchanged frozen contract is only START_ALLOWED when the contract "
-              "itself is READY (this draft is not)",
-              decision["decision"] == "START_REFUSED"
+        check("T0: an unchanged, READY frozen contract -> START_ALLOWED (rebuilt sha equal, "
+              "no drift)",
+              decision["decision"] == "START_ALLOWED"
               and decision["frozen_contract_sha256"] == decision["rebuilt_contract_sha256"]
-              and decision["rebuilt_status"] == "NOT_READY")
+              and decision["drift_fields"] == [] and decision["rebuilt_status"] == "READY")
+        draft = pilot_run_contract.build_contract(world.config_path, "fixture",
+                                                  run_id_override="pilot_002_other")
+        draft_path = world.root / "draft_contract.json"
+        pilot_run_contract.freeze_contract(draft, draft_path, allow_draft=True)
+        refused = pilot_run_contract.t0_guard(world.config_path, "fixture", draft_path,
+                                              run_id_override="pilot_002_other", bind=False)
+        check("T0: an unchanged frozen contract is only START_ALLOWED when the contract "
+              "itself is READY (a draft with open decisions is refused)",
+              refused["decision"] == "START_REFUSED"
+              and refused["frozen_contract_sha256"] == refused["rebuilt_contract_sha256"]
+              and refused["rebuilt_status"] == "NOT_READY")
         # a config edited after the freeze must be refused on the sha, not only
         # on the open decisions
         text = world.config_path.read_text(encoding="utf-8")
@@ -952,25 +1056,45 @@ def main():
         check("T0: a corrupt frozen contract is refused",
               _corrupt_refused(world.contract_path))
 
-    print("== contract builder state (today) ==")
+    print("== contract builder state (today: pilot_002 frozen) ==")
     contract = pilot_run_contract.build_contract(
         REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot")
-    check("builder returns NOT_READY while the population decision is open",
-          contract["status"] == "NOT_READY"
-          and any("population" in b for b in contract["blockers"]))
-    check("builder refuses to freeze a NOT_READY contract", _freeze_refused(contract))
+    check("builder returns READY for the frozen pilot_002 (no open decision)",
+          contract["status"] == "READY" and contract["blockers"] == []
+          and contract["run_id"] == "pilot_002"
+          and len(contract["model_ids"]) == 11
+          and contract["population"]["selection"] == "stratified"
+          and contract["population"]["prompt_limit"] == 36
+          and contract["population"]["expected_sample_count"] == 36
+          and contract["population_freeze"]["total_model_prompt_cells"] == 396)
+    historical = pilot_run_contract.build_contract(
+        REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot", run_id_override="pilot_001")
+    check("builder returns NOT_READY for the historical run id (and refuses to freeze it)",
+          historical["status"] == "NOT_READY"
+          and any("historical pilot_001" in b for b in historical["blockers"])
+          and _freeze_refused(historical))
+    iteration = pilot_run_contract.build_contract(
+        REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot",
+        run_id_override="pilot_002__static_feedback__iter1")
+    check("builder returns NOT_READY for a repair-iteration run id",
+          iteration["status"] == "NOT_READY"
+          and any("repair-iteration" in b for b in iteration["blockers"]))
     check("contract sha is stable across rebuilds (no timestamp inside)",
           contract["contract_sha256"] == pilot_run_contract.build_contract(
               REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot")["contract_sha256"])
     check("contract carries every contracted field",
           {"run_id", "profile", "model_ids", "population", "execution_models",
            "primary_compiler", "run_timeout_seconds", "conditions", "expected_stages",
-           "post_run_verifier_version"} <= set(contract)
+           "post_run_verifier_version", "base_run", "population_freeze",
+           "selected_prompt_hashes", "reuse_policy", "publication_policy",
+           "methodology_freeze", "methodical_override_plan"} <= set(contract)
           and {"generation_condition_sha256", "assembly_condition_sha256",
                "evaluation_condition_sha256", "enhanced_frozen_specs_sha256",
                "enhanced_policy_sha256_lf_normalized", "static_analysis_condition_sha256",
                "repair_condition_sha256", "static_repair_runtime_condition_sha256",
-               "semantic_decisions_sha256_lf_normalized", "cross_pilot_artifact_sha256"}
+               "semantic_decisions_sha256_lf_normalized", "cross_pilot_artifact_sha256",
+               "e3_2_author_confirmation_sha256", "e3_2_decisions_sha256",
+               "technical_provenance_cleanup_sha256", "timing_contract_sha256"}
           <= set(contract["conditions"]))
     check("contract contains no secrets",
           not any(k in json.dumps(contract).lower() for k in ("api_key", "sk-", "token=")))

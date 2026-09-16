@@ -50,6 +50,19 @@ FORBIDDEN_DUPLICATE_FIELDS = (
     "auto_close_single_brace", "target_cases_per_benchmark", "static_base_sizes",
 )
 
+# CLI-sourced effective values a contract whose methodical override plan is
+# NONE (pilot_run_contract.v3 methodical_override_plan.planned = "NONE")
+# still admits: they select WHERE / WHICH SCOPE a contracted invocation runs
+# (the split-container --tools, the repair loop's variant) and are bound in
+# the fragment owner, not methodical overrides. Every OTHER CLI-sourced
+# methodical value is refused unless the contract pins exactly that value.
+# `tools` is operational ONLY where it addresses a container: the split
+# stages carry exactly their tool, the main static container and the dynamic
+# stage must carry the FULL contracted tool set (a narrowed --tools is a
+# methodical override of the tool scope).
+OPERATIONAL_SCOPE_FIELDS = ("tools", "variant")
+SPLIT_STAGE_TOOL = OrderedDict([("static.parcoach", "parcoach"), ("static.llov", "llov")])
+
 # Which contract field an effective value must equal (when the contract pins one).
 CONTRACT_EXPECTATIONS = OrderedDict([
     ("effective_run_timeout_seconds", "run_timeout_seconds"),
@@ -280,7 +293,85 @@ def check_against_contract(invocation: "Dict[str, Any]",
         if missing:
             problems.append("model_scope %s is not part of the contracted model set"
                             % ", ".join(missing))
+    problems.extend(override_plan_problems(invocation, contract))
     return problems
+
+
+def planned_overrides_none(contract: "Optional[Dict[str, Any]]") -> bool:
+    """True iff the contract declares an EMPTY methodical override plan
+    (pilot_002: PLANNED_METHODICAL_CLI_OVERRIDES = NONE)."""
+    plan = (contract or {}).get("methodical_override_plan")
+    if not isinstance(plan, dict):
+        return False
+    planned = plan.get("planned_methodical_cli_overrides")
+    return isinstance(planned, list) and not planned
+
+
+def override_plan_problems(invocation: "Dict[str, Any]",
+                           contract: "Optional[Dict[str, Any]]") -> "List[str]":
+    """Under a plan of NONE a CLI-sourced methodical value that the contract
+    does NOT pin (jobs, specs, replace_tool_entries, rerun_gaps,
+    replace_legacy_record, skip_unavailable_tools, ...) is an unpinned
+    methodical override: refused before the first record. A CLI value the
+    contract pins is compared by check_against_contract; the operational
+    scope selectors (tools, variant) are admitted."""
+    if not planned_overrides_none(contract):
+        return []
+    plan = contract.get("methodical_override_plan") or {}
+    admitted = set(plan.get("operational_scope_fields") or OPERATIONAL_SCOPE_FIELDS)
+    problems = []
+    values = invocation.get("effective_values")
+    if not isinstance(values, dict):
+        return ["effective_values is not an object - the invocation cannot be checked against "
+                "the methodical override plan"]
+    stage = str(invocation.get("stage") or "")
+    for field, entry in sorted(values.items()):
+        source = (entry or {}).get("source") if isinstance(entry, dict) else None
+        # only the two non-override labels are trusted; anything else (CLI,
+        # a misspelt or missing label) counts as an override source
+        if source in (SOURCE_CONFIG, SOURCE_DEFAULT) or field in CONTRACT_EXPECTATIONS:
+            continue
+        if field == "tools" and "tools" in admitted:
+            expected = contracted_tool_scope(contract, stage)
+            actual = sorted(str(v) for v in _as_list((entry or {}).get("value")))
+            if expected is None:
+                problems.append("tools: the contract pins no tool set for stage %r, a CLI --tools "
+                                "cannot be admitted as an operational selector" % stage)
+            elif actual != expected:
+                problems.append("tools: stage %s is contracted for %s but the invocation runs %s from "
+                                "the CLI - a narrowed / widened tool scope is a methodical override"
+                                % (stage, expected, actual))
+            continue
+        if field in admitted:
+            continue
+        problems.append(
+            "%s: the contract plans NO methodical CLI overrides and pins no value for it, but the "
+            "invocation carries %r from the CLI - an unpinned methodical override; invalidate and "
+            "re-freeze the methodology instead of starting" % (field, (entry or {}).get("value")))
+    return problems
+
+
+def contracted_tool_scope(contract: "Dict[str, Any]", stage: str) -> "Optional[List[str]]":
+    """The tool set a stage's `--tools` may carry under a plan of NONE: the
+    split stage's own tool, the enabled non-split static tools for
+    static.main, the enabled dynamic tools for dynamic; None when the
+    contract pins nothing for that stage."""
+    if stage in SPLIT_STAGE_TOOL:
+        return [SPLIT_STAGE_TOOL[stage]]
+    if stage == "static.main":
+        toolset = contract.get("static_toolset")
+        if not isinstance(toolset, dict) or "error" in toolset:
+            return None
+        return sorted(name for name, entry in toolset.items()
+                      if isinstance(entry, dict) and entry.get("enabled")
+                      and name not in SPLIT_STAGE_TOOL.values())
+    if stage == "dynamic":
+        toolset = contract.get("dynamic_toolset")
+        if not isinstance(toolset, dict) or "error" in toolset:
+            return None
+        return sorted(name for name, entry in toolset.items()
+                      if isinstance(entry, dict) and entry.get("enabled"))
+    return None
 
 
 def _normalize(value_: Any) -> Any:

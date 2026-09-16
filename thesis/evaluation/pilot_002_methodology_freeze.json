@@ -1,0 +1,757 @@
+{
+  "schema_version": "pilot_002_methodology_freeze.v1",
+  "identity": {
+    "run_id": "pilot_002",
+    "profile": "pilot",
+    "historical_baseline_run_id": "pilot_001"
+  },
+  "population": {
+    "artifact_path": "thesis/evaluation/pilot_002_population.json",
+    "schema_version": "pilot_002_population.v1",
+    "population_sha256": "7f3476ada4511b66f8682694964ed73814900d0d1bfebcfd747a590db2cff119",
+    "population_source": "EXPLICIT_AUTHOR_FREEZE",
+    "status": "DECIDED",
+    "benchmark_count": 12,
+    "benchmark_ids": [
+      "dense_la/00_dense_la_lu_decomp",
+      "fft/05_fft_inverse_fft",
+      "geometry/10_geometry_convex_hull",
+      "graph/15_graph_edge_count",
+      "histogram/20_histogram_pixel_histogram",
+      "reduce/25_reduce_xor",
+      "scan/30_scan_prefix_sum",
+      "search/35_search_search_for_last_struct_by_key",
+      "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "sparse_la/45_sparse_la_sparse_solve",
+      "stencil/50_stencil_xor_kernel",
+      "transform/55_transform_relu"
+    ],
+    "prompt_count": 36,
+    "prompt_keys": [
+      "dense_la|00_dense_la_lu_decomp|mpi",
+      "dense_la|00_dense_la_lu_decomp|omp",
+      "dense_la|00_dense_la_lu_decomp|serial",
+      "fft|05_fft_inverse_fft|mpi",
+      "fft|05_fft_inverse_fft|omp",
+      "fft|05_fft_inverse_fft|serial",
+      "geometry|10_geometry_convex_hull|mpi",
+      "geometry|10_geometry_convex_hull|omp",
+      "geometry|10_geometry_convex_hull|serial",
+      "graph|15_graph_edge_count|mpi",
+      "graph|15_graph_edge_count|omp",
+      "graph|15_graph_edge_count|serial",
+      "histogram|20_histogram_pixel_histogram|mpi",
+      "histogram|20_histogram_pixel_histogram|omp",
+      "histogram|20_histogram_pixel_histogram|serial",
+      "reduce|25_reduce_xor|mpi",
+      "reduce|25_reduce_xor|omp",
+      "reduce|25_reduce_xor|serial",
+      "scan|30_scan_prefix_sum|mpi",
+      "scan|30_scan_prefix_sum|omp",
+      "scan|30_scan_prefix_sum|serial",
+      "search|35_search_search_for_last_struct_by_key|mpi",
+      "search|35_search_search_for_last_struct_by_key|omp",
+      "search|35_search_search_for_last_struct_by_key|serial",
+      "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|mpi",
+      "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|omp",
+      "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|serial",
+      "sparse_la|45_sparse_la_sparse_solve|mpi",
+      "sparse_la|45_sparse_la_sparse_solve|omp",
+      "sparse_la|45_sparse_la_sparse_solve|serial",
+      "stencil|50_stencil_xor_kernel|mpi",
+      "stencil|50_stencil_xor_kernel|omp",
+      "stencil|50_stencil_xor_kernel|serial",
+      "transform|55_transform_relu|mpi",
+      "transform|55_transform_relu|omp",
+      "transform|55_transform_relu|serial"
+    ],
+    "prompt_key_set_sha256": "8f02ef000b2713b759ad9409659d971634fa87668d9b3c34be7304d33c3c7678",
+    "prompt_set_sha256": "d756ba3325a7c462e8d507dea0936329e4c93c7b1a60b320ffdb9b18da7f37ba",
+    "model_count": 11,
+    "model_ids": [
+      "claude_fable_5",
+      "claude_opus_5",
+      "deepseek_v4_flash",
+      "deepseek_v4_pro",
+      "gemini_31_pro",
+      "gemini_36_flash",
+      "openai_gpt55",
+      "openai_gpt56_sol",
+      "qwen36_35b_a3b",
+      "qwen37_max",
+      "qwen3_coder_api"
+    ],
+    "execution_models": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "samples_per_prompt": 1,
+    "total_base_cells": 396,
+    "pilot001_population_used_as_authority": false
+  },
+  "reuse": {
+    "status": "DECIDED",
+    "policy": "NO_PILOT001_MEASUREMENT_REUSE",
+    "decided": true,
+    "pilot_002_base_measurements": "FRESH",
+    "generation_reuse": false,
+    "assembly_reuse": false,
+    "stage_result_reuse": false,
+    "enhanced_result_reuse": false,
+    "repair_reuse": false,
+    "pilot_001_role": "READ_ONLY (historical comparison baseline, cross-pilot analysis, documented re-derivations)",
+    "frozen_enhanced_specs_are_methodology_not_measurement": true,
+    "comparability_is_not_reuse": true,
+    "enforcement": [
+      "run_authorization.authorize_start refuses a FIRST START of a run that already carries result-bearing files (RUN_ID_NOT_FRESH)",
+      "verify_pilot_run record_run_identity / generation_authorization_binding / reuse_policy_honoured checks",
+      "pilot_preflight PILOT_002_RUN_ID_FRESH"
+    ]
+  },
+  "publication": {
+    "artifact_path": "thesis/evaluation/pilot_002_publication_policy.json",
+    "schema_version": "pilot_002_publication_policy.v1",
+    "publication_policy_sha256": "3f384ac76533e6c82389f376623af2fe34d7364d92b49fea47d896db09761d4e",
+    "status": "DECIDED",
+    "policy": "POST_RUN_ACCEPTED_RESULTS_ONLY"
+  },
+  "override_policy": {
+    "global": "METHODICAL_OVERRIDES_ALLOWED_ONLY_IF_DECLARED_AND_PINNED",
+    "pilot_002_planned_methodical_cli_overrides": "NONE",
+    "planned_methodical_cli_overrides": [],
+    "allowed_operational_selectors": {
+      "--run-id": "addresses the contracted base run (authorize_start and the post-run verifier refuse any other run id)",
+      "--profile": "selects the frozen profile (pilot); its values are contract-pinned",
+      "--model-id": "per-model scope of a contract-derived split-container static run or a per-model resume; bound as model_scope of the invocation fragment and refused for a model outside the contract; a FIRST START that narrows the contracted model set is refused (generate.py)",
+      "--tools": "contract-derived PARCOACH / LLOV container invocations (static.parcoach / static.llov); bound as the invocation owner, covered per model by the split-invocation matrix",
+      "--poll": "collects an already authorized batch job; never authorizes, never submits",
+      "--max-wave": "bounds how many repair waves ONE invocation advances; the loop's persisted state machine continues on the next invocation and the post-run repair-scope check verifies the final state (every contracted loop terminal), so the bound changes no methodical value",
+      "PAREVAL_HOST_REPO / stages.repair.host_repo_path": "operational bind-mount path of the analysis containers; part of no condition hash and of no invocation fragment"
+    },
+    "operational_scope_fields_in_invocations": [
+      "tools",
+      "variant"
+    ],
+    "rule": "every methodical value comes from the frozen config + the frozen run contract; a CLI-sourced methodical value is admitted only if the contract pins exactly that value; a CLI-sourced methodical value the contract does not pin is refused before the first record; a needed methodical override invalidates this freeze (re-decide + re-freeze), it never starts"
+  },
+  "generation": {
+    "settings": {
+      "max_output_tokens": 16384,
+      "temperature": 0.0,
+      "top_p": null,
+      "timeout_seconds": 300,
+      "retry_attempts": 2,
+      "sleep_seconds_between_requests": 0.0,
+      "api_mode": "batch",
+      "api_mode_overrides": {},
+      "system_prompt_sha256": "2ca303b59cbb767706d2d4ea0153f6ad0afc2e00ad2988c748990d24be302e4a",
+      "batch_providers": [
+        "openai",
+        "anthropic",
+        "gemini"
+      ],
+      "batch_fallback_policy": "generation_defaults.api_mode batch; a provider outside BATCH_PROVIDERS falls back to direct (existing productive policy, common.resolve_api_mode); no new batch/direct policy"
+    },
+    "effective_provider_plan": {
+      "claude_fable_5": {
+        "provider": "anthropic",
+        "model_name": "claude-fable-5",
+        "reasoning_configuration": {
+          "effort": "medium",
+          "thinking": "adaptive"
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "batch",
+        "effective_generation_api_mode": "batch",
+        "fallback_reason": null,
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "d804753c17d99fb4250d5c0b8f6bd706d2604a3e15ce4a5b9e4c118277e868d0"
+      },
+      "claude_opus_5": {
+        "provider": "anthropic",
+        "model_name": "claude-opus-5",
+        "reasoning_configuration": {
+          "effort": "medium",
+          "thinking": "adaptive"
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "batch",
+        "effective_generation_api_mode": "batch",
+        "fallback_reason": null,
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "c2e1951f6cc6798764bc1c3f5524ab195f408849636e2f1df625af5ea69a08f5"
+      },
+      "deepseek_v4_flash": {
+        "provider": "openai_compatible",
+        "model_name": "deepseek-v4-flash",
+        "reasoning_configuration": {
+          "extra_body": {
+            "enable_thinking": true,
+            "reasoning_effort": "high",
+            "thinking_budget": 8192
+          }
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "direct_fallback",
+        "effective_generation_api_mode": "direct",
+        "fallback_reason": "provider 'openai_compatible' has no verified batch API (DashScope endpoints return 404 on /v1/batches) — falling back to direct",
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "66099c900cdf3cd50d8d3038752cd8e74e79d537eaa89d825227633ed9c5aa0c"
+      },
+      "deepseek_v4_pro": {
+        "provider": "openai_compatible",
+        "model_name": "deepseek-v4-pro",
+        "reasoning_configuration": {
+          "extra_body": {
+            "enable_thinking": true,
+            "reasoning_effort": "high",
+            "thinking_budget": 8192
+          }
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "direct_fallback",
+        "effective_generation_api_mode": "direct",
+        "fallback_reason": "provider 'openai_compatible' has no verified batch API (DashScope endpoints return 404 on /v1/batches) — falling back to direct",
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "15c7e9810b6161a9b19dcc9bb2a9e2aec6bb92b094a8db7bb0a66a504ee316fb"
+      },
+      "gemini_31_pro": {
+        "provider": "gemini",
+        "model_name": "gemini-3.1-pro-preview",
+        "reasoning_configuration": {
+          "thinking_level": "medium"
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "batch",
+        "effective_generation_api_mode": "batch",
+        "fallback_reason": null,
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "92794dc35023f078e7981d08838c5096f2813e50b291ee86e1757dbd0aa5b407"
+      },
+      "gemini_36_flash": {
+        "provider": "gemini",
+        "model_name": "gemini-3.6-flash",
+        "reasoning_configuration": {
+          "thinking_level": "medium"
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "batch",
+        "effective_generation_api_mode": "batch",
+        "fallback_reason": null,
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "d5c627a1405cf7a72ee226635df8be2b8a385d883da7447bf4cd84c33e2f5269"
+      },
+      "openai_gpt55": {
+        "provider": "openai",
+        "model_name": "gpt-5.5",
+        "reasoning_configuration": {
+          "reasoning_effort": "medium"
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "batch",
+        "effective_generation_api_mode": "batch",
+        "fallback_reason": null,
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "24fe87494df90e94ebcaae25df960ebcde2ee961f4c58ccac57f4ad0ec7f3f06"
+      },
+      "openai_gpt56_sol": {
+        "provider": "openai",
+        "model_name": "gpt-5.6-sol",
+        "reasoning_configuration": {
+          "reasoning_effort": "medium"
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "batch",
+        "effective_generation_api_mode": "batch",
+        "fallback_reason": null,
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "d4c941014bda38708a2110645b440b012a15bd4cf38762e8d607e5df26382663"
+      },
+      "qwen36_35b_a3b": {
+        "provider": "openai_compatible",
+        "model_name": "qwen3.6-35b-a3b",
+        "reasoning_configuration": {
+          "extra_body": {
+            "enable_thinking": true,
+            "thinking_budget": 8192
+          }
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "direct_fallback",
+        "effective_generation_api_mode": "direct",
+        "fallback_reason": "provider 'openai_compatible' has no verified batch API (DashScope endpoints return 404 on /v1/batches) — falling back to direct",
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "3e9326d1bbb8b10a86ccd0cbfb222e899ca2bac5ec52f5749cc4d3e5560d7197"
+      },
+      "qwen37_max": {
+        "provider": "openai_compatible",
+        "model_name": "qwen3.7-max",
+        "reasoning_configuration": {
+          "extra_body": {
+            "enable_thinking": true,
+            "thinking_budget": 8192
+          }
+        },
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "direct_fallback",
+        "effective_generation_api_mode": "direct",
+        "fallback_reason": "provider 'openai_compatible' has no verified batch API (DashScope endpoints return 404 on /v1/batches) — falling back to direct",
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "3b57dad84eeaeaebcf64b6d9f29dabb2a1e5e150b82061c201e8dcd305554938"
+      },
+      "qwen3_coder_api": {
+        "provider": "openai_compatible",
+        "model_name": "qwen3-coder-plus",
+        "reasoning_configuration": {},
+        "configured_generation_api_mode": "batch",
+        "effective_generation_submission_path": "direct_fallback",
+        "effective_generation_api_mode": "direct",
+        "fallback_reason": "provider 'openai_compatible' has no verified batch API (DashScope endpoints return 404 on /v1/batches) — falling back to direct",
+        "repair_api_mode_configured": "direct",
+        "repair_api_mode_effective": "direct",
+        "repair_fallback_reason": null,
+        "model_config_sha256": "b81794d4142101ed8bfe60f56afb035ba838fdd1d935ddcf5c0df9bc47d9ed8c"
+      }
+    },
+    "request_plan": {
+      "selected_prompt_count": 36,
+      "samples_per_model": 36,
+      "total_model_prompt_cells": 396,
+      "batch_models": [
+        "claude_fable_5",
+        "claude_opus_5",
+        "gemini_31_pro",
+        "gemini_36_flash",
+        "openai_gpt55",
+        "openai_gpt56_sol"
+      ],
+      "batch_jobs": 6,
+      "batch_requests": 216,
+      "direct_models": [
+        "deepseek_v4_flash",
+        "deepseek_v4_pro",
+        "qwen36_35b_a3b",
+        "qwen37_max",
+        "qwen3_coder_api"
+      ],
+      "direct_requests": 180
+    },
+    "generation_condition_sha256": "e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281",
+    "generation_cleaning_condition_sha256": "1e29649f3052e73af627923718c970453c8e8337795f1b8be7a44e083988e325",
+    "known_provenance_caveats": [
+      "Gemini batch submissions (batch_api._gemini_submit) send temperature = generation_defaults.temperature while the Gemini direct adapter deliberately sends no temperature and the persisted generation_parameters.temperature is null in both modes; frozen AS IS (no adapter change in this wave), disclosed here"
+    ]
+  },
+  "assembly": {
+    "assembly_condition_version": "assembly_condition.v1",
+    "assembly_condition_sha256": "a2a76e899414dea5a81830d02eb67b4e444ec6ce901a4e6f4cd4211ebd083718",
+    "auto_close_single_brace": true
+  },
+  "correctness": {
+    "primary_compiler": "g++",
+    "niter": 1,
+    "build_timeout_seconds": 120.0,
+    "run_timeout_seconds": 120.0,
+    "launch_defaults": {
+      "mpi": [
+        {
+          "num_procs": 1
+        },
+        {
+          "num_procs": 2
+        },
+        {
+          "num_procs": 4
+        },
+        {
+          "num_procs": 8
+        }
+      ],
+      "omp": [
+        {
+          "num_threads": 1
+        },
+        {
+          "num_threads": 2
+        },
+        {
+          "num_threads": 4
+        },
+        {
+          "num_threads": 8
+        }
+      ],
+      "serial": [
+        {}
+      ]
+    },
+    "launch_overrides": null,
+    "config_values": {
+      "niter": 1,
+      "run_timeout_seconds": 120,
+      "build_timeout_seconds": null,
+      "launch_overrides": null
+    },
+    "evaluation_condition_sha256": "7f53b0903e3d5e2be2ca4de8bd085da00d3cc6e9e350fc03bf390cac66c35e74",
+    "evaluation_condition_projection": {
+      "stage": "correctness_tests",
+      "primary_compiler": "g++",
+      "per_execution_model": {
+        "serial": {
+          "compiler": "g++",
+          "cxxflags": [
+            "-std=c++17",
+            "-O3",
+            "-DUSE_SERIAL",
+            "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+          ],
+          "macro": "USE_SERIAL",
+          "model_driver_file": "models/serial-driver.cc",
+          "launch_params": [
+            {}
+          ],
+          "launcher": "direct; argv[1]=niter"
+        },
+        "omp": {
+          "compiler": "g++",
+          "cxxflags": [
+            "-std=c++17",
+            "-O3",
+            "-fopenmp",
+            "-DUSE_OMP",
+            "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+          ],
+          "macro": "USE_OMP",
+          "model_driver_file": "models/omp-driver.cc",
+          "launch_params": [
+            {
+              "num_threads": 1
+            },
+            {
+              "num_threads": 2
+            },
+            {
+              "num_threads": 4
+            },
+            {
+              "num_threads": 8
+            }
+          ],
+          "launcher": "direct; argv[1]=num_threads; OMP_NUM_THREADS set; driver NITER fixed at 5"
+        },
+        "mpi": {
+          "compiler": "mpicxx",
+          "cxxflags": [
+            "-std=c++17",
+            "-O3",
+            "-DUSE_MPI",
+            "-DDRIVER_PROBLEM_SIZE=(1<<8)"
+          ],
+          "macro": "USE_MPI",
+          "model_driver_file": "models/mpi-driver.cc",
+          "launch_params": [
+            {
+              "num_procs": 1
+            },
+            {
+              "num_procs": 2
+            },
+            {
+              "num_procs": 4
+            },
+            {
+              "num_procs": 8
+            }
+          ],
+          "launcher": "mpirun -np <num_procs>; trailing argv=niter"
+        }
+      },
+      "ndebug_defined": false,
+      "driver_problem_size": "(1<<8)",
+      "niter": 1,
+      "max_validation_attempts": 2,
+      "build_timeout_seconds": 120.0,
+      "run_timeout_seconds": 120.0,
+      "launch_overrides": null
+    },
+    "validation": {
+      "max_validation_attempts_default": 2,
+      "benchmark_local_exception_search_35": {
+        "validation_attempts": 5,
+        "source": "drivers/cpp/benchmarks/search/35_search_search_for_last_struct_by_key/cpu.cc:78 `const int numTries = 5;` (suite default MAX_VALIDATION_ATTEMPTS = 2, utilities.hpp:34-35; search/38 was normalized in wave 2B, search/35 deliberately not)",
+        "decision": "E3.2 E32-12 A (explicit author choice): kept as is; both pilots run 5 attempts on this benchmark; disclosure / methodology note, not a contract change"
+      },
+      "e3_2_disclosure": "D5_search_35_five_validation_attempts"
+    }
+  },
+  "static": {
+    "toolset": {
+      "clang_tidy": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "omp",
+          "mpi"
+        ]
+      },
+      "compiler": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "omp",
+          "mpi"
+        ]
+      },
+      "cppcheck": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "omp",
+          "mpi"
+        ]
+      },
+      "gcc_analyzer": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "omp",
+          "mpi"
+        ]
+      },
+      "infer": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "mpi"
+        ]
+      },
+      "llov": {
+        "enabled": true,
+        "execution_models": [
+          "omp"
+        ]
+      },
+      "parcoach": {
+        "enabled": true,
+        "execution_models": [
+          "mpi"
+        ]
+      }
+    },
+    "static_analysis_condition_sha256": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+    "static_repair_runtime_condition_sha256": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+    "readiness_gate": "READY",
+    "e3_2_decision": "ACCEPTED",
+    "e3_2_decisions_sha256": "6e41f1a68d0417d02b03955103d643320f34a79e662c9c06ab4669197a77c48e",
+    "e3_2_author_choices": "A/B/A/A/C/B/B/A"
+  },
+  "dynamic": {
+    "enabled": true,
+    "toolset": {
+      "asan_ubsan": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "omp",
+          "mpi"
+        ],
+        "options": {}
+      },
+      "drd": {
+        "enabled": false,
+        "execution_models": [
+          "omp"
+        ],
+        "options": {}
+      },
+      "helgrind": {
+        "enabled": false,
+        "execution_models": [
+          "omp"
+        ],
+        "options": {}
+      },
+      "memcheck": {
+        "enabled": true,
+        "execution_models": [
+          "serial",
+          "omp"
+        ],
+        "options": {}
+      },
+      "must": {
+        "enabled": true,
+        "execution_models": [
+          "mpi"
+        ],
+        "options": {}
+      },
+      "tsan": {
+        "enabled": true,
+        "execution_models": [
+          "omp"
+        ],
+        "options": {}
+      }
+    }
+  },
+  "enhanced": {
+    "enabled": true,
+    "frozen_specs_path": "thesis/enhanced_tests/frozen/e3_final_specs.jsonl",
+    "frozen_specs_sha256": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+    "enhanced_policy_sha256_lf_normalized": "992efd1a7edddda824618417247bf95f38cbbbc70d056d52ec33e268d2ac16c0",
+    "enhanced_policy_status": "ENFORCED",
+    "execution_models": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "enhanced_launch": {
+      "mpi_ranks": 4,
+      "omp_threads": 4
+    },
+    "run_timeout_seconds": 60,
+    "build_timeout_seconds_constant": 120.0,
+    "effective_jobs_from_config": {
+      "serial": 2,
+      "omp": 1,
+      "mpi": 1
+    },
+    "jobs_cli_override_planned": false,
+    "target_cases_per_benchmark": 20,
+    "static_base_sizes": [
+      0,
+      1,
+      2,
+      7
+    ],
+    "max_spec_size": 4096
+  },
+  "repair": {
+    "enabled": true,
+    "variants": [
+      "static_feedback",
+      "test_feedback",
+      "combined_feedback"
+    ],
+    "max_iterations": 2,
+    "api_mode": "direct",
+    "api_mode_overrides": {},
+    "external_tools_mode": "docker",
+    "external_tools": [
+      "parcoach",
+      "llov"
+    ],
+    "history_mode": "full",
+    "low_confidence_stop_mode": "grace_once",
+    "request_retry_rounds": 2,
+    "feedback": {
+      "low_confidence_prefix": "Low-confidence hint (tool precision ~0.5 on validation suites) — verify at the given location before changing code:\n",
+      "include_non_blocking": false,
+      "history_message_max_chars": 80,
+      "mismatch_report_max_indices": 3,
+      "templates": {
+        "task_header": "## Original task",
+        "history_iteration_header": "## Iteration {n} (previous attempt)",
+        "current_header": "## Current version (fix this)",
+        "feedback_header": "## Analysis feedback on the current version",
+        "non_blocking_header": "Non-blocking quality hints (optional improvements, not errors):\n",
+        "instruction": "Output the complete corrected function. Line numbers in the feedback refer to the current version shown above.\n",
+        "driver_error": "error at the call site in the test driver (your function name/signature likely does not match the expected interface): {message}\n"
+      }
+    },
+    "strategies": {
+      "static_feedback": {
+        "sources": [
+          "compiler_errors",
+          "static_findings"
+        ]
+      },
+      "test_feedback": {
+        "sources": [
+          "compiler_errors",
+          "correctness_verdicts",
+          "dynamic_findings"
+        ]
+      },
+      "combined_feedback": {
+        "sources": [
+          "compiler_errors",
+          "static_findings",
+          "correctness_verdicts",
+          "dynamic_findings"
+        ]
+      }
+    },
+    "expected_logical_loops": 33,
+    "request_upper_bound": {
+      "value": 2376,
+      "rule": "loops x max_iterations x samples per model; stop/terminal semantics make the actual number smaller, never larger"
+    },
+    "repair_condition_sha256": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40"
+  },
+  "conditions": {
+    "generation": "e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281",
+    "generation_cleaning": "1e29649f3052e73af627923718c970453c8e8337795f1b8be7a44e083988e325",
+    "assembly": "a2a76e899414dea5a81830d02eb67b4e444ec6ce901a4e6f4cd4211ebd083718",
+    "evaluation": "7f53b0903e3d5e2be2ca4de8bd085da00d3cc6e9e350fc03bf390cac66c35e74",
+    "enhanced_specs": "49b0229c508f063008078bd58cb61bfebc82c2b2b75c680b42cdd262bd440292",
+    "enhanced_policy_lf_normalized": "992efd1a7edddda824618417247bf95f38cbbbc70d056d52ec33e268d2ac16c0",
+    "semantic_decisions_lf_normalized": "90dfec3e65f5f18e31bd3642251b613c4c764a5b77a7b89238354e744b291172",
+    "semantic_decisions_counts": {
+      "resolved": 6,
+      "accepted_disclosure": 1,
+      "unresolved": 0
+    },
+    "e3_2_author_confirmation": "c2d9d447cf9434f48c9ec2c6cf1ee0a87883f06c9d9538e1ccde90303641a8d4",
+    "e3_2_decisions": "6e41f1a68d0417d02b03955103d643320f34a79e662c9c06ab4669197a77c48e",
+    "static_analysis": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+    "repair": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40",
+    "runtime": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+    "timing": "6638398d5fb1bd6251a3d4b4abee2ac080a654c1ce2f75ab7911aa203be6ec6a",
+    "cross_pilot": "23207882eea83cccc1a02f5334abf8af0f086c4e341b540971db9f1de15ba27e",
+    "cross_pilot_state_commit": "6fc8a1a9a33d287f5dc7c87bf5f3502dfda9b859",
+    "technical_provenance_cleanup": "a71ee6580b837b3877c0d9f8a2a51c121032fdf15dfb68f9768a87f2f1c306ce"
+  },
+  "provenance_policies": {
+    "writer_attribution": "repair_writer_attribution.v1",
+    "iteration_zero_writer_attribution": "POSITIVE_WRITER_PROVENANCE_STATIC_CORRECTNESS_DYNAMIC",
+    "split_invocation_coverage": "split_static_invocation_coverage.v1"
+  },
+  "open_environment_gates": [
+    "Docker first-inspect / Docker Desktop observation",
+    "TSan/ASLR",
+    "live runtime remeasurement",
+    "provider/model availability",
+    "T0 fresh authorization"
+  ],
+  "open_environment_gates_note": "environment checks only - NOT method decisions; every method decision needed before the final environment gate is closed and content-addressed in this document",
+  "sha_rule": "condition_hashing.canonical_sha256 (json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=True, default=str; SHA-256 over UTF-8) of the document with the fields `volatile` and the self-hash field removed",
+  "methodology_freeze_sha256": "c389afc06664ded5656765859425848cb6d60df42c4b6c0d3b9a555d515b230d",
+  "volatile": {
+    "generated_at_utc": "2026-09-13T20:50:57.161819Z",
+    "config_path_at_freeze": "thesis/config/config.yaml",
+    "config_sha256_lf_normalized_at_freeze": "9dc255333574a08cd76ee0ec9b895ac077b7395402ff0259bd211cedccd4e484"
+  }
+}

@@ -257,10 +257,33 @@ def enforce_stage(config: "Dict[str, Any]", run_id: str, stage: str, *,
 
     state = enforcement_state(config, run_id)
     if not state["enforced"]:
+        # a repair-iteration run of a CONTRACTED base run is analysed by the
+        # repair loop itself (writer-attributed, repair_evaluation stamped on
+        # the base run); a stage runner invoked directly on it would run
+        # unenforced - refused
+        base = iteration_base_run_id(run_id)
+        if base is not None and enforcement_state(config, base)["enforced"]:
+            raise StageRuntimeDrift(
+                stage, "contract", base, run_id, ["run_id"],
+                message="REPAIR_ITERATION_RUN_NOT_INVOCABLE (%s): %s is a repair-iteration run of the "
+                        "contracted base run %s; its stages are analysed by the repair loop only (stage "
+                        "runners must not be invoked on it directly); this stage produced NO records"
+                        % (stage, run_id, base))
         return OrderedDict([("enforced", False), ("stage", stage),
                             ("reason", state["reason"])])
 
     contract = state["contract"]
+    # config-only methodical values (niter, launch grid, enhanced launch,
+    # timeouts, tool scopes, ...) live in the frozen run manifest; a live
+    # config that deviates on a methodical key is refused before any record
+    drift = methodical_config_drift(state["manifest"], config)
+    if drift:
+        raise StageRuntimeDrift(
+            stage, "config", "the run manifest's frozen resolved_config", "the live configuration", drift,
+            message="METHODICAL_CONFIG_DRIFT (%s): the live configuration deviates from the run manifest "
+                    "frozen at the run's start on methodical keys: %s - a config edit after T0 is a "
+                    "methodical override; re-decide and re-freeze instead of running; this stage "
+                    "produced NO records" % (stage, ", ".join(drift)))
     invocation = None
     if effective_values is not None:
         invocation = ei.build_invocation(run_id, stage, profile, effective_values,
@@ -283,6 +306,37 @@ def enforce_stage(config: "Dict[str, Any]", run_id: str, stage: str, *,
                         ("invocation_sha256", (invocation or {}).get("invocation_sha256")),
                         ("contract_sha256", state["contract_sha256"]),
                         ("authorization_sha256", state["authorization_sha256"])])
+
+
+# top-level config keys whose values are methodical (everything under
+# `outputs` and `experiment` is operational)
+METHODICAL_CONFIG_KEYS = ("stages", "generation_defaults", "prompts", "models", "profiles")
+
+
+def iteration_base_run_id(run_id: str) -> "Optional[str]":
+    """`<base>__<variant>__iterN` -> base; None for a base run id."""
+    import re
+
+    match = re.match(r"^(?P<base>.+?)__(?P<variant>[^_].*?)__iter(?P<n>\d+)$", run_id or "")
+    return match.group("base") if match else None
+
+
+def methodical_config_drift(manifest: "Optional[Dict[str, Any]]",
+                            config: "Dict[str, Any]") -> "List[str]":
+    """Dot-paths under the methodical top-level keys where the live config
+    differs from the run manifest's frozen resolved_config."""
+    from thesis.evaluation.run_manifest import _jsonable, config_key_diff
+
+    frozen = (manifest or {}).get("resolved_config")
+    if not isinstance(frozen, dict):
+        return []
+    live = _jsonable(config)
+    drift = []
+    for key in METHODICAL_CONFIG_KEYS:
+        if key not in frozen and key not in live:
+            continue
+        drift.extend(config_key_diff(frozen.get(key), live.get(key), prefix=key))
+    return drift
 
 
 def _register_stage_evidence(config: "Dict[str, Any]", run_id: str, stage: str,

@@ -1,0 +1,296 @@
+{
+  "schema_version": "pilot_002_population.v1",
+  "run_id": "pilot_002",
+  "profile": "pilot",
+  "population_source": "EXPLICIT_AUTHOR_FREEZE",
+  "author_freeze": {
+    "source": "EXPLICIT_AUTHOR_FREEZE",
+    "decided_on": "2026-09-13",
+    "decided_by": "author (wave contract: PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE)",
+    "run_id": "pilot_002",
+    "profile": "pilot",
+    "selection": "stratified",
+    "benchmark_count": 12,
+    "prompt_count": 36,
+    "samples_per_prompt": 1,
+    "execution_models": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "model_count": 11,
+    "benchmarks": [
+      "dense_la/00_dense_la_lu_decomp",
+      "fft/05_fft_inverse_fft",
+      "geometry/10_geometry_convex_hull",
+      "graph/15_graph_edge_count",
+      "histogram/20_histogram_pixel_histogram",
+      "reduce/25_reduce_xor",
+      "scan/30_scan_prefix_sum",
+      "search/35_search_search_for_last_struct_by_key",
+      "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "sparse_la/45_sparse_la_sparse_solve",
+      "stencil/50_stencil_xor_kernel",
+      "transform/55_transform_relu"
+    ],
+    "model_ids": [
+      "claude_fable_5",
+      "claude_opus_5",
+      "deepseek_v4_flash",
+      "deepseek_v4_pro",
+      "gemini_31_pro",
+      "gemini_36_flash",
+      "openai_gpt55",
+      "openai_gpt56_sol",
+      "qwen36_35b_a3b",
+      "qwen37_max",
+      "qwen3_coder_api"
+    ],
+    "rationale": "exactly ONE benchmark from each of the 12 problem classes, each with all three execution models (one-benchmark-per-problem-type pilot methodology). The population is decided HERE; that it equals the historical 12-benchmark pilot is a consequence of the same methodology, not its justification.",
+    "historical_population_used_as_source": false
+  },
+  "selection": "stratified",
+  "selection_algorithm": {
+    "function": "thesis.generation.common.select_prompts",
+    "version_constant": null,
+    "description": "deterministic round-robin over sorted problem types, whole benchmarks (all execution models per benchmark), no randomness; bound here by its OUTPUT (exact keys and hashes)",
+    "notes": []
+  },
+  "prompt_limit": 36,
+  "samples_per_prompt": 1,
+  "execution_models": [
+    "serial",
+    "omp",
+    "mpi"
+  ],
+  "problem_types_filter": null,
+  "benchmark_ids": [
+    "dense_la/00_dense_la_lu_decomp",
+    "fft/05_fft_inverse_fft",
+    "geometry/10_geometry_convex_hull",
+    "graph/15_graph_edge_count",
+    "histogram/20_histogram_pixel_histogram",
+    "reduce/25_reduce_xor",
+    "scan/30_scan_prefix_sum",
+    "search/35_search_search_for_last_struct_by_key",
+    "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+    "sparse_la/45_sparse_la_sparse_solve",
+    "stencil/50_stencil_xor_kernel",
+    "transform/55_transform_relu"
+  ],
+  "problem_type_mapping": {
+    "dense_la": [
+      "dense_la/00_dense_la_lu_decomp"
+    ],
+    "fft": [
+      "fft/05_fft_inverse_fft"
+    ],
+    "geometry": [
+      "geometry/10_geometry_convex_hull"
+    ],
+    "graph": [
+      "graph/15_graph_edge_count"
+    ],
+    "histogram": [
+      "histogram/20_histogram_pixel_histogram"
+    ],
+    "reduce": [
+      "reduce/25_reduce_xor"
+    ],
+    "scan": [
+      "scan/30_scan_prefix_sum"
+    ],
+    "search": [
+      "search/35_search_search_for_last_struct_by_key"
+    ],
+    "sort": [
+      "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude"
+    ],
+    "sparse_la": [
+      "sparse_la/45_sparse_la_sparse_solve"
+    ],
+    "stencil": [
+      "stencil/50_stencil_xor_kernel"
+    ],
+    "transform": [
+      "transform/55_transform_relu"
+    ]
+  },
+  "execution_models_by_benchmark": {
+    "dense_la/00_dense_la_lu_decomp": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "fft/05_fft_inverse_fft": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "geometry/10_geometry_convex_hull": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "graph/15_graph_edge_count": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "histogram/20_histogram_pixel_histogram": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "reduce/25_reduce_xor": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "scan/30_scan_prefix_sum": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "search/35_search_search_for_last_struct_by_key": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "sparse_la/45_sparse_la_sparse_solve": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "stencil/50_stencil_xor_kernel": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "transform/55_transform_relu": [
+      "serial",
+      "omp",
+      "mpi"
+    ]
+  },
+  "prompt_keys": [
+    "dense_la|00_dense_la_lu_decomp|mpi",
+    "dense_la|00_dense_la_lu_decomp|omp",
+    "dense_la|00_dense_la_lu_decomp|serial",
+    "fft|05_fft_inverse_fft|mpi",
+    "fft|05_fft_inverse_fft|omp",
+    "fft|05_fft_inverse_fft|serial",
+    "geometry|10_geometry_convex_hull|mpi",
+    "geometry|10_geometry_convex_hull|omp",
+    "geometry|10_geometry_convex_hull|serial",
+    "graph|15_graph_edge_count|mpi",
+    "graph|15_graph_edge_count|omp",
+    "graph|15_graph_edge_count|serial",
+    "histogram|20_histogram_pixel_histogram|mpi",
+    "histogram|20_histogram_pixel_histogram|omp",
+    "histogram|20_histogram_pixel_histogram|serial",
+    "reduce|25_reduce_xor|mpi",
+    "reduce|25_reduce_xor|omp",
+    "reduce|25_reduce_xor|serial",
+    "scan|30_scan_prefix_sum|mpi",
+    "scan|30_scan_prefix_sum|omp",
+    "scan|30_scan_prefix_sum|serial",
+    "search|35_search_search_for_last_struct_by_key|mpi",
+    "search|35_search_search_for_last_struct_by_key|omp",
+    "search|35_search_search_for_last_struct_by_key|serial",
+    "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|mpi",
+    "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|omp",
+    "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|serial",
+    "sparse_la|45_sparse_la_sparse_solve|mpi",
+    "sparse_la|45_sparse_la_sparse_solve|omp",
+    "sparse_la|45_sparse_la_sparse_solve|serial",
+    "stencil|50_stencil_xor_kernel|mpi",
+    "stencil|50_stencil_xor_kernel|omp",
+    "stencil|50_stencil_xor_kernel|serial",
+    "transform|55_transform_relu|mpi",
+    "transform|55_transform_relu|omp",
+    "transform|55_transform_relu|serial"
+  ],
+  "prompt_hashes": {
+    "dense_la|00_dense_la_lu_decomp|mpi": "78c405ce8561dd697d38da2d9e56be8b27af7735cc746e3b00d10400642a05bc",
+    "dense_la|00_dense_la_lu_decomp|omp": "d3f56cff18588f28fee531c84b8a4321f5a1c722770f27f865245bbd4f55c5c3",
+    "dense_la|00_dense_la_lu_decomp|serial": "2a986a23e7ff21f1a1537ee3c3950550f8acfa22dee9a43b05d9a86c1d789eb9",
+    "fft|05_fft_inverse_fft|mpi": "90c490f74a86822b749af8b100ceae4515f20f6f225d3ca1a68f2c5fc83c3779",
+    "fft|05_fft_inverse_fft|omp": "8569add60e2a9d907f78636afe61cd248f057d5518708ac7e0ffb27a385cf5ed",
+    "fft|05_fft_inverse_fft|serial": "8683c0283bd409bbe493c77a49b1d8a44f3a428a583e9dbe345bc2a845471c68",
+    "geometry|10_geometry_convex_hull|mpi": "5448afdc520ade9ffe11eb188794511578b3262d2afed08a8ebc3f639cdea3eb",
+    "geometry|10_geometry_convex_hull|omp": "908360ea1e6fc10416067cc73e0c1a4efbf100e00e184c84b1feaa278503dd39",
+    "geometry|10_geometry_convex_hull|serial": "b9620794bb8076118b4994313fd102fda4c4fea5388e556c0c204fad354e62ed",
+    "graph|15_graph_edge_count|mpi": "56b097ead0028c9b977e454cc787b03fe33d0972163860bbeccc8cc252725e2c",
+    "graph|15_graph_edge_count|omp": "19d08712aa9cf5e788fa511a3209b590e8f57a95e0d365b60c70ae2b36eb1182",
+    "graph|15_graph_edge_count|serial": "89b04f25168500fd96cdf5ec6e3c56aa42508c5d6dea178587eb1ce0904f001c",
+    "histogram|20_histogram_pixel_histogram|mpi": "baa84fedd49d38b497422f58ad95dec703df29756f2fbff72eec64c59eabc383",
+    "histogram|20_histogram_pixel_histogram|omp": "c4f0bae8c2ec7ca7d44262aa7066a7b42f5d1a41098c1392fa2fff1e45821168",
+    "histogram|20_histogram_pixel_histogram|serial": "7e1ddcfc543de936cc56d36e46734304a6e78b7ad4550642471d2677b82fbab0",
+    "reduce|25_reduce_xor|mpi": "32e0f74de5dad786ce9b070d29fb3270e7d0fd8e8f32f67e33d82ac457b117d7",
+    "reduce|25_reduce_xor|omp": "149a9c965b2145be3187fa435c81ba73e7e780f47e3dc1ac85576694a3082604",
+    "reduce|25_reduce_xor|serial": "e6f89cb930b1272f6abd96ac92022af0510b75ef81d0a7c4aff01dde902c0f49",
+    "scan|30_scan_prefix_sum|mpi": "0d12d8b1edba54fc9d45e9afd3d6f72c5977140a0b913c85b448c4f3bb2a918f",
+    "scan|30_scan_prefix_sum|omp": "a4d4236ba83a1bb6ccb040701a68459d1720a44c74e48db076d62df458e44ab2",
+    "scan|30_scan_prefix_sum|serial": "916173ecad6c2d4d8bd548fff06713449e98531cc9e35da735b19e3be2727632",
+    "search|35_search_search_for_last_struct_by_key|mpi": "853236def8beb660d79ee03f0e76d120b2dc5f2bce70ea60828989770fbf19f5",
+    "search|35_search_search_for_last_struct_by_key|omp": "d216b18798231abb2c11760ac52a81a2084a05cd1457eef60940d6bf197f59e9",
+    "search|35_search_search_for_last_struct_by_key|serial": "fd0c33d9d049c23993d630ce96628d05af96c7ac6624f8261126f651780cc198",
+    "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|mpi": "f7b5f26d1845a4296d0720d8818edeac92c4c92192ad1f0e7a0ac85013038c61",
+    "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|omp": "e7a888d841ea2e4916c123d1b9cd2cd2d9759ab7b091c4175a114f11760a10a9",
+    "sort|40_sort_sort_an_array_of_complex_numbers_by_magnitude|serial": "d2cb6ce5ed967ec4540d60cdd61527fbfb6af4b25d02a900899369e3851dbad1",
+    "sparse_la|45_sparse_la_sparse_solve|mpi": "80128894ae6f7d124234f207548f206be20f51571f9070b704f435c5132a6ef4",
+    "sparse_la|45_sparse_la_sparse_solve|omp": "ef88ce96b8167974a7f4d103f8740fd1e9397d41001605e61b64e42e51783b8b",
+    "sparse_la|45_sparse_la_sparse_solve|serial": "6aa76c3ca10daabea546752026c8a4ecccde1b04f6bd6ee2fe4c0b58aea1abcc",
+    "stencil|50_stencil_xor_kernel|mpi": "aa8c029cf6cf11990ec075ca68e41d6520e96c2ff45b5ac7728b6fa0499fc2a2",
+    "stencil|50_stencil_xor_kernel|omp": "2f424e5b198f1bafa6f00a8b2e887ed68d13b17c45b0ee0c304b504fcc66e8d9",
+    "stencil|50_stencil_xor_kernel|serial": "87b828ea363c7477961e5b7666bcf53969b4f4904fec43a1cb262375b46ab6a5",
+    "transform|55_transform_relu|mpi": "a506bbde9f0655625f55dc5d7312332284ce448b6fb36e7729b6bf8d3e02aa0e",
+    "transform|55_transform_relu|omp": "04d4a946fc949bb77026c94c5bc606ef384f3f279d5834d4d877ff93d88ad879",
+    "transform|55_transform_relu|serial": "0ceed4dd5a98e56a2ae20ff00c63f5453251b62316849ed22425637486e71c52"
+  },
+  "prompt_key_set_sha256": "8f02ef000b2713b759ad9409659d971634fa87668d9b3c34be7304d33c3c7678",
+  "prompt_set_sha256": "d756ba3325a7c462e8d507dea0936329e4c93c7b1a60b320ffdb9b18da7f37ba",
+  "model_ids": [
+    "claude_fable_5",
+    "claude_opus_5",
+    "deepseek_v4_flash",
+    "deepseek_v4_pro",
+    "gemini_31_pro",
+    "gemini_36_flash",
+    "openai_gpt55",
+    "openai_gpt56_sol",
+    "qwen36_35b_a3b",
+    "qwen37_max",
+    "qwen3_coder_api"
+  ],
+  "benchmark_count": 12,
+  "prompt_count": 36,
+  "model_count": 11,
+  "total_model_prompt_cells": 396,
+  "source": {
+    "generation_condition_sha256": "e22ce9beb2bd9f9d85940a00585b6017eae389ad8bb933acda99f45f2d7d3281",
+    "prompt_artifact_path": "thesis/prompts/generation-prompts-thesis.json",
+    "prompt_artifact_sha256_lf_normalized": "c8e463b55044ade1bddf89aafb2308465afcef03feccf0363dae8c5d9d95358a",
+    "prompt_field": "prompt"
+  },
+  "historical_population_used_as_source": false,
+  "sha_rule": "condition_hashing.canonical_sha256 (json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=True, default=str; SHA-256 over UTF-8) of the document with the fields `volatile` and the self-hash field removed",
+  "population_sha256": "7f3476ada4511b66f8682694964ed73814900d0d1bfebcfd747a590db2cff119",
+  "volatile": {
+    "generated_at_utc": "2026-09-13T20:50:56.553939Z",
+    "pilot_001_comparison": {
+      "pilot001_population_equal": true,
+      "equality_note": "counts compared against cross_pilot_comparability.json pilot_001_population: {\"benchmark_count\": true, \"model_count\": true, \"execution_models\": true, \"cells\": true, \"samples_per_cell\": true}. Equality is an OBSERVATION: the pilot_002 population was decided explicitly by the author (population_source = EXPLICIT_AUTHOR_FREEZE); the historical pilot_001 population was neither read as a source nor does its equality grant any permission (reuse policy: NO_PILOT001_MEASUREMENT_REUSE).",
+      "pilot001_population_used_as_authority": false
+    },
+    "config_path_at_freeze": "thesis/config/config.yaml",
+    "config_sha256_lf_normalized_at_freeze": "9dc255333574a08cd76ee0ec9b895ac077b7395402ff0259bd211cedccd4e484",
+    "prompt_artifact_raw_sha256_at_freeze": "54f2bad460b87a2302431777f3ad7b3c15fa915f587baba49e024ed86d596966"
+  }
+}

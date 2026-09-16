@@ -128,6 +128,10 @@ def register_fragment(intermediate_dir: Path, run_id: str, kind: str,
         ("kind", kind),
         ("owner", owner),
         ("fingerprint_sha256", fingerprint),
+        # the FULL content, volatile fields included: a hand edit of a field
+        # the methodical fingerprint leaves out (e.g. authorized_at_utc) is
+        # still detected by verify_fragment_integrity
+        ("content_sha256", canonical_sha256(content)),
         ("registered_at_utc", _utc_now()),
         ("writer", writer),
         ("content", content),
@@ -417,6 +421,12 @@ def verify_fragment_integrity(intermediate_dir: Path, run_id: str) -> "List[Dict
         if content is None or stored is None:
             problems.append({"fragment": name, "problem": "fragment without content or fingerprint"})
             continue
+        content_stored = fragment.get("content_sha256")
+        if content_stored is not None and content_stored != canonical_sha256(content):
+            problems.append({"fragment": name,
+                             "problem": "content does not match its registered content hash "
+                                        "(a field was edited after registration)",
+                             "stored": content_stored, "recomputed": canonical_sha256(content)})
         recomputed = _recompute_fingerprint(kind, owner, content)
         if recomputed is None:
             continue  # caller-supplied condition fingerprint: not recomputable here

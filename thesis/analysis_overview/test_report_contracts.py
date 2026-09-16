@@ -190,8 +190,13 @@ def main():
           "per cell" in cross and "no 'pilot_001 improved by X%'" in cross)
     check("statistical caveats and mandatory disclosures are carried over",
           "Statistical caveat:" in cross and "mandatory disclosure:" in cross)
-    check("the reuse decision is reported as UNDECIDED and not taken",
-          "Reuse status: UNDECIDED" in cross and "NOT made by this report" in cross)
+    # the reuse decision was taken by the pilot_002 freeze (2026-09-13:
+    # DECIDED_NO_REUSE); the report CONSUMES the artifact's status verbatim
+    # and never takes or reinterprets the decision itself
+    check("the reuse status is consumed verbatim from the artifact and not taken by the report",
+          "Reuse status: %s" % artifact["reuse_status"] in cross
+          and artifact["reuse_status"] == "DECIDED_NO_REUSE"
+          and "NOT made by this report" in cross)
     check("a missing artifact yields UNKNOWN, never a silent claim",
           "UNKNOWN" in "\n".join(rc.cross_pilot_section(None)))
 

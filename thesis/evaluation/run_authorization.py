@@ -243,20 +243,28 @@ def readiness_runtime_sha(config: "Optional[Dict[str, Any]]" = None) -> "Optiona
 # T0
 # ---------------------------------------------------------------------------
 
+RUN_ID_NOT_FRESH = "RUN_ID_NOT_FRESH"
+CONTRACTED_MODEL_SET_NARROWED = "CONTRACTED_MODEL_SET_NARROWED"
+
+
 def authorize_start(config: "Dict[str, Any]", config_path: "Any", profile: str,
                     run_id: str, contract_path: "Any", *,
                     prober: "Optional[Any]" = None,
                     allow_draft_contract: bool = False,
+                    allow_prepopulated_run: bool = False,
+                    requested_model_scope: "Optional[Any]" = None,
                     stage: str = "t0_authorization") -> "OrderedDict[str, Any]":
     """The full T0 sequence. Returns the authorization on success; raises a
     PreRunInfrastructureFailure (StartRefused / RuntimeUnresolved) otherwise.
     Installs the process context so the chokepoints can validate it.
 
-    `prober` and `allow_draft_contract` are FIXTURE injections: they are
-    keyword-only, default to the productive behaviour (real docker probe, a
-    READY contract required) and are not exposed by any CLI."""
+    `prober`, `allow_draft_contract` and `allow_prepopulated_run` are FIXTURE
+    injections: they are keyword-only, default to the productive behaviour
+    (real docker probe, a READY contract required, a FRESH run required) and
+    are not exposed by any CLI."""
     from thesis.evaluation import manifest_fragments as mf
     from thesis.evaluation import pilot_run_contract as prc
+    from thesis.evaluation import run_freshness
     from thesis.evaluation import run_manifest
     from thesis.generation.common import utc_now_iso
 
@@ -268,6 +276,38 @@ def authorize_start(config: "Dict[str, Any]", config_path: "Any", profile: str,
     if frozen.get("run_id") != run_id:
         raise StartRefused("the frozen contract is for run %r, not %r"
                            % (frozen.get("run_id"), run_id))
+
+    # 2a. a FIRST START launches the FULL contracted model population: a
+    # caller that authorizes for a strict subset (a single provider child
+    # started by hand, --model-id / --provider narrowing) is refused; a
+    # later per-model resume REHYDRATES the authorization instead
+    if requested_model_scope is not None:
+        requested = sorted(str(m) for m in requested_model_scope)
+        contracted = sorted(str(m) for m in (frozen.get("model_ids") or []))
+        if requested != contracted:
+            raise StartRefused(
+                "%s: run %s is contracted for %d model(s) but this first start requests %d (%s); "
+                "missing: %s - the first start launches the full contracted population (planned "
+                "methodical overrides: NONE)"
+                % (CONTRACTED_MODEL_SET_NARROWED, run_id, len(contracted), len(requested),
+                   ", ".join(requested) or "none",
+                   ", ".join(sorted(set(contracted) - set(requested))) or "none"))
+
+    # 2b. a FIRST START needs a FRESH run (NO_PILOT001_MEASUREMENT_REUSE):
+    # a run directory that already carries generations, batch bookkeeping,
+    # assembly, stage records, repair state, manifest fragments or iteration
+    # runs would let copied historical records become this run's own inputs
+    # (the generation resume skips by sample_id, the stages merge by
+    # sample_id). Only the frozen contract itself may exist before T0.
+    if not allow_prepopulated_run:
+        freshness = run_freshness.inspect_run_freshness(config, run_id)
+        if freshness["status"] != run_freshness.FRESH:
+            raise StartRefused(
+                "%s: run %s already carries result-bearing state before its first start "
+                "(%s) - a contracted run never adopts existing records as its own inputs; "
+                "use a fresh run id or remove nothing (historical records are read-only): %s"
+                % (RUN_ID_NOT_FRESH, run_id, freshness["status"],
+                   "; ".join(freshness["result_bearing_paths"] + freshness["problems"])[:2000]))
 
     # 3./4. rebuild live and compare
     rebuilt = prc.build_contract(config_path, profile, run_id)
@@ -310,7 +350,7 @@ def authorize_start(config: "Dict[str, Any]", config_path: "Any", profile: str,
             primary_compiler=frozen.get("primary_compiler") or "g++")
         run_manifest.register_contract(config, run_id, frozen_sha, frozen)
 
-        evidence = t0_runtime_evidence(run_id, frozen_sha, readiness_sha, fresh)
+        evidence = t0_runtime_evidence(run_id, frozen_sha, readiness_sha, fresh, config)
         run_manifest.register_runtime_evidence(
             config, run_id, evidence, fingerprint=t0_evidence_fingerprint(evidence))
     except PreRunInfrastructureFailure:
@@ -405,8 +445,33 @@ def t0_evidence_fingerprint(evidence: "Dict[str, Any]") -> str:
     return canonical_sha256(body)
 
 
+def provider_endpoint_identities(config: "Dict[str, Any]") -> "OrderedDict[str, Any]":
+    """Per enabled model: a sha256 of the RESOLVED provider endpoint (the
+    literal base_url or the value of base_url_env) - the endpoint identity
+    without its value. Models whose SDK fixes the endpoint (no base_url /
+    base_url_env) record None; an unset env var records UNSET."""
+    import hashlib
+    import os
+
+    identities = OrderedDict()
+    for model in sorted((config.get("models") or []), key=lambda m: str(m.get("id"))):
+        if not isinstance(model, dict) or not model.get("enabled", False):
+            continue
+        url = model.get("base_url")
+        env = model.get("base_url_env")
+        if not url and env:
+            url = os.environ.get(str(env))
+            if not url:
+                identities[str(model.get("id"))] = "UNSET:%s" % env
+                continue
+        identities[str(model.get("id"))] = (hashlib.sha256(str(url).encode("utf-8")).hexdigest()
+                                            if url else None)
+    return identities
+
+
 def t0_runtime_evidence(run_id: str, contract_sha: str, readiness_sha: str,
-                        fresh: "Dict[str, Any]") -> "OrderedDict[str, Any]":
+                        fresh: "Dict[str, Any]",
+                        config: "Optional[Dict[str, Any]]" = None) -> "OrderedDict[str, Any]":
     from thesis.generation.common import utc_now_iso
 
     environments = fresh["environments"] or {}
@@ -432,6 +497,11 @@ def t0_runtime_evidence(run_id: str, contract_sha: str, readiness_sha: str,
         ("static_analysis_condition_sha256", fresh["static_analysis_condition_sha256"]),
         ("repair_condition_sha256", fresh["repair_condition_sha256"]),
         ("domains", domains),
+        # the provider endpoints the run was authorized for (hashes of the
+        # resolved URLs; rehydration and the batch-submit chokepoint refuse a
+        # process whose environment resolves another endpoint)
+        ("provider_endpoint_identities", provider_endpoint_identities(config) if config is not None
+         else None),
         ("probe_status", "OK"),
         ("required_runtime_domains", list(REQUIRED_RUNTIME_DOMAINS)),
         ("t0_requires_docker_and_all_three_images", T0_REQUIRES_DOCKER_AND_ALL_THREE_IMAGES),
@@ -734,6 +804,16 @@ def _load_and_validate_run_authorization(config: "Dict[str, Any]", run_id: str, 
             "contract drift in a fresh process: the authorization was granted for %s... but "
             "the live state rebuilds to %s... - a provider request under a changed contract "
             "is refused" % (str(frozen_sha)[:12], rebuilt_sha[:12]))
+    authorized_endpoints = evidence.get("provider_endpoint_identities")
+    if isinstance(authorized_endpoints, dict):
+        current_endpoints = provider_endpoint_identities(config)
+        drifted = sorted(model for model, identity in authorized_endpoints.items()
+                         if current_endpoints.get(model) != identity)
+        if drifted:
+            raise StartRefused(
+                "provider endpoint drift since T0 for %s: this process resolves another endpoint "
+                "(base_url / base_url_env value) than the one the run was authorized for"
+                % ", ".join(drifted))
 
     return OrderedDict([
         ("authorization", stored),
@@ -778,7 +858,8 @@ def bootstrap_provider_run(config: "Dict[str, Any]", config_path: "Any", profile
                            pure_poll: bool = False,
                            prior_submission: bool = False,
                            prober: "Optional[Any]" = None,
-                           stage: str = "provider_bootstrap"
+                           stage: str = "provider_bootstrap",
+                           requested_model_scope: "Optional[Any]" = None
                            ) -> "OrderedDict[str, Any]":
     """The central bootstrap every productive provider process runs BEFORE it
     can reach a chokepoint.
@@ -797,7 +878,8 @@ def bootstrap_provider_run(config: "Dict[str, Any]", config_path: "Any", profile
         return _bootstrap_provider_run(
             config, config_path, profile, run_id, contract_path=contract_path,
             pure_poll=pure_poll, prior_submission=prior_submission, prober=prober,
-            stage=stage)
+            stage=stage,
+            requested_model_scope=requested_model_scope)
     except PreRunInfrastructureFailure:
         raise
     except Exception as error:  # noqa: BLE001
@@ -811,7 +893,8 @@ def _bootstrap_provider_run(config: "Dict[str, Any]", config_path: "Any", profil
                             pure_poll: bool = False,
                             prior_submission: bool = False,
                             prober: "Optional[Any]" = None,
-                            stage: str = "provider_bootstrap"
+                            stage: str = "provider_bootstrap",
+                            requested_model_scope: "Optional[Any]" = None
                             ) -> "OrderedDict[str, Any]":
     context = current_context()
     if context is not None and context.get("run_id") == run_id:
@@ -867,7 +950,8 @@ def _bootstrap_provider_run(config: "Dict[str, Any]", config_path: "Any", profil
                             canonical_contract_path(config, run_id))),
             ])
         authorization = authorize_start(config, config_path, profile, run_id,
-                                        discovery["path"], prober=prober, stage=stage)
+                                        discovery["path"], prober=prober, stage=stage,
+                                        requested_model_scope=requested_model_scope)
         return OrderedDict([
             ("mode", MODE_FIRST_START),
             ("run_id", run_id),

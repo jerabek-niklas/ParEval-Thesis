@@ -68,6 +68,7 @@ VERIFIER_VERSION = "verify_pilot_run.v1"
 PASS = "PASS"
 FAIL = "FAIL"
 UNRESOLVED = "UNRESOLVED"
+NOT_APPLICABLE = "NOT_APPLICABLE"
 
 # tool states that mean "the invocation completed but produced no
 # trustworthy verdict" - a coverage limitation, not a missing artifact
@@ -442,6 +443,169 @@ def check_split_static_invocations(report: Report, contract: "Optional[Dict[str,
     return matrix
 
 
+def check_record_identity(report: Report, config: Dict[str, Any], run_id: str,
+                          models: "List[str]", contract: "Optional[Dict[str, Any]]"
+                          ) -> "OrderedDict[str, Any]":
+    """NO_PILOT001_MEASUREMENT_REUSE, record side: every result record must
+    claim THIS run, carry a contract-era schema and point at this run's
+    sources (record_run_identity:<model>); the generation records must
+    postdate the start authorization and the generation summary must be
+    bound to it (generation_authorization_binding:<model>). A run without
+    persisted authorization stays UNRESOLVED there - never PASS."""
+    from thesis.evaluation import run_authorization as ra
+    from thesis.evaluation import run_freshness
+
+    authorization = ra.load_authorization(config, run_id)
+    authorized_at = (authorization or {}).get("authorized_at_utc")
+    identity = run_freshness.record_identity_problems(config, run_id, models, authorized_at)
+    for model_id in models:
+        problems = identity.get(model_id) or []
+        report.add("record_run_identity:%s" % model_id, FAIL if problems else PASS,
+                   "; ".join(problems) if problems else
+                   "every record claims run %s with a contract-era schema%s" % (
+                       run_id, " and postdates its start" if authorized_at else ""),
+                   {"problems": problems})
+    # the repair-iteration runs of the base run: their records must claim
+    # the iteration run, postdate the base run's start and carry no
+    # historical shape (repair_reuse = false is record-level)
+    iteration_problems: "List[str]" = []
+    for iteration_run in run_freshness.iteration_run_ids(config, run_id):
+        iteration_models = sorted({p.name for tree in ("raw_dir", "intermediate_dir")
+                                   for p in (Path(config["outputs"][tree]) / iteration_run).glob("*")
+                                   if p.is_dir()})
+        for model_id, problems in run_freshness.record_identity_problems(
+                config, iteration_run, iteration_models, authorized_at).items():
+            iteration_problems.extend("%s/%s: %s" % (iteration_run, model_id, p) for p in problems)
+        for model_id, entry in run_freshness.generation_binding_problems(
+                config, iteration_run, iteration_models, authorization).items():
+            iteration_problems.extend("%s/%s: %s" % (iteration_run, model_id, p)
+                                      for p in (entry.get("problems") or []))
+    report.add("repair_iteration_record_identity", FAIL if iteration_problems else PASS,
+               "; ".join(iteration_problems) if iteration_problems else
+               "every repair-iteration record claims its iteration run and postdates the base "
+               "run's start", {"problems": iteration_problems[:20]})
+    binding = run_freshness.generation_binding_problems(config, run_id, models, authorization)
+    for model_id in models:
+        entry = binding.get(model_id) or {}
+        problems = entry.get("problems") or []
+        unresolved = entry.get("unresolved") or []
+        if problems:
+            status, detail = FAIL, "; ".join(problems)
+        elif unresolved:
+            status, detail = UNRESOLVED, "; ".join(unresolved)
+        elif authorization is None:
+            status, detail = UNRESOLVED, ("no persisted start authorization - the generation "
+                                          "records cannot be bound to an authorized start")
+        else:
+            status, detail = PASS, ("generation records postdate the start authorization %s..."
+                                    % str(authorization.get("authorization_sha256"))[:12])
+        report.add("generation_authorization_binding:%s" % model_id, status, detail,
+                   {"problems": problems, "unresolved": unresolved})
+    policy = ((contract or {}).get("reuse_policy") or {}).get("policy")
+    statuses = [c["status"] for c in report.checks
+                if c["check"].startswith(("record_run_identity:", "generation_authorization_binding:",
+                                          "repair_iteration_record_identity"))]
+    if not contract:
+        overall = UNRESOLVED
+        detail = "no frozen contract - the reuse policy of this run is unknown"
+    elif policy is None:
+        overall = UNRESOLVED
+        detail = "the contract declares no reuse policy (pre-v3 contract)"
+    elif FAIL in statuses:
+        overall = FAIL
+        detail = "%s: foreign / historical records or generations outside the authorized start" % policy
+    elif UNRESOLVED in statuses or not models:
+        overall = UNRESOLVED
+        detail = "%s: the freshness of this run's inputs is not fully evidenced" % policy
+    else:
+        overall = PASS
+        detail = "%s: every record claims this run and every generation postdates its start" % policy
+    report.add("reuse_policy_honoured", overall, detail, {"policy": policy})
+    return OrderedDict([("policy", policy), ("status", overall), ("per_model", identity),
+                        ("generation_binding", binding)])
+
+
+def check_override_plan(report: Report, contract: "Optional[Dict[str, Any]]",
+                        manifest: "Optional[Dict[str, Any]]") -> None:
+    """PLANNED_METHODICAL_CLI_OVERRIDES = NONE, post-run: every registered
+    effective invocation is re-checked against the plan (a CLI-sourced
+    methodical value the contract does not pin is a FAIL); no fragments
+    at all -> UNRESOLVED."""
+    from thesis.evaluation import effective_invocation as ei
+
+    plan = (contract or {}).get("methodical_override_plan")
+    if not isinstance(plan, dict):
+        report.add("methodical_override_plan", UNRESOLVED,
+                   "the contract declares no methodical override plan (pre-v3 contract)")
+        return
+    if not ei.planned_overrides_none(contract):
+        planned = plan.get("planned_methodical_cli_overrides")
+        if planned is None:
+            report.add("methodical_override_plan", UNRESOLVED,
+                       "the contract declares no methodical override plan for this run "
+                       "(planned overrides UNDECLARED - a draft contract)")
+        else:
+            report.add("methodical_override_plan", FAIL,
+                       "the contract's planned methodical overrides are not NONE: %r" % planned)
+        return
+    from thesis.evaluation import effective_invocation as _ei
+
+    invocations = _ei.registered_invocations(manifest)
+    fragments = [((body.get("stage") if isinstance(body, dict) else None), owner, body)
+                 for owner, body in sorted(invocations.items(), key=lambda x: str(x[0]))]
+    if not fragments:
+        report.add("methodical_override_plan", UNRESOLVED,
+                   "planned overrides NONE, but no effective invocation is registered yet - "
+                   "nothing to compare")
+        return
+    problems = []
+    for stage, owner, body in fragments:
+        if not isinstance(body, dict):
+            problems.append("%s/%s: malformed invocation fragment" % (stage, owner))
+            continue
+        for problem in ei.override_plan_problems(body, contract):
+            problems.append("%s/%s: %s" % (stage, owner, problem))
+    report.add("methodical_override_plan", FAIL if problems else PASS,
+               "; ".join(problems) if problems else
+               "planned overrides NONE honoured by %d registered invocation(s)" % len(fragments),
+               {"problems": problems})
+
+
+def publication_block(config: Dict[str, Any], contract: "Optional[Dict[str, Any]]",
+                      report_document: "OrderedDict[str, Any]") -> "OrderedDict[str, Any]":
+    """POST_RUN_ACCEPTED_RESULTS_ONLY: the verifier never accepts results;
+    it reports the publication gate's decision for THIS report (always
+    false until a separate result acceptance exists)."""
+    from thesis.evaluation import pilot_freeze
+
+    paths = pilot_freeze.freeze_paths(config)
+    policy = pilot_freeze._load_json(paths["publication_policy"])
+    acceptance = pilot_freeze._load_json(paths["result_acceptance"])
+    contracted = (contract or {}).get("publication_policy") or {}
+    try:
+        decision = pilot_freeze.publication_decision(policy, report_document, acceptance,
+                                                     contract=contract)
+    except Exception as exc:  # noqa: BLE001 - the gate never raises: fail closed
+        decision = OrderedDict([("publication_allowed", False),
+                                ("post_run_verification_sha256", None),
+                                ("result_acceptance_status", None),
+                                ("reasons", ["publication gate error: %s: %s" % (type(exc).__name__, exc)]),
+                                ("label_required", None)])
+    return OrderedDict([
+        ("policy", contracted.get("policy") or (policy or {}).get("policy")),
+        ("publication_policy_sha256", contracted.get("sha256")),
+        ("publication_allowed", decision["publication_allowed"]),
+        ("post_run_verification_sha256", decision.get("post_run_verification_sha256")),
+        ("result_acceptance_status", decision["result_acceptance_status"]),
+        ("reasons", decision["reasons"]),
+        ("label_required", decision["label_required"]),
+        ("note", "the verifier reports the gate; result acceptance is a separate author decision "
+                 "recorded in %s after status PASS, naming this report by "
+                 "post_run_verification_sha256 (pilot_freeze.post_run_report_digest: the report "
+                 "minus this block)" % pilot_freeze.RESULT_ACCEPTANCE_SCHEMA),
+    ])
+
+
 def check_invocation(report: Report, contract: "Optional[Dict[str, Any]]",
                      manifest: "Optional[Dict[str, Any]]") -> None:
     if contract is None:
@@ -651,6 +815,74 @@ def check_static(report: Report, config: Dict[str, Any], intermediate: Path, run
                {"missing_records": missing_records[:20],
                 "missing_entries": missing_entries[:20],
                 "coverage_limitations": dict(coverage_limitations)})
+
+
+def check_dynamic(report: Report, config: Dict[str, Any], intermediate: Path, run_id: str,
+                  model_id: str, assembled: "List[Dict[str, Any]]") -> None:
+    """Dynamic coverage mirrors static coverage: every enabled dynamic tool
+    that applies to a sample's execution model must have an entry (a
+    narrowed --tools run leaves entries missing -> FAIL); a disabled stage
+    is NOT_APPLICABLE."""
+    from thesis.evaluation.tool_config import resolve_tool_settings
+
+    section = (config.get("stages") or {}).get("dynamic_analysis")
+    if not isinstance(section, dict) or not section.get("enabled", False):
+        report.add("dynamic_coverage:%s" % model_id, NOT_APPLICABLE, "dynamic analysis not contracted")
+        return
+    settings = resolve_tool_settings(config, "dynamic_analysis")
+    records = {r.get("sample_id"): r for r in
+               _iter_jsonl(intermediate / run_id / model_id / "dynamic_analysis.jsonl")}
+    missing_records: "List[str]" = []
+    missing_entries: "List[str]" = []
+    required_any = False
+    for entry in assembled:
+        sample_id = entry["sample_id"]
+        execution_model = entry.get("execution_model") or sample_id.split("__")[-2]
+        required = [name for name, s in settings.items()
+                    if s.enabled and execution_model in s.execution_models]
+        if not required:
+            continue
+        required_any = True
+        record = records.get(sample_id)
+        if record is None:
+            missing_records.append(sample_id)
+            continue
+        tools = record.get("tools") or {}
+        for tool in required:
+            if tool not in tools:
+                missing_entries.append("%s/%s" % (sample_id, tool))
+    if not required_any:
+        report.add("dynamic_coverage:%s" % model_id, NOT_APPLICABLE,
+                   "no enabled dynamic tool applies to the assembled execution models")
+        return
+    status = PASS if not missing_records and not missing_entries else FAIL
+    report.add("dynamic_coverage:%s" % model_id, status,
+               "%d sample(s) without a dynamic record; %d missing tool entr(y/ies)"
+               % (len(missing_records), len(missing_entries)),
+               {"missing_records": missing_records[:20], "missing_entries": missing_entries[:20]})
+
+
+def check_config_drift(report: Report, manifest: "Optional[Dict[str, Any]]") -> None:
+    """A config drift the run manifest recorded after its start on a
+    METHODICAL key (stages / generation_defaults / prompts / models /
+    profiles) means a stage ran under other methodical values than the
+    frozen ones -> FAIL; operational drift (outputs) is reported only."""
+    from thesis.evaluation.stage_runtime import METHODICAL_CONFIG_KEYS
+
+    if not manifest:
+        report.add("methodical_config_drift", UNRESOLVED, "no run manifest")
+        return
+    drift = manifest.get("config_drift") or []
+    methodical = []
+    for entry in drift:
+        keys = entry.get("changed_keys") if isinstance(entry, dict) else None
+        for key in (keys or []):
+            if str(key).split(".")[0].split(" ")[0] in METHODICAL_CONFIG_KEYS:
+                methodical.append("%s: %s" % ((entry or {}).get("stage"), key))
+    report.add("methodical_config_drift", FAIL if methodical else PASS,
+               ("; ".join(methodical) if methodical else
+                "no methodical config drift recorded after the run's start (%d drift record(s))"
+                % len(drift)), {"methodical": methodical[:20]})
 
 
 def check_enhanced(report: Report, config: Dict[str, Any], intermediate: Path, run_id: str,
@@ -1012,6 +1244,7 @@ def verify(config: Dict[str, Any], run_id: str,
             known_by_model[model_id] = list(assembled_by_model[model_id])
         check_correctness(report, intermediate, run_id, model_id, assembled)
         check_static(report, config, intermediate, run_id, model_id, assembled)
+        check_dynamic(report, config, intermediate, run_id, model_id, assembled)
         if not skip_enhanced:
             check_enhanced(report, config, intermediate, run_id, model_id, assembled,
                            contract, manifest)
@@ -1021,8 +1254,13 @@ def verify(config: Dict[str, Any], run_id: str,
                                        assembled_by_model, known_by_model)
     reconcile_repair_evaluation_expectation(report, repair_matrix)
     check_runtime(report, manifest, contract)
+    # pilot_002 freeze: no reuse of historical records, no unpinned methodical
+    # CLI overrides, publication only after acceptance
+    reuse = check_record_identity(report, config, run_id, models, contract)
+    check_override_plan(report, contract, manifest)
+    check_config_drift(report, manifest)
 
-    return OrderedDict([
+    document = OrderedDict([
         ("schema_version", "post_run_verification.v1"),
         ("verifier_version", VERIFIER_VERSION),
         ("run_id", run_id),
@@ -1030,6 +1268,7 @@ def verify(config: Dict[str, Any], run_id: str,
         ("status", report.status()),
         ("counts", report.counts()),
         ("models", models),
+        ("reuse_policy", OrderedDict([("policy", reuse["policy"]), ("status", reuse["status"])])),
         ("runtime_matrix", runtime_matrix),
         ("retrospective_runtime_substitution_allowed", False),
         ("split_static_invocations", split_matrix),
@@ -1063,6 +1302,10 @@ def verify(config: Dict[str, Any], run_id: str,
         ])),
         ("checks", report.checks),
     ])
+    # the publication gate is evaluated against THIS report (its digest is
+    # the report minus the block itself) and appended last
+    document["publication"] = publication_block(config, contract, document)
+    return document
 
 
 def main() -> int:

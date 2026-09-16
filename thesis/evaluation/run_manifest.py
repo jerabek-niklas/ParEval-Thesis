@@ -689,7 +689,12 @@ def _ensure_run_manifest_fragments(
         recorded_sha = (merged.get("enhanced_execution") or {}).get(
             "enhanced_execution_fingerprint_sha256")
         current_sha = enhanced_execution.get("enhanced_execution_fingerprint_sha256")
-        if recorded_sha is None and not creating_run:
+        if recorded_sha is None and not creating_run and _enhanced_records_exist(intermediate_dir, run_id):
+            # a run that already holds enhanced records under NO recorded
+            # fingerprint predates the gate: refused. A run whose manifest
+            # T0 / generation created WITHOUT enhanced records lets its FIRST
+            # enhanced invocation pin the fingerprint (the productive order
+            # of a contracted run).
             raise EnhancedExecutionConditionMismatch(
                 "run manifest %s was frozen under enhanced execution fingerprint "
                 "<none recorded> but this invocation runs under %s. The two are "
@@ -734,6 +739,17 @@ def _ensure_run_manifest_fragments(
 
     mf.write_snapshot(intermediate_dir, run_id)
     return mf.merge_fragments(intermediate_dir, run_id)
+
+
+def _enhanced_records_exist(intermediate_dir: Path, run_id: str) -> bool:
+    run_dir = Path(intermediate_dir) / run_id
+    if not run_dir.is_dir():
+        return False
+    try:
+        return any((entry / "enhanced_tests.jsonl").is_file()
+                   for entry in run_dir.iterdir() if entry.is_dir())
+    except OSError:
+        return True  # unreadable: fail closed
 
 
 def _register_drift_fragment(intermediate_dir: Path, run_id: str, stage: str,

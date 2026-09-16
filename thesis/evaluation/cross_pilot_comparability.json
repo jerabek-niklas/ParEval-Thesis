@@ -71,7 +71,7 @@
     "counting_rule": "Benchmark-level resolution: all 99 cells of the retained discrete-payload benchmarks are preserving by constructive unreachability; all 99 cells of the excluded FP-payload benchmarks are conservatively counted unresolved (individual fail-side cells there carry finite mismatch evidence and are plausibly preserving, but no per-cell claim is made). No cell shows evidence of a concrete verdict change (verdict_changed_cells = 0 means 'none demonstrated', not 'none possible' - for excluded cells the possibility is exactly why they are unresolved).",
     "historical_stdout_reparse": "NOT performed: historical pilot_001 stdout predates the nonce and MUST NOT be fed through the authenticated parser as a verdict comparison; the class analysis is code- and record-structure-based."
   },
-  "reuse_status": "UNDECIDED",
+  "reuse_status": "DECIDED_NO_REUSE",
   "one_sample_per_cell": true,
   "change_classes": [
     {
@@ -137,7 +137,7 @@
     "only 12 of 60 benchmarks were in pilot_001; only 3 of those 12 remain quantitatively comparable",
     "the retained subset consists exclusively of scalar discrete-output benchmarks - a structural selection toward the simplest output class; results on it do not generalize to the suite",
     "double selection bias: stratified 12-benchmark pilot selection, then method-stability filtering",
-    "PILOT_002_REUSES_PILOT_001_GENERATIONS = UNDECIDED - attribution sharpness (generation vs grading) depends on that open decision",
+    "PILOT_002_REUSES_PILOT_001_GENERATIONS = false (DECIDED 2026-09-13: NO_PILOT001_MEASUREMENT_REUSE) - pilot_002 generations are fresh, so generation-vs-grading attribution is sharp for pilot_002",
     "the classification asserts FORMAL admissibility of a quantitative comparison on the named 99 cells only; it does NOT assert that pilot_001 is a strong, precise or statistically robust baseline"
   ],
   "rationale": "The Wave-3 report's 198-cell quantitative subset claim treated the suite-wide Wave-1/1b transport/comparator delta (F = WAVE1_TRANSPORT_CHANGE, kept separate from the benchmark-level A/B/C/D/E categories) as a caveat. This gate re-examined F class by class against the actual frozen records: K1/K7 are transport-only (with Wave-1 measured evidence that no pilot_001 verdict depended on unauthenticated markers); K2/K3/K4/K5 are verdict-relevant but constructively unreachable for discrete graded payloads. For the three FP-payload benchmarks the NaN-blind history makes hidden verdict changes undetectable in frozen records, so their 99 cells cannot be certified method-stable without re-measurement and are excluded. The quantitative claim is therefore narrowed to the 99 discrete-payload cells; A∪B∪C∪D∪E = 34/60 remains a benchmark-level change set only and F is never folded into it.",
@@ -494,7 +494,8 @@
       "allow_model_id_restriction": false,
       "source_of_expected_population": "enabled models from the validated (hash-matching) invocation config",
       "note": "The generation-condition hash already freezes WHICH model population the config defines (enabled, provider, model name, reasoning config). This check adds ONLY the execution question: does the planned base run execute that full population (selected_model_ids == enabled ids, no --model-id restriction)? No second population source of truth."
-    }
+    },
+    "documented_provenance_gaps_status": "historical statement of the reevaluation wave; gaps 1-2 are closed by the effective invocation fragments (effective_stage_invocation.v1, prerun enforcement) and verified post-run; gaps 3-4 remain as documented (compile argv per record, ambient environment) - updated 2026-09-13"
   },
   "environment_condition": {
     "expected": {
@@ -519,17 +520,63 @@
     ]
   },
   "expected_pilot_002_population": {
-    "selection": null,
-    "prompt_limit": null,
-    "num_samples_per_prompt": null,
-    "status": "NOT_YET_DECIDED",
-    "note": "The pilot_002 target population is an OPEN methodical decision (PILOT_002_POPULATION_DECISION = OPEN, in particular PILOT_002_NUM_SAMPLES_PER_PROMPT = OPEN). The historical pilot_001 values (selection=stratified, prompt_limit=36, num_samples_per_prompt=1) are deliberately NOT copied here: 1 sample per cell is a documented pilot_001 weakness, and a deliberate increase for pilot_002 would be a methodical improvement that this gate must not block. While status == NOT_YET_DECIDED the preflight reports PROFILE_POPULATION_MATCH = UNRESOLVED and PILOT_002_POPULATION_READY = false (NOT a mismatch). A later separate decision sets the three values and status = DECIDED."
+    "selection": "stratified",
+    "prompt_limit": 36,
+    "num_samples_per_prompt": 1,
+    "status": "DECIDED",
+    "decided_on": "2026-09-13",
+    "population_source": "EXPLICIT_AUTHOR_FREEZE",
+    "artifact": "thesis/evaluation/pilot_002_population.json",
+    "artifact_schema": "pilot_002_population.v1",
+    "population_sha256": "7f3476ada4511b66f8682694964ed73814900d0d1bfebcfd747a590db2cff119",
+    "prompt_key_set_sha256": "8f02ef000b2713b759ad9409659d971634fa87668d9b3c34be7304d33c3c7678",
+    "prompt_set_sha256": "d756ba3325a7c462e8d507dea0936329e4c93c7b1a60b320ffdb9b18da7f37ba",
+    "benchmark_count": 12,
+    "prompt_count": 36,
+    "model_count": 11,
+    "execution_models": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "samples_per_prompt": 1,
+    "total_model_prompt_cells": 396,
+    "benchmark_ids": [
+      "dense_la/00_dense_la_lu_decomp",
+      "fft/05_fft_inverse_fft",
+      "geometry/10_geometry_convex_hull",
+      "graph/15_graph_edge_count",
+      "histogram/20_histogram_pixel_histogram",
+      "reduce/25_reduce_xor",
+      "scan/30_scan_prefix_sum",
+      "search/35_search_search_for_last_struct_by_key",
+      "sort/40_sort_sort_an_array_of_complex_numbers_by_magnitude",
+      "sparse_la/45_sparse_la_sparse_solve",
+      "stencil/50_stencil_xor_kernel",
+      "transform/55_transform_relu"
+    ],
+    "model_ids": [
+      "claude_fable_5",
+      "claude_opus_5",
+      "deepseek_v4_flash",
+      "deepseek_v4_pro",
+      "gemini_31_pro",
+      "gemini_36_flash",
+      "openai_gpt55",
+      "openai_gpt56_sol",
+      "qwen36_35b_a3b",
+      "qwen37_max",
+      "qwen3_coder_api"
+    ],
+    "pilot001_population_used_as_authority": false,
+    "note": "DECIDED explicitly by the author (PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE, 2026-09-13): exactly one benchmark per problem class with all three execution models, 11 models, 1 sample per prompt = 396 base cells. The full identity (exact prompt keys and hashes, benchmark ids, model ids) is content-addressed in the population artifact and bound by its sha here, in the methodology freeze and in the run contract (pilot_run_contract.v3) - a count-only freeze would not suffice. Equality with the historical 12-benchmark pilot_001 population is an observation of the same one-benchmark-per-problem-type methodology, never a source of authority and never a reuse permission."
   },
   "expected_pilot_002_base_run": {
-    "run_id": null,
-    "status": "NOT_YET_CONFIGURED",
+    "run_id": "pilot_002",
+    "status": "CONFIGURED",
     "forbid_iteration_variants": true,
-    "note": "No pilot_002 base run id is configured yet (the config pilot profile still carries the historical pilot_001 run id, which is deliberately NOT adopted as the expected pilot_002 value). While NOT_YET_CONFIGURED the preflight reports RUN_ID_MATCH = UNRESOLVED and PILOT_002_BASE_RUN_ID_READY = false. Independent of this status, reserved/iteration run ids (pilot_001, smoke_*, full_*, repair_smoke_*, model_check_*, any '__iter'/variant suffix) are always rejected - a repair-iteration population can never be the cross-pilot base run."
+    "configured_on": "2026-09-13",
+    "note": "The base run is exactly `pilot_002` (config profiles.pilot.run_id). Repair-iteration runs are derived from it by the productive schema only (`pilot_002__<variant>__iterN`) and can never be the base run; `pilot_001` stays the read-only historical baseline. Reserved/iteration run ids are always rejected (preflight RESERVED_RUN_ID_PATTERNS, contract builder, authorize_start)."
   },
   "validity": {
     "stale": false,
@@ -665,24 +712,27 @@
       "config_generation_condition_matches",
       "config_evaluation_condition_matches",
       "profile_exists",
-      "pilot_002_population_target_check (UNRESOLVED while NOT_YET_DECIDED)",
+      "pilot_002_population_target_check (DECIDED: profile values compared with expected_pilot_002_population; the exact population identity is bound by population_sha256 in the run contract)",
       "full_model_population_executed_no_model_id_restriction",
-      "base_run_id_check (UNRESOLVED while NOT_YET_CONFIGURED; reserved/iteration ids always rejected)",
+      "base_run_id_check (CONFIGURED: pilot_002; reserved/iteration ids always rejected)",
       "runtime_environment_toolchain_compatible",
-      "runtime_image_identity_captured"
+      "runtime_image_identity_captured",
+      "pilot_002_freeze_lines (PILOT_002_POPULATION_FREEZE_READY, PILOT_002_REUSE_POLICY_DECIDED, PILOT_002_PUBLICATION_POLICY_DECIDED, PILOT_002_METHODOLOGY_FREEZE_READY, PILOT_002_FROZEN_CONTRACT_READY, PILOT_002_RUN_ID_FRESH, SAFE_TO_PROCEED_TO_FINAL_ENVIRONMENT_GATE; PILOT_START_ALLOWED is always false in the preflight - only the T0 authorization starts a run)"
     ],
     "external_final_gate_checks": [
       "interlock_disclosure_ready",
-      "pilot_002_population_decided",
-      "pilot_002_base_run_id_configured",
-      "reuse_decision_ready",
-      "publication_policy_ready"
+      "live_runtime_remeasurement (docker first-inspect observation, image identities)",
+      "tsan_aslr_final_check",
+      "provider_model_availability",
+      "t0_contract_rebuild_and_authorization_bind"
     ],
     "external_note": "pilot_preflight.py does NOT perform the external final-gate checks and never claims to; a passing tool run reports technical_cross_pilot_preflight_passed AND final_pilot_gate_still_required - never 'pilot_002 fully authorized'.",
     "on_failure": "pilot_002_not_authorized",
     "post_run_manifest_verification": {
-      "status": "REQUIRED_NOT_IMPLEMENTED",
-      "rationale": "The preflight is a declaration check, not enforcement. After the actual pilot_002, a read-only comparison of the actual run_manifest.json (frozen resolved config, effective primary compiler, run identity, config drift, toolchain/environment provenance, and the effective invocation where materialized) against this gate is a mandatory later step. Known manifest gap to respect there: the effective --run-timeout is currently persisted nowhere by the runner."
+      "status": "REQUIRED_IMPLEMENTED",
+      "tool": "thesis/evaluation/verify_pilot_run.py (verify_pilot_run.v1; PASS required before result acceptance)",
+      "rationale": "The preflight is a declaration check, not enforcement. After the actual pilot_002, a read-only comparison of the actual run_manifest.json (frozen resolved config, effective primary compiler, run identity, config drift, toolchain/environment provenance, and the effective invocation where materialized) against this gate is a mandatory later step. The effective --run-timeout (and every other methodical CLI value) is persisted in the effective invocation fragments (effective_stage_invocation.v1) and compared against the contract by verify_pilot_run.check_effective_invocation; the earlier 'persisted nowhere' gap is closed.",
+      "updated_on": "2026-09-13"
     }
   },
   "cross_pilot_reevaluation": {
@@ -1959,7 +2009,18 @@
       "run_id": "unchanged",
       "semantic_interlocks": "unchanged",
       "static_repair": "REEVALUATED_2026-09-05: per-tool matrix and repair comparability stored in areas.F_static_repair; no reuse, publication, population or run_id decision is implied",
-      "note": "Comparability is not reuse. This artifact records which measurements COULD be compared, never which will be reused."
+      "note": "Comparability is not reuse. This artifact records which measurements COULD be compared, never which will be reused.",
+      "superseded_by": {
+        "wave": "PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE",
+        "date": "2026-09-13",
+        "start_head": "e8a72360a71be1499912de8724daa3b99eeb62ee",
+        "reuse": "DECIDED_NO_REUSE (NO_PILOT001_MEASUREMENT_REUSE)",
+        "publication_policy": "DECIDED (POST_RUN_ACCEPTED_RESULTS_ONLY)",
+        "pilot_002_population": "DECIDED (population_sha256 7f3476ada4511b66f8682694964ed73814900d0d1bfebcfd747a590db2cff119)",
+        "pilot_002_base_run_id": "CONFIGURED (pilot_002)",
+        "run_id": "profiles.pilot.run_id pilot_001 -> pilot_002",
+        "note": "the reevaluation wave's statement above is kept as its historical record; the decisions are made in the top-level fields expected_pilot_002_population, expected_pilot_002_base_run, reuse_status / reuse_policy, publication_policy and methodology_freeze"
+      }
     },
     "reuse_eligibility_preparation_only": {
       "disclaimer": "Preparatory information for a LATER reuse decision. This is NOT a reuse decision and sets nothing.",
@@ -1974,7 +2035,8 @@
         "graph/15_graph_edge_count",
         "reduce/25_reduce_xor"
       ],
-      "REUSE": "UNDECIDED"
+      "REUSE": "UNDECIDED",
+      "REUSE_DECISION": "DECIDED_NO_REUSE (NO_PILOT001_MEASUREMENT_REUSE, 2026-09-13): the theoretically eligible cells are NOT reused; pilot_002 base measurements are fresh"
     },
     "no_common_percentage_across_stages": "Correctness cells and enhanced spec keys are counted separately and are never combined into a single percentage: they are different populations with different units (396 graded cells vs 240/1200 spec identities)."
   },
@@ -1986,16 +2048,87 @@
   },
   "external_gates_still_open": [
     "1 semantic interlock(s) remain, all ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002 (dense_la/00_dense_la_lu_decomp) - not a blocker; reporting requirement machine-readable, rendering pending (SEMANTIC_DISCLOSURE_RENDERING = NOT_IMPLEMENTED)",
-    "pilot_002 population decision (NOT_YET_DECIDED)",
-    "pilot_002 base run_id (NOT_YET_CONFIGURED)",
-    "reuse decision (UNDECIDED)",
-    "publication policy (unchanged)",
+    "pilot_002 population decision: DECIDED 2026-09-13 (stratified / 36 prompts / 1 sample; 12 benchmarks x 3 execution models x 11 models = 396 cells; artifact thesis/evaluation/pilot_002_population.json)",
+    "pilot_002 base run_id: CONFIGURED 2026-09-13 (pilot_002; iteration variants forbidden as base run)",
+    "reuse decision: DECIDED 2026-09-13 (NO_PILOT001_MEASUREMENT_REUSE)",
+    "publication policy: DECIDED 2026-09-13 (POST_RUN_ACCEPTED_RESULTS_ONLY; artifact thesis/evaluation/pilot_002_publication_policy.json)",
     "static/repair comparability REEVALUATED (areas.F_static_repair; not directly comparable as a whole; compiler DIRECTLY_COMPARABLE, gcc_analyzer/clang_tidy/cppcheck COMPARABLE_WITH_LIMITATIONS, infer-omp/parcoach/llov/repair METHOD_CHANGED); readiness artifact thesis/evaluation/static_repair_readiness.json consumed by pilot_preflight; E3.2 author confirmation 2026-09-12: gcc_analyzer and clang_tidy additionally LIMITED_WITH_DISCLOSURE (derived class / location identity), infer omp NOT_APPLICABLE in pilot_002, repair disclosures granular (areas.F_static_repair.repair.e3_2_author_confirmation)",
     "EFFECTIVE_INVOCATION_RUNTIME_CHECK (pilot preflight)",
     "ENVIRONMENT_RUNTIME_CHECK (pilot preflight; container is TAG_ONLY pinned)",
-    "post-run manifest verification (REQUIRED_NOT_IMPLEMENTED); technical provenance cleanup 2026-09-13: split-container invocation coverage and iteration-0 writer attribution are part of the post-run verifier"
+    "post-run manifest verification (REQUIRED_IMPLEMENTED: thesis/evaluation/verify_pilot_run.py); technical provenance cleanup 2026-09-13: split-container invocation coverage and iteration-0 writer attribution are part of the post-run verifier",
+    "FINAL ENVIRONMENT GATE + PILOT START (the only remaining pre-start step after the 2026-09-13 wave): Docker first-inspect / Docker Desktop observation, TSan/ASLR, live runtime remeasurement, provider/model availability, contract rebuild at T0, authorization binding - environment checks only, no method decision remains open"
   ],
-  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged; E3.2 author confirmation (2026-09-12, start HEAD 0cb83fab0467590fc2724ddd18b2057a72da604c): areas.F_static_repair per_tool gcc_analyzer / clang_tidy / infer texts and repair disclosures reclassified granularly for the confirmed choices A/B/A/A/C/B/B/A, static condition re-frozen 327b235a8014cb68 -> 1f7733276dd17d0e (readiness re-measured), evaluation_condition text corrected for the search/35 validation-attempt exception (no projection change); technical provenance cleanup (2026-09-13, start HEAD 78307026eeec47fa1c23f8fb23b0ee72aa4d1da0): PARCOACH/LLOV per-model invocation coverage and iteration-0 correctness/dynamic writer attribution closed (provenance only); run_correctness.py shared-state fingerprint refreshed after a recorded function-level assessment (run_model/main gained provenance arguments; every verdict function ast-identical); repair condition e6f5c32bbf329484 -> 98b8be0f753dcbc1 (orchestrator.py raw hash), static condition unchanged, comparability classes unchanged",
-  "cross_pilot_fingerprint_sha256": "acaf4584983c3de1de22584972b6628e37876da146d1cb5489877ca146fcc70d",
+  "state_commit_note": "state fingerprints unchanged since the reevaluation; semantic-interlock and global-prompt statements refreshed on 2026-09-05 at HEAD 068ac0b28ebb4b0d15f4392da1040cb7fd5f2735; Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair tool-state wave 2026-09-05 at start HEAD 59ee9c863637af63970eed32af0c3c35494cc2df: areas.F_static_repair reevaluated, K6 extended, framework.py shared-state fingerprint refreshed after a recorded function-level assessment (no correctness-relevant change); Static/Repair.1 (2026-09-06, start HEAD 2120f74a73ab299d3d12620775500f5872e6cf30): readiness runtime identity pin + fail-closed legacy static merge; provenance only, all comparability classes and both semantic condition fingerprints unchanged; E3.2 author confirmation (2026-09-12, start HEAD 0cb83fab0467590fc2724ddd18b2057a72da604c): areas.F_static_repair per_tool gcc_analyzer / clang_tidy / infer texts and repair disclosures reclassified granularly for the confirmed choices A/B/A/A/C/B/B/A, static condition re-frozen 327b235a8014cb68 -> 1f7733276dd17d0e (readiness re-measured), evaluation_condition text corrected for the search/35 validation-attempt exception (no projection change); technical provenance cleanup (2026-09-13, start HEAD 78307026eeec47fa1c23f8fb23b0ee72aa4d1da0): PARCOACH/LLOV per-model invocation coverage and iteration-0 correctness/dynamic writer attribution closed (provenance only); run_correctness.py shared-state fingerprint refreshed after a recorded function-level assessment (run_model/main gained provenance arguments; every verdict function ast-identical); repair condition e6f5c32bbf329484 -> 98b8be0f753dcbc1 (orchestrator.py raw hash), static condition unchanged, comparability classes unchanged; PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE (2026-09-13, start HEAD e8a72360a71be1499912de8724daa3b99eeb62ee): profiles.pilot.run_id pilot_001 -> pilot_002; population DECIDED by the author (stratified / 36 prompts / 1 sample / 12 benchmarks x 3 execution models x 11 models = 396 cells; population_sha256 7f3476ada4511b66), base run pilot_002 CONFIGURED, reuse DECIDED_NO_REUSE (NO_PILOT001_MEASUREMENT_REUSE), publication policy DECIDED (POST_RUN_ACCEPTED_RESULTS_ONLY, sha 3f384ac76533e6c8), planned methodical CLI overrides NONE, methodology freeze referenced by path (sha bound by the v3 run contract); every state fingerprint, both semantic condition hashes and every comparability class unchanged; no start authorization, no T0 bind, no provider submission",
+  "reuse_policy": {
+    "status": "DECIDED",
+    "decided_on": "2026-09-13",
+    "policy": "NO_PILOT001_MEASUREMENT_REUSE",
+    "pilot_002_base_measurements": "FRESH",
+    "generation_reuse": false,
+    "assembly_reuse": false,
+    "stage_result_reuse": false,
+    "enhanced_result_reuse": false,
+    "repair_reuse": false,
+    "pilot_001_role": "READ_ONLY (historical comparison baseline, cross-pilot analysis, documented re-derivations)",
+    "frozen_enhanced_specs_are_methodology_not_measurement": true,
+    "comparability_is_not_reuse": true,
+    "note": "pilot_002 is a completely new base run: no pilot_001 generations, assembly outputs, correctness, static, dynamic, enhanced results or repair outputs are copied or resumed. The comparability structure of this artifact (99 candidate cells etc.) is NOT a reuse permission. Enforced by run_authorization.authorize_start (a first start of a run that already carries result-bearing files is refused: RUN_ID_NOT_FRESH), by verify_pilot_run (record_run_identity, generation_authorization_binding, reuse_policy_honoured) and reported by pilot_preflight (PILOT_002_RUN_ID_FRESH, PILOT_002_REUSE_POLICY_DECIDED)."
+  },
+  "publication_policy": {
+    "status": "DECIDED",
+    "decided_on": "2026-09-13",
+    "policy": "POST_RUN_ACCEPTED_RESULTS_ONLY",
+    "artifact": "thesis/evaluation/pilot_002_publication_policy.json",
+    "artifact_schema": "pilot_002_publication_policy.v1",
+    "publication_policy_sha256": "3f384ac76533e6c82389f376623af2fe34d7364d92b49fea47d896db09761d4e",
+    "publication_allowed_before_result_acceptance": false,
+    "cross_pilot_claims_must_use_current_artifact_scope": true,
+    "note": "No pilot_002 result is thesis-ready, quantitatively accepted or publishable before verify_pilot_run = PASS AND RESULT_ACCEPTANCE = ACCEPTED; accepted results must be labelled pilot_002 / Pilotexperiment and may never be presented as the 60-benchmark main study; every cross-pilot statement uses only the CURRENT scope of this artifact; mandatory disclosures are listed machine-readably in the policy artifact (gate: pilot_freeze.publication_decision)."
+  },
+  "methodology_freeze": {
+    "artifact": "thesis/evaluation/pilot_002_methodology_freeze.json",
+    "artifact_schema": "pilot_002_methodology_freeze.v1",
+    "sha_binding": "the methodology freeze binds THIS artifact's fingerprint; its own sha is bound by the run contract (pilot_run_contract.v3 methodology_freeze.sha256) and recorded in thesis/evaluation/pilot_002_run_freeze_receipt.json - it is deliberately NOT hashed here (acyclic hash order: population -> publication -> this artifact -> methodology freeze -> contract -> receipt)",
+    "planned_methodical_cli_overrides": "NONE",
+    "global_override_policy": "METHODICAL_OVERRIDES_ALLOWED_ONLY_IF_DECLARED_AND_PINNED"
+  },
+  "pilot_002_freeze": {
+    "wave": "PILOT_002 POPULATION + FINAL METHODOLOGY/RUN FREEZE",
+    "date": "2026-09-13",
+    "start_head": "e8a72360a71be1499912de8724daa3b99eeb62ee",
+    "previous_cross_pilot_fingerprint_sha256": "acaf4584983c3de1de22584972b6628e37876da146d1cb5489877ca146fcc70d",
+    "self_fingerprint_update_reason": "explicit policy decisions bound into this artifact (population DECIDED, base run CONFIGURED, reuse DECIDED_NO_REUSE, publication policy DECIDED, methodology freeze reference); no historical pilot_001 result, comparability class, transport classification or per-tool evidence changed",
+    "fields_changed": [
+      "expected_pilot_002_population",
+      "expected_pilot_002_base_run",
+      "reuse_status",
+      "reuse_policy (new)",
+      "publication_policy (new)",
+      "methodology_freeze (new)",
+      "statistical_caveats[4]",
+      "external_gates_still_open[1..4,8,+1]",
+      "pilot_preflight.tool_checks[5,7,+1]",
+      "pilot_preflight.external_final_gate_checks",
+      "pilot_preflight.post_run_manifest_verification",
+      "effective_invocation_policy.documented_provenance_gaps_status (new)",
+      "cross_pilot_reevaluation.decisions_explicitly_not_made.superseded_by (new)",
+      "cross_pilot_reevaluation.reuse_eligibility_preparation_only.REUSE_DECISION (new)",
+      "state_commit_note (appended)",
+      "pilot_002_freeze (new)"
+    ],
+    "unchanged": [
+      "pilot_001_population",
+      "candidate_subset",
+      "transport_effect",
+      "change_classes",
+      "shared_state",
+      "assembly_state",
+      "environment_condition",
+      "cross_pilot_reevaluation.areas",
+      "classification_reconfirmed",
+      "state_commit"
+    ]
+  },
+  "cross_pilot_fingerprint_sha256": "23207882eea83cccc1a02f5334abf8af0f086c4e341b540971db9f1de15ba27e",
   "cross_pilot_fingerprint_rule": "canon_sha256 (check_cross_pilot_gate.canon_sha256: json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=False, SHA-256 over UTF-8) of THIS FILE'S parsed content with the fields cross_pilot_fingerprint_sha256 and cross_pilot_fingerprint_rule removed. Reproduce: load the JSON, delete both fields, canon_sha256 the rest."
 }

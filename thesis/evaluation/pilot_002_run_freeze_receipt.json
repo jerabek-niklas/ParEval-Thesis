@@ -1,0 +1,27 @@
+{
+  "schema_version": "pilot_002_run_freeze_receipt.v1",
+  "run_id": "pilot_002",
+  "profile": "pilot",
+  "methodology_freeze_sha256": "c389afc06664ded5656765859425848cb6d60df42c4b6c0d3b9a555d515b230d",
+  "population_sha256": "7f3476ada4511b66f8682694964ed73814900d0d1bfebcfd747a590db2cff119",
+  "publication_policy_sha256": "3f384ac76533e6c82389f376623af2fe34d7364d92b49fea47d896db09761d4e",
+  "reuse_policy": "NO_PILOT001_MEASUREMENT_REUSE",
+  "frozen_contract_path": "thesis/results/intermediate/pilot_002/run_contract.json",
+  "frozen_contract_path_note": "the canonical per-run location run_authorization discovers (git-ignored results tree); the contract is reproducible: a rebuild from the repository state yields the same sha",
+  "frozen_contract_sha256": "11865d9d163f74130ce35d0957e7eedfbc0b83b8764ea4600f494f4843dc8e82",
+  "contract_schema": "pilot_run_contract.v3",
+  "contract_status": "READY",
+  "rebuilt_contract_sha256": "11865d9d163f74130ce35d0957e7eedfbc0b83b8764ea4600f494f4843dc8e82",
+  "frozen_vs_rebuilt_drift_fields": [],
+  "source_head_before_freeze": "e8a72360a71be1499912de8724daa3b99eeb62ee",
+  "run_freshness": "FRESH",
+  "start_authorized": false,
+  "t0_bound": false,
+  "provider_calls": 0,
+  "result_records_written": 0,
+  "sha_rule": "condition_hashing.canonical_sha256 (json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=True, default=str; SHA-256 over UTF-8) of the document with the fields `volatile` and the self-hash field removed",
+  "receipt_sha256": "362d673f84d1df1fca36bd06764b51c1724ac96365b37e34d662ff5c5337c0bd",
+  "volatile": {
+    "generated_at_utc": "2026-09-16T16:23:15.071602Z"
+  }
+}

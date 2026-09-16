@@ -141,6 +141,47 @@ def get_enabled_models(
     return selected
 
 
+def contracted_model_set_narrowed(
+    config: dict[str, Any], args: argparse.Namespace, models: list[dict[str, Any]]
+) -> str | None:
+    """PRE_RUN_INFRASTRUCTURE_FAILURE text when this invocation would be the
+    FIRST START of a CONTRACTED run (frozen contract at the canonical
+    location, no persisted start authorization yet) and --model-id /
+    --provider narrow the contracted model set. --dry-run previews and
+    --poll (collecting an already authorized batch) are never refused; a
+    per-model re-run AFTER the authorization is an operational resume."""
+    if args.dry_run or args.poll or (args.model_id is None and args.provider is None):
+        return None
+    try:
+        from thesis.evaluation import pilot_run_contract as prc
+        from thesis.evaluation import run_authorization as ra
+
+        run_id = config["profiles"][args.profile]["run_id"]
+        contract_path = ra.canonical_contract_path(config, run_id)
+        if not contract_path.is_file() or ra.load_authorization(config, run_id) is not None:
+            return None
+        frozen = prc.load_frozen(contract_path)
+    except Exception as error:  # noqa: BLE001 - a broken contract is refused at T0 anyway
+        return (
+            f"PRE_RUN_INFRASTRUCTURE_FAILURE: the frozen contract of run "
+            f"'{config['profiles'][args.profile].get('run_id')}' could not be read "
+            f"({type(error).__name__}: {error}); refusing a narrowed start"
+        )
+    contracted = sorted(frozen.get("model_ids") or [])
+    selected = sorted(m["id"] for m in models)
+    if selected == contracted:
+        return None
+    missing = sorted(set(contracted) - set(selected))
+    return (
+        f"PRE_RUN_INFRASTRUCTURE_FAILURE: CONTRACTED_MODEL_SET_NARROWED - run '{frozen.get('run_id')}' "
+        f"is contracted for {len(contracted)} model(s) but this first start selects "
+        f"{len(selected)} ({', '.join(selected)}); missing: {', '.join(missing) or 'none'}. "
+        f"A narrowed first start is a methodical override of the model set (planned overrides: "
+        f"NONE). Start the full population (no --model-id / --provider), or re-decide and "
+        f"re-freeze the contract."
+    )
+
+
 def get_provider_script(provider: str) -> Path:
     script_name = PROVIDER_SCRIPT_MAP.get(provider)
 
@@ -252,6 +293,15 @@ def main() -> None:
             "or your --model-id / --provider filters."
         )
 
+    refusal = contracted_model_set_narrowed(config, args, models)
+    if refusal:
+        # a FIRST START of a contracted run must launch the FULL contracted
+        # model population: a narrowed start (--model-id / --provider) is a
+        # methodical override of the model set, never an operational
+        # selector. Classified refusal (exit 3), nothing is written.
+        print(refusal)
+        sys.exit(EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
+
     # freeze the run configuration at the run's true start (or record
     # config drift on continuation runs) — see run_manifest.py. The
     # EFFECTIVE prompt selection (stratified round-robin or prefix) plus
@@ -303,6 +353,26 @@ def main() -> None:
         profile=args.profile,
         models=models,
     )
+
+    if not args.dry_run and not args.poll:
+        # T0 of a CONTRACTED run happens HERE, for the full selected model
+        # population, before any child: the children REHYDRATE the
+        # authorization. An uncontracted run (no frozen contract) gets no
+        # authorization and its provider requests stay refused at the
+        # chokepoint; a refusal is a classified pre-run failure (exit 3).
+        from thesis.evaluation import run_authorization as ra
+
+        try:
+            bootstrap = ra.bootstrap_provider_run(
+                config, config_path, args.profile, profile_config["run_id"],
+                requested_model_scope=[m["id"] for m in models],
+                stage="generation_orchestrator")
+        except ra.PreRunInfrastructureFailure as error:
+            print(f"PRE_RUN_INFRASTRUCTURE_FAILURE: {error}")
+            sys.exit(EXIT_PRE_RUN_INFRASTRUCTURE_FAILURE)
+        print(f"Run authorization: {bootstrap['mode']} (authorization "
+              f"{str(bootstrap.get('authorization_sha256'))[:12]}...)")
+        ra.clear_context()
 
     failures = []
 

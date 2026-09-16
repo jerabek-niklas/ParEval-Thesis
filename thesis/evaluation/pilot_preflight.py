@@ -22,11 +22,18 @@ identity, config drift, toolchain provenance) against the gate:
     POST_RUN_MANIFEST_VERIFICATION = REQUIRED_IMPLEMENTED
     (thesis/evaluation/verify_pilot_run.py, section 18)
 
-This tool also does NOT check the external final-gate steps (pilot_002
-population decision, pilot_002 base-run-id configuration, reuse decision,
-publication policy). Those stay
-external; a passing tool run reports
-"technical_cross_pilot_preflight_passed" and
+The pilot_002 freeze (2026-09-13: population DECIDED, base run
+CONFIGURED, reuse DECIDED_NO_REUSE, publication policy DECIDED, methodology
+frozen, contract frozen at the canonical per-run location) is REPORTED in
+section 18 (PILOT_002_POPULATION_FREEZE_READY, PILOT_002_REUSE_POLICY_DECIDED,
+PILOT_002_PUBLICATION_POLICY_DECIDED, PILOT_002_METHODOLOGY_FREEZE_READY,
+PILOT_002_FROZEN_CONTRACT_READY, PILOT_002_RUN_ID_FRESH,
+SAFE_TO_PROCEED_TO_FINAL_ENVIRONMENT_GATE); an open or stale freeze keeps
+the verdict NOT_READY. What stays external is the FINAL ENVIRONMENT GATE
+(live runtime remeasurement / docker observation, TSan/ASLR, provider and
+model availability, the T0 contract rebuild + authorization bind).
+PILOT_START_ALLOWED is always false here - the preflight never authorizes;
+a passing tool run reports "technical_cross_pilot_preflight_passed" and
 "final_pilot_gate_still_required" - never "pilot_002 fully authorized".
 
 CHECKED DIMENSIONS (tool-owned)
@@ -39,12 +46,12 @@ CHECKED DIMENSIONS (tool-owned)
  4. config evaluation condition content-addressed match (same principle)
  5. declared profile exists in the config
  6. pilot_002 population: checked against the gate's
-    expected_pilot_002_population ONLY if its status is DECIDED; while
-    NOT_YET_DECIDED the result is PROFILE_POPULATION_MATCH = UNRESOLVED and
-    PILOT_002_POPULATION_READY = false. The historical pilot_001 population
-    (stratified/36/1 sample) is deliberately NOT used as an implicit target:
-    1 sample per cell is a documented pilot_001 weakness, and a deliberate
-    increase for pilot_002 must not be blocked here.
+    expected_pilot_002_population ONLY if its status is DECIDED (it is, since
+    the 2026-09-13 freeze: stratified / 36 / 1, decided explicitly by the
+    author; the exact identity - prompt keys, hashes, benchmark and model
+    ids - is bound by population_sha256 in the run contract). While
+    NOT_YET_DECIDED the result would be PROFILE_POPULATION_MATCH = UNRESOLVED;
+    the historical pilot_001 population is never an implicit target.
  7. full model population: set(selected_model_ids) must equal the enabled
     model ids of the VALIDATED config. (The generation-condition hash already
     freezes WHICH population the config defines - this check only asks
@@ -52,8 +59,9 @@ CHECKED DIMENSIONS (tool-owned)
     of truth.)
  8. no --model-id restriction (a restricted run is a smoke/debug run, never
     the cross-pilot base pilot)
- 9. run id: checked against expected_pilot_002_base_run ONLY if configured;
-    while NOT_YET_CONFIGURED: RUN_ID_MATCH = UNRESOLVED and
+ 9. run id: checked against expected_pilot_002_base_run ONLY if configured
+    (CONFIGURED since the 2026-09-13 freeze: pilot_002); while
+    NOT_YET_CONFIGURED: RUN_ID_MATCH = UNRESOLVED and
     PILOT_002_BASE_RUN_ID_READY = false (pilot_001 is never adopted as the
     expected pilot_002 run id)
 10. reserved/iteration run ids are always rejected (pilot_001, smoke_*,
@@ -157,11 +165,16 @@ def tristate(value):
     return "UNRESOLVED" if value is None else str(bool(value)).lower()
 
 
+# the freeze flags of the last prerun_infrastructure_lines() call (read by
+# main() for the verdict lines; the preflight never authorizes anything)
+FREEZE_FLAGS = {}
+
+
 def prerun_infrastructure_lines() -> "list":
     """Readiness of the pilot_002 pre-run mechanisms (assembly provenance,
     timing contract, reporting contracts, manifest architecture, contract
-    builder, T0 guard, post-run verifier). Read-only; every value is
-    computed from the productive modules, never hard-coded."""
+    builder, T0 guard, post-run verifier, the pilot_002 freeze). Read-only;
+    every value is computed from the productive modules, never hard-coded."""
     lines = []
     try:
         from thesis.analysis_overview import report_contracts
@@ -194,15 +207,21 @@ def prerun_infrastructure_lines() -> "list":
                  "shared run_manifest.json keep it and are never migrated)"
                  % manifest_fragments.FRAGMENT_SCHEMA_VERSION)
 
-    contract = pilot_run_contract.build_contract(
-        REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot")
+    try:
+        contract = pilot_run_contract.build_contract(
+            REPO_ROOT / "thesis" / "config" / "config.yaml", "pilot")
+    except Exception as exc:  # noqa: BLE001 - an UNRESOLVED line, never a traceback
+        FREEZE_FLAGS.clear()
+        FREEZE_FLAGS["contract_builder_unresolved"] = True
+        return lines + ["CONTRACT_BUILDER_STATE = UNRESOLVED (%s: %s)" % (type(exc).__name__, exc)]
     lines.append("CONTRACT_SCHEMA = %s" % pilot_run_contract.CONTRACT_SCHEMA_VERSION)
     lines.append("CONTRACT_BUILDER = READY")
     lines.append("CONTRACT_BUILDER_STATE = %s" % contract["status"])
     for blocker in contract["blockers"]:
         lines.append("  CONTRACT_BLOCKER: %s" % blocker)
-    lines.append("FINAL_PILOT002_CONTRACT = NOT_YET_CREATED (a contract can only be "
-                 "frozen once the population decision and the base run id are made)")
+    # ---- the pilot_002 freeze (population / reuse / publication /
+    # methodology / frozen contract / run freshness) ----
+    lines += pilot_002_freeze_lines(contract, config)
     lines.append("T0_START_GUARD = READY (pilot_run_contract.t0_guard: rebuild + compare "
                  "immediately before the first cost-causing request; drift -> START_REFUSED)")
     # ---- provider chokepoint enforcement (measured, not asserted) --------
@@ -305,6 +324,121 @@ def prerun_infrastructure_lines() -> "list":
     lines.append("POST_RUN_VERIFICATION_REQUIRED_FOR_RESULT_ACCEPTANCE = true")
     lines.append("SEMANTIC_DISCLOSURE_RENDERING = %s"
                  % semantic_gate.disclosure_rendering_state())
+    return lines
+
+
+def pilot_002_freeze_lines(contract, config) -> "list":
+    """The freeze state of the pilot_002 base run: every value derived from
+    the freeze artifacts, the contract and the productive modules. READY
+    lines are readiness reporting - the preflight never authorizes a start
+    (PILOT_START_ALLOWED is always false here; only the T0 authorization
+    starts a run)."""
+    from thesis.evaluation import pilot_freeze, pilot_run_contract, run_authorization, run_freshness
+
+    lines = []
+    flags = {}
+    freeze = contract.get("population_freeze") or {}
+    reuse = contract.get("reuse_policy") or {}
+    publication = contract.get("publication_policy") or {}
+    methodology = contract.get("methodology_freeze") or {}
+    plan = contract.get("methodical_override_plan") or {}
+    base_run = contract.get("base_run") or {}
+    run_id = contract.get("run_id")
+
+    population_ready = (freeze.get("status") == pilot_freeze.FRESH
+                        and freeze.get("population_source") == pilot_freeze.POPULATION_SOURCE
+                        and (contract.get("policy_state") or {}).get("population_status") == "DECIDED"
+                        and not any(b.startswith(("population", "pilot_002 population",
+                                                   "selected prompt", "model set", "frozen cell"))
+                                    for b in contract.get("blockers") or []))
+    flags["population"] = bool(population_ready)
+    lines.append("PILOT_002_POPULATION_FREEZE_READY = %s (%s; %s benchmarks x %s execution models "
+                 "-> %s prompts, %s models, %s sample(s) per prompt, %s base cells; population_sha256 %s; "
+                 "artifact %s)"
+                 % (str(flags["population"]).lower(), freeze.get("status"),
+                    freeze.get("benchmark_count"), len(freeze.get("execution_models") or []),
+                    freeze.get("prompt_count"), freeze.get("model_count"),
+                    freeze.get("samples_per_prompt"), freeze.get("total_model_prompt_cells"),
+                    str(freeze.get("sha256"))[:16], freeze.get("path")))
+    lines.append("  POPULATION_SOURCE = %s" % freeze.get("population_source"))
+    lines.append("  PILOT001_POPULATION_USED_AS_AUTHORITY = false")
+    lines.append("  PILOT_002_BASE_RUN = %s (expected %s, %s; iteration variants forbidden: %s)"
+                 % (run_id, base_run.get("expected_base_run_id"), base_run.get("status"),
+                    str(base_run.get("forbid_iteration_variants")).lower()))
+
+    flags["reuse"] = bool(reuse.get("decided"))
+    lines.append("PILOT_002_REUSE_POLICY_DECIDED = %s (%s / %s; pilot_001 %s)"
+                 % (str(flags["reuse"]).lower(), reuse.get("reuse_status"), reuse.get("policy"),
+                    reuse.get("pilot_001_role") or "role undeclared"))
+    lines.append("  REUSE_PILOT001_MEASUREMENTS = %s"
+                 % ("false" if flags["reuse"] else "UNDECIDED"))
+
+    flags["publication"] = bool(publication.get("decided"))
+    lines.append("PILOT_002_PUBLICATION_POLICY_DECIDED = %s (%s; sha %s; publication before result "
+                 "acceptance: false)"
+                 % (str(flags["publication"]).lower(), publication.get("policy"),
+                    str(publication.get("sha256"))[:16]))
+
+    flags["methodology"] = methodology.get("status") == pilot_freeze.FRESH and \
+        plan.get("planned") == "NONE" and contract["status"] == pilot_run_contract.STATUS_READY
+    lines.append("PILOT_002_METHODOLOGY_FREEZE_READY = %s (%s; sha %s; planned methodical CLI "
+                 "overrides %s; contract builder %s)"
+                 % (str(bool(flags["methodology"])).lower(), methodology.get("status"),
+                    str(methodology.get("sha256"))[:16], plan.get("planned"), contract["status"]))
+    lines.append("  METHODICAL_OVERRIDE_POLICY = %s" % plan.get("global_policy"))
+    lines.append("  PLANNED_METHODICAL_OVERRIDES = %s" % plan.get("planned"))
+    lines.append("  ALLOWED_OPERATIONAL_SELECTORS = %s"
+                 % ", ".join(plan.get("allowed_operational_selectors") or []))
+
+    # the frozen contract at the canonical per-run location
+    frozen_ready = False
+    frozen_detail = "not frozen"
+    canonical = run_authorization.canonical_contract_path(config, run_id) if run_id else None
+    if canonical is not None and Path(canonical).is_file():
+        try:
+            frozen = pilot_run_contract.load_frozen(Path(canonical))
+            drift = pilot_run_contract.contract_diff(frozen, contract)
+            same = frozen.get("contract_sha256") == contract.get("contract_sha256")
+            frozen_ready = (same and not drift and frozen.get("status") == pilot_run_contract.STATUS_READY
+                            and frozen.get("run_id") == run_id
+                            and contract["status"] == pilot_run_contract.STATUS_READY)
+            frozen_detail = ("frozen %s..., rebuilt %s..., drift_fields %s, frozen status %s, schema %s, "
+                             "path %s" % (str(frozen.get("contract_sha256"))[:12],
+                                          str(contract.get("contract_sha256"))[:12], drift,
+                                          frozen.get("status"), frozen.get("schema_version"), canonical))
+        except Exception as exc:  # noqa: BLE001
+            frozen_detail = "frozen contract unusable: %s: %s" % (type(exc).__name__, exc)
+    else:
+        frozen_detail = "no frozen contract at %s" % canonical
+    flags["frozen_contract"] = bool(frozen_ready)
+    lines.append("PILOT_002_FROZEN_CONTRACT_READY = %s (%s)" % (str(flags["frozen_contract"]).lower(),
+                                                              frozen_detail))
+
+    # run freshness (NO_PILOT001_MEASUREMENT_REUSE at start)
+    freshness = run_freshness.inspect_run_freshness(config, run_id) if run_id else None
+    fresh = bool(freshness and freshness["status"] == run_freshness.FRESH)
+    flags["fresh"] = fresh
+    authorization = run_authorization.load_authorization(config, run_id) if run_id else None
+    lines.append("PILOT_002_RUN_ID_FRESH = %s (%s; result-bearing paths: %d; authorization present: %s)"
+                 % (str(fresh).lower(), (freshness or {}).get("status"),
+                    len((freshness or {}).get("result_bearing_paths") or []),
+                    str(authorization is not None).lower()))
+    for path in ((freshness or {}).get("result_bearing_paths") or [])[:10]:
+        lines.append("  RESULT_BEARING: %s" % path)
+    lines.append("PILOT_002_AUTHORIZED = %s" % str(authorization is not None).lower())
+    flags["authorized"] = authorization is not None
+
+    safe = all(flags[k] for k in ("population", "reuse", "publication", "methodology",
+                                  "frozen_contract", "fresh"))
+    flags["safe"] = safe
+    lines.append("SAFE_TO_PROCEED_TO_FINAL_ENVIRONMENT_GATE = %s (freeze complete and frozen; the "
+                 "remaining steps are environment checks: docker observation, TSan/ASLR, live runtime "
+                 "remeasurement, provider/model availability, T0 fresh authorization)"
+                 % str(safe).lower())
+    lines.append("PILOT_START_ALLOWED = false (the preflight never authorizes; T0 + final environment "
+                 "gate not executed)")
+    FREEZE_FLAGS.clear()
+    FREEZE_FLAGS.update(flags)
     return lines
 
 
@@ -901,10 +1035,19 @@ def main() -> int:
         print(line)
 
     # ---- verdict ----
+    if FREEZE_FLAGS.get("contract_builder_unresolved"):
+        unresolved = True
+    elif not FREEZE_FLAGS.get("safe"):
+        # an open freeze decision, a stale artifact, a missing frozen
+        # contract or a non-fresh run keeps the preflight NOT_READY
+        unresolved = True
+    if FREEZE_FLAGS.get("authorized"):
+        print("\nNOTE: run %s already carries a start authorization - this preflight is "
+              "then a post-start re-declaration, not a pre-start check" % inv.get("effective_run_id"))
     print("\nEXTERNAL_FINAL_GATE_CHECKS (NOT performed by this tool):"
-          " pilot_002_population_decided,"
-          " pilot_002_base_run_id_configured, reuse_decision_ready,"
-          " publication_policy_ready")
+          " live_runtime_remeasurement (docker first-inspect observation),"
+          " tsan_aslr_final_check, provider_model_availability,"
+          " t0_contract_rebuild_and_authorization_bind")
     print("POST_RUN_MANIFEST_VERIFICATION = REQUIRED_IMPLEMENTED"
           " (thesis/evaluation/verify_pilot_run.py: after the actual"
           " pilot_002 its manifest, contract binding and evidence are"
@@ -917,9 +1060,8 @@ def main() -> int:
         return 1
     if unresolved:
         print("\nRESULT: NOT_READY - pilot_002_not_authorized (open"
-              " declarations/decisions or missing provenance; with the"
-              " pilot_002 population and base-run-id targets still open this"
-              " is the expected honest state, not a test failure)")
+              " declarations/decisions, a stale freeze artifact, a missing"
+              " frozen contract, a non-fresh run or missing provenance)")
         return 2
     print("\nRESULT: technical_cross_pilot_preflight_passed -"
           " final_pilot_gate_still_required (this tool checks only the"

@@ -1,0 +1,109 @@
+{
+  "schema_version": "pilot_002_publication_policy.v1",
+  "run_id": "pilot_002",
+  "status": "DECIDED",
+  "decided_on": "2026-09-13",
+  "policy": "POST_RUN_ACCEPTED_RESULTS_ONLY",
+  "pilot_results_may_be_used_after_acceptance": true,
+  "pilot_results_must_be_labelled_as_pilot": true,
+  "pilot_label": "pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt)",
+  "may_be_presented_as_full_60_benchmark_study": false,
+  "post_run_verification_required": true,
+  "post_run_verification_tool": "thesis/evaluation/verify_pilot_run.py (status PASS required)",
+  "result_acceptance_required": true,
+  "result_acceptance_artifact": {
+    "path": "thesis/evaluation/pilot_002_result_acceptance.json",
+    "schema_version": "pilot_002_result_acceptance.v1",
+    "required_fields": [
+      "status (ACCEPTED | REJECTED | PENDING)",
+      "run_id",
+      "post_run_verification_status",
+      "post_run_verification_sha256",
+      "frozen_contract_sha256",
+      "decided_by",
+      "decided_on"
+    ],
+    "note": "written by a separate author wave AFTER verify_pilot_run = PASS; absent or PENDING means publication_allowed = false"
+  },
+  "publication_allowed_before_result_acceptance": false,
+  "cross_pilot_claims_must_follow_current_artifact": true,
+  "cross_pilot_claims_source": "thesis/evaluation/cross_pilot_comparability.json",
+  "no_numbers_from_prompt_memory_or_old_reports": true,
+  "mandatory_disclosure_sources": [
+    {
+      "id": "semantic_disclosure_dense_la_00",
+      "artifact": "thesis/evaluation/semantic_decisions_pilot002.json",
+      "field": "decisions[benchmark=dense_la/00_dense_la_lu_decomp].reporting_requirement",
+      "requirement": "per-benchmark disclosure BL-01 alongside every dense_la/00 result (false-FAIL possibility; aggregates marked as disclosure-bearing)"
+    },
+    {
+      "id": "prompt_oracle_interlock",
+      "artifact": "thesis/evaluation/prompt_oracle_interlock.json",
+      "field": "interlocks[] (enforcement = disclosure_required)",
+      "requirement": "open grader conventions disclosed next to the affected results"
+    },
+    {
+      "id": "semantic_decisions_all_disclosure_states",
+      "artifact": "thesis/evaluation/semantic_decisions_pilot002.json",
+      "field": "decisions[].status / decisions[].reporting_requirement",
+      "requirement": "every ACCEPTED_DISCLOSURE_REQUIRED_FOR_PILOT_002 decision is disclosed; unresolved_count must be 0"
+    },
+    {
+      "id": "e3_2_D1_infer_omp_scope_difference",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.D1_infer_omp_coverage_scope",
+      "requirement": "Infer OpenMP scope difference between pilot_001 and pilot_002"
+    },
+    {
+      "id": "e3_2_D2_clang_tidy_pilot_001_location_limitation",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.D2_clang_tidy_pilot_001_crlf_location_bug",
+      "requirement": "clang-tidy pilot_001 finding-location limitation"
+    },
+    {
+      "id": "e3_2_D3_gcc_analyzer_confidence_demotion_difference",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.D3_gcc_analyzer_t1_t5_confidence_demotion",
+      "requirement": "gcc_analyzer confidence-demotion difference between pilots"
+    },
+    {
+      "id": "e3_2_D4_malloc_leak_demotion_scope",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.D4_malloc_leak_demotion_scope",
+      "requirement": "malloc-leak demotion scope"
+    },
+    {
+      "id": "e3_2_D5_search_35_validation_attempt_exception",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.D5_search_35_five_validation_attempts",
+      "requirement": "search/35 validation-attempt exception (numTries = 5, suite default 2)"
+    },
+    {
+      "id": "e3_2_D6_geometry_sentinel_size_zero_untested",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.D6_geometry_sentinel_convention_size_zero_untested",
+      "requirement": "geometry sentinel convention, size-zero inputs untested"
+    },
+    {
+      "id": "e3_2_all_disclosures",
+      "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+      "field": "disclosures.* (every key)",
+      "requirement": "every E3.2 author-confirmation disclosure is carried; author choices A/B/A/A/C/B/B/A are not reinterpreted"
+    },
+    {
+      "id": "cross_pilot_current_scope",
+      "artifact": "thesis/evaluation/cross_pilot_comparability.json",
+      "field": "candidate_subset / transport_effect / change_classes / cross_pilot_reevaluation (CURRENT artifact only)",
+      "requirement": "every cross-pilot statement against pilot_001 uses only the CURRENT cross_pilot_comparability.json scope and counts"
+    }
+  ],
+  "no_accepted_publication_without_required_disclosures": true,
+  "historical_records_may_not_be_mutated": true,
+  "historical_baseline": "pilot_001",
+  "gate_function": "thesis.evaluation.pilot_freeze.publication_decision",
+  "sha_rule": "condition_hashing.canonical_sha256 (json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=True, default=str; SHA-256 over UTF-8) of the document with the fields `volatile` and the self-hash field removed",
+  "publication_policy_sha256": "3f384ac76533e6c82389f376623af2fe34d7364d92b49fea47d896db09761d4e",
+  "volatile": {
+    "generated_at_utc": "2026-09-13T19:46:10.362810Z"
+  }
+}

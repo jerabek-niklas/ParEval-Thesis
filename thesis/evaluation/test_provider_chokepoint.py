@@ -75,7 +75,7 @@ def worker_authorize(config_path: str, contract_path: str, run_id: str,
     try:
         authorization = ra.authorize_start(config, config_path, "fixture", run_id,
                                            contract_path, prober=prober,
-                                           allow_draft_contract=True)
+                                           allow_draft_contract=True, allow_prepopulated_run=True)
         print("AUTHORIZED %s" % authorization["authorization_sha256"])
         # a guarded provider call must now be reachable
         try:
@@ -144,7 +144,7 @@ def test_authorized_callers(world: World):
     ra.clear_context()
     authorization = ra.authorize_start(world.config, world.config_path, "fixture",
                                        world.run_id, world.contract_path,
-                                       prober=fake_prober, allow_draft_contract=True)
+                                       prober=fake_prober, allow_draft_contract=True, allow_prepopulated_run=True)
     check("authorization is START_ALLOWED", authorization["decision"] == ra.DECISION_ALLOWED)
     try:
         common.call_with_retries(fn=mock_direct_call, retry_attempts=0, sleep_seconds=0,
@@ -254,7 +254,7 @@ def test_runtime_gates(world_factory):
             try:
                 ra.authorize_start(world.config, world.config_path, "fixture", world.run_id,
                                    world.contract_path, prober=prober,
-                                   allow_draft_contract=True)
+                                   allow_draft_contract=True, allow_prepopulated_run=True)
                 check("%s -> START_REFUSED" % label, False)
             except ra.StartRefused as refusal:
                 check("%s -> START_REFUSED" % label, "runtime drift" in str(refusal)
@@ -277,7 +277,7 @@ def test_runtime_gates(world_factory):
 
         try:
             ra.authorize_start(world.config, world.config_path, "fixture", world.run_id,
-                               world.contract_path, prober=broken, allow_draft_contract=True)
+                               world.contract_path, prober=broken, allow_draft_contract=True, allow_prepopulated_run=True)
             check("a runtime probe failure -> PRE_RUN_RUNTIME_UNRESOLVED", False)
         except ra.RuntimeUnresolved as refusal:
             check("a runtime probe failure -> PRE_RUN_RUNTIME_UNRESOLVED",
@@ -360,7 +360,7 @@ def test_new_submission_revalidation(world: World):
     print("== every NEW submission revalidates contract and runtime ==")
     ra.clear_context()
     ra.authorize_start(world.config, world.config_path, "fixture", world.run_id,
-                       world.contract_path, prober=fake_prober, allow_draft_contract=True)
+                       world.contract_path, prober=fake_prober, allow_draft_contract=True, allow_prepopulated_run=True)
     submitted = []
     original = batch_api._anthropic_submit
     batch_api._anthropic_submit = lambda *a, **k: submitted.append("job") or {"batch_id": "b"}
@@ -414,7 +414,7 @@ def test_real_batch_response_missing_resubmission():
         config_path, out_dir, adapter, batch_config, batch_run_id, batch_contract = \
             _batch_world(world)
         ra.authorize_start(batch_config, config_path, "unit", batch_run_id,
-                           batch_contract, prober=fake_prober, allow_draft_contract=True)
+                           batch_contract, prober=fake_prober, allow_draft_contract=True, allow_prepopulated_run=True)
         submits = []
         polls = {"n": 0}
 

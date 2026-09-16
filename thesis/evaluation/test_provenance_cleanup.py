@@ -348,9 +348,17 @@ def test_split_coverage_matrix():
                 world, tool, ["m2"], replace_tool_entries={"value": True, "source": "CLI"}),
                 "static.%s@m2@tools-%s" % (tool, tool))
             report, split = split_report(world)
-            check("L4 %s: the per-model rerun fragment under the same condition as the history "
-                  "-> PASS" % tool,
-                  scope_status(report, tool, "m2") == "PASS" and report["status"] == "PASS")
+            # pilot_002 freeze: the fixture contract plans NO methodical CLI
+            # overrides, so a --replace-tool-entries rerun fragment is an
+            # UNPINNED methodical override: refused by the contract check
+            # (effective_invocation FAIL, override plan FAIL); its scope is
+            # never PASS on that fragment
+            check("L4 %s: a per-model --replace-tool-entries rerun fragment is refused under a "
+                  "plan of NONE (effective_invocation FAIL + override plan FAIL), the scope is "
+                  "not PASS" % tool,
+                  status_of(report, "effective_invocation:static.%s" % tool) == "FAIL"
+                  and status_of(report, "methodical_override_plan") == "FAIL"
+                  and scope_status(report, tool, "m2") != "PASS" and report["status"] == "FAIL")
         with tempfile.TemporaryDirectory() as tmp:
             # M: contradictory duplicates - both models were executed twice (their
             # histories carry an entry under each condition), once per per-model
@@ -493,6 +501,7 @@ class Stubbed:
         def run_sample(sample, context, launch_overrides, niter, build_timeout, run_timeout):
             return {"schema_version": "correctness.v2", "sample_id": sample.sample_id,
                     "model_id": sample.model_id, "run_id": sample.run_id,
+                    "created_at_utc": common.utc_now_iso(),
                     "execution_model": sample.execution_model, "verdict": "pass",
                     "compile": {"ok": True, "exit_code": 0, "timed_out": False,
                                 "duration_seconds": 0.1},
@@ -1207,6 +1216,7 @@ def test_interrupted_internal_run_stays_attributed():
                 raise RuntimeError("fixture: runner interrupted after the first sample")
             return {"schema_version": "correctness.v2", "sample_id": sample.sample_id,
                     "model_id": sample.model_id, "run_id": sample.run_id,
+                    "created_at_utc": common.utc_now_iso(),
                     "execution_model": sample.execution_model, "verdict": "pass",
                     "compile": {"ok": True, "exit_code": 0, "timed_out": False, "duration_seconds": 0.1},
                     "runs": []}
