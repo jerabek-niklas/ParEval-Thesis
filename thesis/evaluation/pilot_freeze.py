@@ -1143,6 +1143,23 @@ def _system_prompt_sha(gd: Dict[str, Any]) -> "Optional[str]":
     return ch.utf8_sha256(prompt) if isinstance(prompt, str) else None
 
 
+def _enforcement_provenance_view() -> "OrderedDict[str, Any]":
+    """The two pre-start enforcement conditions (stage_runtime_enforcement.v1,
+    dynamic_analysis_implementation.v1) as projections: repo-relative file
+    entries with LF-normalized hashes plus the policy tables. Reported, never
+    invented: a computation failure is recorded as an error entry (the
+    contract builder turns the missing pin into a blocker)."""
+    try:
+        from thesis.evaluation import enforcement_provenance as ep
+
+        return OrderedDict([
+            ("stage_runtime_enforcement", ep.stage_runtime_enforcement_condition()),
+            ("dynamic_analysis_implementation", ep.dynamic_analysis_implementation_condition()),
+        ])
+    except Exception as exc:  # noqa: BLE001
+        return OrderedDict([("error", "%s: %s" % (type(exc).__name__, exc))])
+
+
 def methodology_freeze_body(config: Dict[str, Any], profile_name: str, primary_compiler: str,
                             population: Dict[str, Any], publication: Dict[str, Any],
                             config_path: "Optional[Path]" = None) -> "OrderedDict[str, Any]":
@@ -1414,8 +1431,15 @@ def methodology_freeze_body(config: Dict[str, Any], profile_name: str, primary_c
             ("cross_pilot", conditions.get("cross_pilot_artifact_sha256")),
             ("cross_pilot_state_commit", conditions.get("cross_pilot_state_commit")),
             ("technical_provenance_cleanup", tpc.get("artifact_sha256")),
+            # pre-start fix wave (2026-09-16): the two enforcement pins
+            ("stage_runtime_enforcement", conditions.get("stage_runtime_enforcement_condition_sha256")),
+            ("dynamic_analysis_implementation",
+             conditions.get("dynamic_analysis_implementation_condition_sha256")),
         ])),
         ("provenance_policies", prc.provenance_policies_view()),
+        # the projections behind the two enforcement pins (file hashes +
+        # policy), so the freeze documents WHAT is pinned, not only the sha
+        ("enforcement_provenance", _enforcement_provenance_view()),
         ("open_environment_gates", [
             "Docker first-inspect / Docker Desktop observation",
             "TSan/ASLR",

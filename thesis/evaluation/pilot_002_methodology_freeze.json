@@ -732,12 +732,306 @@
     "timing": "6638398d5fb1bd6251a3d4b4abee2ac080a654c1ce2f75ab7911aa203be6ec6a",
     "cross_pilot": "23207882eea83cccc1a02f5334abf8af0f086c4e341b540971db9f1de15ba27e",
     "cross_pilot_state_commit": "6fc8a1a9a33d287f5dc7c87bf5f3502dfda9b859",
-    "technical_provenance_cleanup": "a71ee6580b837b3877c0d9f8a2a51c121032fdf15dfb68f9768a87f2f1c306ce"
+    "technical_provenance_cleanup": "a71ee6580b837b3877c0d9f8a2a51c121032fdf15dfb68f9768a87f2f1c306ce",
+    "stage_runtime_enforcement": "f065ed9c850763d2e1772446912e32f1d077baabb2877366f01c06ffc3f388c0",
+    "dynamic_analysis_implementation": "9dfde863829514136dc397e3f24bd11965be1380ebd91826835e8fa41a26b29e"
   },
   "provenance_policies": {
     "writer_attribution": "repair_writer_attribution.v1",
     "iteration_zero_writer_attribution": "POSITIVE_WRITER_PROVENANCE_STATIC_CORRECTNESS_DYNAMIC",
     "split_invocation_coverage": "split_static_invocation_coverage.v1"
+  },
+  "enforcement_provenance": {
+    "stage_runtime_enforcement": {
+      "condition_version": "stage_runtime_enforcement.v1",
+      "files": [
+        {
+          "path": "thesis/evaluation/stage_runtime.py",
+          "lf_normalized_sha256": "baf95e0c2555dbca1431b8af952bf53d6610a0f37ea98134967d711bc9b31ea3"
+        },
+        {
+          "path": "thesis/evaluation/probe_runtime_identity.py",
+          "lf_normalized_sha256": "cc203f2521cccace92c66457b265f2cc61ede10052a6dd01dae9e6f499684777"
+        }
+      ],
+      "policy": {
+        "stage_runtime_evidence_version": "stage_runtime_evidence.v1",
+        "stage_domains": {
+          "correctness": {
+            "fragment_owner": "stage.correctness",
+            "runtime_domains": [
+              "main"
+            ]
+          },
+          "dynamic": {
+            "fragment_owner": "stage.dynamic",
+            "runtime_domains": [
+              "main"
+            ]
+          },
+          "enhanced": {
+            "fragment_owner": "stage.enhanced",
+            "runtime_domains": [
+              "main"
+            ]
+          },
+          "static.main": {
+            "fragment_owner": "stage.static.main",
+            "runtime_domains": [
+              "main"
+            ]
+          },
+          "static.parcoach": {
+            "fragment_owner": "stage.static.parcoach",
+            "runtime_domains": [
+              "parcoach"
+            ]
+          },
+          "static.llov": {
+            "fragment_owner": "stage.static.llov",
+            "runtime_domains": [
+              "llov"
+            ]
+          },
+          "repair_evaluation": {
+            "fragment_owner": "stage.repair_evaluation",
+            "runtime_domains": [
+              "main"
+            ]
+          }
+        },
+        "required_identities": {
+          "main": [
+            "compiler"
+          ],
+          "parcoach": [
+            "parcoach"
+          ],
+          "llov": [
+            "llov"
+          ]
+        },
+        "required_evidence": {
+          "main": [
+            "mpi_version_line"
+          ],
+          "parcoach": [],
+          "llov": []
+        },
+        "presence_vs_drift": "REQUIRED_IDENTITIES / REQUIRED_EVIDENCE are presence checks (StageRuntimeUnresolved); a present value that differs from the T0 evidence is StageRuntimeDrift via domain_diff over the compared fields - no second identity definition",
+        "observation_modes": {
+          "docker_inspect": [
+            "image_ref",
+            "image_id",
+            "repo_digests",
+            "rootfs_layers_sha256",
+            "tool_identities",
+            "evidence"
+          ],
+          "injected": [
+            "image_ref",
+            "image_id",
+            "repo_digests",
+            "rootfs_layers_sha256",
+            "tool_identities",
+            "evidence"
+          ],
+          "inside_container": [
+            "tool_identities",
+            "evidence"
+          ]
+        },
+        "runtime_condition_version": "static_repair_runtime.v1",
+        "runtime_environment_fields": [
+          "image_ref",
+          "image_id",
+          "repo_digests",
+          "rootfs_layers_sha256",
+          "tool_identities",
+          "evidence"
+        ],
+        "probe_role_tools": {
+          "llov": [
+            "llov"
+          ],
+          "main": [
+            "compiler",
+            "gcc_analyzer",
+            "clang_tidy",
+            "cppcheck",
+            "infer"
+          ],
+          "parcoach": [
+            "parcoach"
+          ]
+        },
+        "probe_evidence_producers": {
+          "llov": "llov_evidence",
+          "main": "main_evidence",
+          "parcoach": "parcoach_evidence"
+        },
+        "split_invocation_coverage_policy": "split_static_invocation_coverage.v1"
+      },
+      "hash_rule": "condition_hashing.canonical_sha256 (sort_keys, compact separators, ensure_ascii, default=str; SHA-256 over UTF-8) of the projection; file entries carry the LF-normalized SHA-256 under a repo-relative path"
+    },
+    "dynamic_analysis_implementation": {
+      "condition_version": "dynamic_analysis_implementation.v1",
+      "files": [
+        {
+          "path": "thesis/evaluation/dynamic_tools.py",
+          "lf_normalized_sha256": "ba53a2bfb3cf27ae1f60d882762d85db00e3a544cab5fc5e60152bc52947cb1f"
+        },
+        {
+          "path": "thesis/evaluation/run_dynamic_analysis.py",
+          "lf_normalized_sha256": "e392e5f784ef7dbc0e8813e5c3727bdff3bf9701046eccd6c3fb346e84e89af2"
+        },
+        {
+          "path": "thesis/evaluation/framework.py",
+          "lf_normalized_sha256": "f418e930eb461168c819c98b43bc471fd7abf1afd3bbf7e33ab4d596384612a2"
+        },
+        {
+          "path": "thesis/evaluation/build_config.py",
+          "lf_normalized_sha256": "3808f86e0943c844828f223b0e03876491b8c0315c8aebc4123e0a20875bdee2"
+        },
+        {
+          "path": "thesis/evaluation/tool_config.py",
+          "lf_normalized_sha256": "fefc2e02a2043c5e5c5a0b479c3c834271618ad69349bf3f43381b8c5ccc0b1b"
+        }
+      ],
+      "policy": {
+        "tool_state_schema_version": "tool_state.v1",
+        "analysis_states": [
+          "NOT_APPLICABLE",
+          "COMPLETED",
+          "PARTIAL",
+          "NOT_ANALYZED",
+          "TOOL_ERROR",
+          "TIMEOUT"
+        ],
+        "sanitizer_base_flags": [
+          "-O1",
+          "-g",
+          "-fno-omit-frame-pointer"
+        ],
+        "sanitizer_niter": 1,
+        "output_cap_per_run": 4000,
+        "abnormal_exit_gap": "abnormal process exit without complete valid analysis",
+        "abnormal_exit_rule": "a launch is abnormal when it was killed by a signal (negative exit), carries a crash signature no parser turns into a verdict, has a missing/incomplete tool output, or exits non-zero without a tool report (valgrind: never a report, its exit code is the client's); any abnormal launch -> PARTIAL with findings, TOOL_ERROR without; timeouts keep TIMEOUT; attribution and dedupe unchanged",
+        "crash_signature_regex": "ThreadSanitizer:DEADLYSIGNAL|Sanitizer: CHECK failed|exited on signal|Process terminating with default action of signal",
+        "driver_problem_size_define": "DRIVER_PROBLEM_SIZE=(1<<8)",
+        "mpi_include_flags_source_sha256_lf_normalized": "216e229fd40e193851356201cf43ee24be77f8c44c34e532419398ec982cc5af",
+        "default_launch_params": {
+          "serial": [
+            {}
+          ],
+          "omp": [
+            {
+              "num_threads": 1
+            },
+            {
+              "num_threads": 2
+            },
+            {
+              "num_threads": 4
+            },
+            {
+              "num_threads": 8
+            }
+          ],
+          "mpi": [
+            {
+              "num_procs": 1
+            },
+            {
+              "num_procs": 2
+            },
+            {
+              "num_procs": 4
+            },
+            {
+              "num_procs": 8
+            }
+          ]
+        },
+        "model_driver_files": {
+          "mpi": "models/mpi-driver.cc",
+          "omp": "models/omp-driver.cc",
+          "serial": "models/serial-driver.cc"
+        },
+        "tools": {
+          "asan_ubsan": {
+            "execution_models": [
+              "serial",
+              "omp",
+              "mpi"
+            ],
+            "sanitize_flags": [
+              "-fsanitize=address,undefined"
+            ],
+            "run_env": {
+              "ASAN_OPTIONS": "detect_leaks=1",
+              "UBSAN_OPTIONS": "print_stacktrace=0"
+            }
+          },
+          "tsan": {
+            "execution_models": [
+              "omp"
+            ],
+            "sanitize_flags": [
+              "-fsanitize=thread"
+            ],
+            "tsan_options": "halt_on_error=0",
+            "compiler": "clang++"
+          },
+          "memcheck": {
+            "execution_models": [
+              "serial",
+              "omp"
+            ],
+            "launch_params": {
+              "serial": [
+                {}
+              ],
+              "omp": [
+                {
+                  "num_threads": 2
+                }
+              ]
+            },
+            "valgrind_tool": "memcheck"
+          },
+          "must": {
+            "execution_models": [
+              "mpi"
+            ],
+            "launch_params": [
+              {
+                "num_procs": 2
+              },
+              {
+                "num_procs": 4
+              }
+            ],
+            "must_timeout_seconds": 60,
+            "mustrun": "/opt/must/bin/mustrun",
+            "system_timeout_wrapper": "/usr/bin/timeout"
+          },
+          "helgrind": {
+            "execution_models": [
+              "omp"
+            ],
+            "valgrind_tool": "helgrind"
+          },
+          "drd": {
+            "execution_models": [
+              "omp"
+            ],
+            "valgrind_tool": "drd"
+          }
+        }
+      },
+      "hash_rule": "condition_hashing.canonical_sha256 (sort_keys, compact separators, ensure_ascii, default=str; SHA-256 over UTF-8) of the projection; file entries carry the LF-normalized SHA-256 under a repo-relative path"
+    }
   },
   "open_environment_gates": [
     "Docker first-inspect / Docker Desktop observation",
@@ -748,9 +1042,9 @@
   ],
   "open_environment_gates_note": "environment checks only - NOT method decisions; every method decision needed before the final environment gate is closed and content-addressed in this document",
   "sha_rule": "condition_hashing.canonical_sha256 (json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=True, default=str; SHA-256 over UTF-8) of the document with the fields `volatile` and the self-hash field removed",
-  "methodology_freeze_sha256": "c389afc06664ded5656765859425848cb6d60df42c4b6c0d3b9a555d515b230d",
+  "methodology_freeze_sha256": "7d8547ed1cf0b4808b037476fd681419c5f4f3b11df6f3cb9b5db4cfb5daf4b7",
   "volatile": {
-    "generated_at_utc": "2026-09-13T20:50:57.161819Z",
+    "generated_at_utc": "2026-09-16T20:41:07.679035Z",
     "config_path_at_freeze": "thesis/config/config.yaml",
     "config_sha256_lf_normalized_at_freeze": "9dc255333574a08cd76ee0ec9b895ac077b7395402ff0259bd211cedccd4e484"
   }

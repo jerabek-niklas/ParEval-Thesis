@@ -1189,6 +1189,242 @@ def test_must_timeout_wrapper() -> None:
         dynamic_tools.MustTool.SYSTEM_TIMEOUT = original_timeout_path
 
 
+def test_sanitizer_abnormal_exit() -> None:
+    """Pre-start fix 2026-09-16 (SANITIZER_NONZERO_EXIT_FALSE_CLEAN_PATH): an
+    instrumented launch that exits non-zero WITHOUT a sanitizer report is an
+    analysis gap, never a clean run. Fixtures A-I of the blocker-resolution
+    wave; run_command is faked, so no compiler/sanitizer is needed."""
+    print("dynamic: abnormal launch exit is fail-closed (never clean)")
+    from types import SimpleNamespace
+    from thesis.evaluation import dynamic_tools
+
+    ASAN_REPORT = (
+        "==5==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x1 at pc 0x2\n"
+        "READ of size 4 at 0x1 thread T0\n"
+        "    #0 0x2 in relu /x/generated-code.hpp:4\n"
+        "SUMMARY: AddressSanitizer: heap-buffer-overflow /x/generated-code.hpp:4 in relu\n"
+    )
+    TSAN_REPORT = (
+        "WARNING: ThreadSanitizer: data race (pid=7)\n"
+        "  Write of size 8 at 0x7b by thread T2:\n"
+        "    #0 relu(...) /x/generated-code.hpp:3 (out+0x12)\n"
+        "SUMMARY: ThreadSanitizer: data race /x/generated-code.hpp:3\n"
+    )
+    TSAN_INIT_CRASH = (
+        "==11==WARNING: ThreadSanitizer: memory layout is incompatible, possibly due to "
+        "high-entropy ASLR.\nRe-execing with fixed virtual address space.\n"
+        "ThreadSanitizer: CHECK failed: tsan_platform_linux.cpp:282 \"((personality(...)))"
+        " != ((-1))\"\n"
+    )
+
+    def scripted(script):
+        """A fake run_command: the first call is the build (0), every further
+        call pops the next (returncode, timed_out, stderr) from `script`."""
+        calls = []
+
+        def fake_run_command(argv, timeout=None, cwd=None, extra_env=None):
+            calls.append(list(argv))
+            if len(calls) == 1:  # the instrumented build
+                return SimpleNamespace(returncode=0, timed_out=False,
+                                       duration_seconds=0.01, stdout="", stderr="")
+            step = script.pop(0)
+            rc, timed_out, stderr = step[:3]
+            # optional 4th element: the valgrind XML the launch "wrote"
+            if len(step) > 3:
+                for arg in argv:
+                    if arg.startswith("--xml-file="):
+                        Path(arg[len("--xml-file="):]).write_text(step[3], encoding="utf-8")
+            return SimpleNamespace(returncode=rc, timed_out=timed_out,
+                                   duration_seconds=0.01, stdout="", stderr=stderr)
+        return fake_run_command, calls
+
+    def run(tool, execution_model, script, tmp):
+        source = Path(tmp) / "generated-code.hpp"
+        source.write_text("// stub\n", encoding="utf-8")
+        sample = SimpleNamespace(
+            execution_model=execution_model, source_path=source,
+            benchmark_dir=REPO_ROOT / "drivers" / "cpp" / "benchmarks" / "transform" / "55_transform_relu",
+            sample_id="t__transform__55_transform_relu__%s__sample_0" % execution_model,
+        )
+        context = framework.EvaluationContext(
+            repo_root=REPO_ROOT, drivers_cpp_dir=REPO_ROOT / "drivers" / "cpp",
+            primary_compiler="g++", config=None)
+        fake, calls = scripted(list(script))
+        original = dynamic_tools.run_command
+        # the TSan preflight is a separate compile+run probe (memoized per
+        # process); it is not the subject here, so its success is injected
+        saved_preflight = dynamic_tools.TsanTool._preflight_error
+        dynamic_tools.TsanTool._preflight_error = False
+        dynamic_tools.run_command = fake
+        try:
+            result = tool.run(sample, context)
+        finally:
+            dynamic_tools.run_command = original
+            dynamic_tools.TsanTool._preflight_error = saved_preflight
+        entry = result.to_dict()
+        return result, entry
+
+    def serial_asan(script, tmp):
+        return run(dynamic_tools.AsanUbsanTool(), "serial", script, tmp)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # A: exit 0 + no finding -> clean
+        result, entry = serial_asan([(0, False, "")], tmp)
+        check("A: exit 0 + no finding -> COMPLETED / CLEAN",
+              entry["analysis_state"] == framework.STATE_COMPLETED
+              and entry["tool_verdict"] == framework.VERDICT_CLEAN and result.error is None
+              and entry["analysis_details"]["launches"][0]["abnormal_exit"] is False)
+        # B: positive non-zero exit + no finding -> TOOL_ERROR (gap), never clean
+        result, entry = serial_asan([(10, False, "*** An error occurred in MPI_Allreduce ***")], tmp)
+        check("B: exit 10 + no finding -> TOOL_ERROR gap (error + gap reason, not clean)",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and entry["tool_verdict"] == framework.VERDICT_NO_TRUSTWORTHY
+              and entry["analysis_complete"] is False
+              and dynamic_tools.ABNORMAL_EXIT_GAP in (entry["analysis_gap_reason"] or "")
+              and dynamic_tools.ABNORMAL_EXIT_GAP in (entry["error"] or "")
+              and entry["findings"] == [])
+        # C: -11 + no finding (the measured TSan/ASLR startup death) -> TOOL_ERROR
+        result, entry = run(dynamic_tools.TsanTool(), "omp", [(-11, False, TSAN_INIT_CRASH)] * 4, tmp)
+        check("C: exit -11 + no finding -> TOOL_ERROR gap, never persistable as clean",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and entry["tool_verdict"] == framework.VERDICT_NO_TRUSTWORTHY
+              and entry["error"] is not None and entry["findings"] == []
+              and "exit=-11" in entry["analysis_gap_reason"]
+              and all(l["abnormal_exit"] for l in entry["analysis_details"]["launches"]))
+        check("C: the ASLR crash text is NOT mistaken for a sanitizer report",
+              not dynamic_tools.sanitizer_reported(TSAN_INIT_CRASH))
+        # D: non-zero exit + attributed ASan finding -> finding retained, abnormal
+        #    exit retained (explained by the report: not an abnormal launch)
+        result, entry = serial_asan([(1, False, ASAN_REPORT)], tmp)
+        check("D: exit 1 + ASan finding -> finding retained, DEFECT_FOUND, exit code retained",
+              entry["num_blocking"] == 1 and entry["tool_verdict"] == framework.VERDICT_DEFECT_FOUND
+              and entry["exit_code"] == 1
+              and entry["analysis_details"]["launches"][0]["tool_reported"] is True
+              and entry["analysis_details"]["launches"][0]["abnormal_exit"] is False)
+        # E: non-zero exit + attributed TSan finding -> same
+        result, entry = run(dynamic_tools.TsanTool(), "omp",
+                            [(0, False, ""), (66, False, TSAN_REPORT), (66, False, TSAN_REPORT), (66, False, TSAN_REPORT)], tmp)
+        check("E: exit 66 + TSan finding -> finding retained, DEFECT_FOUND, exit code retained",
+              entry["num_blocking"] == 1 and entry["tool_verdict"] == framework.VERDICT_DEFECT_FOUND
+              and entry["exit_code"] == 66 and entry["analysis_state"] == framework.STATE_COMPLETED)
+        # E2: non-zero exit + finding AND an abnormal launch -> PARTIAL, finding retained
+        result, entry = run(dynamic_tools.TsanTool(), "omp",
+                            [(0, False, ""), (66, False, TSAN_REPORT), (-11, False, TSAN_INIT_CRASH), (66, False, TSAN_REPORT)], tmp)
+        check("E2: finding + one abnormal launch -> PARTIAL (finding retained, DEFECT_FOUND stays)",
+              entry["analysis_state"] == framework.STATE_PARTIAL
+              and entry["tool_verdict"] == framework.VERDICT_DEFECT_FOUND
+              and entry["num_blocking"] == 1 and entry["analysis_complete"] is False
+              and "exit=-11" in entry["analysis_gap_reason"])
+        # F: multiple launch params: one clean, one abnormal -> overall NOT clean
+        result, entry = run(dynamic_tools.AsanUbsanTool(), "omp",
+                            [(0, False, ""), (-6, False, "Aborted (core dumped)"), (0, False, ""), (0, False, "")], tmp)
+        check("F: grid 1/2/4/8: one abnormal launch (exit -6) among clean ones -> NOT clean (TOOL_ERROR)",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and entry["tool_verdict"] != framework.VERDICT_CLEAN
+              and "1 of 4 launch(es)" in entry["analysis_gap_reason"]
+              and [l["abnormal_exit"] for l in entry["analysis_details"]["launches"]] == [False, True, False, False])
+        # F2: an unattributed sanitizer report explains the non-zero exit (unchanged semantics)
+        non_model = (
+            "==9==ERROR: LeakSanitizer: detected memory leaks\n"
+            "Direct leak of 688 byte(s) in 1 object(s) allocated from:\n"
+            "    #0 0x1 in malloc ../../asan_malloc_linux.cpp\n"
+            "    #1 0x2 in main /x/mpi-driver.cc:40\n"
+            "SUMMARY: AddressSanitizer: 688 byte(s) leaked in 1 allocation(s).\n"
+        )
+        result, entry = serial_asan([(1, False, non_model)], tmp)
+        check("F2: exit 1 explained by an unattributed LSan report -> COMPLETED, no finding (unchanged)",
+              entry["analysis_state"] == framework.STATE_COMPLETED and entry["findings"] == []
+              and entry["analysis_details"]["launches"][0]["tool_reported"] is True)
+        # G: timeout behaviour unchanged (TIMEOUT state, error text preserved)
+        result, entry = run(dynamic_tools.AsanUbsanTool(), "omp",
+                            [(0, False, ""), (-1, True, ""), (-1, True, ""), (-1, True, "")], tmp)
+        check("G: timed-out launches -> TIMEOUT (unchanged), error text preserved",
+              entry["analysis_state"] == framework.STATE_TIMEOUT
+              and "run timed out" in entry["error"]
+              and not any(l["abnormal_exit"] for l in entry["analysis_details"]["launches"]))
+        result, entry = run(dynamic_tools.AsanUbsanTool(), "omp",
+                            [(0, False, ""), (-1, True, ""), (-9, False, "Killed"), (0, False, "")], tmp)
+        check("G2: timeout + abnormal launch -> TIMEOUT wins, abnormal launch documented in the error",
+              entry["analysis_state"] == framework.STATE_TIMEOUT
+              and "run timed out" in entry["error"] and dynamic_tools.ABNORMAL_EXIT_GAP in entry["error"])
+        # H: attribution unchanged - a report rooted outside the model file yields no finding
+        result, entry = serial_asan([(1, False, non_model.replace("mpi-driver.cc", "baseline.hpp"))], tmp)
+        check("H: attribution unchanged (non-model report -> no finding)", entry["findings"] == [])
+        # I: dedupe unchanged - the same race at 2, 4 and 8 threads is ONE finding
+        result, entry = run(dynamic_tools.TsanTool(), "omp",
+                            [(0, False, ""), (66, False, TSAN_REPORT), (66, False, TSAN_REPORT), (66, False, TSAN_REPORT)], tmp)
+        check("I: dedupe unchanged (one finding for the same race at 2/4/8 threads)",
+              entry["num_findings"] == 1)
+        # memcheck / must: the same generic rule
+        result, entry = run(dynamic_tools.MemcheckTool(), "serial", [(-11, False, "")], tmp)
+        check("memcheck: exit -11 without a valgrind error block -> TOOL_ERROR gap",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR and entry["findings"] == [])
+        # MUST: the report is read from run_dir/MUST_Output.html; without one the
+        # existing 'no report' error applies and the abnormal exit is documented too
+        result, entry = run(dynamic_tools.MustTool(), "mpi", [(10, False, ""), (10, False, "")], tmp)
+        check("must: exit 10 without a report -> TOOL_ERROR (no report + abnormal exit documented)",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and "no report" in entry["error"] and dynamic_tools.ABNORMAL_EXIT_GAP in entry["error"])
+        # J: a death by signal AFTER an unrelated (libomp-internal) TSan report is
+        #    still abnormal - a report never explains a crash
+        tsan_fp_then_crash = (
+            "WARNING: ThreadSanitizer: data race (pid=9)\n"
+            "  Atomic read of size 1 at 0x7 by main thread:\n"
+            "    #0 pthread_mutex_lock <null> (libomp.so.5+0x1)\n"
+            "SUMMARY: ThreadSanitizer: data race libomp.so.5\n"
+            "ThreadSanitizer:DEADLYSIGNAL\n==9==ERROR: ThreadSanitizer: SEGV on unknown address 0x0\n"
+        )
+        result, entry = run(dynamic_tools.TsanTool(), "omp",
+                            [(0, False, ""), (66, False, tsan_fp_then_crash), (66, False, tsan_fp_then_crash), (66, False, tsan_fp_then_crash)], tmp)
+        check("J: TSan DEADLYSIGNAL after an unrelated report -> abnormal (crash signature), TOOL_ERROR",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR and entry["findings"] == []
+              and entry["analysis_details"]["launches"][1]["crashed"] is True
+              and entry["analysis_details"]["launches"][1]["tool_reported"] is True)
+        # K: mpirun "exited on signal" with an earlier LSan report -> abnormal
+        result, entry = run(dynamic_tools.AsanUbsanTool(), "mpi",
+                            [(0, False, ""), (139, False, non_model + "mpirun noticed that process rank 1 with PID 5 on node x exited on signal 11 (Segmentation fault).\n"), (0, False, ""), (0, False, "")], tmp)
+        check("K: mpirun 'exited on signal' -> abnormal even with an unrelated LSan report",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and entry["analysis_details"]["launches"][1]["abnormal_exit"] is True)
+        # L: memcheck/omp: client killed by SIGFPE while valgrind still emitted a
+        #    (libgomp) leak <error> block -> abnormal: valgrind never changes the
+        #    client's exit code, so no error block explains a death
+        VALGRIND_OK = "<?xml version=\"1.0\"?><valgrindoutput><protocolversion>4</protocolversion></valgrindoutput>"
+        VALGRIND_LEAK = ("<?xml version=\"1.0\"?><valgrindoutput><error><unique>0x1</unique><kind>Leak_PossiblyLost</kind>"
+                         "<stack><frame><fn>malloc</fn></frame><frame><fn>gomp_init</fn><file>libgomp.c</file></frame></stack></error>"
+                         "</valgrindoutput>")
+        result, entry = run(dynamic_tools.MemcheckTool(), "omp", [(-8, False, "", VALGRIND_LEAK)], tmp)
+        check("L: memcheck/omp SIGFPE (-8) with a libgomp leak error block -> abnormal (killed by signal), TOOL_ERROR",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR and entry["findings"] == []
+              and entry["analysis_details"]["launches"][0]["tool_reported"] is False
+              and "killed by signal" in entry["analysis_gap_reason"])
+        result, entry = run(dynamic_tools.MemcheckTool(), "serial", [(0, False, "", VALGRIND_OK)], tmp)
+        check("L2: memcheck exit 0 with a complete XML -> COMPLETED / CLEAN",
+              entry["analysis_state"] == framework.STATE_COMPLETED and entry["tool_verdict"] == framework.VERDICT_CLEAN)
+        # M: valgrind XML truncated (OOM/SIGKILL before the closing tag) -> abnormal, never clean
+        result, entry = run(dynamic_tools.MemcheckTool(), "serial", [(-9, False, "", "<?xml version=\"1.0\"?><valgrindoutput><error><unique>0x1</unique><kind>InvalidWrite</kind>")], tmp)
+        check("M: truncated valgrind XML + SIGKILL -> abnormal (tool output incomplete), TOOL_ERROR",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and entry["analysis_details"]["launches"][0]["analysis_missing"] is True)
+        # N: MUST without a report exits 0 -> still abnormal (missing analysis), TOOL_ERROR
+        result, entry = run(dynamic_tools.MustTool(), "mpi", [(0, False, ""), (0, False, "")], tmp)
+        check("N: MUST no report + exit 0 -> abnormal (tool output missing), TOOL_ERROR (consistent with the exit != 0 leg)",
+              entry["analysis_state"] == framework.STATE_TOOL_ERROR
+              and all(l["analysis_missing"] for l in entry["analysis_details"]["launches"]))
+        # O: MPI validation FAIL = MPI_Abort(comm, 0) -> mpirun exit 0 under the pinned
+        #    Open MPI 4.1.6 (pilot_001: 19 validation_failed MPI samples, all exit 0) -> clean
+        result, entry = run(dynamic_tools.AsanUbsanTool(), "mpi", [(0, False, "")] * 4, tmp)
+        check("O: exit 0 launches (incl. MPI_Abort(comm,0) after a validation FAIL) stay COMPLETED",
+              entry["analysis_state"] == framework.STATE_COMPLETED)
+        # the classifier is generic: any non-zero code, any signal
+        for code in (1, 2, 66, 124, 137, 255, -6, -9, -11):
+            outcome = dynamic_tools.LaunchOutcome({}, code, False, False)
+            check("generic: exit %d without report is abnormal" % code, outcome.abnormal)
+        check("generic: exit 0 is never abnormal; a reported exit is never abnormal",
+              not dynamic_tools.LaunchOutcome({}, 0, False, False).abnormal
+              and not dynamic_tools.LaunchOutcome({}, 1, False, True).abnormal)
+
+
 def test_environment_gates() -> None:
     print("environment gates: toolchain check, dynamic preflight, escape hatch")
     import shutil
@@ -1321,6 +1557,7 @@ def main() -> None:
         test_environment_gates,
         test_dynamic_run_model_entry_points,
         test_must_timeout_wrapper,
+        test_sanitizer_abnormal_exit,
         test_run_manifest,
     ]
 

@@ -57,10 +57,38 @@ STAGE_DOMAINS = OrderedDict([
 ])
 
 # Which measured identities a domain must expose for a stage stamp to count.
+#
+# PRESENCE vs DRIFT (pre-start fix 2026-09-16, STAGE_RUNTIME_MAIN_MPI_IDENTITY
+# _NOT_MEASURABLE): the productive main probe (probe_runtime_identity.ROLE_TOOLS
+# ["main"]) measures tool identities for compiler, gcc_analyzer, clang_tidy,
+# cppcheck and infer; MPI is measured by the SAME probe as
+# evidence.mpi_version_line (the first line of `mpirun --version`,
+# probe_runtime_identity.main_evidence) - the canonical MPI value the readiness
+# proof and the T0 evidence carry inside RUNTIME_ENVIRONMENT_FIELDS["evidence"].
+# Demanding a tool identity named "mpi" therefore made every main-domain stage
+# stamp of a contracted run STAGE_RUNTIME_UNRESOLVED (the committed fixtures
+# only passed because their fake prober carried one). The requirement is now
+# split by mechanism:
+#   * REQUIRED_IDENTITIES  - tool identities that must be PRESENT
+#   * REQUIRED_EVIDENCE    - evidence keys that must be PRESENT and non-empty
+# Both are PRESENCE checks only (-> StageRuntimeUnresolved). Whether a present
+# value CHANGED against the T0 evidence is decided exclusively by the existing
+# domain comparison of the `tool_identities` and `evidence` fields
+# (domain_diff -> StageRuntimeDrift); there is no second MPI identity
+# definition and no second drift logic.
 REQUIRED_IDENTITIES = OrderedDict([
-    (DOMAIN_MAIN, ("compiler", "mpi")),
+    (DOMAIN_MAIN, ("compiler",)),
     (DOMAIN_PARCOACH, ("parcoach",)),
     (DOMAIN_LLOV, ("llov",)),
+])
+
+# Evidence keys (per domain) that must be PRESENT and non-empty in the fresh
+# observation. `mpi_version_line` is exactly the value probe_runtime_identity
+# already records for the main role - never a second measurement of MPI.
+REQUIRED_EVIDENCE = OrderedDict([
+    (DOMAIN_MAIN, ("mpi_version_line",)),
+    (DOMAIN_PARCOACH, ()),
+    (DOMAIN_LLOV, ()),
 ])
 
 _CACHE_LOCK = threading.RLock()
@@ -420,6 +448,16 @@ def stamp_stage_runtime(config: "Dict[str, Any]", run_id: str, stage: str, *,
                 "missing %s" % ",".join(missing), ["tool_identities"],
                 "STAGE_RUNTIME_UNRESOLVED (%s / %s): required identities not measurable: %s"
                 % (stage, domain, ", ".join(missing)))
+        # PRESENCE of the required evidence keys (e.g. main: mpi_version_line);
+        # a present-but-changed value is caught below by domain_diff(`evidence`)
+        missing_evidence = [key for key in REQUIRED_EVIDENCE.get(domain, ())
+                            if not (observed.get("evidence") or {}).get(key)]
+        if missing_evidence:
+            raise StageRuntimeUnresolved(
+                stage, domain, "evidence %s" % ",".join(REQUIRED_EVIDENCE[domain]),
+                "missing %s" % ",".join(missing_evidence), ["evidence"],
+                "STAGE_RUNTIME_UNRESOLVED (%s / %s): required evidence not measurable: %s"
+                % (stage, domain, ", ".join(missing_evidence)))
         if expected is None:
             raise StageRuntimeUnresolved(
                 stage, domain, "T0 domain", "absent", ["t0_domain_missing"],

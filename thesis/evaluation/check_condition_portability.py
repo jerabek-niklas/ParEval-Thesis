@@ -47,6 +47,12 @@ TRACKED_IMPLEMENTATION_FILES = [
     "thesis/analysis_overview/report_contracts.py",
     "thesis/analysis_overview/build_overview.py",
     "thesis/evaluation/semantic_decisions_pilot002.json",
+    # pre-start enforcement pins (enforcement_provenance.py, 2026-09-16)
+    "thesis/evaluation/enforcement_provenance.py",
+    "thesis/evaluation/stage_runtime.py",
+    "thesis/evaluation/probe_runtime_identity.py",
+    "thesis/evaluation/dynamic_tools.py",
+    "thesis/evaluation/run_dynamic_analysis.py",
 ]
 
 
@@ -54,7 +60,7 @@ def fingerprints(config_path: Path) -> "OrderedDict[str, object]":
     from thesis.analysis_overview import report_contracts
     from thesis.assembly import assembly_provenance as ap
     from thesis.config.load_config import load_config
-    from thesis.evaluation import timing_semantics
+    from thesis.evaluation import enforcement_provenance, timing_semantics
 
     config = load_config(Path(config_path).resolve())
     result = OrderedDict()
@@ -73,6 +79,10 @@ def fingerprints(config_path: Path) -> "OrderedDict[str, object]":
          ap.generation_cleaning_condition_sha256(ap.generation_cleaning_condition())),
         ("timing_contract_sha256", timing_semantics.timing_contract_sha256()),
         ("report_condition_sha256", report_contracts.report_condition_sha256()),
+        ("stage_runtime_enforcement_condition_sha256",
+         enforcement_provenance.stage_runtime_enforcement_sha256()),
+        ("dynamic_analysis_implementation_condition_sha256",
+         enforcement_provenance.dynamic_analysis_implementation_sha256()),
     ])
     files = OrderedDict()
     for relative in TRACKED_IMPLEMENTATION_FILES:

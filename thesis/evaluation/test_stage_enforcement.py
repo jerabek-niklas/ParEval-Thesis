@@ -120,8 +120,8 @@ def main():
          mutate_field("main", "image_id", "sha256:" + "b" * 64)),
         ("3: correctness compiler B", "correctness",
          mutate_identity("main", "compiler", "g++ 14.0.0")),
-        ("4: correctness MPI B", "correctness",
-         mutate_identity("main", "mpi", "mpirun (Open MPI) 5.0.0")),
+        ("4: correctness MPI B (evidence.mpi_version_line)", "correctness",
+         mutate_evidence("main", "mpi_version_line", "mpirun (Open MPI) 5.0.0")),
         ("5: enhanced main image B", "enhanced",
          mutate_field("main", "image_id", "sha256:" + "e" * 64)),
         ("6: LLOV plugin Y", "static.llov",
@@ -421,6 +421,7 @@ def main():
     test_productive_invocation_fields_are_methodical()
     test_expected_set_check_is_reported()
     test_missing_authorization_is_unresolved()
+    test_main_domain_presence_vs_drift()
 
     print()
     if FAILURES:
@@ -886,6 +887,127 @@ def _refuses_duplicate() -> bool:
         return False
     except ei.InvocationRefused:
         return True
+
+
+# ---------------------------------------------------------------------------
+# main-domain identities/evidence: PRESENCE (REQUIRED_IDENTITIES /
+# REQUIRED_EVIDENCE -> UNRESOLVED) vs DRIFT (domain comparison -> DRIFT)
+# pre-start fix 2026-09-16, STAGE_RUNTIME_MAIN_MPI_IDENTITY_NOT_MEASURABLE
+# ---------------------------------------------------------------------------
+
+def drop_identity(domain, tool):
+    def apply(environments):
+        environments[domain]["tool_identities"].pop(tool, None)
+        return environments
+    return apply
+
+
+def drop_evidence(domain, key):
+    def apply(environments):
+        environments[domain]["evidence"].pop(key, None)
+        return environments
+    return apply
+
+
+def _stamp(world, stage, prober):
+    """(outcome, result-or-exception) of one enforce_stage attempt."""
+    try:
+        result = sr.enforce_stage(world.config, world.run_id, stage,
+                                  profile="fixture", prober=prober)
+        return "STAMPED", result
+    except sr.StageRuntimeUnresolved as unresolved:
+        return "UNRESOLVED", unresolved
+    except sr.StageRuntimeDrift as drift:
+        return "DRIFT", drift
+
+
+def test_main_domain_presence_vs_drift():
+    print("== presence vs drift: REQUIRED_IDENTITIES / REQUIRED_EVIDENCE vs domain comparison ==")
+    from thesis.evaluation import probe_runtime_identity as pri
+
+    check("policy: main requires only the compiler identity (MPI is evidence, never a tool identity)",
+          sr.REQUIRED_IDENTITIES["main"] == ("compiler",)
+          and "mpi" not in sr.REQUIRED_IDENTITIES["main"])
+    check("policy: main requires the mpi_version_line evidence to be present",
+          sr.REQUIRED_EVIDENCE["main"] == ("mpi_version_line",)
+          and sr.REQUIRED_EVIDENCE["parcoach"] == () and sr.REQUIRED_EVIDENCE["llov"] == ())
+    check("the canonical MPI source is the productive probe's main evidence (mpi_version_line); "
+          "no second MPI identity definition",
+          "mpi" not in pri.ROLE_TOOLS["main"]
+          and "mpi_version_line" in fake_environments()["main"]["evidence"]
+          and "mpi" not in fake_environments()["main"]["tool_identities"])
+
+    # A: compiler present, mpi evidence present, identical -> PASS
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        outcome, result = _stamp(world, "correctness", fake_prober)
+        check("A: compiler present + mpi evidence present + identical -> PASS (stamped)",
+              outcome == "STAMPED" and result["enforced"]
+              and bool(result.get("stage_runtime_sha256")))
+    # B: compiler missing -> UNRESOLVED by REQUIRED_IDENTITIES
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        outcome, exc = _stamp(world, "correctness", prober_with(drop_identity("main", "compiler")))
+        check("B: compiler missing -> UNRESOLVED (REQUIRED_IDENTITIES, tool_identities)",
+              outcome == "UNRESOLVED" and exc.drift_fields == ["tool_identities"]
+              and "required identities not measurable: compiler" in str(exc))
+    # C: mpi_version_line missing/empty -> UNRESOLVED by REQUIRED_EVIDENCE
+    #    (a DIFFERENT mechanism than D: presence, not comparison)
+    for label, mutate in (("C: mpi_version_line missing", drop_evidence("main", "mpi_version_line")),
+                          ("C2: mpi_version_line empty", mutate_evidence("main", "mpi_version_line", ""))):
+        with tempfile.TemporaryDirectory() as tmp:
+            world = fresh_world(tmp)
+            outcome, exc = _stamp(world, "correctness", prober_with(mutate))
+            check("%s -> UNRESOLVED (REQUIRED_EVIDENCE, evidence), not a drift" % label,
+                  outcome == "UNRESOLVED" and exc.drift_fields == ["evidence"]
+                  and "required evidence not measurable: mpi_version_line" in str(exc))
+    # D: mpi_version_line present but changed -> REQUIRED_EVIDENCE passes; the
+    #    existing domain comparison of `evidence` reports DRIFT (no second logic)
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        outcome, exc = _stamp(world, "correctness",
+                              prober_with(mutate_evidence("main", "mpi_version_line",
+                                                          "mpirun (Open MPI) 5.0.0")))
+        check("D: mpi_version_line present but changed -> DRIFT via the evidence comparison "
+              "(not UNRESOLVED)",
+              outcome == "DRIFT" and exc.failure_class == "STAGE_RUNTIME_DRIFT"
+              and exc.drift_fields == ["evidence"]
+              and "required evidence not measurable" not in str(exc))
+    # E: compiler changed -> DRIFT (tool_identities)
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        outcome, exc = _stamp(world, "correctness",
+                              prober_with(mutate_identity("main", "compiler", "g++ 14.0.0")))
+        check("E: compiler changed -> DRIFT (tool_identities)",
+              outcome == "DRIFT" and exc.drift_fields == ["tool_identities"])
+    # F: image identity changed -> DRIFT
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        outcome, exc = _stamp(world, "correctness",
+                              prober_with(mutate_field("main", "image_id", "sha256:" + "f" * 64)))
+        check("F: image identity changed -> DRIFT (image_id)",
+              outcome == "DRIFT" and "image_id" in exc.drift_fields)
+    # G/H: parcoach and llov unchanged -> their stages stamp
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        g_outcome, g_result = _stamp(world, "static.parcoach", fake_prober)
+        h_outcome, h_result = _stamp(world, "static.llov", fake_prober)
+        check("G: parcoach unchanged -> static.parcoach stamped",
+              g_outcome == "STAMPED" and g_result["enforced"])
+        check("H: llov unchanged -> static.llov stamped",
+              h_outcome == "STAMPED" and h_result["enforced"])
+    # I: the REAL productive main-probe shape (exactly the keys the productive
+    #    probe emits, MPI only as evidence) -> PASS
+    shape = fake_environments()["main"]
+    check("I: the fixture world's main domain carries exactly the productive probe shape",
+          set(shape["tool_identities"]) == set(pri.ROLE_TOOLS["main"])
+          and set(shape["evidence"]) == {"mpi_version_line", "toolchain_versions_file",
+                                         "toolchain_versions_sha256", "interpreter_identity"})
+    with tempfile.TemporaryDirectory() as tmp:
+        world = fresh_world(tmp)
+        outcome, result = _stamp(world, "correctness", fake_prober)
+        check("I: real productive main-probe shape -> PASS (stamped, MPI via evidence)",
+              outcome == "STAMPED" and result["enforced"])
 
 
 if __name__ == "__main__":

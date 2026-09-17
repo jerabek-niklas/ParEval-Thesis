@@ -71,11 +71,18 @@ def fake_environment(name, tools, extra=None):
 
 def fake_environments(**overrides):
     environments = OrderedDict([
+        # the PRODUCTIVE main-probe shape (probe_runtime_identity.ROLE_TOOLS
+        # ["main"] + main_evidence): tool identities for the five static
+        # tools, MPI ONLY as evidence.mpi_version_line - never a tool
+        # identity named "mpi" (pre-start fix 2026-09-16)
         ("main", fake_environment("main", {
-            "compiler": "g++ 13.3.0", "mpi": "mpirun (Open MPI) 4.1.6",
+            "compiler": "g++ 13.3.0",
             "gcc_analyzer": "gcc 13.3.0", "clang_tidy": "clang-tidy 18.1.3",
             "cppcheck": "cppcheck 2.13.0", "infer": "infer 1.1.0"},
-            {"toolchain_stamp": "2026-07-31"})),
+            {"mpi_version_line": "mpirun (Open MPI) 4.1.6",
+             "toolchain_versions_file": "/opt/toolchain-versions.txt",
+             "toolchain_versions_sha256": "2026073100" + "0" * 54,
+             "interpreter_identity": "Python 3.12.3"})),
         ("parcoach", fake_environment("parcoach", {"parcoach": "PARCOACH 2.4.0"},
                                       {"executable_sha256": "1bad6752" + "0" * 56,
                                        "llvm_backend": "LLVM 15.0.7"})),

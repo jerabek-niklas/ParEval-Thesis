@@ -225,7 +225,7 @@ def test_authorization_properties(world: World, authorization):
           and evidence.get("t0_requires_docker_and_all_three_images") is True)
     check("T0 evidence carries the per-domain identities the contract requires",
           (evidence["domains"]["main"]["tool_identities"] or {}).get("compiler")
-          and (evidence["domains"]["main"]["tool_identities"] or {}).get("mpi")
+          and (evidence["domains"]["main"]["evidence"] or {}).get("mpi_version_line")
           and (evidence["domains"]["parcoach"]["evidence"] or {}).get("executable_sha256")
           and (evidence["domains"]["llov"]["evidence"] or {}).get("plugin_sha256"))
 
@@ -235,7 +235,7 @@ def test_runtime_gates(world_factory):
     cases = [
         ("stale main image", lambda e: _mutate(e, "main", "image_id", "sha256:" + "9" * 64)),
         ("stale compiler", lambda e: _mutate_identity(e, "main", "compiler", "g++ 14.0.0")),
-        ("stale MPI runtime", lambda e: _mutate_identity(e, "main", "mpi", "mpirun 5.0.0")),
+        ("stale MPI runtime", lambda e: _mutate_evidence(e, "main", "mpi_version_line", "mpirun 5.0.0")),
         ("stale PARCOACH executable",
          lambda e: _mutate_evidence(e, "parcoach", "executable_sha256", "f" * 64)),
         ("stale LLOV image", lambda e: _mutate(e, "llov", "image_id", "sha256:" + "a" * 64)),

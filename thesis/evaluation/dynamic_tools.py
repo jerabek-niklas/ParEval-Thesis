@@ -22,6 +22,10 @@ Each tool compiles its own instrumented binary (sanitizers change codegen,
 correctness stage with niter=1. Findings are deduplicated per sample across
 launch parameters by (check_id, line): the same race reported at 2, 4 and 8
 threads is one finding.
+
+Fail-closed launch classification (see LaunchOutcome / classify_launches): a
+launch that exits non-zero WITHOUT a report of the tool itself is an analysis
+gap (PARTIAL with findings, TOOL_ERROR without), never a clean run.
 """
 
 from __future__ import annotations
@@ -29,11 +33,14 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from thesis.evaluation.build_config import get_build_config, get_launch_config
 from thesis.evaluation.framework import (
+    STATE_PARTIAL,
+    STATE_TOOL_ERROR,
     AssembledSample,
     EvaluationContext,
     Finding,
@@ -212,6 +219,156 @@ def dedupe(findings: list[Finding]) -> list[Finding]:
 
 
 # ---------------------------------------------------------------------------
+# Abnormal-exit classification (pre-start fix 2026-09-16,
+# SANITIZER_NONZERO_EXIT_FALSE_CLEAN_PATH)
+# ---------------------------------------------------------------------------
+#
+# An instrumented launch that ends with a NON-ZERO exit code WITHOUT the tool
+# having reached a verdict of its own is an ANALYSIS GAP, never a clean run:
+# the process died (signal, abort, MPI runtime error, sanitizer runtime
+# initialisation failure, ...) before the analysis could complete. Before this
+# fix such a launch was persisted as ran=True / error=None / findings=[] and
+# therefore derived as COMPLETED -> tool_verdict CLEAN (measured: TSan under
+# vm.mmap_rnd_bits=32 exits -11 at startup and looked clean).
+#
+# The rule is GENERIC - any non-zero exit code, any signal, any tool - and is
+# deliberately NOT tied to exit -11 or to one message text:
+#
+#   * non-zero exit + a tool report for that launch (attributed to the model
+#     or not): the tool reached its verdict; exit codes such as ASan 1 or
+#     TSan 66 are the tool's own signalling -> the existing classification is
+#     unchanged (attribution, dedupe and finding definitions untouched)
+#   * non-zero exit + NO tool report for that launch: an abnormal launch
+#   * a death by signal (negative exit code), a crash signature no parser
+#     turns into a verdict (TSan DEADLYSIGNAL, a sanitizer runtime CHECK
+#     failure, an mpirun "exited on signal", a valgrind fatal signal) or a
+#     missing/incomplete tool output (no MUST report, truncated valgrind XML)
+#     is abnormal EVEN IF an unrelated report was emitted earlier in the same
+#     launch - a report never explains a crash
+#   * valgrind never changes the client's exit code, so under memcheck a
+#     non-zero exit is always the client's own exit/death: no error block
+#     "explains" it (findings are still retained -> PARTIAL / DEFECT_FOUND)
+#   * any abnormal launch inside a multi-launch grid taints the whole entry:
+#     STATE_PARTIAL when attributed findings exist (they are retained, so a
+#     DEFECT_FOUND verdict stays DEFECT_FOUND), STATE_TOOL_ERROR otherwise -
+#     in no case COMPLETED / CLEAN
+#   * a timed-out launch keeps the existing TIMEOUT semantics (the error text
+#     is preserved; abnormal launches are appended to it, the state stays
+#     TIMEOUT via framework.legacy_analysis_state)
+#
+# Every launch's exit / timeout / reported flags are persisted in
+# analysis_details["launches"] so the classification is auditable per record.
+
+ABNORMAL_EXIT_GAP = "abnormal process exit without complete valid analysis"
+
+# Crash signatures that NO parser turns into a verdict: the launched process
+# died without the tool's own signalling. (AddressSanitizer:DEADLYSIGNAL is
+# deliberately absent: ASan follows it with an `ERROR: AddressSanitizer: SEGV`
+# report block the parser attributes like any other report.)
+CRASH_SIGNATURE = re.compile(
+    r"ThreadSanitizer:DEADLYSIGNAL"
+    r"|Sanitizer: CHECK failed"
+    r"|exited on signal"                                  # mpirun: a rank died by signal
+    r"|Process terminating with default action of signal"  # valgrind: client died by signal
+)
+
+
+def crash_signature(text: str) -> bool:
+    return CRASH_SIGNATURE.search(text or "") is not None
+
+
+@dataclass
+class LaunchOutcome:
+    """One launch of an instrumented binary: how it ended, whether the tool
+    produced a report of its own for it, whether it crashed and whether the
+    tool's output is complete."""
+
+    params: dict[str, Any]
+    returncode: int
+    timed_out: bool
+    reported: bool
+    crashed: bool = False
+    analysis_missing: bool = False
+
+    @property
+    def abnormal(self) -> bool:
+        if self.timed_out:
+            return False  # TIMEOUT keeps its own semantics
+        if self.returncode < 0 or self.crashed or self.analysis_missing:
+            return True  # a report never explains a crash or a missing analysis
+        return self.returncode != 0 and not self.reported
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "params": dict(self.params or {}),
+            "returncode": self.returncode,
+            "timed_out": self.timed_out,
+            "tool_reported": self.reported,
+            "crashed": self.crashed,
+            "analysis_missing": self.analysis_missing,
+            "abnormal_exit": self.abnormal,
+        }
+
+
+def sanitizer_reported(stderr: str) -> bool:
+    """Whether a sanitizer (ASan/LSan/TSan/UBSan) emitted a report block the
+    productive parser recognises - attributed or not. A crash line such as
+    `ThreadSanitizer:DEADLYSIGNAL` / `ERROR: ThreadSanitizer: SEGV` is NOT a
+    report: it is the runtime dying, i.e. an abnormal exit."""
+    for raw_line in (stderr or "").splitlines():
+        if ASAN_HEADER.search(raw_line) or TSAN_HEADER.search(raw_line):
+            return True
+        if UBSAN_LINE.match(raw_line.strip()):
+            return True
+    return False
+
+
+def classify_launches(
+    outcomes: list[LaunchOutcome],
+    findings: list[Finding],
+    error: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """(analysis_state, analysis_gap_reason, error) for a tool entry.
+
+    Returns (None, None, error) when no launch was abnormal: the entry keeps
+    the existing derivation (framework.legacy_analysis_state: COMPLETED, or
+    TIMEOUT/TOOL_ERROR from the error text). Otherwise the entry is
+    fail-closed: PARTIAL with findings, TOOL_ERROR without, and the gap reason
+    names every abnormal launch.
+    """
+    abnormal = [o for o in outcomes if o.abnormal]
+    if not abnormal:
+        return None, None, error
+
+    def _why(o: LaunchOutcome) -> str:
+        causes = []
+        if o.returncode < 0:
+            causes.append("killed by signal")
+        if o.crashed:
+            causes.append("crash signature")
+        if o.analysis_missing:
+            causes.append("tool output missing/incomplete")
+        if not causes:
+            causes.append("no tool report")
+        return ", ".join(causes)
+
+    detail = "; ".join(
+        "params %s exit=%d (%s)" % (o.params or "{}", o.returncode, _why(o)) for o in abnormal
+    )
+    reason = "%s at %d of %d launch(es): %s" % (
+        ABNORMAL_EXIT_GAP, len(abnormal), len(outcomes), detail
+    )
+    combined = reason if error is None else "%s; %s" % (error, reason)
+    if error is not None and ("timed out" in error.lower() or "timeout" in error.lower()):
+        # the TIMEOUT semantics win (legacy derivation keys on the error text);
+        # the abnormal launches stay documented in the error and in the
+        # per-launch details
+        return None, None, combined
+    state = STATE_PARTIAL if findings else STATE_TOOL_ERROR
+    return state, reason, combined
+
+
+# ---------------------------------------------------------------------------
 # Shared runner for instrumented executions
 # ---------------------------------------------------------------------------
 
@@ -311,6 +468,7 @@ class _SanitizerToolBase:
 
             launch = get_launch_config(sample.execution_model)
             last_exit = 0
+            outcomes: list[LaunchOutcome] = []
 
             for params in launch.params:
                 run_argv, launch_env = launch.command(
@@ -329,6 +487,12 @@ class _SanitizerToolBase:
                 findings += parse_sanitizer_output(
                     result.stderr, sample.source_path.name, self.name
                 )
+                outcomes.append(LaunchOutcome(
+                    params=params, returncode=result.returncode,
+                    timed_out=result.timed_out,
+                    reported=sanitizer_reported(result.stderr),
+                    crashed=crash_signature(result.stderr),
+                ))
 
                 raw_segments.append(
                     f"--- run {params or '{}'} exit={result.returncode}"
@@ -341,14 +505,22 @@ class _SanitizerToolBase:
                     # (deadlock vs. slow run); flag it, keep other runs.
                     error = f"run timed out at params {params}"
 
+        unique = dedupe(findings)
+        # fail-closed: an abnormal launch (non-zero exit without a sanitizer
+        # report) is never a clean analysis - see classify_launches
+        state, gap_reason, error = classify_launches(outcomes, unique, error)
+
         return ToolResult(
             tool=self.name,
             ran=True,
             exit_code=last_exit,
             duration_seconds=duration,
-            findings=dedupe(findings),
+            findings=unique,
             raw_stderr="\n".join(raw_segments),
             error=error,
+            analysis_state=state,
+            analysis_gap_reason=gap_reason,
+            analysis_details={"launches": [o.to_dict() for o in outcomes]},
         )
 
 
@@ -639,6 +811,7 @@ class MemcheckTool:
             )
 
             last_exit = 0
+            outcomes: list[LaunchOutcome] = []
 
             for index, params in enumerate(launch.params):
                 xml_path = Path(tmp) / f"memcheck_{index}.xml"
@@ -676,6 +849,18 @@ class MemcheckTool:
                         finding.check_id = self.name + finding.check_id[len("memcheck"):]
 
                 findings += parsed
+                # valgrind (without --error-exitcode) never changes the client's
+                # exit code: a non-zero exit is always the client's own
+                # exit/death, so no <error> block can "explain" it (reported =
+                # False); a client death by signal and a missing or truncated
+                # XML document (no closing </valgrindoutput>) are abnormal
+                outcomes.append(LaunchOutcome(
+                    params=params, returncode=result.returncode,
+                    timed_out=result.timed_out,
+                    reported=False,
+                    crashed=crash_signature(result.stderr) or "<fatal_signal>" in xml_text,
+                    analysis_missing="</valgrindoutput>" not in xml_text,
+                ))
 
                 raw_segments.append(
                     f"--- run {params or '{}'} exit={result.returncode}"
@@ -686,14 +871,20 @@ class MemcheckTool:
                 if result.timed_out:
                     error = f"run timed out at params {params}"
 
+        unique = dedupe(findings)
+        state, gap_reason, error = classify_launches(outcomes, unique, error)
+
         return ToolResult(
             tool=self.name,
             ran=True,
             exit_code=last_exit,
             duration_seconds=duration,
-            findings=dedupe(findings),
+            findings=unique,
             raw_stderr="\n".join(raw_segments),
             error=error,
+            analysis_state=state,
+            analysis_gap_reason=gap_reason,
+            analysis_details={"launches": [o.to_dict() for o in outcomes]},
         )
 
 
@@ -871,6 +1062,7 @@ class MustTool:
                 )
 
             last_exit = 0
+            outcomes: list[LaunchOutcome] = []
 
             for index, params in enumerate(self.LAUNCH_PARAMS):
                 run_dir = Path(tmp) / f"must_{index}"
@@ -915,17 +1107,32 @@ class MustTool:
                 timed_out = result.timed_out or result.returncode in (124, 137)
 
                 report = run_dir / "MUST_Output.html"
+                reported = False
 
                 if report.exists():
+                    html = report.read_text(encoding="utf-8", errors="replace")
                     findings += parse_must_html(
-                        report.read_text(encoding="utf-8", errors="replace"),
-                        sample.source_path.name,
-                        self.name,
+                        html, sample.source_path.name, self.name,
+                    )
+                    # MUST's own report channel: an ERROR/WARNING row
+                    # (attributed or not) explains a non-zero exit; a run
+                    # that died in the MPI runtime without one does not
+                    # (INFO rows are not verdicts)
+                    reported = any(
+                        token.group("sev") in ("ERROR", "WARNING")
+                        for token in MUST_ID_TOKEN.finditer(html)
                     )
                 else:
                     # No report means MUST itself failed — must not be
                     # mistaken for a clean sample.
                     error = f"MUST produced no report at params {params}"
+
+                outcomes.append(LaunchOutcome(
+                    params=params, returncode=result.returncode,
+                    timed_out=timed_out, reported=reported,
+                    crashed=crash_signature(result.stdout + "\n" + result.stderr),
+                    analysis_missing=not report.exists(),
+                ))
 
                 raw_segments.append(
                     f"--- run {params} exit={result.returncode}"
@@ -936,14 +1143,20 @@ class MustTool:
                 if timed_out:
                     error = f"run timed out at params {params}"
 
+        unique = dedupe(findings)
+        state, gap_reason, error = classify_launches(outcomes, unique, error)
+
         return ToolResult(
             tool=self.name,
             ran=True,
             exit_code=last_exit,
             duration_seconds=duration,
-            findings=dedupe(findings),
+            findings=unique,
             raw_stderr="\n".join(raw_segments),
             error=error,
+            analysis_state=state,
+            analysis_gap_reason=gap_reason,
+            analysis_details={"launches": [o.to_dict() for o in outcomes]},
         )
 
 

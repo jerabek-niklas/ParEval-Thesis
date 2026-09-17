@@ -25,6 +25,13 @@ decision, a stale/missing freeze artifact, a population or model-set
 mismatch, a non-empty override plan, a NOT_READY readiness artifact or a
 missing condition pin is a blocker, never an informative note.
 
+v3 additive extension (pilot_002 blocker-resolution wave, 2026-09-16; same
+schema version, the structure is unchanged): `conditions` additionally
+carries stage_runtime_enforcement_condition_sha256 and
+dynamic_analysis_implementation_condition_sha256 (enforcement_provenance.py),
+the content-addressed pins of the stage-runtime presence/drift policy and of
+the dynamic-tool implementation; both are required pins (missing -> blocker).
+
 Hash classes: repository POLICY/IMPLEMENTATION artifacts are pinned
 LF-normalized (checkout-independent); frozen evidence files (specs) by raw
 bytes; prompts by the per-prompt UTF-8 rule of the cross-pilot gate.
@@ -224,6 +231,22 @@ def conditions_view(config: Dict[str, Any], primary_compiler: str) -> "OrderedDi
     except Exception as exc:  # noqa: BLE001
         evaluation_sha = None
     policy = _load_json(ENHANCED_POLICY_PATH) or {}
+    # pre-start enforcement pins (enforcement_provenance): the stage-runtime
+    # presence/drift policy and the dynamic-tool implementation are bound by
+    # their own content-addressed conditions; a failure to compute them pins
+    # None, which the builder turns into a blocker (never a copied string)
+    try:
+        from thesis.evaluation import enforcement_provenance as ep
+
+        enforcement = ep.enforcement_conditions_view()
+    except Exception as exc:  # noqa: BLE001 - reported, never invented
+        enforcement = OrderedDict([
+            ("stage_runtime_enforcement_condition_version", None),
+            ("stage_runtime_enforcement_condition_sha256", None),
+            ("dynamic_analysis_implementation_condition_version", None),
+            ("dynamic_analysis_implementation_condition_sha256", None),
+            ("enforcement_conditions_error", "%s: %s" % (type(exc).__name__, exc)),
+        ])
     return OrderedDict([
         ("generation_condition_sha256", generation_sha),
         ("assembly_condition_version", ap.ASSEMBLY_CONDITION_VERSION),
@@ -260,6 +283,16 @@ def conditions_view(config: Dict[str, Any], primary_compiler: str) -> "OrderedDi
          technical_pin["recomputed"] if technical_pin["reproduces"] else None),
         ("technical_provenance_cleanup_status",
          (technical.get("flags") or {}).get("TECHNICAL_PROVENANCE_CLEANUP")),
+        # pre-start fix wave (2026-09-16): stage_runtime_enforcement.v1 and
+        # dynamic_analysis_implementation.v1 (see enforcement_provenance.py)
+        ("stage_runtime_enforcement_condition_version",
+         enforcement.get("stage_runtime_enforcement_condition_version")),
+        ("stage_runtime_enforcement_condition_sha256",
+         enforcement.get("stage_runtime_enforcement_condition_sha256")),
+        ("dynamic_analysis_implementation_condition_version",
+         enforcement.get("dynamic_analysis_implementation_condition_version")),
+        ("dynamic_analysis_implementation_condition_sha256",
+         enforcement.get("dynamic_analysis_implementation_condition_sha256")),
         ("readiness_artifact_path", ch.repo_relative(Path(readiness_path) if readiness_path else READINESS_PATH)),
         ("pins_not_reproducing", [name for name, ok in (
             ("cross_pilot_artifact_sha256", cross_fp["reproduces"] or cross_doc is None),
@@ -597,7 +630,9 @@ def build_contract(config_path: Path, profile_name: str,
                 "static_repair_runtime_condition_sha256", "timing_contract_sha256",
                 "semantic_decisions_sha256_lf_normalized", "cross_pilot_artifact_sha256",
                 "e3_2_author_confirmation_sha256", "e3_2_decisions_sha256",
-                "technical_provenance_cleanup_sha256"):
+                "technical_provenance_cleanup_sha256",
+                "stage_runtime_enforcement_condition_sha256",
+                "dynamic_analysis_implementation_condition_sha256"):
         if not conditions.get(key):
             blockers.append("condition pin missing: %s" % key)
     unresolved_semantic = conditions["semantic_decisions_counts"].get("unresolved")
