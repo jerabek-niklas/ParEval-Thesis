@@ -13,15 +13,15 @@
   "contract_status": "READY",
   "rebuilt_contract_sha256": "4aaa00c265ee14a8ea5389c2191e9be568122154b74976325b911afd536b1d48",
   "frozen_vs_rebuilt_drift_fields": [],
-  "source_head_before_freeze": "28b9d8ba3cefedfa21f955ea80f906e0f83b62e3",
+  "source_head_before_freeze": "5641bab0d6612735f03c9b4990bd659974d0cd6f",
   "run_freshness": "FRESH",
   "start_authorized": false,
   "t0_bound": false,
   "provider_calls": 0,
   "result_records_written": 0,
   "sha_rule": "condition_hashing.canonical_sha256 (json.dumps sort_keys=True, separators=(',',':'), ensure_ascii=True, default=str; SHA-256 over UTF-8) of the document with the fields `volatile` and the self-hash field removed",
-  "receipt_sha256": "85fffd0cffe2cf32dcf83840ea4dabc377c22d30659a2d9ef34b7f5aa1f0a1a7",
+  "receipt_sha256": "d556c40b974ecc9d9d4b23b11819fa4f25cc0e346e68b28d4f985fc1e73f7cd1",
   "volatile": {
-    "generated_at_utc": "2026-09-16T20:41:42.625187Z"
+    "generated_at_utc": "2026-09-17T16:24:24.618395Z"
   }
 }
