@@ -365,6 +365,7 @@ def generation_binding_problems(config: Dict[str, Any], run_id: str, model_ids: 
     for model in model_ids:
         problems: "List[str]" = []
         unresolved: "List[str]" = []
+        resume = None
         path = trees["raw"] / run_id / model / "generations.jsonl"
         has_records = False
         if path.is_file():
@@ -411,9 +412,16 @@ def generation_binding_problems(config: Dict[str, Any], run_id: str, model_ids: 
                                     "is %s..." % (str(bound)[:12], str(authorization_sha)[:12]))
                 skipped = (summary.get("counts") or {}).get("skipped_existing")
                 if isinstance(skipped, int) and skipped > 0:
-                    unresolved.append("generation_summary.json reports %d sample(s) skipped as already "
-                                      "existing - a resume; the provenance of those records must be "
-                                      "shown by their own authorization binding" % skipped)
+                    reason = ("generation_summary.json reports %d sample(s) skipped as already "
+                              "existing - a resume; the provenance of those records must be "
+                              "shown by their own authorization binding" % skipped)
+                    unresolved.append(reason)
+                    # The caller may discharge ONLY this obligation after a
+                    # full persisted-T0/identity/population proof. Default and
+                    # legacy callers remain fail-closed as before.
+                    resume = {"skipped_existing": skipped, "unresolved_reason": reason}
         if problems or unresolved:
             per_model[model] = OrderedDict([("problems", problems), ("unresolved", unresolved)])
+            if resume is not None:
+                per_model[model]["resume"] = resume
     return per_model

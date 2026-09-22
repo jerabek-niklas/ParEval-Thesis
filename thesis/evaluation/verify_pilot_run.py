@@ -163,6 +163,53 @@ def _t0_runtime_sha(manifest: "Optional[Dict[str, Any]]") -> "Optional[str]":
             or evidence.get("static_repair_runtime_condition_sha256"))
 
 
+def _bound_t0_problems(contract, manifest):
+    """Validate existing T0 evidence only; never probe or register anything."""
+    from thesis.evaluation import run_authorization as ra, static_provenance as sp
+
+    problems, unresolved = [], []
+    m = manifest or {}
+    evidence = m.get("runtime_evidence") or {}
+    authorization = m.get("authorization") or {}
+    if not evidence or not authorization or not contract:
+        return [], ["T0 evidence, authorization or frozen contract missing"]
+    required = [(m.get("contract_sha256"), contract.get("contract_sha256"), "manifest contract"),
+                (evidence.get("contract_sha256"), contract.get("contract_sha256"), "T0 contract"),
+                (evidence.get("run_id"), contract.get("run_id"), "T0 run"),
+                (authorization.get("run_id"), contract.get("run_id"), "authorization run"),
+                (authorization.get("frozen_contract_sha256"), contract.get("contract_sha256"), "authorization contract"),
+                (authorization.get("rebuilt_contract_sha256"), contract.get("contract_sha256"), "rebuilt contract"),
+                (authorization.get("decision"), ra.DECISION_ALLOWED, "authorization decision"),
+                (authorization.get("authorization_sha256"), ra.authorization_fingerprint(authorization), "authorization fingerprint"),
+                (m.get("authorization_sha256"), authorization.get("authorization_sha256"), "authorization fragment"),
+                (m.get("runtime_evidence_sha256"), ra.t0_evidence_fingerprint(evidence), "T0 fragment"),
+                (evidence.get("probe_status"), "OK", "T0 probe status")]
+    runtime = evidence.get("fresh_runtime_condition_sha256")
+    for field in ("readiness_runtime_condition_sha256",):
+        required.append((evidence.get(field), runtime, "T0 " + field))
+        required.append((authorization.get(field), runtime, "authorization " + field))
+    required += [(authorization.get("fresh_t0_runtime_condition_sha256"), runtime, "authorized runtime"),
+                 (runtime, (contract.get("conditions") or {}).get("static_repair_runtime_condition_sha256"), "contract runtime")]
+    condition = evidence.get("runtime_condition")
+    if not isinstance(condition, dict):
+        unresolved.append("T0 runtime condition content missing")
+    else:
+        required += [(sp.runtime_condition_sha256(condition), runtime, "runtime content fingerprint"),
+                     (condition.get("repair_condition_sha256"), evidence.get("repair_condition_sha256"), "runtime repair condition")]
+    for observed, expected, label in required:
+        if observed is None or expected is None:
+            unresolved.append(label + " missing")
+        elif observed != expected:
+            problems.append(label + " contradicts bound T0 evidence")
+    for domain in ra.REQUIRED_RUNTIME_DOMAINS:
+        entry = (evidence.get("domains") or {}).get(domain) or {}
+        if (domain not in (evidence.get("required_runtime_domains") or [])
+                or not entry.get("tool_identities") or not sp.environment_is_pinned(entry)
+                or entry.get("probe_error")):
+            unresolved.append("T0 identity incomplete: " + domain)
+    return problems, unresolved
+
+
 def check_conditions(report: Report, contract: "Optional[Dict[str, Any]]",
                      manifest: "Optional[Dict[str, Any]]") -> None:
     """Every condition the contract pins and the run can register must match.
@@ -174,13 +221,32 @@ def check_conditions(report: Report, contract: "Optional[Dict[str, Any]]",
     m = manifest or {}
     pairs = [
         ("static_analysis_condition_sha256", m.get("static_analysis_condition_sha256")),
-        ("repair_condition_sha256", m.get("repair_condition_sha256")),
         ("assembly_condition_sha256", m.get("assembly_condition_sha256")),
         ("enhanced_frozen_specs_sha256", (m.get("enhanced_specs") or {}).get("sha256")),
         ("static_repair_runtime_condition_sha256", _t0_runtime_sha(m)),
     ]
     mismatches = []
     unresolved = []
+    repair_sources = {}
+    field = "repair_condition_sha256"
+    expected = contracted.get(field)
+    if expected is not None:
+        separate = m.get(field)
+        t0 = (m.get("runtime_evidence") or {}).get(field)
+        for source, value in (("manifest." + field, separate),
+                              ("manifest.runtime_evidence." + field, t0)):
+            if value is not None:
+                repair_sources[source] = value
+                if value != expected:
+                    mismatches.append(OrderedDict(field=field, source=source,
+                                                   contract=expected, run=value))
+        if separate is None:
+            if t0 is None:
+                unresolved.append(field)
+            else:
+                bad, absent = _bound_t0_problems(contract, m)
+                mismatches.extend(OrderedDict(field=field, source="T0", problem=p) for p in bad)
+                unresolved.extend("%s: %s" % (field, p) for p in absent)
     for field, recorded in pairs:
         expected = contracted.get(field)
         if expected is None:
@@ -199,7 +265,11 @@ def check_conditions(report: Report, contract: "Optional[Dict[str, Any]]",
     report.add("contracted_conditions_registered", status,
                "%d condition(s) differ from the contract; %d not registered by the run"
                % (len(mismatches), len(unresolved)),
-               {"mismatches": mismatches, "not_registered": unresolved})
+               {"mismatches": mismatches, "not_registered": unresolved,
+                "repair_condition_sources": repair_sources,
+                "repair_condition_registration_source": (
+                    "manifest.repair_condition_sha256" if m.get("repair_condition_sha256") is not None
+                    else "manifest.runtime_evidence.repair_condition_sha256" if repair_sources else None)})
 
     # profile identity: the contract describes ONE planned invocation
     if manifest is not None and contract.get("profile") is not None:
@@ -443,6 +513,97 @@ def check_split_static_invocations(report: Report, contract: "Optional[Dict[str,
     return matrix
 
 
+def _generation_resume_proof(report, config, run_id, model, contract, authorization):
+    """Discharge resume only inside the productive FRESH-start provenance model.
+
+    A READY v3 no-reuse contract's normal authorize_start path refuses any
+    pre-existing result-bearing state. Its persisted authorization is reused,
+    never created by this check. Fixture bypasses and externally fabricated
+    artifacts are not an authorization mechanism.
+    """
+    from thesis.evaluation import run_authorization as ra, run_freshness as rf
+    from thesis.evaluation import run_manifest, pilot_run_contract as prc
+    problems, unresolved = [], []
+    proof = {"policy": "PERSISTED_FRESH_START_AND_ALL_CURRENT_RECORDS",
+             "problems": problems, "unresolved": unresolved}
+    if not authorization:
+        unresolved.append("no persisted start authorization")
+        return proof
+    if (not contract or contract.get("schema_version") != "pilot_run_contract.v3"
+            or contract.get("status") != "READY"
+            or (contract.get("reuse_policy") or {}).get("policy") != "NO_PILOT001_MEASUREMENT_REUSE"
+            or not (contract.get("reuse_policy") or {}).get("decided")):
+        unresolved.append("no READY v3 frozen no-reuse contract; legacy resume remains unproven")
+        return proof
+    if prc.contract_sha256(contract) != contract.get("contract_sha256"):
+        problems.append("frozen contract fingerprint inconsistent")
+    if authorization != ra.load_authorization(config, run_id):
+        problems.append("authorization is not the persisted authorization")
+    if (authorization.get("schema_version") != ra.AUTHORIZATION_SCHEMA_VERSION
+            or authorization.get("authorization_policy_version") != ra.AUTHORIZATION_POLICY_VERSION):
+        unresolved.append("unknown start authorization policy/schema")
+    manifest = run_manifest.load_manifest(config, run_id)
+    bad, absent = _bound_t0_problems(contract, manifest)
+    problems.extend(bad); unresolved.extend(absent)
+    if contract.get("run_id") != run_id:
+        problems.append("frozen contract belongs to another run")
+    checks = {c["check"]: c["status"] for c in report.checks}
+    for name in ("run_provenance_integrity", "record_run_identity:" + model,
+                 "population_count:" + model, "population_selection:" + model,
+                 "prompt_fingerprints:" + model):
+        status = checks.get(name)
+        if status == FAIL:
+            problems.append(name + " contradicts resume")
+        elif status != PASS:
+            unresolved.append(name + " not proven")
+    directory = Path(config["outputs"]["raw_dir"]) / run_id / model
+    try:
+        summary = json.loads((directory / "generation_summary.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        problems.append("generation summary unreadable")
+        return proof
+    expected = rf._expected_model_identity(config).get(model)
+    if expected is None or model not in (contract.get("model_ids") or []):
+        unresolved.append("expected contracted model identity unavailable")
+        return proof
+    if (summary.get("run_id") != run_id or summary.get("model_id") != model
+            or (summary.get("provider"), summary.get("model_name")) != expected):
+        problems.append("generation summary run/model identity mismatch")
+    if ((summary.get("run_authorization") or {}).get("authorization_sha256")
+            != authorization.get("authorization_sha256")):
+        problems.append("generation summary bound to another authorization")
+    records = rf._iter_records(directory / "generations.jsonl")
+    started = rf.parse_utc(authorization.get("authorized_at_utc"))
+    if started is None:
+        unresolved.append("authorization timestamp not parseable")
+    ids = []
+    prompt_hashes = (contract.get("population") or {}).get("prompt_hashes") or {}
+    for record in records:
+        if not isinstance(record, dict):
+            problems.append("unreadable generation record")
+            continue
+        identity = record.get("model") or {}
+        if (record.get("run_id") != run_id or identity.get("id") != model
+                or (identity.get("provider"), identity.get("model_name")) != expected):
+            problems.append("generation record run/model identity mismatch")
+        created = rf.parse_utc(record.get("created_at_utc"))
+        if created is None:
+            problems.append("generation record timestamp not parseable")
+        elif started is not None and created < started:
+            problems.append("generation record predates authorization")
+        key = _sample_prompt_key(record)
+        if prompt_hashes.get(key) != ch.utf8_sha256((record.get("prompt") or {}).get("prompt_text") or ""):
+            problems.append("generation record prompt not bound to contract")
+        ids.append(record.get("sample_id"))
+    if not ids or any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
+        problems.append("missing or duplicate generation sample identity")
+    if (summary.get("counts") or {}).get("skipped_existing", 0) > len(ids):
+        problems.append("resume skipped count exceeds current records")
+    proof.update(authorization_sha256=authorization.get("authorization_sha256"),
+                 contract_sha256=contract.get("contract_sha256"), records_checked=len(records))
+    return proof
+
+
 def check_record_identity(report: Report, config: Dict[str, Any], run_id: str,
                           models: "List[str]", contract: "Optional[Dict[str, Any]]"
                           ) -> "OrderedDict[str, Any]":
@@ -487,8 +648,16 @@ def check_record_identity(report: Report, config: Dict[str, Any], run_id: str,
     binding = run_freshness.generation_binding_problems(config, run_id, models, authorization)
     for model_id in models:
         entry = binding.get(model_id) or {}
-        problems = entry.get("problems") or []
-        unresolved = entry.get("unresolved") or []
+        problems = list(entry.get("problems") or [])
+        unresolved = list(entry.get("unresolved") or [])
+        resume_proof = None
+        if entry.get("resume"):
+            resume_proof = _generation_resume_proof(report, config, run_id, model_id,
+                                                    contract, authorization)
+            problems.extend(resume_proof["problems"])
+            unresolved.extend(resume_proof["unresolved"])
+            if not resume_proof["problems"] and not resume_proof["unresolved"]:
+                unresolved.remove(entry["resume"]["unresolved_reason"])
         if problems:
             status, detail = FAIL, "; ".join(problems)
         elif unresolved:
@@ -500,7 +669,8 @@ def check_record_identity(report: Report, config: Dict[str, Any], run_id: str,
             status, detail = PASS, ("generation records postdate the start authorization %s..."
                                     % str(authorization.get("authorization_sha256"))[:12])
         report.add("generation_authorization_binding:%s" % model_id, status, detail,
-                   {"problems": problems, "unresolved": unresolved})
+                   {"problems": problems, "unresolved": unresolved,
+                    "authorized_resume_proof": resume_proof})
     policy = ((contract or {}).get("reuse_policy") or {}).get("policy")
     statuses = [c["status"] for c in report.checks
                 if c["check"].startswith(("record_run_identity:", "generation_authorization_binding:",
