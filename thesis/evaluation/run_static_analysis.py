@@ -117,6 +117,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True)
     parser.add_argument("--profile", required=True)
     parser.add_argument("--model-id", default=None, help="Single model; default all enabled.")
+    parser.add_argument("--backfill-base-run-id", default=None)
     parser.add_argument(
         "--tools",
         nargs="*",
@@ -638,6 +639,13 @@ def main() -> None:
     config = load_config(Path(args.config).resolve())
     profile = common.get_profile(config, args.profile)
     run_id = args.run_id or profile["run_id"]
+    authority_run_id = run_id
+    if args.backfill_base_run_id:
+        from thesis.repair.backfill_authority import validate_target
+        if not args.model_id or args.rerun_gaps or args.replace_tool_entries or args.replace_legacy_record:
+            raise ValueError("backfill requires one model; replacement and gap reruns are forbidden")
+        validate_target(config, args.backfill_base_run_id, run_id, args.model_id)
+        authority_run_id = args.backfill_base_run_id
 
     if args.replace_legacy_record and not args.run_id:
         # The `pilot` profile still carries the historical pilot_001 run id,
@@ -773,7 +781,7 @@ def main() -> None:
                                       "source": "CLI" if args.replace_legacy_record else "DEFAULT"},
         }
         enforcement = stage_runtime.enforce_stage(
-            config, run_id, domain_stage,
+            config, authority_run_id, domain_stage,
             effective_values=values,
             profile=args.profile,
             model_scope=[model["id"] for model in models] if args.model_id else None,

@@ -449,6 +449,7 @@ def compute_expected_count(
         problem_types=problem_types,
         prompt_limit=prompt_limit,
         selection=profile.get("selection", "prefix"),
+        exclude_population=profile.get("exclude_population"),
     )
 
     return len(filtered) * num_samples_per_prompt

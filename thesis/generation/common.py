@@ -396,7 +396,7 @@ def filter_prompts(
     return filtered
 
 
-PROMPT_SELECTIONS = ("prefix", "stratified")
+PROMPT_SELECTIONS = ("prefix", "stratified", "complement")
 
 
 def select_prompts(
@@ -405,6 +405,7 @@ def select_prompts(
     problem_types: list[str] | None,
     prompt_limit: int | None,
     selection: str = "prefix",
+    exclude_population: str | None = None,
 ) -> "tuple[list[dict[str, Any]], list[str]]":
     """THE prompt-selection function — used by BOTH the generation path
     and validate_generations.compute_expected_count, so the expected and
@@ -448,6 +449,12 @@ def select_prompts(
             % ("/".join(PROMPT_SELECTIONS), selection)
         )
 
+    if selection == "complement":
+        from thesis.evaluation.extension_population import select_complement
+        return select_complement(prompts, execution_models, problem_types,
+                                 prompt_limit, exclude_population), []
+    if exclude_population is not None:
+        raise ValueError("exclude_population requires complement selection")
     filtered = filter_prompts(prompts, execution_models, problem_types, None)
 
     if selection == "prefix":
@@ -1351,6 +1358,7 @@ def _run_generation(adapter: ProviderAdapter) -> None:
         problem_types=problem_types,
         prompt_limit=prompt_limit,
         selection=profile.get("selection", "prefix"),
+        exclude_population=profile.get("exclude_population"),
     )
     for note in selection_notes:
         print(note)

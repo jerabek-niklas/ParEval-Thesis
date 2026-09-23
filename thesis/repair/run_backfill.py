@@ -612,7 +612,8 @@ class StageExecutor:
         from thesis.evaluation import run_static_analysis
         from thesis.evaluation.tools import register_default_tools
 
-        register_default_tools(primary_compiler=self.primary_compiler)
+        self._enforce(run_id, model_id, "static.main")
+        register_default_tools(primary_compiler=self.primary_compiler, config=self.config)
         settings = full_static_settings(self.config)
         self._check_tools_available(list(settings))
 
@@ -627,6 +628,8 @@ class StageExecutor:
 
     def run_correctness(self, run_id: str, model_id: str) -> None:
         from thesis.evaluation import run_correctness
+        if not self._enforce(run_id, model_id, "correctness"):
+            return
 
         if not framework.binary_available(self.primary_compiler):
             raise RuntimeError(
@@ -659,6 +662,8 @@ class StageExecutor:
         from thesis.evaluation import run_dynamic_analysis
         from thesis.evaluation.dynamic_tools import register_dynamic_tools
 
+        if not self._enforce(run_id, model_id, "dynamic"):
+            return
         register_dynamic_tools()
         settings = enabled_dynamic_settings(self.config)
         self._check_tools_available(list(settings))
@@ -685,6 +690,7 @@ class StageExecutor:
             "--profile", self.profile_name,
             "--run-id", run_id,
             "--model-id", model_id,
+            "--backfill-base-run-id", common.get_profile(self.config, self.profile_name)["run_id"],
         ]
 
         result = subprocess.run(argv)
@@ -694,6 +700,42 @@ class StageExecutor:
                 "run_enhanced_tests.py exited %d for run %s"
                 % (result.returncode, run_id)
             )
+
+    def _enforce(self, target, model, stage):
+        from thesis.repair.backfill_authority import validate_target, refuse_partial
+        from thesis.evaluation import stage_runtime, atomic_io
+        base = common.get_profile(self.config, self.profile_name)["run_id"]
+        state = validate_target(self.config, base, target, model)
+        if self.primary_compiler != state["contract"].get("primary_compiler"):
+            raise ValueError("backfill compiler differs from contracted compiler")
+        values = {"primary_compiler": {"value": self.primary_compiler, "source": "DEFAULT"}}
+        if stage in ("correctness", "dynamic"):
+            section = "correctness_tests" if stage == "correctness" else "dynamic_analysis"
+            path = self.intermediate_root / target / model / orchestrator.stage_output_file(self.config, section)
+            expected = assembled_sample_ids(load_assembly(self.intermediate_root, target, model))
+            if refuse_partial(path, expected, enabled_dynamic_settings(self.config) if stage == "dynamic" else None) == "complete":
+                return False
+            if stage == "correctness":
+                from thesis.evaluation import run_correctness
+                stage_config = (self.config.get("stages") or {}).get(section) or {}
+                values["effective_run_timeout_seconds"] = {
+                    "value": float(stage_config.get("run_timeout_seconds", run_correctness.DEFAULT_RUN_TIMEOUT)),
+                    "source": "CONFIG" if "run_timeout_seconds" in stage_config else "DEFAULT"}
+        if stage in ("static.main", "dynamic"):
+            settings = full_static_settings(self.config) if stage == "static.main" else enabled_dynamic_settings(self.config)
+            values["tools"] = {"value": sorted(settings), "source": "CONFIG"}
+            flags = ("replace_tool_entries", "rerun_gaps", "replace_legacy_record") if stage == "static.main" else ("skip_unavailable_tools",)
+            values.update({flag: {"value": False, "source": "DEFAULT"} for flag in flags})
+        enforcement = stage_runtime.enforce_stage(self.config, base, stage, effective_values=values,
+                                    profile=self.profile_name, model_scope=[model],
+                                    writer="backfill")
+        receipt = dict(base_run_id=base, result_run_id=target, model_id=model,
+                       stage=stage, enforcement=enforcement)
+        receipt_path = self.intermediate_root / target / model / ("backfill_authority." + stage + ".json")
+        if receipt_path.exists() and json.loads(receipt_path.read_text(encoding="utf-8")) != receipt:
+            raise ValueError("backfill authority receipt conflict")
+        atomic_io.atomic_write_json(receipt_path, receipt)
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -733,7 +775,7 @@ def handle_external(
                 run_id, tool, count,
                 orchestrator.build_external_command(
                     settings, config_path, profile_name, run_id, model_id, tool
-                ),
+                ) + " --backfill-base-run-id " + base_run_id,
             ))
 
     if settings["external_tools_mode"] == "docker":
@@ -819,6 +861,10 @@ def backfill_model(
         print("[%s] no runs discovered for base run %s" % (model_id, base_run_id))
         return
 
+    from thesis.repair.backfill_authority import validate_target
+    for target in runs:
+        validate_target(config, base_run_id, target["run_id"], model_id)
+
     pending_by_run: List[Tuple[str, List[Tuple[str, int]]]] = []
 
     for run in runs:
@@ -835,6 +881,16 @@ def backfill_model(
             )
         )
 
+        # Guard both whole-file stages before starting any measurement here.
+        # Existing TOOL_ERROR/TIMEOUT/PARTIAL entries are not missing work.
+        from thesis.repair.backfill_authority import refuse_partial
+        root = Path(config["outputs"]["intermediate_dir"])
+        expected_ids = assembled_sample_ids(load_assembly(root, run_id, model_id))
+        for stage_name, plan_key in (("correctness_tests", "correctness"), ("dynamic_analysis", "dynamic")):
+            existing = refuse_partial(root / run_id / model_id / orchestrator.stage_output_file(config, stage_name),
+                                      expected_ids, enabled_dynamic_settings(config) if plan_key == "dynamic" else None)
+            if existing == "complete" and plan[plan_key] != "ok":
+                raise ValueError("partial tool coverage must not be rerun: " + stage_name)
         if plan["static"] != "ok":
             executor.run_static(run_id, model_id)
         if plan["correctness"] != "ok":
@@ -926,16 +982,18 @@ def main() -> None:
     )
 
     for model_config in models:
-        backfill_model(
-            config=config,
-            config_path=str(Path(args.config)),
-            profile_name=args.profile,
-            base_run_id=base_run_id,
-            model_id=model_config["id"],
-            executor=executor,
-            variant_filter=args.variant,
-            skip_enhanced=args.skip_enhanced,
-        )
+        from thesis.repair.backfill_authority import backfill_lock
+        with backfill_lock(config, base_run_id, model_config["id"]):
+            backfill_model(
+                config=config,
+                config_path=str(Path(args.config)),
+                profile_name=args.profile,
+                base_run_id=base_run_id,
+                model_id=model_config["id"],
+                executor=executor,
+                variant_filter=args.variant,
+                skip_enhanced=args.skip_enhanced,
+            )
 
 
 if __name__ == "__main__":

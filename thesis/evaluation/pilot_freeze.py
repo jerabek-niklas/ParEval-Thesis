@@ -376,7 +376,8 @@ def population_body(config: Dict[str, Any], profile_name: str,
     prompt_field = prompts_cfg.get("prompt_field", "prompt")
 
     selected, notes = common.select_prompts(prompts, execution_models, problem_types,
-                                            prompt_limit, selection)
+                                            prompt_limit, selection,
+                                            profile.get("exclude_population"))
     selected_sorted = sorted(selected, key=prompt_key)
     keys = [prompt_key(e) for e in selected_sorted]
     hashes = OrderedDict((prompt_key(e), ch.utf8_sha256(e.get(prompt_field) or ""))

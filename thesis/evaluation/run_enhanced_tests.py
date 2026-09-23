@@ -164,6 +164,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True)
     parser.add_argument("--profile", required=True)
     parser.add_argument("--model-id", default=None, help="Single model; default all enabled.")
+    parser.add_argument("--backfill-base-run-id", default=None)
     parser.add_argument(
         "--specs",
         # E3.1: the FROZEN, version-controlled execution artifact - not the
@@ -766,6 +767,13 @@ def main() -> None:
     config = load_config(Path(args.config).resolve())
     profile = common.get_profile(config, args.profile)
     run_id = args.run_id or profile["run_id"]
+    authority_run_id = run_id
+    if args.backfill_base_run_id:
+        from thesis.repair.backfill_authority import validate_target
+        if not args.model_id or args.force:
+            raise ValueError("backfill requires one model and forbids force")
+        validate_target(config, args.backfill_base_run_id, run_id, args.model_id, enhanced=True)
+        authority_run_id = args.backfill_base_run_id
 
     stage = (config.get("stages") or {}).get("enhanced_tests") or {}
     settings = stage_settings(config)
@@ -890,7 +898,7 @@ def main() -> None:
     from thesis.evaluation import stage_runtime
 
     enforcement = stage_runtime.enforce_stage(
-        config, run_id, "enhanced",
+        config, authority_run_id, "enhanced",
         effective_values={
             # canonical name of the --specs CLI override (cli_override_inventory
             # dest "specs"), so the invocation field is machine-checkable. The

@@ -6,6 +6,13 @@ experiment:
   schema_version: "experiment.v1"
 
 profiles:
+  full_extension:
+    run_id: full_ext_001
+    selection: complement
+    exclude_population: thesis/evaluation/pilot_002_population.json
+    prompt_limit: null
+    num_samples_per_prompt: 1
+
   smoke:
     run_id: smoke_004
     prompt_limit: 3

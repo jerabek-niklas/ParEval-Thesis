@@ -529,9 +529,14 @@ def _generation_resume_proof(report, config, run_id, model, contract, authorizat
     if not authorization:
         unresolved.append("no persisted start authorization")
         return proof
+    reuse_policy = ((contract or {}).get("reuse_policy") or {}).get("policy")
+    supported_reuse = reuse_policy == "NO_PILOT001_MEASUREMENT_REUSE"
+    if reuse_policy == "NO_MEASUREMENT_REUSE_INSIDE_EXTENSION":
+        supported_reuse = (run_id == "full_ext_001" and (contract or {}).get("profile") == "full_extension"
+                           and bool((contract.get("extension_provenance") or {}).get("equivalence_sha256")))
     if (not contract or contract.get("schema_version") != "pilot_run_contract.v3"
             or contract.get("status") != "READY"
-            or (contract.get("reuse_policy") or {}).get("policy") != "NO_PILOT001_MEASUREMENT_REUSE"
+            or not supported_reuse
             or not (contract.get("reuse_policy") or {}).get("decided")):
         unresolved.append("no READY v3 frozen no-reuse contract; legacy resume remains unproven")
         return proof

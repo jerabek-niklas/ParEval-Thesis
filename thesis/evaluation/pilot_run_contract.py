@@ -146,7 +146,8 @@ def population_view(config: Dict[str, Any], profile: Dict[str, Any]) -> "Ordered
             prompt_hashes[key] = ch.utf8_sha256(entry.get(prompts_cfg.get("prompt_field", "prompt")) or "")
         try:
             selected, _info = common.select_prompts(prompts, execution_models, problem_types,
-                                                    prompt_limit, selection)
+                                                    prompt_limit, selection,
+                                                    profile.get("exclude_population"))
             selected_keys = sorted("%s|%s|%s" % (e.get("problem_type"), e.get("name"),
                                                  e.get("parallelism_model")) for e in selected)
             expected_prompts = len(selected)
@@ -431,6 +432,9 @@ def _iteration_like(run_id: "Optional[str]") -> bool:
 def build_contract(config_path: Path, profile_name: str,
                    run_id_override: "Optional[str]" = None,
                    primary_compiler: str = "g++") -> "OrderedDict[str, Any]":
+    if profile_name == "full_extension":
+        from thesis.evaluation.extension_contract import build
+        return build(config_path, run_id_override, primary_compiler)
     from thesis.evaluation import pilot_freeze
     from thesis.generation import common
 

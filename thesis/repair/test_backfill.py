@@ -45,7 +45,7 @@ S_MPI = "m1__sparse_la__96_spmv__mpi__sample_0"
 
 
 def base_config(tmp):
-    return {
+    requested = {
         "outputs": {
             "raw_dir": (Path(tmp) / "raw").as_posix(),
             "intermediate_dir": (Path(tmp) / "intermediate").as_posix(),
@@ -84,6 +84,42 @@ def base_config(tmp):
             },
         },
     }
+    # These execution fixtures now carry a real, FRESH-authorized synthetic
+    # contract. Never bypass validate_target: only the shared World fixture's
+    # runtime prober is fake; no analyzer/provider is executed.
+    from thesis.evaluation.test_post_run_verification import World
+    import yaml
+
+    class AuthorizedBackfillWorld(World):
+        def _write_prompts(self):
+            rows = [dict(problem_type=kind, name=name, language="cpp",
+                         parallelism_model=execution, prompt="fixture prompt")
+                    for kind, name in (("dense_la", "00_dense_la_lu_decomp"), ("sparse_la", "96_spmv"))
+                    for execution in ("serial", "omp", "mpi")]
+            self.prompts_path.write_text(json.dumps(rows), encoding="utf-8")
+
+        def _write_config(self):
+            super()._write_config()
+            document = yaml.safe_load(self.config_path.read_text(encoding="utf-8"))
+            document["profiles"]["fixture"]["prompt_limit"] = None
+            self.config_path.write_text(yaml.safe_dump(document), encoding="utf-8")
+
+        def _write_generations(self):
+            pass  # This fixture tests backfill; no synthetic generation needed.
+
+        def _assemble(self):
+            pass  # Explicit per-test assembly records below.
+
+        def _write_stage_records(self):
+            pass
+
+        def stamp_stages(self, **kwargs):
+            pass  # StubExecutor records calls; it never produces measurements.
+
+    world = AuthorizedBackfillWorld(Path(tmp), run_id="base_run", models=(MODEL,),
+                                    stage_overrides=requested["stages"],
+                                    execution_models=("serial", "omp", "mpi"), repair_loops=False)
+    return world.config
 
 
 def write_assembly(config, run_id, samples):
@@ -100,6 +136,8 @@ def write_assembly(config, run_id, samples):
             else "drivers/cpp/benchmarks/sparse_la/96_spmv"
         )
         common.append_jsonl(path, {
+            "run_id": run_id,
+            "model_id": MODEL,
             "sample_id": sample_id,
             "assembled": True,
             "source_path": "x",
@@ -114,7 +152,10 @@ def write_stage(config, run_id, stage_file, samples, tools=None):
         path.unlink()
 
     for sample_id in samples:
-        record = {"sample_id": sample_id}
+        record = {"sample_id": sample_id, "run_id": run_id, "model_id": MODEL,
+                  "execution_model": sample_id.split("__")[-2]}
+        if stage_file == "dynamic_analysis.jsonl" and tools is None:
+            tools = ["asan_ubsan"]
         if tools is not None:
             record["tools"] = {
                 t: {"tool": t, "ran": True, "findings": [],
@@ -133,7 +174,7 @@ def write_state(config, variant, statuses):
 
     for sample_id, status in statuses.items():
         common.append_jsonl(path, {
-            "sample_id": sample_id, "variant": variant, "iteration": 1,
+            "sample_id": sample_id, "variant": variant, "iteration": 2,
             "status": status, "stop_reason": "x",
         })
 
@@ -293,14 +334,18 @@ def test_enhanced_gate():
         check("reason names the variant",
               any("test_feedback" in r for r in reasons))
 
-        run_backfill.backfill_model(
-            config, "cfg.yaml", "unit", "base_run", MODEL, executor,
-            variant_filter=None, skip_enhanced=False,
-        )
+        refused = False
+        try:
+            run_backfill.backfill_model(
+                config, "cfg.yaml", "unit", "base_run", MODEL, executor,
+                variant_filter=None, skip_enhanced=False,
+            )
+        except ValueError as error:
+            refused = "supporting repair state" in str(error)
+        check("iteration without supporting state is refused before all stages", refused)
         check("no enhanced invocation while blocked",
               all(stage != "enhanced" for stage, _ in executor.calls))
-        check("tool stages still ran while blocked",
-              ("dynamic", "base_run") in executor.calls)
+        check("unproven iteration triggers zero executor calls", not executor.calls)
 
         # an ACTIVE sample also blocks
         write_state(config, "test_feedback", {S_SERIAL: "active"})
@@ -380,6 +425,11 @@ def test_enhanced_execution_models():
         # resume semantics: a COMPLETE serial spec set stays valid, the omp
         # gap makes the run partial (the runner adds only the missing part)
         write_assembly(config, "base_run", [S_SERIAL, s_omp])
+
+        # Keep the synthetic completed stages consistent with this fixture's
+        # changed population. Partial correctness/dynamic files must REFUSE.
+        write_stage(config, "base_run", "correctness.jsonl", [S_SERIAL, s_omp])
+        write_stage(config, "base_run", "dynamic_analysis.jsonl", [S_SERIAL, s_omp])
         write_enhanced(config, "base_run", S_SERIAL, count=None)
         plan = run_backfill.plan_run(
             config, run, MODEL, run_backfill.REPO_ROOT, {}
@@ -444,7 +494,7 @@ def test_external_manual():
 
     with tempfile.TemporaryDirectory() as tmp:
         config = make_tree(tmp)
-        write_state(config, "static_feedback", {S_SERIAL: "stopped_clean"})
+        write_state(config, "static_feedback", {S_SERIAL: "stopped_clean", S_MPI: "stopped_clean"})
         write_state(config, "test_feedback", {S_SERIAL: "stopped_tests_pass"})
 
         executor = StubExecutor()
@@ -511,7 +561,7 @@ def test_execution_sequencing():
 
     with tempfile.TemporaryDirectory() as tmp:
         config = make_tree(tmp)
-        write_state(config, "static_feedback", {S_SERIAL: "stopped_clean"})
+        write_state(config, "static_feedback", {S_SERIAL: "stopped_clean", S_MPI: "stopped_clean"})
         write_state(config, "test_feedback", {S_SERIAL: "stopped_tests_pass"})
 
         executor = StubExecutor()

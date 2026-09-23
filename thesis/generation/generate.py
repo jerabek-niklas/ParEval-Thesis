@@ -327,6 +327,7 @@ def main() -> None:
         problem_types=prompts_config.get("problem_types"),
         prompt_limit=profile_config.get("prompt_limit"),
         selection=profile_config.get("selection", "prefix"),
+        exclude_population=profile_config.get("exclude_population"),
     )
     selection_block, selection_lines = prompt_selection_report(
         selected, profile_config.get("selection", "prefix"), notes
