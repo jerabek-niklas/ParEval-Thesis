@@ -1,0 +1,1209 @@
+{
+  "schema_version": "parent_base_evidence_report.v1",
+  "status": "PASS",
+  "scope": "BASE_ONLY_NOT_FULL_RUN_ACCEPTANCE",
+  "source_run": "full_ext_001",
+  "lineage_sha256": "c359987700a51d0324b771ffbe08d50268748c8b140202491dea02dc11fe57f2",
+  "base_cells": 1584,
+  "contract_sha256": "e3843f81f79638b2de180a1cdb0cc0b16ba1f9fd42bca3ba1e0d5c02abe059e4",
+  "historical_repair_adopted": false,
+  "historical_source": {
+    "commit": "b22ecba74f06f74f0e52700358830d47e15f586e",
+    "clean": true,
+    "certificate_sha256": "6f93e4abbffe19c6ed0a079e116e085448695e0d1b005afc4667ce676be57bca",
+    "source_pins_sha256": "4aed88a86c449e55f3ce826138d31fa05f3fa92df463d0b54cdf47f17d43da7e",
+    "verified_source_count": 324
+  },
+  "base_checks": [
+    {
+      "check": "contract_present",
+      "status": "PASS",
+      "detail": "frozen contract loaded and self-consistent",
+      "evidence": {
+        "contract_sha256": "e3843f81f79638b2de180a1cdb0cc0b16ba1f9fd42bca3ba1e0d5c02abe059e4"
+      }
+    },
+    {
+      "check": "run_id_matches_contract",
+      "status": "PASS",
+      "detail": "run_id 'full_ext_001' vs contract 'full_ext_001'",
+      "evidence": {
+        "run_id": "full_ext_001",
+        "contract_run_id": "full_ext_001"
+      }
+    },
+    {
+      "check": "base_run_is_not_a_repair_iteration",
+      "status": "PASS",
+      "detail": "base run id 'full_ext_001'",
+      "evidence": {}
+    },
+    {
+      "check": "contract_sha_bound_to_run",
+      "status": "PASS",
+      "detail": "manifest contract sha e3843f81f796... vs frozen e3843f81f796...",
+      "evidence": {
+        "manifest": "e3843f81f79638b2de180a1cdb0cc0b16ba1f9fd42bca3ba1e0d5c02abe059e4",
+        "frozen": "e3843f81f79638b2de180a1cdb0cc0b16ba1f9fd42bca3ba1e0d5c02abe059e4"
+      }
+    },
+    {
+      "check": "contracted_conditions_registered",
+      "status": "PASS",
+      "detail": "0 condition(s) differ from the contract; 0 not registered by the run",
+      "evidence": {
+        "mismatches": [],
+        "not_registered": [],
+        "repair_condition_sources": {
+          "manifest.runtime_evidence.repair_condition_sha256": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40"
+        },
+        "repair_condition_registration_source": "manifest.runtime_evidence.repair_condition_sha256"
+      }
+    },
+    {
+      "check": "profile_matches_contract",
+      "status": "PASS",
+      "detail": "manifest profile 'full_extension' vs contract 'full_extension'",
+      "evidence": {}
+    },
+    {
+      "check": "split_static_invocation_expected_set",
+      "status": "PASS",
+      "detail": "split_static_invocation_coverage.v1 ((stage, tool, model_id)): 22 expected split invocation scope(s) derived from the frozen contract (11 model(s) x parcoach, llov)",
+      "evidence": {
+        "status": "PASS",
+        "expected_scope_count": 22,
+        "per_tool": {
+          "parcoach": {
+            "stage": "static.parcoach",
+            "expected": true,
+            "applicable_execution_models": [
+              "mpi"
+            ],
+            "scope_count": 11
+          },
+          "llov": {
+            "stage": "static.llov",
+            "expected": true,
+            "applicable_execution_models": [
+              "omp"
+            ],
+            "scope_count": 11
+          }
+        },
+        "not_expected": [],
+        "model_ids": [
+          "claude_fable_5",
+          "claude_opus_5",
+          "deepseek_v4_flash",
+          "deepseek_v4_pro",
+          "gemini_31_pro",
+          "gemini_36_flash",
+          "openai_gpt55",
+          "openai_gpt56_sol",
+          "qwen36_35b_a3b",
+          "qwen37_max",
+          "qwen3_coder_api"
+        ],
+        "runtime_stamp_substitutes_split_invocation": false,
+        "record_coverage_substitutes_split_invocation": false
+      }
+    },
+    {
+      "check": "split_static_invocation_membership",
+      "status": "PASS",
+      "detail": "2 fragment(s) observed for 22 scope(s); unexpected 0, contradicting 0, unkeyable 0, consistent duplicates 0 (CONSISTENT_DUPLICATES_ALLOWED_CONTRADICTIONS_FAIL)",
+      "evidence": {
+        "unexpected": [],
+        "contradicting": [],
+        "unkeyable": [],
+        "consistent_duplicates": []
+      }
+    },
+    {
+      "check": "split_static_invocation_coverage",
+      "status": "PASS",
+      "detail": "22/22 expected split invocation scope(s) covered; 0 missing; 0 unexpected; 0 contradicting; 0 unkeyable fragment(s); 0 consistent duplicate scope(s)",
+      "evidence": {
+        "expected_scope_count": 22,
+        "observed_scope_count": 22,
+        "covered_scope_count": 22,
+        "missing_scopes": [],
+        "unexpected_scopes": [],
+        "contradicting_scopes": [],
+        "per_tool": {
+          "parcoach": {
+            "stage": "static.parcoach",
+            "expected_scope_count": 11,
+            "covered_scope_count": 11,
+            "unresolved_scope_count": 0,
+            "fail_scope_count": 0
+          },
+          "llov": {
+            "stage": "static.llov",
+            "expected_scope_count": 11,
+            "covered_scope_count": 11,
+            "unresolved_scope_count": 0,
+            "fail_scope_count": 0
+          }
+        },
+        "narrowing": {
+          "narrowed": false,
+          "reason": null,
+          "frozen_enabled_models": [
+            "claude_fable_5",
+            "claude_opus_5",
+            "deepseek_v4_flash",
+            "deepseek_v4_pro",
+            "gemini_31_pro",
+            "gemini_36_flash",
+            "openai_gpt55",
+            "openai_gpt56_sol",
+            "qwen36_35b_a3b",
+            "qwen37_max",
+            "qwen3_coder_api"
+          ],
+          "model_list_drift_records": 0,
+          "model_list_drift_note": null
+        },
+        "runtime_stamp_substitutes_split_invocation": false,
+        "record_coverage_substitutes_split_invocation": false
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/claude_fable_5",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/claude_opus_5",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/gemini_31_pro",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/gemini_36_flash",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/openai_gpt55",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/qwen37_max",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.parcoach/qwen3_coder_api",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.parcoach@tools-parcoach)",
+      "evidence": {
+        "tool": "parcoach",
+        "fragments": [
+          "static.parcoach@tools-parcoach"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/claude_fable_5",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/claude_opus_5",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/gemini_31_pro",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/gemini_36_flash",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/openai_gpt55",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/qwen37_max",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "split_static_invocation:static.llov/qwen3_coder_api",
+      "status": "PASS",
+      "detail": "1 valid contract-bound invocation(s) (static.llov@tools-llov)",
+      "evidence": {
+        "tool": "llov",
+        "fragments": [
+          "static.llov@tools-llov"
+        ],
+        "records_with_entry": 144,
+        "summary_invocations_running_tool": 1
+      }
+    },
+    {
+      "check": "assembly_integrity:claude_fable_5",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:claude_fable_5",
+      "status": "PASS",
+      "detail": "manifest 59c86c264e94... vs recomputed 59c86c264e94...",
+      "evidence": {
+        "manifest": "59c86c264e94d32a920df0d4db6258777d46deeea5dbae61771876843a82639f",
+        "recomputed": "59c86c264e94d32a920df0d4db6258777d46deeea5dbae61771876843a82639f"
+      }
+    },
+    {
+      "check": "assembly_condition:claude_fable_5",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:claude_fable_5",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 123 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 69,
+          "parcoach": 11,
+          "llov": 35,
+          "clang_tidy": 5,
+          "infer": 3
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:claude_fable_5",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:claude_fable_5",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:claude_opus_5",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:claude_opus_5",
+      "status": "PASS",
+      "detail": "manifest f29732b357b0... vs recomputed f29732b357b0...",
+      "evidence": {
+        "manifest": "f29732b357b06bb4e3f09dbcb1ce5a41553eb860c3c7c6a2f543c01700e87d12",
+        "recomputed": "f29732b357b06bb4e3f09dbcb1ce5a41553eb860c3c7c6a2f543c01700e87d12"
+      }
+    },
+    {
+      "check": "assembly_condition:claude_opus_5",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:claude_opus_5",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 132 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 68,
+          "llov": 38,
+          "clang_tidy": 9,
+          "infer": 5,
+          "parcoach": 12
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:claude_opus_5",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:claude_opus_5",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "manifest 13480f415a31... vs recomputed 13480f415a31...",
+      "evidence": {
+        "manifest": "13480f415a31a66226cadd244cc8f37ae1e226b4aa426bcdaae8e336f379dd43",
+        "recomputed": "13480f415a31a66226cadd244cc8f37ae1e226b4aa426bcdaae8e336f379dd43"
+      }
+    },
+    {
+      "check": "assembly_condition:deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 140 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 74,
+          "parcoach": 17,
+          "llov": 35,
+          "clang_tidy": 8,
+          "cppcheck": 2,
+          "infer": 4
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:deepseek_v4_flash",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "manifest ddccb57cb430... vs recomputed ddccb57cb430...",
+      "evidence": {
+        "manifest": "ddccb57cb43042935bc7ff0037cc6b7692619f2c1dab09951b8bdeac8928b1fb",
+        "recomputed": "ddccb57cb43042935bc7ff0037cc6b7692619f2c1dab09951b8bdeac8928b1fb"
+      }
+    },
+    {
+      "check": "assembly_condition:deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 140 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 70,
+          "llov": 39,
+          "parcoach": 14,
+          "clang_tidy": 11,
+          "infer": 6
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:deepseek_v4_pro",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:gemini_31_pro",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:gemini_31_pro",
+      "status": "PASS",
+      "detail": "manifest 4a99acf777c1... vs recomputed 4a99acf777c1...",
+      "evidence": {
+        "manifest": "4a99acf777c181e1400f6748ef06bd0fe53432b07fcfd245baec9812152eb313",
+        "recomputed": "4a99acf777c181e1400f6748ef06bd0fe53432b07fcfd245baec9812152eb313"
+      }
+    },
+    {
+      "check": "assembly_condition:gemini_31_pro",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:gemini_31_pro",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 125 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 71,
+          "llov": 35,
+          "parcoach": 12,
+          "clang_tidy": 4,
+          "infer": 3
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:gemini_31_pro",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:gemini_31_pro",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:gemini_36_flash",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:gemini_36_flash",
+      "status": "PASS",
+      "detail": "manifest 41459c965a4d... vs recomputed 41459c965a4d...",
+      "evidence": {
+        "manifest": "41459c965a4d14719c451d7c906e4a0a8633acbb11486e3a08b349b495b396e5",
+        "recomputed": "41459c965a4d14719c451d7c906e4a0a8633acbb11486e3a08b349b495b396e5"
+      }
+    },
+    {
+      "check": "assembly_condition:gemini_36_flash",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:gemini_36_flash",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 128 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 70,
+          "clang_tidy": 6,
+          "infer": 4,
+          "parcoach": 12,
+          "llov": 36
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:gemini_36_flash",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:gemini_36_flash",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:openai_gpt55",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:openai_gpt55",
+      "status": "PASS",
+      "detail": "manifest 5a80f35c6fd1... vs recomputed 5a80f35c6fd1...",
+      "evidence": {
+        "manifest": "5a80f35c6fd17469b67b8400b5cb2ba4bbb79aa86fc0c213da687c74ff57cf63",
+        "recomputed": "5a80f35c6fd17469b67b8400b5cb2ba4bbb79aa86fc0c213da687c74ff57cf63"
+      }
+    },
+    {
+      "check": "assembly_condition:openai_gpt55",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:openai_gpt55",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 126 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 68,
+          "llov": 40,
+          "parcoach": 13,
+          "clang_tidy": 3,
+          "infer": 2
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:openai_gpt55",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:openai_gpt55",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "manifest 1bdb6410d1f8... vs recomputed 1bdb6410d1f8...",
+      "evidence": {
+        "manifest": "1bdb6410d1f87e5b755c12e2a2ddd06784e296f363ea9fade56cbc5a71bb07f7",
+        "recomputed": "1bdb6410d1f87e5b755c12e2a2ddd06784e296f363ea9fade56cbc5a71bb07f7"
+      }
+    },
+    {
+      "check": "assembly_condition:openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 130 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 73,
+          "parcoach": 13,
+          "llov": 38,
+          "clang_tidy": 4,
+          "infer": 2
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:openai_gpt56_sol",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "manifest 46b18b28da02... vs recomputed 46b18b28da02...",
+      "evidence": {
+        "manifest": "46b18b28da02f19030fb8c6e432f30a96a8e0a14fc620e3ec8387688533bc111",
+        "recomputed": "46b18b28da02f19030fb8c6e432f30a96a8e0a14fc620e3ec8387688533bc111"
+      }
+    },
+    {
+      "check": "assembly_condition:qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 130 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 68,
+          "llov": 34,
+          "parcoach": 14,
+          "clang_tidy": 8,
+          "infer": 6
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:qwen36_35b_a3b",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:qwen37_max",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:qwen37_max",
+      "status": "PASS",
+      "detail": "manifest 87bb57ecfd18... vs recomputed 87bb57ecfd18...",
+      "evidence": {
+        "manifest": "87bb57ecfd1818b48a159ffaf95583a6028938b462f3e2f780aed9690aabea74",
+        "recomputed": "87bb57ecfd1818b48a159ffaf95583a6028938b462f3e2f780aed9690aabea74"
+      }
+    },
+    {
+      "check": "assembly_condition:qwen37_max",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:qwen37_max",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 128 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 70,
+          "llov": 37,
+          "parcoach": 12,
+          "clang_tidy": 6,
+          "infer": 3
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:qwen37_max",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:qwen37_max",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    },
+    {
+      "check": "assembly_integrity:qwen3_coder_api",
+      "status": "PASS",
+      "detail": "144 assembled, 0 skipped, sources match their recorded hashes",
+      "evidence": {
+        "status": "PASS",
+        "records": 144,
+        "assembled": 144,
+        "skipped": 0,
+        "duplicates": [],
+        "missing_sources": [],
+        "tampered_sources": [],
+        "orphan_sources": [],
+        "legacy_unpinned": [],
+        "not_expected": [],
+        "not_recorded": [],
+        "problems": []
+      }
+    },
+    {
+      "check": "assembly_set_registered:qwen3_coder_api",
+      "status": "PASS",
+      "detail": "manifest d77c887b7854... vs recomputed d77c887b7854...",
+      "evidence": {
+        "manifest": "d77c887b7854132cc15b0fcb7b6af29db071bce871e0d842e049c05af6a481c4",
+        "recomputed": "d77c887b7854132cc15b0fcb7b6af29db071bce871e0d842e049c05af6a481c4"
+      }
+    },
+    {
+      "check": "assembly_condition:qwen3_coder_api",
+      "status": "PASS",
+      "detail": "manifest a2a76e899414... vs contract a2a76e899414...",
+      "evidence": {}
+    },
+    {
+      "check": "static_coverage:qwen3_coder_api",
+      "status": "PASS",
+      "detail": "0 sample(s) without a static record; 0 missing tool entr(y/ies); 168 terminal coverage limitation(s) (invocation completed - reported, not a failure)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": [],
+        "coverage_limitations": {
+          "gcc_analyzer": 77,
+          "llov": 37,
+          "clang_tidy": 18,
+          "infer": 12,
+          "parcoach": 24
+        }
+      }
+    },
+    {
+      "check": "correctness_coverage:qwen3_coder_api",
+      "status": "PASS",
+      "detail": "0 assembled sample(s) without a correctness record",
+      "evidence": {
+        "missing": [],
+        "records": 144
+      }
+    },
+    {
+      "check": "dynamic_coverage:qwen3_coder_api",
+      "status": "PASS",
+      "detail": "0 sample(s) without a dynamic record; 0 missing tool entr(y/ies)",
+      "evidence": {
+        "missing_records": [],
+        "missing_entries": []
+      }
+    }
+  ]
+}

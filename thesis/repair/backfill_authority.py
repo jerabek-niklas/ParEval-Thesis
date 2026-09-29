@@ -9,6 +9,10 @@ def validate_target(config, base_run_id, target_run_id, model_id, enhanced=False
     from thesis.evaluation import stage_runtime
     from thesis.repair import orchestrator
     from thesis.repair.run_backfill import loop_state_terminality
+    if base_run_id == "full_ext_recovery_001":
+        from thesis.evaluation.recovery_context import validate_target as validate_recovery
+        validate_recovery(config, target_run_id, model_id, enhanced)
+        return stage_runtime.enforcement_state(config, base_run_id)
     state = stage_runtime.enforcement_state(config, base_run_id)
     if not state.get("enforced"):
         raise ValueError("backfill requires an authorized contracted base run")

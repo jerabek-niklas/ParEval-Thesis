@@ -129,7 +129,8 @@ def load_jsonl_by_sample(path: Path) -> "Dict[str, Dict[str, Any]]":
 
 def load_assembly(intermediate_root: Path, run_id: str, model_id: str
                   ) -> "Dict[str, Dict[str, Any]]":
-    return load_jsonl_by_sample(intermediate_root / run_id / model_id / "assembly.jsonl")
+    from thesis.evaluation.recovery_context import assembly_path
+    return load_jsonl_by_sample(assembly_path(intermediate_root, run_id, model_id))
 
 
 def assembled_sample_ids(assembly: "Dict[str, Dict[str, Any]]") -> List[str]:
@@ -154,7 +155,8 @@ def discover_runs(
 
     runs: List[Dict[str, Any]] = []
 
-    if (intermediate_root / base_run_id / model_id / "assembly.jsonl").exists():
+    from thesis.evaluation.recovery_context import assembly_path
+    if assembly_path(intermediate_root, base_run_id, model_id).exists():
         runs.append({"variant": "shared", "iteration": 0, "run_id": base_run_id})
 
     variants = orchestrator.repair_settings(config)["variants"]
@@ -384,20 +386,22 @@ def plan_run(
     """Coverage plan for one run: which stages need an invocation."""
     intermediate_root = Path(config["outputs"]["intermediate_dir"])
     run_id = run["run_id"]
+    from thesis.evaluation.recovery_context import candidate_run
+    measurement_source = candidate_run(run_id)
 
     assembly = load_assembly(intermediate_root, run_id, model_id)
     samples = assembled_sample_ids(assembly)
 
     static_records = load_jsonl_by_sample(
-        intermediate_root / run_id / model_id
+        intermediate_root / measurement_source / model_id
         / orchestrator.stage_output_file(config, "static_analysis")
     )
     correctness_records = load_jsonl_by_sample(
-        intermediate_root / run_id / model_id
+        intermediate_root / measurement_source / model_id
         / orchestrator.stage_output_file(config, "correctness_tests")
     )
     dynamic_records = load_jsonl_by_sample(
-        intermediate_root / run_id / model_id
+        intermediate_root / measurement_source / model_id
         / orchestrator.stage_output_file(config, "dynamic_analysis")
     )
 
@@ -705,6 +709,8 @@ class StageExecutor:
         from thesis.repair.backfill_authority import validate_target, refuse_partial
         from thesis.evaluation import stage_runtime, atomic_io
         base = common.get_profile(self.config, self.profile_name)["run_id"]
+        if base == "full_ext_recovery_001" and target == base:
+            raise ValueError("recovery base analysis is an immutable parent reference")
         state = validate_target(self.config, base, target, model)
         if self.primary_compiler != state["contract"].get("primary_compiler"):
             raise ValueError("backfill compiler differs from contracted compiler")
@@ -870,6 +876,11 @@ def backfill_model(
     for run in runs:
         plan = plan_run(config, run, model_id, REPO_ROOT, marker_cache)
         run_id = run["run_id"]
+
+        if run_id == "full_ext_recovery_001":
+            # Parent measurements, including gaps, are historical evidence.
+            # Only the later enhanced loop may write new base-candidate data.
+            continue
 
         print(
             "[%s] %s (variant %s, iteration %d): static=%s correctness=%s "

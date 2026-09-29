@@ -92,10 +92,17 @@ def build_loops(args: argparse.Namespace):
         raise ValueError("No enabled models matched the selection.")
 
     loops = []
+    loop_class = orchestrator.RepairLoop
+    loop_options = {}
+    if profile.get("run_id") == "full_ext_recovery_001":
+        from thesis.evaluation.recovery_context import load_lineage
+        from thesis.repair.recovery_routing import RecoveryRepairLoop
+        loop_class = RecoveryRepairLoop
+        loop_options["lineage"] = load_lineage()
     for model_config in models:
         for variant in variants:
             loops.append(
-                orchestrator.RepairLoop(
+                loop_class(
                     config=config,
                     config_path=str(Path(args.config)),
                     profile_name=args.profile,
@@ -103,6 +110,7 @@ def build_loops(args: argparse.Namespace):
                     model_config=model_config,
                     variant=variant,
                     primary_compiler=args.primary_compiler,
+                    **loop_options,
                 )
             )
 

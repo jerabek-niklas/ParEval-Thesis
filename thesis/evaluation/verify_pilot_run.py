@@ -1139,7 +1139,8 @@ def check_enhanced_source_drift(report: Report, intermediate: Path, run_id: str,
                    "no registered model execution fingerprint for this model - "
                    "candidate-source drift cannot be decided")
         return
-    candidate = ep.candidate_source_fingerprint(intermediate, run_id, model_id, REPO_ROOT)
+    from thesis.evaluation.recovery_context import candidate_run
+    candidate = ep.candidate_source_fingerprint(intermediate, candidate_run(run_id), model_id, REPO_ROOT)
     current = ep.model_fingerprint_sha(
         ep.model_execution_fingerprint(global_fingerprint, candidate))
     report.add("enhanced_source_drift:%s" % model_id, PASS if current == recorded else FAIL,

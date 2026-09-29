@@ -768,6 +768,14 @@ def main() -> None:
     profile = common.get_profile(config, args.profile)
     run_id = args.run_id or profile["run_id"]
     authority_run_id = run_id
+    from thesis.evaluation import recovery_context
+    recovery = recovery_context.is_recovery(run_id)
+    candidate_run_id = recovery_context.candidate_run(run_id)
+    if recovery:
+        if args.force or not args.model_id:
+            raise ValueError("recovery enhanced requires one model and forbids force")
+        recovery_context.validate_target(config, run_id, args.model_id, enhanced=True)
+        authority_run_id = "full_ext_recovery_001"
     if args.backfill_base_run_id:
         from thesis.repair.backfill_authority import validate_target
         if not args.model_id or args.force:
@@ -951,7 +959,7 @@ def main() -> None:
         # hashes the assembled SOURCE BYTES of this model's samples, and that is
         # what resume compares.
         candidate_provenance = execprov.candidate_source_fingerprint(
-            intermediate_dir, run_id, model_id)
+            intermediate_dir, candidate_run_id, model_id)
         model_execution_provenance = execprov.model_execution_fingerprint(
             execution_provenance, candidate_provenance)
         print(
@@ -1067,7 +1075,7 @@ def main() -> None:
         worklist: "list[tuple]" = []  # (sample, benchmark, pending specs)
 
         for sample in framework.iter_assembled_samples(
-            REPO_ROOT, intermediate_dir, run_id, model_id
+            REPO_ROOT, intermediate_dir, candidate_run_id, model_id
         ):
             if sample.execution_model not in execution_models:
                 continue
@@ -1165,9 +1173,13 @@ def main() -> None:
                         records, group_rows = future.result()
 
                         for row in group_rows:
+                            if recovery:
+                                row.update(recovery_context.candidate_provenance(config, run_id, model_id, row["sample_id"]))
                             common.append_jsonl(groups_path, row)
 
                         for record in records:
+                            if recovery:
+                                record.update(recovery_context.candidate_provenance(config, run_id, model_id, record["sample_id"]))
                             counts[record["status"]] += 1
                             common.append_jsonl(output_path, record)
                 except BaseException:

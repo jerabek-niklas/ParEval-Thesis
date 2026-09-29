@@ -101,8 +101,7 @@ def docker_image_identity(image_ref: str) -> dict:
     identity = OrderedDict([("image_ref", image_ref), ("image_id", None),
                             ("repo_digests", []), ("rootfs_layers_sha256", None),
                             ("rootfs_layer_count", None), ("inspect_error", None)])
-    argv = ["docker", "image", "inspect", image_ref, "--format",
-            "{{.Id}}\t{{join .RepoDigests \",\"}}\t{{join .RootFS.Layers \",\"}}"]
+    argv = ["docker", "image", "inspect", image_ref]
     try:
         proc = subprocess.run(argv, capture_output=True, text=True, timeout=120)
     except (OSError, subprocess.SubprocessError) as error:
@@ -111,12 +110,31 @@ def docker_image_identity(image_ref: str) -> dict:
     if proc.returncode != 0:
         identity["inspect_error"] = (proc.stderr or proc.stdout or "").strip()[:300]
         return identity
-    line = (proc.stdout or "").strip().split("\n")[0]
-    parts = line.split("\t")
-    identity["image_id"] = parts[0].strip() or None
-    digests = parts[1].strip() if len(parts) > 1 else ""
-    identity["repo_digests"] = sorted(d for d in digests.split(",") if d.strip())
-    layers = [l for l in (parts[2].strip() if len(parts) > 2 else "").split(",") if l.strip()]
+    try:
+        payload = json.loads(proc.stdout or "")
+        if not isinstance(payload, list) or len(payload) != 1 or not isinstance(payload[0], dict):
+            raise ValueError("expected exactly one image object")
+        item = payload[0]
+        image_id = item.get("Id")
+        digests = item.get("RepoDigests")
+        rootfs = item.get("RootFS")
+        if not isinstance(image_id, str) or not image_id.strip():
+            raise ValueError("missing/non-string image Id")
+        if not isinstance(rootfs, dict) or rootfs.get("Type") != "layers":
+            raise ValueError("missing/invalid RootFS")
+        layers = rootfs.get("Layers")
+        if not isinstance(digests, list) or not isinstance(layers, list):
+            raise ValueError("RepoDigests and RootFS.Layers must be arrays")
+        if any(not isinstance(v, str) or not v.strip() or any(c in v for c in ",\r\n\t")
+               or v != v.strip() for v in digests + layers):
+            raise ValueError("invalid digest/layer string")
+    except (ValueError, TypeError) as error:
+        identity["inspect_error"] = "invalid docker image inspect JSON: %s" % error
+        return identity
+    # Publish fields only after the entire response has been validated.
+    # No deduplication; rootfs order and the historical empty-list semantics stay.
+    identity["image_id"] = image_id.strip()
+    identity["repo_digests"] = sorted(digests)
     if layers:
         # ORDERED: the layer sequence is part of the identity
         identity["rootfs_layers_sha256"] = hashlib.sha256(

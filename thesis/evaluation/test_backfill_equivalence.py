@@ -71,7 +71,11 @@ class EquivalenceTests(unittest.TestCase):
         for path in ('thesis/evaluation/run_static_analysis.py','thesis/evaluation/run_enhanced_tests.py'):
             with self.subTest(path=path):
                 old=ast.parse(old_source(path))
-                new=RoutingNormalization().visit(ast.parse((ROOT/path).read_text(encoding='utf-8')))
+                current=(ROOT/path).read_text(encoding='utf-8')
+                if path == 'thesis/evaluation/run_enhanced_tests.py':
+                    from thesis.evaluation.recovery_source_projection import pre_recovery_enhanced_source
+                    current=pre_recovery_enhanced_source(current)
+                new=RoutingNormalization().visit(ast.parse(current))
                 self.assertEqual(ast.dump(old),ast.dump(new))
 
     def test_measurement_implementations_byte_identical(self):

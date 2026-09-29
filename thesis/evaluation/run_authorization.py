@@ -685,6 +685,9 @@ def discover_frozen_contract(config: "Dict[str, Any]", run_id: str,
     if contract_path is not None:
         candidates["explicit_contract_path"] = Path(contract_path)
     candidates["canonical_run_location"] = canonical_contract_path(config, run_id)
+    if run_id == "full_ext_recovery_001":
+        from thesis.evaluation.recovery_context import DEFINITIONS
+        candidates["version_controlled_recovery_definition"] = DEFINITIONS / "contract.json"
     for source, path in candidates.items():
         if path.is_file():
             return OrderedDict([("source", source), ("path", path), ("contract", None)])

@@ -413,10 +413,17 @@ def productive_missing_internal_stages(config, base_run_id, model_id, variant):
     try:
         from thesis.repair import orchestrator
 
-        loop = orchestrator.RepairLoop(
+        loop_type = orchestrator.RepairLoop
+        options = {}
+        if base_run_id == "full_ext_recovery_001":
+            from thesis.evaluation.recovery_context import load_lineage
+            from thesis.repair.recovery_routing import RecoveryRepairLoop
+            loop_type = RecoveryRepairLoop
+            options["lineage"] = load_lineage()
+        loop = loop_type(
             config=config, config_path="<post-run verifier>",
             profile_name="<post-run verifier>", profile={"run_id": base_run_id},
-            model_config={"id": model_id}, variant=variant)
+            model_config={"id": model_id}, variant=variant, **options)
         return list(loop.missing_internal_stages(0)), None
     except Exception as exc:  # noqa: BLE001 - a probe failure is a verdict, not a crash
         return ["<probe failed>"], "%s: %s" % (type(exc).__name__, exc)
