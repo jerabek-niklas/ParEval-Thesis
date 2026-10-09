@@ -1,0 +1,112 @@
+{
+  "schema_version": "successor_readiness.v1",
+  "gate": "READY",
+  "scope": "RUNTIME_EXPECTATION_ONLY_NOT_AUTHORIZATION",
+  "run_id": "full_ext_recovery_002",
+  "predecessor_run_id": "full_ext_recovery_001",
+  "equivalence_sha256": "ad8b1c79bee180ef7500bff0f24e2738d6e43eec2ddf69ab7bc737773597600e",
+  "lineage_sha256": "890b8c9b15f7d68d24349b13b2076ece5f258efdcf008638fc4ef7c9c69982c6",
+  "runtime_condition_sha256": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+  "predecessor_runtime_condition_sha256": "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+  "static_analysis_condition_sha256": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+  "repair_condition_sha256": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40",
+  "runtime_fully_pinned": true,
+  "runtime_condition": {
+    "condition_version": "static_repair_runtime.v1",
+    "static_analysis_condition_sha256": "1f7733276dd17d0eaa37d1762c2b164066524824c9e20f1b4c73beb7100eba49",
+    "repair_condition_sha256": "98b8be0f753dcbc1833aacf868725704a5d4d0c443391840a4701e0fae86ed40",
+    "environments": {
+      "llov": {
+        "image_ref": "pareval-llov",
+        "image_id": "sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341",
+        "repo_digests": [
+          "pareval-llov@sha256:67d8c6c0b36e691c72f80fe893fbfedf4d55e298abc82c841561cd46b95e3341"
+        ],
+        "rootfs_layers_sha256": "835fc4ef14332c3ca74c0801139820c48aa6dc8acf8940a87ffe0b248fbc80a5",
+        "tool_identities": {
+          "llov": "clang version 7.1.0 (git@github.com-utpalbora:utpalbora/LLVMOMPVerify 93321be55c75b340df54c9a208d52e8ec5113dab)"
+        },
+        "evidence": {
+          "clang_identity": "clang version 7.1.0 (git@github.com-utpalbora:utpalbora/LLVMOMPVerify 93321be55c75b340df54c9a208d52e8ec5113dab)",
+          "clang_path": "/home/llvm/Work/LLOV/bin/clang++",
+          "interpreter_identity": "Python 3.8.0",
+          "llov_home": "/home/llvm/Work/LLOV",
+          "plugin_path": "/home/llvm/Work/LLOV/lib/OpenMPVerify.so",
+          "plugin_sha256": "19bbc86baf211f443c6cce9e438c21d9567cdf677923416e2fa4697b1d720196"
+        }
+      },
+      "main": {
+        "image_ref": "pareval-thesis",
+        "image_id": "sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa",
+        "repo_digests": [
+          "pareval-thesis@sha256:eb1c2e93cfab755504b25e6fbf6e0df34e1b371e18c995f55d7eba77f74222aa"
+        ],
+        "rootfs_layers_sha256": "f6bc13cbc026618ba889236257111696557081179048b7da766a89e81fbdba7c",
+        "tool_identities": {
+          "clang_tidy": "Ubuntu LLVM version 18.1.3",
+          "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+          "cppcheck": "Cppcheck 2.13.0",
+          "gcc_analyzer": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+          "infer": "Infer version v1.1.0"
+        },
+        "evidence": {
+          "interpreter_identity": "Python 3.12.3",
+          "mpi_version_line": "mpirun (Open MPI) 4.1.6",
+          "toolchain_versions_file": "/opt/toolchain-versions.txt",
+          "toolchain_versions_sha256": "6508d63d0ec5fd66d71cb00031992e289b9b83c189edd505edc484638d5a4740"
+        }
+      },
+      "parcoach": {
+        "image_ref": "registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1",
+        "image_id": "sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030",
+        "repo_digests": [
+          "registry.gitlab.inria.fr/parcoach/parcoach-demo@sha256:dbac7091e60b218c72a27153639ed4b5ead0389aca0857313cfb821bd3d68030"
+        ],
+        "rootfs_layers_sha256": "2975b0d46cf4e416ccf29686442116977b9e67a4c30e69dde51c364109b368ee",
+        "tool_identities": {
+          "parcoach": "Ubuntu LLVM version 15.0.7"
+        },
+        "evidence": {
+          "clang_identity": "Ubuntu clang version 15.0.7",
+          "clang_path": "/usr/lib/llvm-15/bin/clang",
+          "cmake_package_version": "2.4.0",
+          "cmake_package_version_file": "/usr/lib/cmake/Parcoach/ParcoachConfigVersion.cmake",
+          "executable_path": "/usr/bin/parcoach",
+          "executable_sha256": "1bad67527d180d467b57fbf230b220e190b9e9ce130a6e9f384921e3b06bccec",
+          "interpreter_identity": "Python 3.11.4",
+          "llvm_backend_identity": "Ubuntu LLVM version 15.0.7",
+          "llvm_backend_identity_note": "first line of `parcoach --version` = the LLVM backend banner, NOT a PARCOACH version; later banner lines are host-CPU dependent and are deliberately not collected",
+          "program_version": "2.4.0",
+          "program_version_line": "PARCOACH version 2.4.0",
+          "program_version_source": "parcoach --parcoach-version",
+          "version_sources": {
+            "cmake_package_version": "2.4.0",
+            "image_tag": "carried by the configured image reference, recorded by the caller as image_ref - it is a TAG and need not agree with the program version",
+            "program_self_report": "2.4.0"
+          },
+          "version_sources_agree": true
+        }
+      }
+    },
+    "fully_pinned": true,
+    "unpinned_environments": []
+  },
+  "independent_probe_hashes": [
+    "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a",
+    "0d5f4889334dea26ab74a39df493b7d861eefba49fb7bf41dd0e944ae657510a"
+  ],
+  "tsan_preflight_pass": true,
+  "vm_mmap_rnd_bits": "28",
+  "minimum_free_disk_gb": 20,
+  "minimum_free_disk_policy": "Operational floor, not a prediction of the run size; rechecked by the T0 authorization",
+  "api_key_names": [
+    "ALIBABA_MODEL_STUDIO_API_KEY"
+  ],
+  "provider_endpoint_identities": {
+    "deepseek_v4_flash": "721f4dcc0010a4a27810167ed24c3c7474bb18d02def3bf3b9dcd9bad6dffc84",
+    "qwen3_coder_api": "721f4dcc0010a4a27810167ed24c3c7474bb18d02def3bf3b9dcd9bad6dffc84"
+  },
+  "provider_endpoints_equal_predecessor": true,
+  "host_repo_path": "C:/Users/jerab/Desktop/ParEval-thesis",
+  "readiness_sha256": "c6382309739b4a37480b42e687e084e3d87825841e1d05096e3ed43c4f8c98c6"
+}

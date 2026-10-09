@@ -1,0 +1,42 @@
+{
+  "schema_version": "successor_test_evidence.v1",
+  "label": "py38",
+  "status": "PASS",
+  "python": "3.8.0",
+  "executable": "/usr/bin/python3.8",
+  "modules": [
+    "thesis.evaluation.test_successor_infrastructure",
+    "thesis.repair.test_successor_routing"
+  ],
+  "tests_run": 48,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [],
+  "successor_source_pins": {
+    "thesis/config/recovery_successor.yaml": "de80b1d133c34d2c9dc4976298120eede17986206c11856847fb45c8cfceb5fd",
+    "thesis/evaluation/successor_ast.py": "a5d392b4e50902e9802868bb606b6c75de7a160cd1a6c078a0c4b2d1a8e3f3b4",
+    "thesis/evaluation/successor_ast_evidence.py": "b9c4ddec26fa5cce10d0e14a56455ae35980d00e63c10ff30577b7cb2bc88d81",
+    "thesis/evaluation/successor_contract.py": "abb2a415e12e1cf7c5f4171303019f906e7f45c65a587ca1ed994929c39e581a",
+    "thesis/evaluation/successor_equivalence.py": "199087bec0b9baa3d81bd3974003413b0fb6da48e61fdb08aa969bc344842f50",
+    "thesis/evaluation/successor_external.py": "b6681d9cfcbcdd1cbe96e614274f8b9fa37ab9fa9a1622339b7a4c255dd794d6",
+    "thesis/evaluation/successor_freeze.py": "6eaf0a31312f0ded68fd06a3de7461731381aaa918c64f71b99daa9ba1c078b5",
+    "thesis/evaluation/successor_handoff.py": "302c4854f922c9e1128b8b785530877556faa3ae81be2fe293d314688a068617",
+    "thesis/evaluation/successor_lineage.py": "e8375b96d92e45b3d0c0c3d94e990c93852d51c00774ea91723a72f4499c59dd",
+    "thesis/evaluation/successor_preflight.py": "a4fb60e432f226a7371f119f161b1af2798bd9f7e5a2d10be73366bc628bdb90",
+    "thesis/evaluation/successor_readiness.py": "54b5dd4fdf791c64885cd73298ea000b7630eccce8d906bef52031ea33e909dc",
+    "thesis/evaluation/successor_supplement.py": "62e647e43d0d3bf1fe8ac9493062d537d886e51b7f9a799ecece812262a8c25b",
+    "thesis/evaluation/successor_writer.py": "2726691dd7e5fb7b06c670ddd9f64d1597f58fd6976c3f2ac1b0ab512d2ecbe6",
+    "thesis/evaluation/test_successor_infrastructure.py": "8f2d9e4f2baed8db06bb01a4024ef6b360d53df0a677e4ed66b7fe0c09276a47",
+    "thesis/evaluation/verify_successor_run.py": "7a47f2ceb171e34e5825f4e22031bb02c00b7f9b80cd2eaed597af3481c3e8f7",
+    "thesis/repair/run_successor.py": "cbd89c044cb4281150659e5eb74467237392d89f4f5fe88b178c191ec46c929a",
+    "thesis/repair/successor_routing.py": "9c66d3e5b21d45879b212bd4a32761d216d214dd83f7d18bce6f4e2be7215ac2",
+    "thesis/repair/test_successor_routing.py": "112f4e44386ef2dbe0f2b9b424a7dad41a98679ea0ef12bc4e8a1312225305eb"
+  },
+  "routing_change_lf_sha256": {
+    "thesis/evaluation/pilot_run_contract.py": "bbaff3283d7e6f6e2a23418f5cd3d70713b1c094fe8f920d1a56dd829ec389cd"
+  },
+  "runner_output_sha256": "5c8286c792e996fafd102a5de411ec1b7fb5ed85930e1bc93a4ccfabea48b2af",
+  "runner_output_tail": "ith_rehashed_manifest_refused (thesis.evaluation.test_successor_infrastructure.SnapshotTests) ... ok\ntest_native_bytes_and_identity_preserved (thesis.evaluation.test_successor_infrastructure.SnapshotTests) ... ok\ntest_new_member_refused (thesis.evaluation.test_successor_infrastructure.SnapshotTests) ... ok\ntest_unregistered_read_refused (thesis.evaluation.test_successor_infrastructure.SnapshotTests) ... ok\ntest_wrong_model_and_run_refused (thesis.evaluation.test_successor_infrastructure.SnapshotTests) ... ok\ntest_ambiguous_intent_at_the_bound_ends_natively (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_ambiguous_intent_stops_until_explicitly_resolved (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_crash_between_outcome_and_wave_save_never_resubmits (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_end_to_end_continuation (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_failed_external_round_is_retried_once_missing_only (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_guards (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_predecessor_drift_and_authority_refuse_before_any_write (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_recorded_provider_failure_is_requeued_by_the_driver (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_refused_before_send_is_not_a_round (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_requests_carry_the_inherited_history (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_restart_after_every_step (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_stop_event_blocks_new_intents (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_torn_tails (thesis.repair.test_successor_routing.ContinuationTests) ... ok\ntest_refusals_before_any_write (thesis.repair.test_successor_routing.ExternalEntrypointTests) ... ok\ntest_supplement_mode_is_missing_only (thesis.repair.test_successor_routing.ExternalEntrypointTests) ... ok\ntest_predecessor_stops_where_recovery_001_stopped (thesis.repair.test_successor_routing.FixtureTests) ... ok\ntest_replay_gate_rebuilds_every_predecessor_request (thesis.repair.test_successor_routing.FixtureTests) ... ok\ntest_contract_rebuild_requires_the_writer_token (thesis.repair.test_successor_routing.ReviewRegressionTests) ... ok\ntest_duplicate_loops_are_refused (thesis.repair.test_successor_routing.ReviewRegressionTests) ... ok\ntest_operator_abort_in_a_serial_step_stops_every_loop (thesis.repair.test_successor_routing.ReviewRegressionTests) ... ok\ntest_refusal_then_failure_then_requeue_stays_within_the_bound (thesis.repair.test_successor_routing.ReviewRegressionTests) ... ok\ntest_unbound_supplement_rows_refuse_in_read_only_mode (thesis.repair.test_successor_routing.ReviewRegressionTests) ... ok\ntest_wave_state_must_be_successor_written (thesis.repair.test_successor_routing.ReviewRegressionTests) ... ok\ntest_contract_dispatch_is_the_only_pinned_edit (thesis.repair.test_successor_routing.StaticSourceTests) ... ok\ntest_no_successor_path_uses_the_predecessor_contract_builder (thesis.repair.test_successor_routing.StaticSourceTests) ... ok\ntest_entry_equals_native_run_model (thesis.repair.test_successor_routing.SupplementTests)\nThe supplement entry is byte-identical to the entry ... ok\ntest_merged_view_never_replaces_stored_entries (thesis.repair.test_successor_routing.SupplementTests) ... ok\ntest_missing_only_and_idempotent (thesis.repair.test_successor_routing.SupplementTests) ... ok\ntest_supplement_bound_to_authority (thesis.repair.test_successor_routing.SupplementTests) ... ok\ntest_lock_path_is_not_version_controlled (thesis.repair.test_successor_routing.WriterLockTests) ... ok\ntest_single_writer_without_takeover (thesis.repair.test_successor_routing.WriterLockTests) ... ok\n\n----------------------------------------------------------------------\nRan 48 tests in 66.431s\n\nOK\n",
+  "scope": "SYNTHETIC_ONLY: mock provider, mock tools, temporary worlds; no productive authorization, analysis or provider request",
+  "evidence_sha256": "c2ecaf654279b57f71777ee1e5108ef03903da5dc9d6c807a65f71ccded9aec2"
+}

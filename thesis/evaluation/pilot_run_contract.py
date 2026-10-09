@@ -435,6 +435,9 @@ def build_contract(config_path: Path, profile_name: str,
     if profile_name == "recovery":
         from thesis.evaluation.recovery_contract import build
         return build(config_path, run_id_override, primary_compiler)
+    if profile_name == "recovery_successor":
+        from thesis.evaluation.successor_contract import build
+        return build(config_path, run_id_override, primary_compiler)
     if profile_name == "full_extension":
         from thesis.evaluation.extension_contract import build
         return build(config_path, run_id_override, primary_compiler)
