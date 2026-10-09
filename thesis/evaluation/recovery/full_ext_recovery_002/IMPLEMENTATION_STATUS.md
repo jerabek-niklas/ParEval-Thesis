@@ -12,10 +12,10 @@ explicit approval.
 | file | identity |
 |---|---|
 | `lineage.json` | `890b8c9b...` - predecessor byte snapshot `d3548dc9...` (1,506 files), bindings, handoff facts, retirement record |
-| `equivalence.json` | `ad8b1c79...` - 346 unchanged predecessor pins + 1 routing change, baseline re-derived from the 8d88ebc Git blobs, config projection = recovery_001, test evidence |
-| `readiness.json` | `c6382309...` - runtime `0d5f4889...` (= recovery_001 T0) in two probes, TSan/mmap 28, provider endpoints = recovery_001 T0 |
-| `contract.json` | `827f7eac...` READY, model_ids = the two models |
-| `test_evidence_py38/py311/py312.json` | 48/48 synthetic tests PASS in pareval-llov (3.8.0), parcoach-demo (3.11.4), pareval-thesis (3.12.3) |
+| `equivalence.json` | `26312b1c...` - 346 unchanged predecessor pins + 1 routing change, baseline re-derived from the 8d88ebc Git blobs, config projection = recovery_001, test evidence |
+| `readiness.json` | `104e7634...` - runtime `0d5f4889...` (= recovery_001 T0) in two probes, TSan/mmap 28, provider endpoints = recovery_001 T0 |
+| `contract.json` | `f00b6bba...` READY, model_ids = the two models |
+| `test_evidence_py38/py311/py312.json` | 52/52 synthetic tests PASS in pareval-llov (3.8.0), parcoach-demo (3.11.4), pareval-thesis (3.12.3) |
 | `ast_python38/312.json` | `successor_ast.index_v1` projection evidence |
 
 ## What is reused (hash-bound reference, never copied or rewritten)
@@ -43,10 +43,24 @@ iteration 2 is successor-native (`full_ext_recovery_002__<variant>__iter2`).
   intent -> STOP, `--resolve-ambiguous` is an explicit operator decision), per-step
   authority + predecessor immutability, successor-started tool containers.
 - `thesis/repair/run_successor.py`: single-writer driver (O_EXCL lock, no stale
-  takeover), first-start runtime/endpoint gate, T0 bootstrap/rehydration, parallel
-  provider phase across loops (`--parallel-submissions`, default 1 = native),
-  one automatic re-queue for recorded provider failures and failed tool rounds,
-  per-model verification.
+  takeover), first-start runtime/endpoint gate, T0 bootstrap/rehydration, schedule
+  `api_first.v1` (below), parallel provider phase across loops
+  (`--parallel-submissions`, default 1 = native, models interleaved), one automatic
+  re-queue for recorded provider failures and failed tool rounds, per-model
+  verification.
+
+## Driver schedule api_first.v1
+
+Every loop runs the unchanged native state machine; only the order in which the
+driver steps DIFFERENT loops is fixed: (1) PREPARE - serial steps of every loop up to
+its provider phase (iteration-1 LLOV supplements, iteration-1 decisions, iteration-2
+request building; loops already past their provider phase after an interrupted run
+are held); (2) SUBMIT - the provider phase of every ready loop, including the native
+bounded re-queue of recorded provider failures; (3) ANALYZE - assembly, iteration-2
+internal analyses, PARCOACH/LLOV iteration 2 and decisions, then verification. No
+loop advances past its provider phase before every loop's provider phase has ended
+(tested, including a re-queued failure and a resume with mixed phases; the committed
+07e777d driver fails both tests).
 - `thesis/evaluation/successor_external.py` (tool containers): binding checks without
   contract rebuild (python 3.8 LLOV), writer token, SUPPLEMENT (missing-only) and
   NATIVE (iteration 2) modes.

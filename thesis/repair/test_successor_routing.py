@@ -681,6 +681,102 @@ class ContinuationTests(SuccessorWorldCase):
         failing = [c["check"] for c in report.checks if c["status"] != "PASS"]
         self.assertEqual(failing, ["static_feedback: no request ended by provider exhaustion"])
 
+    def test_api_first_schedule_orders_phases_across_loops(self):
+        """Schedule api_first.v1: every iteration-1 analysis precedes the first
+        provider request, and EVERY provider request - including the re-queued
+        round of a loop with a recorded failure - precedes the first assembly or
+        iteration-2 tool run of ANY loop."""
+        events = []
+        real_generate = self.adapter.generate
+
+        def generate(*args, **kwargs):
+            events.append("call")
+            return real_generate(*args, **kwargs)
+
+        self.adapter.generate = generate
+        self.adapter.sequence = ["error"]  # one loop ends its first round blocked_api
+        real_external = self.external
+
+        def external(loop, pending, iteration):
+            events.append("external%d" % iteration)
+            return real_external(loop, pending, iteration)
+
+        loops = self.loops()
+        for loop in loops:
+            loop.external_runner = external
+            loop._assemble = (lambda original: lambda target: (
+                events.append("assemble"), original(target))[1])(loop._assemble)
+        delays = []
+        outcomes = rs.drive(loops, parallel=2, log=quiet, sleep=delays.append)
+        self.assertEqual(set(outcomes.values()), {orchestrator.OUTCOME_DONE})
+        self.assertEqual(delays, [600.0])
+        self.assertEqual(events.count("call"), 9)  # 8 requests + the re-queued failed one
+        first_call = events.index("call")
+        last_call = len(events) - 1 - events[::-1].index("call")
+        self.assertNotIn("external1", events[first_call:])
+        self.assertNotIn("assemble", events[:last_call])
+        self.assertNotIn("external2", events[:last_call])
+        self.assertEqual(events.count("external1"), 4)
+        self.assertEqual(events.count("assemble"), 4)
+        for loop in loops:
+            report = vs.Report(loop.model_id)
+            vs.continued_loop(self.loop(loop.model_id, loop.variant), report,
+                              OrderedDict([("reused", Counter()), ("new", Counter())]))
+            self.assertEqual(report.status, "PASS", [c for c in report.checks if c["status"] != "PASS"])
+
+    def test_resume_holds_loops_past_their_provider_phase(self):
+        """An interrupted run left one loop past its provider phase and the
+        others still before submission: the resumed drive sends every
+        remaining request before it analyzes the finished loop."""
+        self.step_until(lambda: self.loop(sl.MODELS[0], "static_feedback"), "requests_built", 2)
+        self.loop(sl.MODELS[0], "static_feedback").step()  # its provider phase ended
+        self.assertEqual(self.loop(sl.MODELS[0], "static_feedback").load_wave_state()["phase"],
+                         "responses_merged")
+        for model, variant in ((sl.MODELS[0], "combined_feedback"), (sl.MODELS[1], "static_feedback")):
+            self.step_until(lambda: self.loop(model, variant), "requests_built", 2)
+        events = []
+        real_generate = self.adapter.generate
+
+        def generate(*args, **kwargs):
+            events.append("call")
+            return real_generate(*args, **kwargs)
+
+        self.adapter.generate = generate
+        real_external = self.external
+
+        def external(loop, pending, iteration):
+            events.append("external%d" % iteration)
+            return real_external(loop, pending, iteration)
+
+        loops = self.loops()
+        for loop in loops:
+            loop.external_runner = external
+            loop._assemble = (lambda original: lambda target: (
+                events.append("assemble"), original(target))[1])(loop._assemble)
+        outcomes = rs.drive(loops, parallel=2, log=quiet, sleep=quiet)
+        self.assertEqual(set(outcomes.values()), {orchestrator.OUTCOME_DONE})
+        last_call = len(events) - 1 - events[::-1].index("call")
+        self.assertNotIn("assemble", events[:last_call])
+        self.assertNotIn("external2", events[:last_call])
+        self.assertEqual(events.count("call"), 6)  # 2 already answered + 6 remaining = 8
+        self.assertEqual(len(self.adapter.calls), 8)
+
+    def test_resume_with_every_loop_past_its_provider_phase_still_finishes(self):
+        for model in sl.MODELS:
+            for variant in sl.CONTINUE_VARIANTS:
+                self.step_until(lambda: self.loop(model, variant), "requests_built", 2)
+                self.loop(model, variant).step()
+        calls = len(self.adapter.calls)
+        outcomes = rs.drive(self.loops(), parallel=2, log=quiet, sleep=quiet)
+        self.assertEqual(set(outcomes.values()), {orchestrator.OUTCOME_DONE})
+        self.assertEqual(len(self.adapter.calls), calls)
+
+    def test_submission_order_interleaves_models(self):
+        order = [rs.key(loop) for loop in rs._interleaved(self.loops())]
+        self.assertEqual(order, ["%s/static_feedback" % sl.MODELS[0], "%s/static_feedback" % sl.MODELS[1],
+                                 "%s/combined_feedback" % sl.MODELS[0],
+                                 "%s/combined_feedback" % sl.MODELS[1]])
+
     def test_failed_external_round_is_retried_once_missing_only(self):
         model = sl.MODELS[1]
         loops = [l for l in self.loops([model]) if l.variant == "combined_feedback"]

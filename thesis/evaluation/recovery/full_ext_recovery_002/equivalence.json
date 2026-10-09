@@ -386,9 +386,9 @@
     "thesis/evaluation/successor_writer.py": "2726691dd7e5fb7b06c670ddd9f64d1597f58fd6976c3f2ac1b0ab512d2ecbe6",
     "thesis/evaluation/test_successor_infrastructure.py": "8f2d9e4f2baed8db06bb01a4024ef6b360d53df0a677e4ed66b7fe0c09276a47",
     "thesis/evaluation/verify_successor_run.py": "7a47f2ceb171e34e5825f4e22031bb02c00b7f9b80cd2eaed597af3481c3e8f7",
-    "thesis/repair/run_successor.py": "cbd89c044cb4281150659e5eb74467237392d89f4f5fe88b178c191ec46c929a",
+    "thesis/repair/run_successor.py": "ef87ea42aa1305c17d82cf260462750573aa06e34607f8f6e5a6aa09bf872317",
     "thesis/repair/successor_routing.py": "9c66d3e5b21d45879b212bd4a32761d216d214dd83f7d18bce6f4e2be7215ac2",
-    "thesis/repair/test_successor_routing.py": "112f4e44386ef2dbe0f2b9b424a7dad41a98679ea0ef12bc4e8a1312225305eb"
+    "thesis/repair/test_successor_routing.py": "b3227f971b7fa15cd5be923b6e7802c6ffff9b9832b167742ae125a988f89af8"
   },
   "methodical_config_projection": {
     "models": "5a4d9f8598e45f89bc9ad881a54b13a6b313d76e2efa1ed0f2aa0bf85f030649",
@@ -403,30 +403,30 @@
       "kind": "unittest",
       "status": "PASS",
       "python": "3.8.0",
-      "tests_run": 48,
+      "tests_run": 52,
       "evidence_path": "thesis/evaluation/recovery/full_ext_recovery_002/test_evidence_py38.json",
-      "evidence_lf_sha256": "d3cb823cb535edf97461e5787aa579ecb843af734635d72eff6f4f3bcec91c60",
-      "evidence_sha256": "c2ecaf654279b57f71777ee1e5108ef03903da5dc9d6c807a65f71ccded9aec2"
+      "evidence_lf_sha256": "de04436210da14e1f8b6d82a2a3f654f70dc593d9aaf01800a4684388dd2a1e8",
+      "evidence_sha256": "a65f8c28b2972a978c08585d89b16af3c5ae918f2de0c29625707e0c1c99a3a0"
     },
     {
       "label": "py312",
       "kind": "unittest",
       "status": "PASS",
       "python": "3.12.3",
-      "tests_run": 48,
+      "tests_run": 52,
       "evidence_path": "thesis/evaluation/recovery/full_ext_recovery_002/test_evidence_py312.json",
-      "evidence_lf_sha256": "003cda92296cf73df148c44ee7216c826ece16f21fff1e74952adfe17029d065",
-      "evidence_sha256": "52b9474062e3951c13e8718db0da0a3d263e2ecf50ac932f3cdfd8a9c37d9dc2"
+      "evidence_lf_sha256": "1dda7f7c948e6c3f140d7f695f7b5ef0880ca5a06c5dc900c99387d96d720786",
+      "evidence_sha256": "4268d89fd1b6b6331c282cc2ab34bba2e2e39f66f93330046af718c3cbd26130"
     },
     {
       "label": "py311",
       "kind": "unittest",
       "status": "PASS",
       "python": "3.11.4",
-      "tests_run": 48,
+      "tests_run": 52,
       "evidence_path": "thesis/evaluation/recovery/full_ext_recovery_002/test_evidence_py311.json",
-      "evidence_lf_sha256": "1420134e6fa273f7f1a6f89abeeec9204a7164fa76d2564fba68025e0b9e3e76",
-      "evidence_sha256": "510c3f4dae0cd6afa943e94e4206d229b9c413680e5e6ba5fe43b45092a84442"
+      "evidence_lf_sha256": "6ed3c9f8cb53987eacd7511deb0c5a3c1f691cb6726e37f29d7141bcc80f7d85",
+      "evidence_sha256": "1164cfa74e16ddf22dd4e4c77a543227aec1b995f00566c67739771b83a72aaa"
     },
     {
       "label": "ast_python38",
@@ -448,5 +448,5 @@
     }
   ],
   "scope": "SUCCESSOR_ONLY; predecessor proof/contract never rebuilt or replaced",
-  "proof_sha256": "ad8b1c79bee180ef7500bff0f24e2738d6e43eec2ddf69ab7bc737773597600e"
+  "proof_sha256": "26312b1ce98aaca30cef7a7b1024e00bc2107c49749b5dfa13a132d1154c8557"
 }

@@ -42,7 +42,12 @@ from thesis.repair import orchestrator  # noqa: E402
 from thesis.repair import successor_routing as sr  # noqa: E402
 
 READY_TO_SUBMIT = "ready_to_submit"
+PROVIDER_ENDED = "provider_ended"
 SUBMISSION_PHASES = ("requests_built", "submitted")
+# phases AFTER the provider phase of the successor iteration (assembly,
+# analyses, external tools and decisions of the new answers)
+POST_PROVIDER_PHASES = ("responses_merged", "assembled", "analyzed_waiting_external", "analyzed",
+                        "decided")
 
 
 class NullAuthority:
@@ -107,12 +112,20 @@ def key(loop):
     return "%s/%s" % (loop.model_id, loop.variant)
 
 
-def advance_until_submission(loop):
-    """Serial steps until done, blocked or ready for the provider phase."""
+def advance_until_submission(loop, hold_post_provider=False):
+    """Serial steps until done, blocked or ready for the provider phase.
+
+    hold_post_provider: a loop already PAST its provider phase (iteration-2
+    responses_merged ... decided, e.g. after an interrupted run) is not
+    stepped (PROVIDER_ENDED) - it is analyzed after every other loop's
+    provider phase."""
     while True:
-        phase = loop.load_wave_state()["phase"]
-        if phase in SUBMISSION_PHASES:
+        wave = loop.load_wave_state()
+        if wave["phase"] in SUBMISSION_PHASES:
             return READY_TO_SUBMIT
+        if (hold_post_provider and int(wave["iteration"]) >= sr.TARGET_ITERATION
+                and wave["phase"] in POST_PROVIDER_PHASES):
+            return PROVIDER_ENDED
         outcome = loop.step()
         if outcome == orchestrator.OUTCOME_DONE or outcome in orchestrator.BLOCKED_OUTCOMES:
             return outcome
@@ -127,56 +140,40 @@ def _submit_one(loop, results, lock):
         results[key(loop)] = outcome
 
 
-def drive(loops, parallel=1, log=print, api_retry_delay=600.0, sleep=None,
-          external_retry_delay=60.0):
-    """Drive every loop to done/blocked. Returns {loop: outcome or exception}.
+# Driver schedule (recorded in the invocation record). api_first.v1: the
+# provider phase of EVERY loop - including the native bounded re-queue of
+# recorded provider failures - completes before any loop advances past it
+# (assembly, analyses, external tools of the new answers). Every loop still
+# runs the unchanged native state machine step by step; only the order in
+# which the driver steps DIFFERENT loops is fixed.
+SCHEDULE = "api_first.v1"
 
-    Re-queued ONCE per invocation (what an operator re-run would do):
-      * blocked_api (RECORDED provider failures) after `api_retry_delay`
-        seconds - the unchanged native bounded policy (request_retry_rounds),
-        never a resubmission of an ambiguous request (verify_submission_ledger
-        refuses those);
-      * blocked_external (a tool container failed or wrote nothing) after
-        `external_retry_delay` seconds - missing-only: a stored entry,
-        including TIMEOUT/TOOL_ERROR, is never re-run."""
-    import time
 
-    sleep = sleep or time.sleep
-    if len(set(key(loop) for loop in loops)) != len(loops):
-        raise RecoveryRefused("two loops share the same model/variant")
-    outcomes = OrderedDict()
-    active = list(loops)
-    requeued = set()
-    delays = ((orchestrator.OUTCOME_BLOCKED_API, api_retry_delay,
-               "recorded provider failures (native bounded retry)"),
-              (orchestrator.OUTCOME_BLOCKED_EXTERNAL, external_retry_delay,
-               "an incomplete external tool round (missing-only)"))
-    while True:
-        if not active:
-            for blocked, delay, reason in delays:
-                retry = [loop for loop in loops if outcomes.get(key(loop)) == blocked
-                         and (blocked, key(loop)) not in requeued]
-                if not retry:
-                    continue
-                log("re-queueing %s after %s, in %.0f s"
-                    % (", ".join(key(loop) for loop in retry), reason, delay))
-                sleep(delay)
-                for loop in retry:
-                    requeued.add((blocked, key(loop)))
-                    outcomes.pop(key(loop))
-                    active.append(loop)
-                break
-            if not active:
-                break
-        ready = []
-        for loop in list(active):
+def _interleaved(loops):
+    """Submission order: variants of different models alternate, so parallel
+    workers spread the provider load across models."""
+    rank = {model: index for index, model in enumerate(sl.MODELS)}
+    variants = {variant: index for index, variant in enumerate(sl.VARIANTS)}
+    return sorted(loops, key=lambda loop: (variants.get(loop.variant, 99), rank.get(loop.model_id, 99)))
+
+
+def _serial_phase(loops, outcomes, log, sleep, requeued, external_retry_delay, label,
+                  hold_post_provider=False):
+    """Serial steps of every loop until its provider phase (READY) or a
+    terminal/blocked outcome. A blocked_external loop is retried once
+    (missing-only) INSIDE this phase. Returns (READY loops, held loops)."""
+    ready = []
+    held = []
+    queue = list(loops)
+    while queue:
+        retry = []
+        for loop in queue:
             if sr.STOP_EVENT.is_set():
                 raise sr.StopRequested("stop requested; no further loop is advanced")
             try:
-                outcome = advance_until_submission(loop)
+                outcome = advance_until_submission(loop, hold_post_provider=hold_post_provider)
             except Exception as error:  # noqa: BLE001 - per-loop failure, reported later
                 outcomes[key(loop)] = error
-                active.remove(loop)
                 continue
             except BaseException:
                 # operator abort / interpreter exit: no loop may advance or submit
@@ -184,43 +181,138 @@ def drive(loops, parallel=1, log=print, api_retry_delay=600.0, sleep=None,
                 raise
             if outcome == READY_TO_SUBMIT:
                 ready.append(loop)
+            elif outcome == PROVIDER_ENDED:
+                held.append(loop)
+            elif (outcome == orchestrator.OUTCOME_BLOCKED_EXTERNAL
+                  and (outcome, key(loop)) not in requeued):
+                requeued.add((outcome, key(loop)))
+                retry.append(loop)
             else:
                 outcomes[key(loop)] = outcome
-                active.remove(loop)
-        if not ready:
-            continue
-        results = {}
-        lock = threading.Lock()
-        width = max(1, int(parallel))
-        for start in range(0, len(ready), width):
-            if sr.STOP_EVENT.is_set():
-                raise sr.StopRequested("stop requested; no further submission batch is started")
-            batch = ready[start:start + width]
-            threads = [threading.Thread(target=_submit_one, args=(loop, results, lock),
-                                        name="submit-" + key(loop)) for loop in batch]
-            for thread in threads:
-                sr.WORKERS.append(thread)
-                thread.start()
-            try:
-                for thread in threads:
-                    thread.join()
-            except BaseException:
-                # stop at the next request boundary, wait for in-flight calls
-                sr.STOP_EVENT.set()
-                for thread in threads:
-                    thread.join()
-                raise
-            finally:
-                for thread in threads:
-                    if not thread.is_alive() and thread in sr.WORKERS:
-                        sr.WORKERS.remove(thread)
-        for loop in ready:
+        if retry:
+            log("SUCCESSOR_PHASE %s: re-queueing %s after an incomplete external tool round "
+                "(missing-only), in %.0f s" % (label, ", ".join(key(l) for l in retry),
+                                               external_retry_delay))
+            sleep(external_retry_delay)
+        queue = retry
+    return ready, held
+
+
+def _submission_pool(loops, parallel):
+    """One step (= the loop's whole submission round) per loop on `parallel`
+    worker threads; a free worker takes the next loop."""
+    results = {}
+    results_lock = threading.Lock()
+    queue_lock = threading.Lock()
+    queue = list(loops)
+
+    def worker():
+        while True:
+            with queue_lock:
+                if not queue or sr.STOP_EVENT.is_set():
+                    return
+                loop = queue.pop(0)
+            _submit_one(loop, results, results_lock)
+
+    threads = [threading.Thread(target=worker, name="submit-worker-%d" % index)
+               for index in range(min(max(1, int(parallel)), len(loops)))]
+    for thread in threads:
+        sr.WORKERS.append(thread)
+        thread.start()
+    try:
+        for thread in threads:
+            thread.join()
+    except BaseException:
+        # stop at the next request boundary, wait for in-flight calls
+        sr.STOP_EVENT.set()
+        for thread in threads:
+            thread.join()
+        raise
+    finally:
+        for thread in threads:
+            if not thread.is_alive() and thread in sr.WORKERS:
+                sr.WORKERS.remove(thread)
+    if sr.STOP_EVENT.is_set():
+        raise sr.StopRequested("stop requested during the submission phase")
+    return results
+
+
+def _submission_phase(ready, parallel, outcomes, log, sleep, requeued, api_retry_delay):
+    """Provider phase of every READY loop, including the native bounded
+    re-queue of recorded provider failures, BEFORE any loop advances further.
+    Returns the loops that left the provider phase normally (to be analyzed)."""
+    advanced = []
+    queue = _interleaved(ready)
+    while queue:
+        log("SUCCESSOR_PHASE SUBMIT: %s" % ", ".join(key(loop) for loop in queue))
+        results = _submission_pool(queue, parallel)
+        retry = []
+        for loop in queue:
             outcome = results.get(key(loop))
-            if isinstance(outcome, BaseException) or outcome in orchestrator.BLOCKED_OUTCOMES \
+            if (outcome == orchestrator.OUTCOME_BLOCKED_API
+                    and (outcome, key(loop)) not in requeued):
+                requeued.add((outcome, key(loop)))
+                retry.append(loop)
+            elif isinstance(outcome, BaseException) or outcome in orchestrator.BLOCKED_OUTCOMES \
                     or outcome == orchestrator.OUTCOME_DONE:
                 outcomes[key(loop)] = outcome
-                active.remove(loop)
-    return outcomes
+            else:
+                advanced.append(loop)
+        if retry:
+            log("SUCCESSOR_PHASE SUBMIT: re-queueing %s after recorded provider failures "
+                "(native bounded retry), in %.0f s" % (", ".join(key(l) for l in retry),
+                                                     api_retry_delay))
+            sleep(api_retry_delay)
+        queue = retry
+    return advanced
+
+
+def drive(loops, parallel=1, log=print, api_retry_delay=600.0, sleep=None,
+          external_retry_delay=60.0):
+    """Drive every loop to done/blocked under schedule api_first.v1.
+    Returns {loop: outcome or exception}.
+
+    Rounds of three phases until no loop reaches a provider phase again:
+      PREPARE/ANALYZE  serial native steps of every loop up to its provider
+                       phase (iteration-1 LLOV supplements, decisions, request
+                       building) or to done (assembly, analyses, external tools
+                       and decisions of the answers of the previous round);
+      SUBMIT           the provider phase of EVERY ready loop on `parallel`
+                       workers; a loop with RECORDED provider failures
+                       (blocked_api) is re-queued once after `api_retry_delay`
+                       seconds inside this phase - the unchanged native
+                       bounded policy (request_retry_rounds), never a
+                       resubmission of an ambiguous request
+                       (verify_submission_ledger refuses those);
+    a blocked_external loop is re-queued once after `external_retry_delay`
+    seconds (missing-only: a stored entry, including TIMEOUT/TOOL_ERROR, is
+    never re-run). No loop advances past its provider phase before every
+    loop's provider phase has ended."""
+    import time
+
+    sleep = sleep or time.sleep
+    if len(set(key(loop) for loop in loops)) != len(loops):
+        raise RecoveryRefused("two loops share the same model/variant")
+    outcomes = OrderedDict()
+    requeued = set()
+    pending = list(loops)
+    label = "PREPARE"
+    while pending:
+        log("SUCCESSOR_PHASE %s: %s" % (label, ", ".join(key(loop) for loop in pending)))
+        # the first round holds loops that are already past their provider
+        # phase (resume): they are analyzed after every provider phase ended
+        ready, held = _serial_phase(pending, outcomes, log, sleep, requeued, external_retry_delay,
+                                    label, hold_post_provider=(label == "PREPARE"))
+        if not ready and not held:
+            break
+        submitted = (_submission_phase(ready, parallel, outcomes, log, sleep, requeued,
+                                       api_retry_delay) if ready else [])
+        pending = held + submitted
+        label = "ANALYZE"
+    log("SUCCESSOR_PHASE END: %s" % json.dumps(OrderedDict(
+        (k, v if isinstance(v, str) else "%s: %s" % (type(v).__name__, v))
+        for k, v in outcomes.items())))
+    return OrderedDict((key(loop), outcomes[key(loop)]) for loop in loops if key(loop) in outcomes)
 
 
 def require_clean_worktree(root=REPO_ROOT):
@@ -345,7 +437,7 @@ def _productive(args, config, config_path, lineage, parent, lock, head):
     from thesis.evaluation import verify_successor_run as vs
 
     print("SUCCESSOR_INVOCATION", json.dumps(OrderedDict([
-        ("head", head), ("parallel_submissions", args.parallel_submissions),
+        ("head", head), ("schedule", SCHEDULE), ("parallel_submissions", args.parallel_submissions),
         ("api_retry_delay_seconds", args.api_retry_delay_seconds),
         ("models", args.model_id or list(sl.MODELS))])))
     from thesis.evaluation import successor_readiness as srd

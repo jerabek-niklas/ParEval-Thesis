@@ -747,7 +747,7 @@
   },
   "methodology_freeze": {
     "schema_version": "successor_methodology.v1",
-    "equivalence_sha256": "ad8b1c79bee180ef7500bff0f24e2738d6e43eec2ddf69ab7bc737773597600e",
+    "equivalence_sha256": "26312b1ce98aaca30cef7a7b1024e00bc2107c49749b5dfa13a132d1154c8557",
     "predecessor_equivalence_sha256": "2e18f8d96ca4d1bb2f1d5803e6a4b491cd8cf6693292d73018acc6345dfdf956"
   },
   "methodical_override_plan": {
@@ -782,7 +782,7 @@
   "blockers": [],
   "built_at_utc": null,
   "builder": "successor_contract.v1",
-  "contract_sha256": "827f7eac5b1475e880e6a8ad510e884d71366e8e57652d47bf3ed1d192dce664",
+  "contract_sha256": "f00b6bbadc105320a6c7e42d04188f14440503989c5a96f5a21fba972d2dfde9",
   "successor_provenance": {
     "schema_version": "successor_contract.v1",
     "predecessor_run_id": "full_ext_recovery_001",
@@ -820,8 +820,8 @@
       "qwen3_coder_api/test_feedback": "ADOPT_DONE",
       "qwen3_coder_api/combined_feedback": "CONTINUE"
     },
-    "equivalence_sha256": "ad8b1c79bee180ef7500bff0f24e2738d6e43eec2ddf69ab7bc737773597600e",
-    "readiness_lf_sha256": "54caa1aaee5765a30f1b4e3e927764774d22dddeb82fe9b4d8f35cb7dcf91f46",
+    "equivalence_sha256": "26312b1ce98aaca30cef7a7b1024e00bc2107c49749b5dfa13a132d1154c8557",
+    "readiness_lf_sha256": "79665c3e53abf79e3c40c373296a14f3598504b2f32957f2e27b526299869edc",
     "config_lf_sha256": "de80b1d133c34d2c9dc4976298120eede17986206c11856847fb45c8cfceb5fd",
     "external_runner": "thesis/evaluation/successor_external.py"
   }
