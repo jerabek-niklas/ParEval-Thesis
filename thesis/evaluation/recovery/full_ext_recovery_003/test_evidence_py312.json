@@ -1,0 +1,43 @@
+{
+  "schema_version": "successor_test_evidence.v1",
+  "label": "py312",
+  "status": "PASS",
+  "python": "3.12.3",
+  "executable": "/usr/bin/python3",
+  "modules": [
+    "thesis.recovery_successor_003.test_handoff",
+    "thesis.recovery_successor_003.test_routing"
+  ],
+  "tests_run": 57,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [],
+  "successor_source_pins": {
+    "thesis/config/recovery_successor_003.yaml": "8e3c2476315302b95020f829592359886354bd4d4f50412c3088144aaf7e70f4",
+    "thesis/recovery_successor_003/__init__.py": "687d8fa4be3bcbdc288e0b4c1620cb6f18baef6ab3481fb4bdee34e6147eabf8",
+    "thesis/recovery_successor_003/contract.py": "c96c83e19a1aace2ddce5a628a5cf014748a745c32aa7989b757e3338a33b08c",
+    "thesis/recovery_successor_003/equivalence.py": "18b0ba54457cc48dd5e4277d91bc633f525a990d5542e980b813468f0caebe19",
+    "thesis/recovery_successor_003/external.py": "791f5e471923fe6aee51e32c826a42f0fc18b4abf9e9ad2bc1fb6bb4a60c4bef",
+    "thesis/recovery_successor_003/freeze.py": "10ec29378be7a6a94a98b39dc0ab370ba3041118272095732024b4505fc2ff46",
+    "thesis/recovery_successor_003/handoff.py": "dab70dd2088931e4700647ea8ac67098487d65e1c869d5a7357266ad292ba44b",
+    "thesis/recovery_successor_003/lineage.py": "b81b06dd96d0485b3fd0846504200ad071d847907ec39a407c81e348e5a80204",
+    "thesis/recovery_successor_003/preflight.py": "b8cdc24f31211e922b40672956b38e43ab2ea26d93fc66cef54fe555c0cda8c5",
+    "thesis/recovery_successor_003/readiness.py": "998f30cec6bb3e5f9b64574f295c504b9b26ae96fdb920ff30798c0352d32d54",
+    "thesis/recovery_successor_003/routing.py": "fe8de7b6e2a706cabab5b15aca0c1e9a3fef56148852b37f8a79afa30a647e0a",
+    "thesis/recovery_successor_003/run.py": "3c74f1268b71f05f35e1d5a41b5253512f956ceaa7a8c5689af87c966bfa8651",
+    "thesis/recovery_successor_003/test_handoff.py": "2d07e13675e3a158d7bbe11c43d1ea6eae006468a50b1733b648ffd7ec0e8893",
+    "thesis/recovery_successor_003/test_routing.py": "d865bdfceaaa41f7460b48cbf4e2e7e32d048878a138e260e864a998ce028e45",
+    "thesis/recovery_successor_003/verify.py": "3891be6f5354e3dde630fe61178e2dc03bea18a87d7246e2aea3f4093969556b",
+    "thesis/evaluation/successor_ast.py": "a5d392b4e50902e9802868bb606b6c75de7a160cd1a6c078a0c4b2d1a8e3f3b4",
+    "thesis/evaluation/successor_ast_evidence.py": "b9c4ddec26fa5cce10d0e14a56455ae35980d00e63c10ff30577b7cb2bc88d81",
+    "thesis/evaluation/successor_supplement.py": "62e647e43d0d3bf1fe8ac9493062d537d886e51b7f9a799ecece812262a8c25b",
+    "thesis/evaluation/successor_writer.py": "2726691dd7e5fb7b06c670ddd9f64d1597f58fd6976c3f2ac1b0ab512d2ecbe6"
+  },
+  "routing_change_lf_sha256": {
+    "thesis/evaluation/pilot_run_contract.py": "9dd2845daa58336118802d9c833db56c4ff0678f174c3b9bde9b942847fa105e"
+  },
+  "runner_output_sha256": "38a1daab2ab484b32bc336f6532926925f6a35998c9094cc524b152b207fef7f",
+  "runner_output_tail": "vider_phase_still_finishes (thesis.recovery_successor_003.test_routing.ContinuationTests.test_resume_with_every_loop_past_its_provider_phase_still_finishes) ... ok\ntest_stop_event_blocks_new_intents (thesis.recovery_successor_003.test_routing.ContinuationTests.test_stop_event_blocks_new_intents) ... ok\ntest_submission_order_interleaves_models (thesis.recovery_successor_003.test_routing.ContinuationTests.test_submission_order_interleaves_models) ... ok\ntest_torn_tails (thesis.recovery_successor_003.test_routing.ContinuationTests.test_torn_tails) ... ok\ntest_refusals_before_any_write (thesis.recovery_successor_003.test_routing.ExternalEntrypointTests.test_refusals_before_any_write) ... ok\ntest_supplement_mode_is_missing_only (thesis.recovery_successor_003.test_routing.ExternalEntrypointTests.test_supplement_mode_is_missing_only) ... ok\ntest_predecessor_stops_where_recovery_001_stopped (thesis.recovery_successor_003.test_routing.FixtureTests.test_predecessor_stops_where_recovery_001_stopped) ... ok\ntest_replay_gate_rebuilds_every_predecessor_request (thesis.recovery_successor_003.test_routing.FixtureTests.test_replay_gate_rebuilds_every_predecessor_request) ... ok\ntest_contract_rebuild_requires_the_writer_token (thesis.recovery_successor_003.test_routing.ReviewRegressionTests.test_contract_rebuild_requires_the_writer_token) ... ok\ntest_duplicate_loops_are_refused (thesis.recovery_successor_003.test_routing.ReviewRegressionTests.test_duplicate_loops_are_refused) ... ok\ntest_operator_abort_in_a_serial_step_stops_every_loop (thesis.recovery_successor_003.test_routing.ReviewRegressionTests.test_operator_abort_in_a_serial_step_stops_every_loop) ... ok\ntest_refusal_then_failure_then_requeue_stays_within_the_bound (thesis.recovery_successor_003.test_routing.ReviewRegressionTests.test_refusal_then_failure_then_requeue_stays_within_the_bound) ... ok\ntest_unbound_supplement_rows_refuse_in_read_only_mode (thesis.recovery_successor_003.test_routing.ReviewRegressionTests.test_unbound_supplement_rows_refuse_in_read_only_mode) ... ok\ntest_wave_state_must_be_successor_written (thesis.recovery_successor_003.test_routing.ReviewRegressionTests.test_wave_state_must_be_successor_written) ... ok\ntest_contract_dispatch_is_the_only_pinned_edit (thesis.recovery_successor_003.test_routing.StaticSourceTests.test_contract_dispatch_is_the_only_pinned_edit) ... ok\ntest_generic_dispatch_resolves_this_package_only (thesis.recovery_successor_003.test_routing.StaticSourceTests.test_generic_dispatch_resolves_this_package_only) ... ok\ntest_no_successor_path_uses_the_predecessor_contract_builder (thesis.recovery_successor_003.test_routing.StaticSourceTests.test_no_successor_path_uses_the_predecessor_contract_builder) ... ok\ntest_entry_equals_native_run_model (thesis.recovery_successor_003.test_routing.SupplementTests.test_entry_equals_native_run_model)\nThe supplement entry is byte-identical to the entry ... ok\ntest_interrupted_supplement_missing_a_stub_stays_pending (thesis.recovery_successor_003.test_routing.SupplementTests.test_interrupted_supplement_missing_a_stub_stays_pending)\nA ledger holding every applicable row but missing one NOT_APPLICABLE ... ok\ntest_merged_view_never_replaces_stored_entries (thesis.recovery_successor_003.test_routing.SupplementTests.test_merged_view_never_replaces_stored_entries) ... ok\ntest_missing_only_and_idempotent (thesis.recovery_successor_003.test_routing.SupplementTests.test_missing_only_and_idempotent) ... ok\ntest_supplement_bound_to_authority (thesis.recovery_successor_003.test_routing.SupplementTests.test_supplement_bound_to_authority) ... ok\ntest_lock_path_is_not_version_controlled (thesis.recovery_successor_003.test_routing.WriterLockTests.test_lock_path_is_not_version_controlled) ... ok\ntest_single_writer_without_takeover (thesis.recovery_successor_003.test_routing.WriterLockTests.test_single_writer_without_takeover) ... ok\n\n----------------------------------------------------------------------\nRan 57 tests in 290.171s\n\nOK\n",
+  "scope": "SYNTHETIC_ONLY: mock provider, mock tools, temporary worlds; no productive authorization, analysis or provider request",
+  "evidence_sha256": "7a32621b3c2a297bc1d826e08bfb66697447c4f3f21fdea56807e037a56a0c2b"
+}

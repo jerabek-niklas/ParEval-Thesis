@@ -438,6 +438,17 @@ def build_contract(config_path: Path, profile_name: str,
     if profile_name == "recovery_successor":
         from thesis.evaluation.successor_contract import build
         return build(config_path, run_id_override, primary_compiler)
+    if profile_name.startswith("recovery_successor_"):
+        # generic successor dispatch: profile recovery_successor_NNN is built by
+        # the package thesis.recovery_successor_NNN (contract.build); a later
+        # successor adds its own package, never another edit of this function
+        import importlib
+        import re
+
+        if not re.fullmatch(r"recovery_successor_[0-9]{3}", profile_name):
+            raise ValueError("invalid successor profile %r" % profile_name)
+        return importlib.import_module("thesis.%s.contract" % profile_name).build(
+            config_path, run_id_override, primary_compiler)
     if profile_name == "full_extension":
         from thesis.evaluation.extension_contract import build
         return build(config_path, run_id_override, primary_compiler)

@@ -1,0 +1,498 @@
+{
+  "experiment": {
+    "name": "pareval_static_analysis_thesis",
+    "description": "Evaluation of LLM-generated Serial, OpenMP, and MPI code with static analysis and correctness tests",
+    "schema_version": "experiment.v1"
+  },
+  "profiles": {
+    "full_extension": {
+      "run_id": "full_ext_001",
+      "selection": "complement",
+      "exclude_population": "thesis/evaluation/pilot_002_population.json",
+      "prompt_limit": null,
+      "num_samples_per_prompt": 1
+    },
+    "smoke": {
+      "run_id": "smoke_004",
+      "prompt_limit": 3,
+      "num_samples_per_prompt": 1
+    },
+    "pilot": {
+      "run_id": "pilot_002",
+      "selection": "stratified",
+      "prompt_limit": 36,
+      "num_samples_per_prompt": 1
+    },
+    "repair_smoke": {
+      "run_id": "repair_smoke_001",
+      "prompt_limit": 1,
+      "num_samples_per_prompt": 1
+    },
+    "model_check": {
+      "run_id": "model_check_001",
+      "prompt_limit": 1,
+      "num_samples_per_prompt": 1
+    },
+    "full": {
+      "run_id": "full_001",
+      "prompt_limit": null,
+      "num_samples_per_prompt": 1
+    },
+    "recovery": {
+      "run_id": "full_ext_recovery_001",
+      "num_samples_per_prompt": 1,
+      "parent_run_id": "full_ext_001",
+      "selection": "parent_reference"
+    },
+    "recovery_successor_003": {
+      "run_id": "full_ext_recovery_003",
+      "num_samples_per_prompt": 1,
+      "parent_run_id": "full_ext_001",
+      "predecessor_run_id": "full_ext_recovery_001",
+      "selection": "predecessor_reference"
+    }
+  },
+  "prompts": {
+    "path": "thesis/prompts/generation-prompts-thesis.json",
+    "prompt_field": "prompt",
+    "execution_models": [
+      "serial",
+      "omp",
+      "mpi"
+    ],
+    "problem_types": null
+  },
+  "generation_defaults": {
+    "max_output_tokens": 16384,
+    "temperature": 0,
+    "top_p": null,
+    "timeout_seconds": 300,
+    "retry_attempts": 2,
+    "sleep_seconds_between_requests": 0,
+    "api_mode": "batch",
+    "api_mode_overrides": {},
+    "system_prompt": "You are an expert C++ and parallel programming assistant.\nComplete the given function according to the prompt.\nReturn only the generated C++ code needed to complete the function.\nDo not include Markdown fences, explanations, or extra text.\nPreserve the required execution model: Serial, OpenMP, or MPI.\n"
+  },
+  "models": [
+    {
+      "id": "openai_gpt55",
+      "enabled": true,
+      "provider": "openai",
+      "model_name": "gpt-5.5",
+      "api_key_env": "OPENAI_API_KEY",
+      "price_per_mtok_in": 5,
+      "price_per_mtok_out": 30,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "gemini_31_pro",
+      "enabled": true,
+      "provider": "gemini",
+      "model_name": "gemini-3.1-pro-preview",
+      "api_key_env": "GEMINI_API_KEY",
+      "price_per_mtok_in": 2,
+      "price_per_mtok_out": 12,
+      "thinking_level": "medium"
+    },
+    {
+      "id": "claude_opus_5",
+      "enabled": true,
+      "provider": "anthropic",
+      "model_name": "claude-opus-5",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "price_per_mtok_in": 5,
+      "price_per_mtok_out": 25,
+      "thinking": "adaptive",
+      "effort": "medium"
+    },
+    {
+      "id": "claude_opus_48",
+      "enabled": false,
+      "provider": "anthropic",
+      "model_name": "claude-opus-4-8",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "price_per_mtok_in": 5,
+      "price_per_mtok_out": 25,
+      "thinking": "adaptive",
+      "effort": "medium"
+    },
+    {
+      "id": "claude_fable_5",
+      "enabled": true,
+      "provider": "anthropic",
+      "model_name": "claude-fable-5",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "price_per_mtok_in": 10,
+      "price_per_mtok_out": 50,
+      "thinking": "adaptive",
+      "effort": "medium"
+    },
+    {
+      "id": "qwen_best",
+      "enabled": false,
+      "provider": "openai_compatible",
+      "model_name": "replace_with_qwen_model_name",
+      "base_url": "replace_with_qwen_base_url",
+      "api_key_env": "QWEN_API_KEY"
+    },
+    {
+      "id": "qwen3_coder_api",
+      "enabled": true,
+      "provider": "openai_compatible",
+      "model_name": "qwen3-coder-plus",
+      "base_url_env": "ALIBABA_MODEL_STUDIO_BASE_URL",
+      "api_key_env": "ALIBABA_MODEL_STUDIO_API_KEY",
+      "price_per_mtok_in": 0.65,
+      "price_per_mtok_out": 3.25
+    },
+    {
+      "id": "deepseek_v4_pro",
+      "enabled": true,
+      "provider": "openai_compatible",
+      "model_name": "deepseek-v4-pro",
+      "base_url_env": "ALIBABA_MODEL_STUDIO_BASE_URL",
+      "api_key_env": "ALIBABA_MODEL_STUDIO_API_KEY",
+      "price_per_mtok_in": 0.435,
+      "price_per_mtok_out": 0.87,
+      "extra_body": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "thinking_budget": 8192
+      }
+    },
+    {
+      "id": "openai_gpt56_sol",
+      "enabled": true,
+      "provider": "openai",
+      "model_name": "gpt-5.6-sol",
+      "api_key_env": "OPENAI_API_KEY",
+      "price_per_mtok_in": 5,
+      "price_per_mtok_out": 30,
+      "reasoning_effort": "medium"
+    },
+    {
+      "id": "gemini_35_flash",
+      "enabled": false,
+      "provider": "gemini",
+      "model_name": "gemini-3.5-flash",
+      "api_key_env": "GEMINI_API_KEY",
+      "price_per_mtok_in": 1.5,
+      "price_per_mtok_out": 9,
+      "thinking_level": "medium"
+    },
+    {
+      "id": "gemini_36_flash",
+      "enabled": true,
+      "provider": "gemini",
+      "model_name": "gemini-3.6-flash",
+      "api_key_env": "GEMINI_API_KEY",
+      "price_per_mtok_in": 1.5,
+      "price_per_mtok_out": 7.5,
+      "thinking_level": "medium"
+    },
+    {
+      "id": "qwen37_max",
+      "enabled": true,
+      "provider": "openai_compatible",
+      "model_name": "qwen3.7-max",
+      "base_url_env": "ALIBABA_MODEL_STUDIO_BASE_URL",
+      "api_key_env": "ALIBABA_MODEL_STUDIO_API_KEY",
+      "price_per_mtok_in": 1.25,
+      "price_per_mtok_out": 3.75,
+      "extra_body": {
+        "enable_thinking": true,
+        "thinking_budget": 8192
+      }
+    },
+    {
+      "id": "qwen36_35b_a3b",
+      "enabled": true,
+      "provider": "openai_compatible",
+      "model_name": "qwen3.6-35b-a3b",
+      "base_url_env": "ALIBABA_MODEL_STUDIO_BASE_URL",
+      "api_key_env": "ALIBABA_MODEL_STUDIO_API_KEY",
+      "price_per_mtok_in": 0.14,
+      "price_per_mtok_out": 0.9,
+      "extra_body": {
+        "enable_thinking": true,
+        "thinking_budget": 8192
+      }
+    },
+    {
+      "id": "deepseek_v4_flash",
+      "enabled": true,
+      "provider": "openai_compatible",
+      "model_name": "deepseek-v4-flash",
+      "base_url_env": "ALIBABA_MODEL_STUDIO_BASE_URL",
+      "api_key_env": "ALIBABA_MODEL_STUDIO_API_KEY",
+      "price_per_mtok_in": 0.14,
+      "price_per_mtok_out": 0.28,
+      "extra_body": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "thinking_budget": 8192
+      }
+    },
+    {
+      "id": "glm_5_2",
+      "enabled": false,
+      "provider": "openai_compatible",
+      "model_name": "glm-5.2",
+      "base_url_env": "ALIBABA_MODEL_STUDIO_BASE_URL",
+      "api_key_env": "ALIBABA_MODEL_STUDIO_API_KEY"
+    }
+  ],
+  "outputs": {
+    "root": "thesis/results",
+    "raw_dir": "thesis/results/raw",
+    "intermediate_dir": "thesis/results/intermediate",
+    "processed_dir": "thesis/results/processed",
+    "readiness_artifact": "thesis/evaluation/recovery/full_ext_recovery_003/readiness.json"
+  },
+  "stages": {
+    "generation": {
+      "enabled": true,
+      "output_file_name": "generations.jsonl",
+      "summary_file_name": "generation_summary.json"
+    },
+    "assembly": {
+      "enabled": true,
+      "output_file_name": "assembly.jsonl",
+      "auto_close_single_brace": true,
+      "feedback_caps": {
+        "compiler_lines": 50,
+        "static_findings": 15,
+        "test_failures": 10
+      }
+    },
+    "compilation": {
+      "enabled": true,
+      "output_file_name": "compilation.jsonl"
+    },
+    "static_analysis": {
+      "enabled": true,
+      "tools": {
+        "compiler": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "omp",
+            "mpi"
+          ]
+        },
+        "gcc_analyzer": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "omp",
+            "mpi"
+          ],
+          "timeout_seconds": 300
+        },
+        "clang_tidy": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "omp",
+            "mpi"
+          ],
+          "low_precision_families": [
+            "clang-analyzer-optin.mpi"
+          ]
+        },
+        "cppcheck": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "omp",
+            "mpi"
+          ]
+        },
+        "infer": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "mpi"
+          ],
+          "bufferoverrun_max_level": 2
+        },
+        "parcoach": {
+          "enabled": true,
+          "execution_models": [
+            "mpi"
+          ],
+          "low_precision_warning": true,
+          "timeout_seconds": 60
+        },
+        "llov": {
+          "enabled": true,
+          "execution_models": [
+            "omp"
+          ]
+        }
+      },
+      "output_file_name": "static_analysis.jsonl"
+    },
+    "correctness_tests": {
+      "enabled": true,
+      "output_file_name": "correctness.jsonl",
+      "niter": 1,
+      "run_timeout_seconds": 120
+    },
+    "dynamic_analysis": {
+      "enabled": true,
+      "tools": {
+        "asan_ubsan": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "omp",
+            "mpi"
+          ]
+        },
+        "tsan": {
+          "enabled": true,
+          "execution_models": [
+            "omp"
+          ]
+        },
+        "memcheck": {
+          "enabled": true,
+          "execution_models": [
+            "serial",
+            "omp"
+          ]
+        },
+        "must": {
+          "enabled": true,
+          "execution_models": [
+            "mpi"
+          ]
+        },
+        "helgrind": {
+          "enabled": false,
+          "execution_models": [
+            "omp"
+          ],
+          "low_precision_warning": true
+        },
+        "drd": {
+          "enabled": false,
+          "execution_models": [
+            "omp"
+          ],
+          "low_precision_warning": true
+        }
+      },
+      "output_file_name": "dynamic_analysis.jsonl"
+    },
+    "enhanced_tests": {
+      "enabled": true,
+      "output_file_name": "enhanced_tests.jsonl",
+      "spec_model": "glm_5_2",
+      "spec_system_prompt": "You are an expert in software testing and C++ numerical code.\nYou design minimal, high-value edge-case test inputs.\nYou respond with STRICT JSON only: a single JSON array, no markdown\nfences, no prose. Every element must follow the schema given by the\nuser exactly.\n",
+      "static_base_sizes": [
+        0,
+        1,
+        2,
+        7
+      ],
+      "llm_specs_min": 5,
+      "llm_specs_max": 8,
+      "target_cases_per_benchmark": 20,
+      "max_spec_size": 4096,
+      "offered_patterns": [
+        "random",
+        "all_zeros",
+        "all_same",
+        "ascending",
+        "descending",
+        "alternating",
+        "extreme_values",
+        "duplicate_at",
+        "sorted_except_one",
+        "spike_at",
+        "explicit_values"
+      ],
+      "explicit_values_max_size": 64,
+      "baseline_prompt_max_chars": 12000,
+      "execution_models": [
+        "serial",
+        "omp",
+        "mpi"
+      ],
+      "enhanced_launch": {
+        "omp_threads": 4,
+        "mpi_ranks": 4
+      },
+      "run_timeout_seconds": 60,
+      "jobs": {
+        "serial": 2,
+        "omp": 1,
+        "mpi": 1
+      },
+      "specs_file": "thesis/results/cache/enhanced/specs.jsonl"
+    },
+    "repair": {
+      "enabled": true,
+      "max_iterations": 2,
+      "variants": [
+        "static_feedback",
+        "test_feedback",
+        "combined_feedback"
+      ],
+      "api_mode": "direct",
+      "api_mode_overrides": {},
+      "external_tools_mode": "docker",
+      "external_tools": [
+        "parcoach",
+        "llov"
+      ],
+      "host_repo_path": null,
+      "external_tool_commands": {
+        "parcoach": "docker run --rm -u 0 -v \"{host_repo}:/workspace\" -w /workspace registry.gitlab.inria.fr/parcoach/parcoach-demo:2.4.1 python3 thesis/evaluation/run_static_analysis.py --config {config} --profile {profile} --run-id {run_id} --model-id {model_id} --tools {tools}",
+        "llov": "docker run --rm -u 0 -v \"{host_repo}:/workspace\" -w /workspace pareval-llov python3.8 thesis/evaluation/run_static_analysis.py --config {config} --profile {profile} --run-id {run_id} --model-id {model_id} --tools {tools}"
+      },
+      "history_mode": "full",
+      "feedback": {
+        "low_confidence_prefix": "Low-confidence hint (tool precision ~0.5 on validation suites) — verify at the given location before changing code:\n",
+        "include_non_blocking": false,
+        "history_message_max_chars": 80,
+        "mismatch_report_max_indices": 3,
+        "templates": {
+          "task_header": "## Original task",
+          "history_iteration_header": "## Iteration {n} (previous attempt)",
+          "current_header": "## Current version (fix this)",
+          "feedback_header": "## Analysis feedback on the current version",
+          "non_blocking_header": "Non-blocking quality hints (optional improvements, not errors):\n",
+          "instruction": "Output the complete corrected function. Line numbers in the feedback refer to the current version shown above.\n",
+          "driver_error": "error at the call site in the test driver (your function name/signature likely does not match the expected interface): {message}\n"
+        }
+      },
+      "strategies": {
+        "static_feedback": {
+          "sources": [
+            "compiler_errors",
+            "static_findings"
+          ]
+        },
+        "test_feedback": {
+          "sources": [
+            "compiler_errors",
+            "correctness_verdicts",
+            "dynamic_findings"
+          ]
+        },
+        "combined_feedback": {
+          "sources": [
+            "compiler_errors",
+            "static_findings",
+            "correctness_verdicts",
+            "dynamic_findings"
+          ]
+        }
+      },
+      "low_confidence_stop_mode": "grace_once"
+    }
+  }
+}
