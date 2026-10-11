@@ -1,0 +1,46 @@
+{
+  "schema_version": "successor_test_evidence.v1",
+  "label": "py312",
+  "status": "PASS",
+  "python": "3.12.3",
+  "executable": "/usr/bin/python3",
+  "modules": [
+    "thesis.recovery_successor_004.test_handoff",
+    "thesis.recovery_successor_004.test_routing",
+    "thesis.recovery_successor_004.test_census"
+  ],
+  "tests_run": 71,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [],
+  "successor_source_pins": {
+    "thesis/config/recovery_successor_004.yaml": "d1b9e385d91a0184f95d17b50658de6933cefb22f511a97a7063ae83b9748b57",
+    "thesis/recovery_successor_004/__init__.py": "0ef026988e183be1779985c71c730effdcd3f1e0267112a726e24a4bb68989ec",
+    "thesis/recovery_successor_004/census.py": "954141ba11e18d8dd55a9d3a88e93c17abb4d8f7ecf9b6d25e9a22483e432957",
+    "thesis/recovery_successor_004/contract.py": "bb6d96b8963298ed6d6277a081960a74fd11bff0df82804cf1956709bac1b786",
+    "thesis/recovery_successor_004/equivalence.py": "fa9e0d3aa2cbefad3794fdf91c27071579f2c69a95028e45569ee2b11132b216",
+    "thesis/recovery_successor_004/external.py": "c33ba69b523a2a3fd5d8a2a652b4f731ce57307b6197654cb5b0c057bd555d2b",
+    "thesis/recovery_successor_004/freeze.py": "e5a99be43fddfa0609b916285d1f1995731609bcdffc6e88d54556b54abc1e74",
+    "thesis/recovery_successor_004/handoff.py": "5320033c6bbbf63e821b5443ccc27049b702559582ec21c120f293b1108d3fcc",
+    "thesis/recovery_successor_004/lineage.py": "dc3f363825dcde91a25d51c1b714899b2511f4d9ec38ff58db53c883f9d87563",
+    "thesis/recovery_successor_004/preflight.py": "db44e51f3b78b74caaa72441f18078fa089f1299994e1c0172323618cbe755a6",
+    "thesis/recovery_successor_004/readiness.py": "fa623aeacab798e27a1e174d9ae876140588389d9de4173e57b6a311dd284fb5",
+    "thesis/recovery_successor_004/routing.py": "7fd3296ce005f78830088414b10a338e3cfd7b1d7ac601ab873eca5e09074555",
+    "thesis/recovery_successor_004/run.py": "d9f91f3dfca8f947b8b3efd0e5c176c873b2989eff48bfbcbeeb4c2bfd53eff2",
+    "thesis/recovery_successor_004/test_census.py": "38830bb8f2e8a57618f87176018d63da0730eef51e79bdf89d999e2e45f49bf4",
+    "thesis/recovery_successor_004/test_handoff.py": "154c0037d41506e0c4f7fd8ef563d950fda09d0b3f584a27a069a8501dee772d",
+    "thesis/recovery_successor_004/test_routing.py": "6bd882689948d57077b98ee44032db39ef0b3eaa9ee810d694f3cd80ec9cbb80",
+    "thesis/recovery_successor_004/verify.py": "2d097820171799c94345c2372122fd6df87a79d392165ba57659b568375666e2",
+    "thesis/evaluation/successor_ast.py": "a5d392b4e50902e9802868bb606b6c75de7a160cd1a6c078a0c4b2d1a8e3f3b4",
+    "thesis/evaluation/successor_ast_evidence.py": "b9c4ddec26fa5cce10d0e14a56455ae35980d00e63c10ff30577b7cb2bc88d81",
+    "thesis/evaluation/successor_supplement.py": "62e647e43d0d3bf1fe8ac9493062d537d886e51b7f9a799ecece812262a8c25b",
+    "thesis/evaluation/successor_writer.py": "2726691dd7e5fb7b06c670ddd9f64d1597f58fd6976c3f2ac1b0ab512d2ecbe6"
+  },
+  "routing_change_lf_sha256": {
+    "thesis/evaluation/pilot_run_contract.py": "9dd2845daa58336118802d9c833db56c4ff0678f174c3b9bde9b942847fa105e"
+  },
+  "runner_output_sha256": "c8471e35c799138947c5b5155be2482a58bb7731925fc99e3dba9d85fd46c15a",
+  "runner_output_tail": " ... ok\ntest_iteration_zero_is_decided_from_the_parent_never_measured (thesis.recovery_successor_004.test_routing.FreshRunTests.test_iteration_zero_is_decided_from_the_parent_never_measured) ... ok\ntest_operator_abort_stops_every_loop (thesis.recovery_successor_004.test_routing.FreshRunTests.test_operator_abort_stops_every_loop) ... ok\ntest_parent_drift_is_a_global_stop (thesis.recovery_successor_004.test_routing.FreshRunTests.test_parent_drift_is_a_global_stop) ... ok\ntest_priority_order_and_lanes (thesis.recovery_successor_004.test_routing.FreshRunTests.test_priority_order_and_lanes) ... ok\ntest_protected_drift_and_authority_refuse_before_any_write (thesis.recovery_successor_004.test_routing.FreshRunTests.test_protected_drift_and_authority_refuse_before_any_write) ... ok\ntest_provider_outage_pauses_only_its_lane (thesis.recovery_successor_004.test_routing.FreshRunTests.test_provider_outage_pauses_only_its_lane) ... ok\ntest_recorded_provider_failure_is_requeued_within_the_bound (thesis.recovery_successor_004.test_routing.FreshRunTests.test_recorded_provider_failure_is_requeued_within_the_bound) ... ok\ntest_refused_before_send_is_not_a_round (thesis.recovery_successor_004.test_routing.FreshRunTests.test_refused_before_send_is_not_a_round) ... ok\ntest_restart_after_every_step (thesis.recovery_successor_004.test_routing.FreshRunTests.test_restart_after_every_step) ... ok\ntest_resume_holds_loops_by_wave (thesis.recovery_successor_004.test_routing.FreshRunTests.test_resume_holds_loops_by_wave) ... ok\ntest_stop_event_blocks_new_intents (thesis.recovery_successor_004.test_routing.FreshRunTests.test_stop_event_blocks_new_intents) ... ok\ntest_torn_tails (thesis.recovery_successor_004.test_routing.FreshRunTests.test_torn_tails) ... ok\ntest_wave_state_must_be_successor_written (thesis.recovery_successor_004.test_routing.FreshRunTests.test_wave_state_must_be_successor_written) ... ok\ntest_lane_adapter_classifies_outcomes (thesis.recovery_successor_004.test_routing.LaneMonitorTests.test_lane_adapter_classifies_outcomes) ... ok\ntest_trip_reopen_and_close (thesis.recovery_successor_004.test_routing.LaneMonitorTests.test_trip_reopen_and_close) ... ok\ntest_a_late_pre_pause_failure_is_no_failed_probe (thesis.recovery_successor_004.test_routing.PoolTests.test_a_late_pre_pause_failure_is_no_failed_probe) ... ok\ntest_config_differs_from_003_only_in_profile_and_readiness (thesis.recovery_successor_004.test_routing.StaticSourceTests.test_config_differs_from_003_only_in_profile_and_readiness) ... ok\ntest_generic_dispatch_resolves_this_package_only (thesis.recovery_successor_004.test_routing.StaticSourceTests.test_generic_dispatch_resolves_this_package_only) ... ok\ntest_no_new_pinned_edit (thesis.recovery_successor_004.test_routing.StaticSourceTests.test_no_new_pinned_edit) ... ok\ntest_no_successor_path_uses_the_predecessor_contract_builder (thesis.recovery_successor_004.test_routing.StaticSourceTests.test_no_successor_path_uses_the_predecessor_contract_builder) ... ok\ntest_another_successor_lock_refuses_the_start (thesis.recovery_successor_004.test_routing.WriterLockTests.test_another_successor_lock_refuses_the_start) ... ok\ntest_lock_path_is_not_version_controlled (thesis.recovery_successor_004.test_routing.WriterLockTests.test_lock_path_is_not_version_controlled) ... ok\ntest_single_writer_without_takeover (thesis.recovery_successor_004.test_routing.WriterLockTests.test_single_writer_without_takeover) ... ok\ntest_a_continued_owner_may_not_write_iteration_zero (thesis.recovery_successor_004.test_census.CensusTests.test_a_continued_owner_may_not_write_iteration_zero) ... ok\ntest_counts_owners_overlays_and_cells (thesis.recovery_successor_004.test_census.CensusTests.test_counts_owners_overlays_and_cells) ... ok\ntest_two_owners_and_foreign_rows_refuse (thesis.recovery_successor_004.test_census.CensusTests.test_two_owners_and_foreign_rows_refuse) ... ok\n\n----------------------------------------------------------------------\nRan 71 tests in 277.932s\n\nOK\n",
+  "scope": "SYNTHETIC_ONLY: mock provider, mock tools, temporary worlds; no productive authorization, analysis or provider request",
+  "evidence_sha256": "f94c86299814db72ab0cf0e79250d69af6c4fda4a2e4cac931d6f7420e27ceba"
+}
