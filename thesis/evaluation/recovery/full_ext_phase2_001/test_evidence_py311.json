@@ -1,0 +1,60 @@
+{
+  "schema_version": "phase2_test_evidence.v1",
+  "label": "py311",
+  "status": "PASS",
+  "python": "3.11.4",
+  "executable": "/usr/bin/python3",
+  "modules": [
+    "thesis.recovery_successor_005.test_authority",
+    "thesis.recovery_successor_005.test_measure_static"
+  ],
+  "tests_run": 47,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [],
+  "tests_per_module": {
+    "thesis.recovery_successor_005.test_authority": 23,
+    "thesis.recovery_successor_005.test_measure_static": 24
+  },
+  "passed_test_modules": [
+    "thesis.recovery_successor_005.test_authority",
+    "thesis.recovery_successor_005.test_measure_static"
+  ],
+  "phase2_source_pins": {
+    "thesis/config/recovery_successor_005.yaml": "ae6f11d63fa161e0bab95fb74c72739089b092b313d7f7232d1509357e428046",
+    "thesis/recovery_successor_005/__init__.py": "74c787ea0f877ea4539f4da2ed7548d4f6efaa51cadb1dd9431d509f2d70609c",
+    "thesis/recovery_successor_005/composite.py": "bab685c53d3fc4aba165149827b59567082adb29ae2b124c87e3cee4afc05ef0",
+    "thesis/recovery_successor_005/contract.py": "fd1a14c97257e18cba0b584e306a1ccf7a00816455fbe33679ce58e18706a6d1",
+    "thesis/recovery_successor_005/equivalence.py": "9659904153e96d527826200f13d82961b74ae3d0cd06844c03afdf90affe70da",
+    "thesis/recovery_successor_005/external.py": "bc26292891233dc514d4716e966160e4852ee454b8422b3a231abc8a7cadd046",
+    "thesis/recovery_successor_005/freeze.py": "3ffea4250f01397f442767b7946d0a0b97bb6204439785ed172b3c126752c82e",
+    "thesis/recovery_successor_005/ledger.py": "4313da1fabf9d1c7c4fe18dbf6adb5d44e02f4217dbfa652a583d6e5bb8191b5",
+    "thesis/recovery_successor_005/lineage.py": "eb30e2e3f84f11be150ac1f88d1cd548d23da894f858d4745c8e961affd34b46",
+    "thesis/recovery_successor_005/measure_enhanced.py": "9473d3e83d4c76179f2302c0e87619cfc73d2b3972cb1da629f20a6032268c9a",
+    "thesis/recovery_successor_005/measure_runtime.py": "c4d7a92e3b6808925ed367c26a212976b5e17bd97a1617ae05a69055c54c8d71",
+    "thesis/recovery_successor_005/measure_static.py": "49a8fb324463bcebbe619d995e2ac3035bf4112b9159b01ebc8abf3f7b45718a",
+    "thesis/recovery_successor_005/plan.py": "fe92a62ee15b20b5e01dc06aa47345ab3a64aa7987b10fcfc4066be75fe8d883",
+    "thesis/recovery_successor_005/preflight.py": "848842abb60a0700dd79c09b6253f398e98618bd69f96e11d3f3d4e4ec99a6ec",
+    "thesis/recovery_successor_005/readiness.py": "0a20050c017a32a8703f53f3dfc67f5bb764773150ce62c19fb7d24c6e807b3d",
+    "thesis/recovery_successor_005/run.py": "e368877bef94a6ea9251d9be505c71a226467921bc572fc30552a91d6fb9b570",
+    "thesis/recovery_successor_005/targets.py": "223d9fc4cd0ebe4614d36980e7eaec8f60c7f466f1a058011f69231a89878bc8",
+    "thesis/recovery_successor_005/verify.py": "dc26e3085dc35193256fda337062a052f8fe3eaf8cb6b78ae563c554593a087f",
+    "thesis/recovery_successor_005/test_authority.py": "2e001720cc1a18c3826b0d42628bc89e5894392d82dc677fc6519b0a1a04b79c",
+    "thesis/recovery_successor_005/test_measure_enhanced.py": "f87f5c556955d03b00529c4aee53c5d79fce3041dc18ea79a796358088ed0c4c",
+    "thesis/recovery_successor_005/test_measure_runtime.py": "5289b634cca2aeac3843ca88c104c7c9ec795421a73e9b78bac906c189611cbd",
+    "thesis/recovery_successor_005/test_measure_static.py": "4a5db54c289f1f992b85bcce7d446f2a9c9cb1022043ee78395a2b334b78ae07",
+    "thesis/recovery_successor_005/test_verify.py": "158adef1956a1683f3f4bd7908c44f200f5dd2cb1f56a29d5ac5e757880f61f8",
+    "thesis/evaluation/successor_ast.py": "a5d392b4e50902e9802868bb606b6c75de7a160cd1a6c078a0c4b2d1a8e3f3b4",
+    "thesis/evaluation/successor_ast_evidence.py": "b9c4ddec26fa5cce10d0e14a56455ae35980d00e63c10ff30577b7cb2bc88d81",
+    "thesis/evaluation/successor_supplement.py": "62e647e43d0d3bf1fe8ac9493062d537d886e51b7f9a799ecece812262a8c25b",
+    "thesis/evaluation/successor_writer.py": "2726691dd7e5fb7b06c670ddd9f64d1597f58fd6976c3f2ac1b0ab512d2ecbe6",
+    "thesis/recovery_successor_004/census.py": "954141ba11e18d8dd55a9d3a88e93c17abb4d8f7ecf9b6d25e9a22483e432957"
+  },
+  "routing_change_lf_sha256": {
+    "thesis/evaluation/pilot_run_contract.py": "9dd2845daa58336118802d9c833db56c4ff0678f174c3b9bde9b942847fa105e"
+  },
+  "runner_output_sha256": "65c25ae1dcf8d0bc3be540c8b1967b5210b0516afb596f70faffef2eae6420fc",
+  "runner_output_tail": "ExternalTests.test_base_exception_kills_the_named_container) ... ok\ntest_container_authority_refuses_without_a_persisted_authorization (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_container_authority_refuses_without_a_persisted_authorization) ... ok\ntest_container_rows_complete_the_target (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_container_rows_complete_the_target) ... ok\ntest_driver_refusals_before_any_container (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_driver_refusals_before_any_container) ... ok\ntest_entrypoint_refusals_before_any_write (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_entrypoint_refusals_before_any_write) ... ok\ntest_exit_code_mapping (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_exit_code_mapping) ... ok\ntest_external_command_structure (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_external_command_structure) ... ok\ntest_main_exit_codes (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_main_exit_codes) ... ok\ntest_missing_host_repo_is_an_environment_stop (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_missing_host_repo_is_an_environment_stop) ... ok\ntest_real_container_exits_map_through_the_driver (thesis.recovery_successor_005.test_measure_static.ExternalTests.test_real_container_exits_map_through_the_driver) ... ok\ntest_entries_equal_native_run_model (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_entries_equal_native_run_model)\nEvery supplement entry (main tools in-process, PARCOACH/LLOV via the ... ok\ntest_environment_gate_before_any_record (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_environment_gate_before_any_record) ... ok\ntest_foreign_targets_refuse_and_other_variants_are_skipped (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_foreign_targets_refuse_and_other_variants_are_skipped) ... ok\ntest_resume_after_crash_and_torn_tail_writes_exactly_the_missing_rows (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_resume_after_crash_and_torn_tail_writes_exactly_the_missing_rows) ... ok\ntest_rows_are_exactly_the_missing_pairs_with_the_003_schema (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_rows_are_exactly_the_missing_pairs_with_the_003_schema) ... ok\ntest_source_drift_between_table_and_bytes_refuses (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_source_drift_between_table_and_bytes_refuses) ... ok\ntest_source_drift_while_the_tool_runs_refuses_that_row (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_source_drift_while_the_tool_runs_refuses_that_row) ... ok\ntest_stop_is_honoured_between_samples (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_stop_is_honoured_between_samples) ... ok\ntest_tool_crash_is_a_target_failure (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_tool_crash_is_a_target_failure) ... ok\ntest_wrong_token_refuses_before_any_write (thesis.recovery_successor_005.test_measure_static.MainToolTests.test_wrong_token_refuses_before_any_write) ... ok\ntest_no_provider_modules_are_imported (thesis.recovery_successor_005.test_measure_static.ModuleHygieneTests.test_no_provider_modules_are_imported) ... ok\ntest_python38_syntax (thesis.recovery_successor_005.test_measure_static.ModuleHygieneTests.test_python38_syntax) ... ok\ntest_an_unavailable_tool_with_only_inapplicable_work_passes_the_gate (thesis.recovery_successor_005.test_measure_static.PresentEntryTests.test_an_unavailable_tool_with_only_inapplicable_work_passes_the_gate) ... ok\ntest_timeout_and_tool_error_entries_are_never_remeasured (thesis.recovery_successor_005.test_measure_static.PresentEntryTests.test_timeout_and_tool_error_entries_are_never_remeasured) ... ok\n\n----------------------------------------------------------------------\nRan 47 tests in 13.625s\n\nOK\n",
+  "scope": "SYNTHETIC_ONLY: stub tools, temporary worlds; no productive authorization, measurement or provider request",
+  "evidence_sha256": "08d535ce818969bbb961951c999a22a99b370e82224e1dd0f3427283fecc4431"
+}
