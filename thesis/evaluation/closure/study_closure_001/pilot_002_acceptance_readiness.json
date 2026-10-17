@@ -1,0 +1,110 @@
+{
+  "schema_version": "pilot_002_acceptance_readiness.v1",
+  "closure_id": "study_closure_001",
+  "run_id": "pilot_002",
+  "status": "AUTHOR_DECISION_REQUIRED",
+  "recorded_status": null,
+  "author_decision_required": true,
+  "decision": {
+    "who": "the thesis author; the closure prepares the decision and never takes it",
+    "what": "status ACCEPTED | REJECTED | PENDING, decided_by (name), decided_on (YYYY-MM-DD)",
+    "artifact": "thesis/evaluation/pilot_002_result_acceptance.json",
+    "artifact_exists": false,
+    "template": "thesis/evaluation/closure/study_closure_001/pilot_002_result_acceptance.TEMPLATE.json",
+    "validate_command": "python3 -B -m thesis.study_closure.acceptance --check <path>",
+    "gate_function": "thesis.evaluation.pilot_freeze.publication_decision"
+  },
+  "exact_values": {
+    "run_id": "pilot_002",
+    "post_run_verification_status": "PASS",
+    "post_run_verification_sha256": "53d8397cfe33c87cee9a51ec7df6075d8a549147a923286d09069e3d65fc1f41",
+    "frozen_contract_sha256": "4aaa00c265ee14a8ea5389c2191e9be568122154b74976325b911afd536b1d48",
+    "publication_policy_sha256": "3f384ac76533e6c82389f376623af2fe34d7364d92b49fea47d896db09761d4e",
+    "pilot_label": "pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt)"
+  },
+  "consequences": {
+    "ACCEPTED": "publication_allowed becomes true only with the pilot label and every mandatory disclosure; results may then be used as pilot results, never as a full 60-benchmark study",
+    "REJECTED": "publication stays refused; the verified measurements stay in the repository as unaccepted results",
+    "PENDING": "nothing changes; publication_allowed stays false"
+  },
+  "gate_now": {
+    "publication_allowed": false,
+    "result_acceptance_status": null,
+    "reasons": [
+      "result acceptance pending (no pilot_002_result_acceptance.v1 artifact)"
+    ],
+    "label_required": "pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt)",
+    "mandatory_disclosures": [
+      {
+        "id": "semantic_disclosure_dense_la_00",
+        "artifact": "thesis/evaluation/semantic_decisions_pilot002.json",
+        "satisfied": true
+      },
+      {
+        "id": "prompt_oracle_interlock",
+        "artifact": "thesis/evaluation/prompt_oracle_interlock.json",
+        "satisfied": true
+      },
+      {
+        "id": "semantic_decisions_all_disclosure_states",
+        "artifact": "thesis/evaluation/semantic_decisions_pilot002.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_D1_infer_omp_scope_difference",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_D2_clang_tidy_pilot_001_location_limitation",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_D3_gcc_analyzer_confidence_demotion_difference",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_D4_malloc_leak_demotion_scope",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_D5_search_35_validation_attempt_exception",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_D6_geometry_sentinel_size_zero_untested",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "e3_2_all_disclosures",
+        "artifact": "thesis/evaluation/e3_2_author_confirmation.json",
+        "satisfied": true
+      },
+      {
+        "id": "cross_pilot_current_scope",
+        "artifact": "thesis/evaluation/cross_pilot_comparability.json",
+        "satisfied": true
+      }
+    ]
+  },
+  "template_gate": {
+    "publication_allowed": false,
+    "reasons": [
+      "result acceptance lacks required field(s): decided_by, decided_on",
+      "result acceptance status is PENDING, not ACCEPTED"
+    ],
+    "only_pending_reasons": true
+  },
+  "inputs_raw_sha256": {
+    "thesis/evaluation/pilot_002_publication_policy.json": "113df11de62b8df1cb3edb8bd7236951bdcc235db6572d9cc8385133e6c2d892",
+    "thesis/results/intermediate/pilot_002/post_run_verification.json": "55fdb6351ee3d1ba1c4adf713590186cef2015622acde715f5afc86e3b014bf9",
+    "thesis/results/intermediate/pilot_002/run_contract.json": "c332b9174f81de0e29ef5828239ee5b656b7c78a0a7b7e24cd6127a76d477322",
+    "thesis/evaluation/pilot_002_result_acceptance.json": null
+  },
+  "readiness_sha256": "10706829c751e359092adaa56e22e8c03bcaff7bf8c8fb733c1acc6b36a8ee54"
+}

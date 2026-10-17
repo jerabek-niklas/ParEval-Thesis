@@ -1,0 +1,30 @@
+{
+  "schema_version": "pilot_002_result_acceptance.v1",
+  "status": "PENDING",
+  "run_id": "pilot_002",
+  "post_run_verification_status": "PASS",
+  "post_run_verification_sha256": "53d8397cfe33c87cee9a51ec7df6075d8a549147a923286d09069e3d65fc1f41",
+  "frozen_contract_sha256": "4aaa00c265ee14a8ea5389c2191e9be568122154b74976325b911afd536b1d48",
+  "decided_by": null,
+  "decided_on": null,
+  "publication_policy_sha256": "3f384ac76533e6c82389f376623af2fe34d7364d92b49fea47d896db09761d4e",
+  "pilot_label": "pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt)",
+  "author_instructions": {
+    "decision": "set status to ACCEPTED or REJECTED, decided_by to your name and decided_on to the ISO date (YYYY-MM-DD) of the decision; change nothing else",
+    "ACCEPTED": "publication of pilot_002 results becomes allowed ONLY under the pilot label (pilot_label) and with every mandatory disclosure of the policy; the gate stays closed while any verifiable field differs from the current artifacts",
+    "REJECTED": "publication stays refused; the measurements remain in the repository as verified but unaccepted results",
+    "PENDING": "no decision yet; publication_allowed stays false",
+    "never_edit": [
+      "post_run_verification_sha256",
+      "frozen_contract_sha256",
+      "run_id",
+      "post_run_verification_status",
+      "schema_version"
+    ],
+    "artifact": "thesis/evaluation/pilot_002_result_acceptance.json",
+    "validate": "python3 -B -m thesis.study_closure.acceptance --check <path>",
+    "gate": "thesis.evaluation.pilot_freeze.publication_decision"
+  },
+  "prepared_by": "study_closure_001 (template, no decision)",
+  "note": "template prepared by the study closure; it is not a decision and carries status PENDING by construction - the closure never accepts"
+}
