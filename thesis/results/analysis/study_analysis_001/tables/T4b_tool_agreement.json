@@ -1,0 +1,247 @@
+{
+  "id": "T4b_tool_agreement",
+  "title": "Agreement of predefined tool pairs",
+  "population": "GENERATED (diagnostic only; never mixed with FINAL or STEP rates)",
+  "unit": "artifact (both tools COMPLETED)",
+  "notes": [
+    "Agreement on the presence of a reported blocking finding of the family class on artifacts where both tools COMPLETED; descriptive, no test; low-confidence findings excluded; -- = not estimable (no overlap or an undefined statistic)."
+  ],
+  "definitions": [
+    {
+      "ref": "GENERATED",
+      "text": "GENERATED: all 5,460 artifacts (1,980 base + 3,480 repair candidates) (use: diagnostic only; never mixed with FINAL or STEP rates)"
+    },
+    {
+      "ref": "F06 tool_agreement",
+      "text": "F06 tool_agreement: numerator = 2x2 table counts; denominator = artifacts with both tools COMPLETED; unit = artifact."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "pair",
+      "header": "Tool pair",
+      "align": "l",
+      "kind": "text",
+      "width": "2.6cm"
+    },
+    {
+      "key": "class",
+      "header": "Family class",
+      "align": "l",
+      "kind": "text",
+      "width": "2.4cm"
+    },
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "n",
+      "header": "Both COMPLETED",
+      "align": "r",
+      "kind": "count"
+    },
+    {
+      "key": "n11",
+      "header": "both flag",
+      "align": "r",
+      "kind": "count",
+      "group": "2x2 counts",
+      "sub": "both"
+    },
+    {
+      "key": "n10",
+      "header": "first only",
+      "align": "r",
+      "kind": "count",
+      "group": "2x2 counts",
+      "sub": "first only"
+    },
+    {
+      "key": "n01",
+      "header": "second only",
+      "align": "r",
+      "kind": "count",
+      "group": "2x2 counts",
+      "sub": "second only"
+    },
+    {
+      "key": "n00",
+      "header": "neither",
+      "align": "r",
+      "kind": "count",
+      "group": "2x2 counts",
+      "sub": "neither"
+    },
+    {
+      "key": "positive_agreement",
+      "header": "Positive agreement",
+      "align": "r",
+      "kind": "number",
+      "digits": 3
+    },
+    {
+      "key": "kappa",
+      "header": "Cohen's kappa",
+      "align": "r",
+      "kind": "number",
+      "digits": 3
+    }
+  ],
+  "rows": [
+    {
+      "pair": "asan_ubsan+memcheck",
+      "class": "memory",
+      "block": "pilot",
+      "n": 502,
+      "n11": 0,
+      "n10": 1,
+      "n01": 0,
+      "n00": 501,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "asan_ubsan+memcheck",
+      "class": "memory",
+      "block": "full_ext",
+      "n": 2431,
+      "n11": 0,
+      "n10": 0,
+      "n01": 0,
+      "n00": 2431,
+      "positive_agreement": null,
+      "kappa": null
+    },
+    {
+      "pair": "asan_ubsan+memcheck",
+      "class": "memory",
+      "block": "composite",
+      "n": 2933,
+      "n11": 0,
+      "n10": 1,
+      "n01": 0,
+      "n00": 2932,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "gcc_analyzer+cppcheck",
+      "class": "memory+null_deref+uninitialized",
+      "block": "pilot",
+      "n": 357,
+      "n11": 0,
+      "n10": 0,
+      "n01": 0,
+      "n00": 357,
+      "positive_agreement": null,
+      "kappa": null
+    },
+    {
+      "pair": "gcc_analyzer+cppcheck",
+      "class": "memory+null_deref+uninitialized",
+      "block": "full_ext",
+      "n": 1734,
+      "n11": 0,
+      "n10": 15,
+      "n01": 0,
+      "n00": 1719,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "gcc_analyzer+cppcheck",
+      "class": "memory+null_deref+uninitialized",
+      "block": "composite",
+      "n": 2091,
+      "n11": 0,
+      "n10": 15,
+      "n01": 0,
+      "n00": 2076,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "must+parcoach",
+      "class": "mpi_usage+deadlock",
+      "block": "pilot",
+      "n": 307,
+      "n11": 0,
+      "n10": 18,
+      "n01": 0,
+      "n00": 289,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "must+parcoach",
+      "class": "mpi_usage+deadlock",
+      "block": "full_ext",
+      "n": 1410,
+      "n11": 0,
+      "n10": 59,
+      "n01": 0,
+      "n00": 1351,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "must+parcoach",
+      "class": "mpi_usage+deadlock",
+      "block": "composite",
+      "n": 1717,
+      "n11": 0,
+      "n10": 77,
+      "n01": 0,
+      "n00": 1640,
+      "positive_agreement": 0.0,
+      "kappa": 0.0
+    },
+    {
+      "pair": "tsan+llov",
+      "class": "race",
+      "block": "pilot",
+      "n": 92,
+      "n11": 4,
+      "n10": 2,
+      "n01": 52,
+      "n00": 34,
+      "positive_agreement": 0.12903225806451613,
+      "kappa": 0.012718600953895072
+    },
+    {
+      "pair": "tsan+llov",
+      "class": "race",
+      "block": "full_ext",
+      "n": 332,
+      "n11": 8,
+      "n10": 8,
+      "n01": 203,
+      "n00": 113,
+      "positive_agreement": 0.07048458149779736,
+      "kappa": -0.020987582347111292
+    },
+    {
+      "pair": "tsan+llov",
+      "class": "race",
+      "block": "composite",
+      "n": 424,
+      "n11": 12,
+      "n10": 10,
+      "n01": 255,
+      "n00": 147,
+      "positive_agreement": 0.08304498269896193,
+      "kappa": -0.014189262374986461
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

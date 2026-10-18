@@ -1,0 +1,5215 @@
+{
+  "id": "T8_execution_models",
+  "title": "Outcomes per execution model and variant",
+  "population": "BASE paired with FINAL[v]",
+  "unit": "base cell",
+  "notes": [
+    "Dynamic coverage per execution model is shown as D03 (every applicable dynamic tool COMPLETED, artifact level): D02 is a per-tool share (T3) and is never pooled across tools here.",
+    "Denominator exclusions (methodology missingness rules; JSON key excluded): no unit is excluded in this table by Q06 (baseline_incompatible artifact(s)); R04 (base cell(s) outside the paired cohort); E02 (artifact(s) without a valid pair (counted separately)).",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still failing) and G01.",
+    "IC4: DIRTY means at least one finding the frozen tool configuration marks blocking (dominated by clang-tidy bugprone heuristics, see X03), not a confirmed defect; under the frozen rule findings of entries in analysis-gap states count (sensitivity X02).",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "Q06 correctness_pass",
+      "text": "Q06 correctness_pass: numerator = verdict == pass; denominator = artifacts with a correctness verdict other than baseline_incompatible; unit = artifact."
+    },
+    {
+      "ref": "R04 net_gain",
+      "text": "R04 net_gain: numerator = improved - regressed; denominator = cells; unit = base cell."
+    },
+    {
+      "ref": "E02 enhanced_all_pass",
+      "text": "E02 enhanced_all_pass: numerator = artifacts with >= 1 valid pair and every valid pair pass; denominator = artifacts with >= 1 valid pair; unit = artifact."
+    },
+    {
+      "ref": "F01 static_verdict_three_state",
+      "text": "F01 static_verdict_three_state: numerator = artifacts per state; denominator = artifacts; unit = artifact."
+    },
+    {
+      "ref": "D03 dynamic_analysis_complete",
+      "text": "D03 dynamic_analysis_complete: numerator = artifacts; denominator = artifacts; unit = artifact."
+    }
+  ],
+  "ci_note": "95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks resampled among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 2,000 replicates (descriptive, unadjusted)",
+  "columns": [
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "execution_model",
+      "header": "Execution model",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "q06_base",
+      "header": "Q06 BASE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "Q06 pass",
+      "sub": "BASE"
+    },
+    {
+      "key": "q06_final",
+      "header": "Q06 FINAL % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "Q06 pass",
+      "sub": "FINAL"
+    },
+    {
+      "key": "gain",
+      "header": "R04 Q06 net gain pp (n/N)",
+      "align": "r",
+      "kind": "diff",
+      "group": "R04 Q06 net gain",
+      "sub": "pp (n/N)"
+    },
+    {
+      "key": "gain_ci",
+      "header": "R04 Q06 net gain 95% CI",
+      "align": "r",
+      "kind": "ci_pp",
+      "group": "R04 Q06 net gain",
+      "sub": "95% CI"
+    },
+    {
+      "key": "e02_base",
+      "header": "E02 BASE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 all-pass",
+      "sub": "BASE"
+    },
+    {
+      "key": "e02_final",
+      "header": "E02 FINAL % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 all-pass",
+      "sub": "FINAL"
+    },
+    {
+      "key": "f01_dirty",
+      "header": "F01 DIRTY BASE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "F01 static DIRTY",
+      "sub": "BASE"
+    },
+    {
+      "key": "d03",
+      "header": "D03 dynamic analysis complete BASE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "D03 dynamic complete",
+      "sub": "BASE"
+    }
+  ],
+  "rows": [
+    {
+      "block": "pilot",
+      "execution_model": "serial",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 130,
+        "denominator": 132,
+        "value": 0.9848484848484849,
+        "ci_low": 0.9621212121212122,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 131,
+        "denominator": 132,
+        "value": 0.9924242424242424,
+        "ci_low": 0.9772727272727273,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 1,
+        "denominator": 132,
+        "value": 0.007575757575757576,
+        "ci_low": 0.0,
+        "ci_high": 0.022727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 1,
+        "denominator": 132,
+        "value": 0.007575757575757576,
+        "ci_low": 0.0,
+        "ci_high": 0.022727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 125,
+        "denominator": 132,
+        "value": 0.946969696969697,
+        "ci_low": 0.8636363636363636,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 126,
+        "denominator": 132,
+        "value": 0.9545454545454546,
+        "ci_low": 0.8787878787878788,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 25,
+        "denominator": 132,
+        "value": 0.1893939393939394,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.3712121212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 131,
+        "denominator": 132,
+        "value": 0.9924242424242424,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "serial",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 130,
+        "denominator": 132,
+        "value": 0.9848484848484849,
+        "ci_low": 0.9621212121212122,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 131,
+        "denominator": 132,
+        "value": 0.9924242424242424,
+        "ci_low": 0.9772727272727273,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 1,
+        "denominator": 132,
+        "value": 0.007575757575757576,
+        "ci_low": 0.0,
+        "ci_high": 0.022727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 1,
+        "denominator": 132,
+        "value": 0.007575757575757576,
+        "ci_low": 0.0,
+        "ci_high": 0.022727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 125,
+        "denominator": 132,
+        "value": 0.946969696969697,
+        "ci_low": 0.8636363636363636,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 126,
+        "denominator": 132,
+        "value": 0.9545454545454546,
+        "ci_low": 0.8787878787878788,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 25,
+        "denominator": 132,
+        "value": 0.1893939393939394,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.3712121212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 131,
+        "denominator": 132,
+        "value": 0.9924242424242424,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "serial",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 130,
+        "denominator": 132,
+        "value": 0.9848484848484849,
+        "ci_low": 0.9621212121212122,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 131,
+        "denominator": 132,
+        "value": 0.9924242424242424,
+        "ci_low": 0.9772727272727273,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 1,
+        "denominator": 132,
+        "value": 0.007575757575757576,
+        "ci_low": 0.0,
+        "ci_high": 0.022727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 1,
+        "denominator": 132,
+        "value": 0.007575757575757576,
+        "ci_low": 0.0,
+        "ci_high": 0.022727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 125,
+        "denominator": 132,
+        "value": 0.946969696969697,
+        "ci_low": 0.8636363636363636,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 126,
+        "denominator": 132,
+        "value": 0.9545454545454546,
+        "ci_low": 0.8787878787878788,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 25,
+        "denominator": 132,
+        "value": 0.1893939393939394,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.3712121212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 131,
+        "denominator": 132,
+        "value": 0.9924242424242424,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "omp",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 118,
+        "denominator": 132,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8181818181818182,
+        "ci_high": 0.9621212121212122,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 125,
+        "denominator": 132,
+        "value": 0.946969696969697,
+        "ci_low": 0.8939393939393939,
+        "ci_high": 0.9924242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 7,
+        "denominator": 132,
+        "value": 0.05303030303030303,
+        "ci_low": -0.007575757575757576,
+        "ci_high": 0.12121212121212122,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 7,
+        "denominator": 132,
+        "value": 0.05303030303030303,
+        "ci_low": -0.007575757575757576,
+        "ci_high": 0.12121212121212122,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 117,
+        "denominator": 132,
+        "value": 0.8863636363636364,
+        "ci_low": 0.8181818181818182,
+        "ci_high": 0.9471590909090899,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 123,
+        "denominator": 132,
+        "value": 0.9318181818181818,
+        "ci_low": 0.8787878787878788,
+        "ci_high": 0.9848484848484849,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 42,
+        "denominator": 132,
+        "value": 0.3181818181818182,
+        "ci_low": 0.17424242424242425,
+        "ci_high": 0.4696969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 122,
+        "denominator": 132,
+        "value": 0.9242424242424242,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "omp",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 118,
+        "denominator": 132,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8181818181818182,
+        "ci_high": 0.9621212121212122,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 128,
+        "denominator": 132,
+        "value": 0.9696969696969697,
+        "ci_low": 0.9242424242424242,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 10,
+        "denominator": 132,
+        "value": 0.07575757575757576,
+        "ci_low": 0.022727272727272728,
+        "ci_high": 0.13636363636363635,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 10,
+        "denominator": 132,
+        "value": 0.07575757575757576,
+        "ci_low": 0.022727272727272728,
+        "ci_high": 0.13636363636363635,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 117,
+        "denominator": 132,
+        "value": 0.8863636363636364,
+        "ci_low": 0.8181818181818182,
+        "ci_high": 0.9471590909090899,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 126,
+        "denominator": 132,
+        "value": 0.9545454545454546,
+        "ci_low": 0.9090909090909091,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 42,
+        "denominator": 132,
+        "value": 0.3181818181818182,
+        "ci_low": 0.17424242424242425,
+        "ci_high": 0.4696969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 122,
+        "denominator": 132,
+        "value": 0.9242424242424242,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "omp",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 118,
+        "denominator": 132,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8181818181818182,
+        "ci_high": 0.9621212121212122,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 127,
+        "denominator": 132,
+        "value": 0.9621212121212122,
+        "ci_low": 0.9015151515151515,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 9,
+        "denominator": 132,
+        "value": 0.06818181818181818,
+        "ci_low": 0.015151515151515152,
+        "ci_high": 0.13636363636363635,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 9,
+        "denominator": 132,
+        "value": 0.06818181818181818,
+        "ci_low": 0.015151515151515152,
+        "ci_high": 0.13636363636363635,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 117,
+        "denominator": 132,
+        "value": 0.8863636363636364,
+        "ci_low": 0.8181818181818182,
+        "ci_high": 0.9471590909090899,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 126,
+        "denominator": 132,
+        "value": 0.9545454545454546,
+        "ci_low": 0.9090909090909091,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 42,
+        "denominator": 132,
+        "value": 0.3181818181818182,
+        "ci_low": 0.17424242424242425,
+        "ci_high": 0.4696969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 122,
+        "denominator": 132,
+        "value": 0.9242424242424242,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "mpi",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 119,
+        "denominator": 132,
+        "value": 0.9015151515151515,
+        "ci_low": 0.8560606060606061,
+        "ci_high": 0.9393939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 126,
+        "denominator": 132,
+        "value": 0.9545454545454546,
+        "ci_low": 0.916477272727273,
+        "ci_high": 0.9848484848484849,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 7,
+        "denominator": 132,
+        "value": 0.05303030303030303,
+        "ci_low": 0.022727272727272728,
+        "ci_high": 0.08333333333333333,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 7,
+        "denominator": 132,
+        "value": 0.05303030303030303,
+        "ci_low": 0.022727272727272728,
+        "ci_high": 0.08333333333333333,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 102,
+        "denominator": 132,
+        "value": 0.7727272727272727,
+        "ci_low": 0.6590909090909091,
+        "ci_high": 0.8636363636363636,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 109,
+        "denominator": 132,
+        "value": 0.8257575757575758,
+        "ci_low": 0.7272727272727273,
+        "ci_high": 0.9015151515151515,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 53,
+        "denominator": 132,
+        "value": 0.4015151515151515,
+        "ci_low": 0.2196969696969697,
+        "ci_high": 0.5910984848484838,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 123,
+        "denominator": 132,
+        "value": 0.9318181818181818,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "mpi",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 119,
+        "denominator": 132,
+        "value": 0.9015151515151515,
+        "ci_low": 0.8560606060606061,
+        "ci_high": 0.9393939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 128,
+        "denominator": 132,
+        "value": 0.9696969696969697,
+        "ci_low": 0.946969696969697,
+        "ci_high": 0.9924242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 9,
+        "denominator": 132,
+        "value": 0.06818181818181818,
+        "ci_low": 0.03768939393939427,
+        "ci_high": 0.10606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 9,
+        "denominator": 132,
+        "value": 0.06818181818181818,
+        "ci_low": 0.03768939393939427,
+        "ci_high": 0.10606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 102,
+        "denominator": 132,
+        "value": 0.7727272727272727,
+        "ci_low": 0.6590909090909091,
+        "ci_high": 0.8636363636363636,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 108,
+        "denominator": 132,
+        "value": 0.8181818181818182,
+        "ci_low": 0.7045454545454546,
+        "ci_high": 0.9090909090909091,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 53,
+        "denominator": 132,
+        "value": 0.4015151515151515,
+        "ci_low": 0.2196969696969697,
+        "ci_high": 0.5910984848484838,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 123,
+        "denominator": 132,
+        "value": 0.9318181818181818,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "execution_model": "mpi",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 119,
+        "denominator": 132,
+        "value": 0.9015151515151515,
+        "ci_low": 0.8560606060606061,
+        "ci_high": 0.9393939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 130,
+        "denominator": 132,
+        "value": 0.9848484848484849,
+        "ci_low": 0.9545454545454546,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 11,
+        "denominator": 132,
+        "value": 0.08333333333333333,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.12878787878787878,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 11,
+        "denominator": 132,
+        "value": 0.08333333333333333,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.12878787878787878,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 102,
+        "denominator": 132,
+        "value": 0.7727272727272727,
+        "ci_low": 0.6590909090909091,
+        "ci_high": 0.8636363636363636,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 112,
+        "denominator": 132,
+        "value": 0.8484848484848485,
+        "ci_low": 0.7348484848484849,
+        "ci_high": 0.946969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 53,
+        "denominator": 132,
+        "value": 0.4015151515151515,
+        "ci_low": 0.2196969696969697,
+        "ci_high": 0.5910984848484838,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 123,
+        "denominator": 132,
+        "value": 0.9318181818181818,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "serial",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 501,
+        "denominator": 528,
+        "value": 0.9488636363636364,
+        "ci_low": 0.8996212121212122,
+        "ci_high": 0.9867424242424242,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 500,
+        "denominator": 528,
+        "value": 0.946969696969697,
+        "ci_low": 0.9166666666666666,
+        "ci_high": 0.9734848484848485,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": -1,
+        "denominator": 528,
+        "value": -0.001893939393939394,
+        "ci_low": -0.045454545454545456,
+        "ci_high": 0.043560606060606064,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": -1,
+        "denominator": 528,
+        "value": -0.001893939393939394,
+        "ci_low": -0.045454545454545456,
+        "ci_high": 0.043560606060606064,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 500,
+        "denominator": 528,
+        "value": 0.946969696969697,
+        "ci_low": 0.8976799242424243,
+        "ci_high": 0.9830018939393936,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 500,
+        "denominator": 528,
+        "value": 0.946969696969697,
+        "ci_low": 0.9166666666666666,
+        "ci_high": 0.9734848484848485,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 145,
+        "denominator": 528,
+        "value": 0.2746212121212121,
+        "ci_low": 0.17419507575757584,
+        "ci_high": 0.38257575757575757,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 509,
+        "denominator": 528,
+        "value": 0.9640151515151515,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "serial",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 501,
+        "denominator": 528,
+        "value": 0.9488636363636364,
+        "ci_low": 0.8996212121212122,
+        "ci_high": 0.9867424242424242,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 525,
+        "denominator": 528,
+        "value": 0.9943181818181818,
+        "ci_low": 0.9848484848484849,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 24,
+        "denominator": 528,
+        "value": 0.045454545454545456,
+        "ci_low": 0.013257575757575758,
+        "ci_high": 0.08522727272727272,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 24,
+        "denominator": 528,
+        "value": 0.045454545454545456,
+        "ci_low": 0.013257575757575758,
+        "ci_high": 0.08522727272727272,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 500,
+        "denominator": 528,
+        "value": 0.946969696969697,
+        "ci_low": 0.8976799242424243,
+        "ci_high": 0.9830018939393936,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 522,
+        "denominator": 528,
+        "value": 0.9886363636363636,
+        "ci_low": 0.9772727272727273,
+        "ci_high": 0.9981060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 145,
+        "denominator": 528,
+        "value": 0.2746212121212121,
+        "ci_low": 0.17419507575757584,
+        "ci_high": 0.38257575757575757,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 509,
+        "denominator": 528,
+        "value": 0.9640151515151515,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "serial",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 501,
+        "denominator": 528,
+        "value": 0.9488636363636364,
+        "ci_low": 0.8996212121212122,
+        "ci_high": 0.9867424242424242,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 519,
+        "denominator": 528,
+        "value": 0.9829545454545454,
+        "ci_low": 0.9696969696969697,
+        "ci_high": 0.9943181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 18,
+        "denominator": 528,
+        "value": 0.03409090909090909,
+        "ci_low": -0.001893939393939394,
+        "ci_high": 0.08143939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 18,
+        "denominator": 528,
+        "value": 0.03409090909090909,
+        "ci_low": -0.001893939393939394,
+        "ci_high": 0.08143939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 500,
+        "denominator": 528,
+        "value": 0.946969696969697,
+        "ci_low": 0.8976799242424243,
+        "ci_high": 0.9830018939393936,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 518,
+        "denominator": 528,
+        "value": 0.9810606060606061,
+        "ci_low": 0.9678030303030303,
+        "ci_high": 0.9924242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 145,
+        "denominator": 528,
+        "value": 0.2746212121212121,
+        "ci_low": 0.17419507575757584,
+        "ci_high": 0.38257575757575757,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 509,
+        "denominator": 528,
+        "value": 0.9640151515151515,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "omp",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 478,
+        "denominator": 528,
+        "value": 0.9053030303030303,
+        "ci_low": 0.8522253787878789,
+        "ci_high": 0.9507575757575758,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 485,
+        "denominator": 528,
+        "value": 0.9185606060606061,
+        "ci_low": 0.8806818181818182,
+        "ci_high": 0.9488636363636364,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 7,
+        "denominator": 528,
+        "value": 0.013257575757575758,
+        "ci_low": -0.032196969696969696,
+        "ci_high": 0.058712121212121215,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 7,
+        "denominator": 528,
+        "value": 0.013257575757575758,
+        "ci_low": -0.032196969696969696,
+        "ci_high": 0.058712121212121215,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 472,
+        "denominator": 528,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8390151515151515,
+        "ci_high": 0.9412878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 479,
+        "denominator": 528,
+        "value": 0.9071969696969697,
+        "ci_low": 0.8693181818181818,
+        "ci_high": 0.9412878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 245,
+        "denominator": 528,
+        "value": 0.4640151515151515,
+        "ci_low": 0.3730587121212122,
+        "ci_high": 0.5606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 495,
+        "denominator": 528,
+        "value": 0.9375,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "omp",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 478,
+        "denominator": 528,
+        "value": 0.9053030303030303,
+        "ci_low": 0.8522253787878789,
+        "ci_high": 0.9507575757575758,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 520,
+        "denominator": 528,
+        "value": 0.9848484848484849,
+        "ci_low": 0.9734848484848485,
+        "ci_high": 0.9943181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 42,
+        "denominator": 528,
+        "value": 0.07954545454545454,
+        "ci_low": 0.03977272727272727,
+        "ci_high": 0.1268939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 42,
+        "denominator": 528,
+        "value": 0.07954545454545454,
+        "ci_low": 0.03977272727272727,
+        "ci_high": 0.1268939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 472,
+        "denominator": 528,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8390151515151515,
+        "ci_high": 0.9412878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 511,
+        "denominator": 528,
+        "value": 0.9678030303030303,
+        "ci_low": 0.946969696969697,
+        "ci_high": 0.9867424242424242,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 245,
+        "denominator": 528,
+        "value": 0.4640151515151515,
+        "ci_low": 0.3730587121212122,
+        "ci_high": 0.5606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 495,
+        "denominator": 528,
+        "value": 0.9375,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "omp",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 478,
+        "denominator": 528,
+        "value": 0.9053030303030303,
+        "ci_low": 0.8522253787878789,
+        "ci_high": 0.9507575757575758,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 507,
+        "denominator": 528,
+        "value": 0.9602272727272727,
+        "ci_low": 0.9412878787878788,
+        "ci_high": 0.9772727272727273,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 29,
+        "denominator": 528,
+        "value": 0.054924242424242424,
+        "ci_low": 0.013257575757575758,
+        "ci_high": 0.10037878787878787,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 29,
+        "denominator": 528,
+        "value": 0.054924242424242424,
+        "ci_low": 0.013257575757575758,
+        "ci_high": 0.10037878787878787,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 472,
+        "denominator": 528,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8390151515151515,
+        "ci_high": 0.9412878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 498,
+        "denominator": 528,
+        "value": 0.9431818181818182,
+        "ci_low": 0.9204545454545454,
+        "ci_high": 0.9640151515151515,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 245,
+        "denominator": 528,
+        "value": 0.4640151515151515,
+        "ci_low": 0.3730587121212122,
+        "ci_high": 0.5606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 495,
+        "denominator": 528,
+        "value": 0.9375,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "mpi",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 448,
+        "denominator": 528,
+        "value": 0.8484848484848485,
+        "ci_low": 0.7935606060606061,
+        "ci_high": 0.8920454545454546,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 471,
+        "denominator": 528,
+        "value": 0.8920454545454546,
+        "ci_low": 0.8522727272727273,
+        "ci_high": 0.928030303030303,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 23,
+        "denominator": 528,
+        "value": 0.043560606060606064,
+        "ci_low": 0.00946969696969697,
+        "ci_high": 0.08143939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 23,
+        "denominator": 528,
+        "value": 0.043560606060606064,
+        "ci_low": 0.00946969696969697,
+        "ci_high": 0.08143939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 444,
+        "denominator": 528,
+        "value": 0.8409090909090909,
+        "ci_low": 0.7878787878787878,
+        "ci_high": 0.884469696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 465,
+        "denominator": 528,
+        "value": 0.8806818181818182,
+        "ci_low": 0.8465909090909091,
+        "ci_high": 0.9128787878787878,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 250,
+        "denominator": 528,
+        "value": 0.4734848484848485,
+        "ci_low": 0.3958333333333333,
+        "ci_high": 0.5568181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 496,
+        "denominator": 528,
+        "value": 0.9393939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "mpi",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 448,
+        "denominator": 528,
+        "value": 0.8484848484848485,
+        "ci_low": 0.7935606060606061,
+        "ci_high": 0.8920454545454546,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 509,
+        "denominator": 528,
+        "value": 0.9640151515151515,
+        "ci_low": 0.9450757575757576,
+        "ci_high": 0.9810606060606061,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 61,
+        "denominator": 528,
+        "value": 0.11553030303030302,
+        "ci_low": 0.07954545454545454,
+        "ci_high": 0.1571969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 61,
+        "denominator": 528,
+        "value": 0.11553030303030302,
+        "ci_low": 0.07954545454545454,
+        "ci_high": 0.1571969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 444,
+        "denominator": 528,
+        "value": 0.8409090909090909,
+        "ci_low": 0.7878787878787878,
+        "ci_high": 0.884469696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 496,
+        "denominator": 528,
+        "value": 0.9393939393939394,
+        "ci_low": 0.9147727272727273,
+        "ci_high": 0.9602746212121209,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 250,
+        "denominator": 528,
+        "value": 0.4734848484848485,
+        "ci_low": 0.3958333333333333,
+        "ci_high": 0.5568181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 496,
+        "denominator": 528,
+        "value": 0.9393939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "execution_model": "mpi",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 448,
+        "denominator": 528,
+        "value": 0.8484848484848485,
+        "ci_low": 0.7935606060606061,
+        "ci_high": 0.8920454545454546,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 502,
+        "denominator": 528,
+        "value": 0.9507575757575758,
+        "ci_low": 0.9299242424242424,
+        "ci_high": 0.9715909090909091,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 54,
+        "denominator": 528,
+        "value": 0.10227272727272728,
+        "ci_low": 0.06818181818181818,
+        "ci_high": 0.14393939393939395,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 54,
+        "denominator": 528,
+        "value": 0.10227272727272728,
+        "ci_low": 0.06818181818181818,
+        "ci_high": 0.14393939393939395,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 444,
+        "denominator": 528,
+        "value": 0.8409090909090909,
+        "ci_low": 0.7878787878787878,
+        "ci_high": 0.884469696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 488,
+        "denominator": 528,
+        "value": 0.9242424242424242,
+        "ci_low": 0.8977272727272727,
+        "ci_high": 0.946969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 250,
+        "denominator": 528,
+        "value": 0.4734848484848485,
+        "ci_low": 0.3958333333333333,
+        "ci_high": 0.5568181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 496,
+        "denominator": 528,
+        "value": 0.9393939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "serial",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 631,
+        "denominator": 660,
+        "value": 0.956060606060606,
+        "ci_low": 0.9166666666666666,
+        "ci_high": 0.9863636363636363,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 631,
+        "denominator": 660,
+        "value": 0.956060606060606,
+        "ci_low": 0.9318181818181818,
+        "ci_high": 0.9772727272727273,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 0,
+        "denominator": 660,
+        "value": 0.0,
+        "ci_low": -0.03484848484848485,
+        "ci_high": 0.03636363636363636,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 0,
+        "denominator": 660,
+        "value": 0.0,
+        "ci_low": -0.03484848484848485,
+        "ci_high": 0.03636363636363636,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 625,
+        "denominator": 660,
+        "value": 0.946969696969697,
+        "ci_low": 0.9045454545454545,
+        "ci_high": 0.9787878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 626,
+        "denominator": 660,
+        "value": 0.9484848484848485,
+        "ci_low": 0.9212121212121213,
+        "ci_high": 0.9727272727272728,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 170,
+        "denominator": 660,
+        "value": 0.25757575757575757,
+        "ci_low": 0.17272727272727273,
+        "ci_high": 0.353030303030303,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 640,
+        "denominator": 660,
+        "value": 0.9696969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "serial",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 631,
+        "denominator": 660,
+        "value": 0.956060606060606,
+        "ci_low": 0.9166666666666666,
+        "ci_high": 0.9863636363636363,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 656,
+        "denominator": 660,
+        "value": 0.9939393939393939,
+        "ci_low": 0.9863636363636363,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 25,
+        "denominator": 660,
+        "value": 0.03787878787878788,
+        "ci_low": 0.012121212121212121,
+        "ci_high": 0.07121212121212121,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 25,
+        "denominator": 660,
+        "value": 0.03787878787878788,
+        "ci_low": 0.012121212121212121,
+        "ci_high": 0.07121212121212121,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 625,
+        "denominator": 660,
+        "value": 0.946969696969697,
+        "ci_low": 0.9045454545454545,
+        "ci_high": 0.9787878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 648,
+        "denominator": 660,
+        "value": 0.9818181818181818,
+        "ci_low": 0.9621212121212122,
+        "ci_high": 0.9954545454545455,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 170,
+        "denominator": 660,
+        "value": 0.25757575757575757,
+        "ci_low": 0.17272727272727273,
+        "ci_high": 0.353030303030303,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 640,
+        "denominator": 660,
+        "value": 0.9696969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "serial",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 631,
+        "denominator": 660,
+        "value": 0.956060606060606,
+        "ci_low": 0.9166666666666666,
+        "ci_high": 0.9863636363636363,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 650,
+        "denominator": 660,
+        "value": 0.9848484848484849,
+        "ci_low": 0.9742424242424242,
+        "ci_high": 0.9939393939393939,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 19,
+        "denominator": 660,
+        "value": 0.02878787878787879,
+        "ci_low": 0.0,
+        "ci_high": 0.06666666666666667,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 19,
+        "denominator": 660,
+        "value": 0.02878787878787879,
+        "ci_low": 0.0,
+        "ci_high": 0.06666666666666667,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 625,
+        "denominator": 660,
+        "value": 0.946969696969697,
+        "ci_low": 0.9045454545454545,
+        "ci_high": 0.9787878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 644,
+        "denominator": 660,
+        "value": 0.9757575757575757,
+        "ci_low": 0.956060606060606,
+        "ci_high": 0.990909090909091,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 170,
+        "denominator": 660,
+        "value": 0.25757575757575757,
+        "ci_low": 0.17272727272727273,
+        "ci_high": 0.353030303030303,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 640,
+        "denominator": 660,
+        "value": 0.9696969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "serial"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "omp",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 596,
+        "denominator": 660,
+        "value": 0.9030303030303031,
+        "ci_low": 0.8590530303030304,
+        "ci_high": 0.9424242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 610,
+        "denominator": 660,
+        "value": 0.9242424242424242,
+        "ci_low": 0.8954545454545455,
+        "ci_high": 0.9515151515151515,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 14,
+        "denominator": 660,
+        "value": 0.021212121212121213,
+        "ci_low": -0.015151515151515152,
+        "ci_high": 0.05909090909090909,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 14,
+        "denominator": 660,
+        "value": 0.021212121212121213,
+        "ci_low": -0.015151515151515152,
+        "ci_high": 0.05909090909090909,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 589,
+        "denominator": 660,
+        "value": 0.8924242424242425,
+        "ci_low": 0.8484469696969698,
+        "ci_high": 0.9318181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 602,
+        "denominator": 660,
+        "value": 0.9121212121212121,
+        "ci_low": 0.8803030303030303,
+        "ci_high": 0.9409090909090909,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 287,
+        "denominator": 660,
+        "value": 0.4348484848484849,
+        "ci_low": 0.353030303030303,
+        "ci_high": 0.5121212121212121,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 617,
+        "denominator": 660,
+        "value": 0.9348484848484848,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "omp",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 596,
+        "denominator": 660,
+        "value": 0.9030303030303031,
+        "ci_low": 0.8590530303030304,
+        "ci_high": 0.9424242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 648,
+        "denominator": 660,
+        "value": 0.9818181818181818,
+        "ci_low": 0.9696969696969697,
+        "ci_high": 0.9924242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 52,
+        "denominator": 660,
+        "value": 0.07878787878787878,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.11666666666666667,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 52,
+        "denominator": 660,
+        "value": 0.07878787878787878,
+        "ci_low": 0.045454545454545456,
+        "ci_high": 0.11666666666666667,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 589,
+        "denominator": 660,
+        "value": 0.8924242424242425,
+        "ci_low": 0.8484469696969698,
+        "ci_high": 0.9318181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 637,
+        "denominator": 660,
+        "value": 0.9651515151515152,
+        "ci_low": 0.946969696969697,
+        "ci_high": 0.9818181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 287,
+        "denominator": 660,
+        "value": 0.4348484848484849,
+        "ci_low": 0.353030303030303,
+        "ci_high": 0.5121212121212121,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 617,
+        "denominator": 660,
+        "value": 0.9348484848484848,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "omp",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 596,
+        "denominator": 660,
+        "value": 0.9030303030303031,
+        "ci_low": 0.8590530303030304,
+        "ci_high": 0.9424242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 634,
+        "denominator": 660,
+        "value": 0.9606060606060606,
+        "ci_low": 0.943939393939394,
+        "ci_high": 0.9772727272727273,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 38,
+        "denominator": 660,
+        "value": 0.05757575757575758,
+        "ci_low": 0.021212121212121213,
+        "ci_high": 0.09696969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 38,
+        "denominator": 660,
+        "value": 0.05757575757575758,
+        "ci_low": 0.021212121212121213,
+        "ci_high": 0.09696969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 589,
+        "denominator": 660,
+        "value": 0.8924242424242425,
+        "ci_low": 0.8484469696969698,
+        "ci_high": 0.9318181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 624,
+        "denominator": 660,
+        "value": 0.9454545454545454,
+        "ci_low": 0.9257575757575758,
+        "ci_high": 0.9651515151515152,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 287,
+        "denominator": 660,
+        "value": 0.4348484848484849,
+        "ci_low": 0.353030303030303,
+        "ci_high": 0.5121212121212121,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 617,
+        "denominator": 660,
+        "value": 0.9348484848484848,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "omp"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "mpi",
+      "variant": "static_feedback",
+      "q06_base": {
+        "numerator": 567,
+        "denominator": 660,
+        "value": 0.8590909090909091,
+        "ci_low": 0.8151515151515152,
+        "ci_high": 0.8954545454545455,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 597,
+        "denominator": 660,
+        "value": 0.9045454545454545,
+        "ci_low": 0.8712121212121212,
+        "ci_high": 0.9348484848484848,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 30,
+        "denominator": 660,
+        "value": 0.045454545454545456,
+        "ci_low": 0.01818181818181818,
+        "ci_high": 0.07575757575757576,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 30,
+        "denominator": 660,
+        "value": 0.045454545454545456,
+        "ci_low": 0.01818181818181818,
+        "ci_high": 0.07575757575757576,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 546,
+        "denominator": 660,
+        "value": 0.8272727272727273,
+        "ci_low": 0.7818181818181819,
+        "ci_high": 0.8681818181818182,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 574,
+        "denominator": 660,
+        "value": 0.8696969696969697,
+        "ci_low": 0.8363257575757576,
+        "ci_high": 0.9015151515151515,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 303,
+        "denominator": 660,
+        "value": 0.4590909090909091,
+        "ci_low": 0.38636363636363635,
+        "ci_high": 0.5363636363636364,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 619,
+        "denominator": 660,
+        "value": 0.9378787878787879,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "mpi",
+      "variant": "test_feedback",
+      "q06_base": {
+        "numerator": 567,
+        "denominator": 660,
+        "value": 0.8590909090909091,
+        "ci_low": 0.8151515151515152,
+        "ci_high": 0.8954545454545455,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 637,
+        "denominator": 660,
+        "value": 0.9651515151515152,
+        "ci_low": 0.95,
+        "ci_high": 0.9787878787878788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 70,
+        "denominator": 660,
+        "value": 0.10606060606060606,
+        "ci_low": 0.07424242424242425,
+        "ci_high": 0.1393939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 70,
+        "denominator": 660,
+        "value": 0.10606060606060606,
+        "ci_low": 0.07424242424242425,
+        "ci_high": 0.1393939393939394,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 546,
+        "denominator": 660,
+        "value": 0.8272727272727273,
+        "ci_low": 0.7818181818181819,
+        "ci_high": 0.8681818181818182,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 604,
+        "denominator": 660,
+        "value": 0.9151515151515152,
+        "ci_low": 0.8863636363636364,
+        "ci_high": 0.9409090909090909,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 303,
+        "denominator": 660,
+        "value": 0.4590909090909091,
+        "ci_low": 0.38636363636363635,
+        "ci_high": 0.5363636363636364,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 619,
+        "denominator": 660,
+        "value": 0.9378787878787879,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "execution_model": "mpi",
+      "variant": "combined_feedback",
+      "q06_base": {
+        "numerator": 567,
+        "denominator": 660,
+        "value": 0.8590909090909091,
+        "ci_low": 0.8151515151515152,
+        "ci_high": 0.8954545454545455,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "q06_final": {
+        "numerator": 632,
+        "denominator": 660,
+        "value": 0.9575757575757575,
+        "ci_low": 0.9393939393939394,
+        "ci_high": 0.9742803030303028,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "Q06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain": {
+        "numerator": 65,
+        "denominator": 660,
+        "value": 0.09848484848484848,
+        "ci_low": 0.06818181818181818,
+        "ci_high": 0.1303409090909089,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "gain_ci": {
+        "numerator": 65,
+        "denominator": 660,
+        "value": 0.09848484848484848,
+        "ci_low": 0.06818181818181818,
+        "ci_high": 0.1303409090909089,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_base": {
+        "numerator": 546,
+        "denominator": 660,
+        "value": 0.8272727272727273,
+        "ci_low": 0.7818181818181819,
+        "ci_high": 0.8681818181818182,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      },
+      "e02_final": {
+        "numerator": 600,
+        "denominator": 660,
+        "value": 0.9090909090909091,
+        "ci_low": 0.8787878787878788,
+        "ci_high": 0.9363636363636364,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "f01_dirty": {
+        "numerator": 303,
+        "denominator": 660,
+        "value": 0.4590909090909091,
+        "ci_low": 0.38636363636363635,
+        "ci_high": 0.5363636363636364,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi",
+            "state": "DIRTY"
+          }
+        }
+      },
+      "d03": {
+        "numerator": 619,
+        "denominator": 660,
+        "value": 0.9378787878787879,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "D03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "execution_model": "mpi"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

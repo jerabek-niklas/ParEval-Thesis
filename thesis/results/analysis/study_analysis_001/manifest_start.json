@@ -1,0 +1,89 @@
+{
+  "schema_version": "study_analysis_manifest.v1",
+  "analysis_id": "study_analysis_001",
+  "git": {
+    "head": "afc60c2e332374c9aae1d5cc94195b50c096c88d",
+    "branch": "thesis-static-analysis",
+    "clean": true,
+    "uncommitted_paths": [],
+    "uncommitted_count": 0
+  },
+  "methodology": {
+    "relative": "thesis/study_analysis/methodology.json",
+    "raw_sha256": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+    "lf_sha256": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+    "canonical_sha256": "cb34143728ceaa08befe91100c741a6d95df9b39ebb8b44c4274a9d12acb20dc"
+  },
+  "addendum": {
+    "relative": "thesis/study_analysis/methodology_addendum.json",
+    "raw_sha256": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+    "lf_sha256": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+    "canonical_sha256": "348b1516b8c194012323b1fcc9b5fbd94604e9866a1b6fd5dcd8ea30af002486",
+    "status": "DECLARED_AFTER_DRY_RUN"
+  },
+  "package_sources": {
+    "thesis/study_analysis/METHODOLOGY.md": "cf02bd1e44293741f4b5877a4421d060c9766b3e29348c01f85d11916568049d",
+    "thesis/study_analysis/METHODOLOGY_ADDENDUM.md": "98b4b2219c324ee57a87e2e2e78781366696ad64ea06fc8c702c645f6d2b33c6",
+    "thesis/study_analysis/__init__.py": "a4c987b5e16cf526149403534ef9c1e327ccfa1188677b44c039280fc6147463",
+    "thesis/study_analysis/core.py": "5eda28d8b977e4c2e6a73356bd65c3214dd2dc68701906cae25d32388c6e5ed7",
+    "thesis/study_analysis/figures.py": "b10d551756d26685ce8be6428effb0166676278a1cbca9ae7621c70bfcb31a9f",
+    "thesis/study_analysis/latex.py": "aa3a5d172c9e610263cfc79a232367763f2cdcdfad37c1989b4adc3fbe5cc101",
+    "thesis/study_analysis/manifest.py": "f37ef1bc2494c89657c5afbe6175471aa193ca7ed1b4d04fdf389475304ae5eb",
+    "thesis/study_analysis/methodology.json": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+    "thesis/study_analysis/methodology_addendum.json": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+    "thesis/study_analysis/methodology_doc.py": "72e9bcbc91271a527c0865c9c65d26a5a9291268b73e9c6f37fb188f5bfa74cc",
+    "thesis/study_analysis/metrics.py": "753446863280963a9e1205401dcfb0eec8430d812c3657069d27d5cde6276e77",
+    "thesis/study_analysis/normalize.py": "8f5f9ca4a9455f724be0ceaf400e1099c85c1e1e62716e94b1c6f046e3d336ad",
+    "thesis/study_analysis/preflight.py": "a1448ac4fa6ff53a425406d3dde57edca2bd51daefbcc6e983f291d530d0ff1c",
+    "thesis/study_analysis/run.py": "107eafe35a8838afbbfc511e9cdd8087b378170bd9a842ec1d704c3908816efb",
+    "thesis/study_analysis/stats.py": "bbbf5c4522f5d0158a24a507536c14a4936e522eb190a5a01531d7726bab3058",
+    "thesis/study_analysis/tables.py": "5febbba18c9c30c8c6bddca694accf0d4f58908e66bd52aadf22cf1e5643641c",
+    "thesis/study_analysis/test_figures.py": "6eed6269bb5acea9cfdf9e4dbeb91dbea2fb2a0bdd0700f0b0a763f91bc52e28",
+    "thesis/study_analysis/test_methodology.py": "3b88f677dd4e925e9aa170be3a13074ecd4b116e653aca0a5e4a34480dae3581",
+    "thesis/study_analysis/test_metrics.py": "94705822c18d7d43aa02f343e6ae8ecfef213362ad15870fa937af08ed3e7841",
+    "thesis/study_analysis/test_normalize.py": "4ec5165d34d05cfa3ea294e25eed7ae4be13cf39b2b45f64afc5daf9e22b7bf3",
+    "thesis/study_analysis/test_preflight.py": "f699e3750e9d7d380807c848a1365aa99ea0c49dc8a12d97d304dcd8a09eb947",
+    "thesis/study_analysis/test_run.py": "d7ae307e3ceebeb7f7a507ec58c46c0dbb8bc662974005b552c521425da051d9",
+    "thesis/study_analysis/test_stats.py": "61baf8b3593cb8f296a16b0d9b2c879bda3c51ba78548b6e10e1f2d8c4d44202",
+    "thesis/study_analysis/test_tables.py": "566195b04733228ca57bfd83bcc7c7f42f94414266f097b9d210257ae2a7a614",
+    "thesis/study_analysis/test_validate.py": "c430d9a0fa5eadc86129e3edf45e1e3d277bc45650800ef6de9f7341c356ca93",
+    "thesis/study_analysis/validate.py": "6872a5092f785295315f8c0cb78e2fe4f8abf4109fd5c0e438bacacbc44358fd"
+  },
+  "closure": {
+    "relative": "thesis/evaluation/closure/study_closure_001/global_verification.json",
+    "raw_sha256": "729b597615a714be1e9b41280bae68d23fd40a5bdb6a6c475b7aaeadd99d28b9",
+    "bytes": 763258,
+    "closure_sha256": "c880da4144dc980ea8b6fc9ce66c3dbc04c2fa4f37be71b9dfeae81216c825c5"
+  },
+  "composite": {
+    "relative": "thesis/results/intermediate/full_ext_phase2_001/phase2_composite.json",
+    "raw_sha256": "4553fa16c71d176d03dca3e56041462e72f96d04c3f615aaa64b42d2e4c56f45",
+    "bytes": 8356,
+    "composite_sha256": "953ce41b7f050559b1af875139c626995c562c43cba2fc632096c22d45e3e2b0"
+  },
+  "acceptance": {
+    "relative": "thesis/evaluation/pilot_002_result_acceptance.json",
+    "raw_sha256": "d7cc68aab03385caccf33fdfe43432d8db20324bb497dd7dffb14bc6a492577f",
+    "bytes": 1850,
+    "status": "ACCEPTED"
+  },
+  "dataset_inputs": {
+    "targets_sha256": null,
+    "lineage_sha256": null,
+    "census_digest": null,
+    "readers": [],
+    "counts": null
+  },
+  "extra_files": [],
+  "files_read": {},
+  "totals": {
+    "files": 0,
+    "bytes": 0
+  },
+  "volatile": {
+    "generated_at_utc": "2026-10-18T11:58:01Z",
+    "python": "3.12.3",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39"
+  },
+  "manifest_sha256": "20f309707ba7cf8f94a6728f34496d182e15ae21cc5f20ef88547773306cf058"
+}

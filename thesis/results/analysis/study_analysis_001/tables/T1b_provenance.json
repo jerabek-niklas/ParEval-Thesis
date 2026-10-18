@@ -1,0 +1,461 @@
+{
+  "id": "T1b_provenance",
+  "title": "Evidence owners and input identities",
+  "population": "GENERATED (evidence records)",
+  "unit": "artifact / artifact x tool (owners); identity (sha256)",
+  "notes": [
+    "Evidence owners: the run whose records each artifact's stage evidence comes from (per block; composite = pilot + full_ext); supplemented: static tool entries taken from another owner than the static record. Identities: the inputs the dataset and the analysis rest on (-- in the block columns: an identity is not a count)."
+  ],
+  "definitions": [],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "quantity",
+      "header": "Quantity",
+      "align": "l",
+      "kind": "text",
+      "width": "5.6cm"
+    },
+    {
+      "key": "unit",
+      "header": "Unit",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "pilot",
+      "header": "pilot",
+      "align": "r",
+      "kind": "count",
+      "mark": "a"
+    },
+    {
+      "key": "full_ext",
+      "header": "full_ext",
+      "align": "r",
+      "kind": "count"
+    },
+    {
+      "key": "composite",
+      "header": "composite",
+      "align": "r",
+      "kind": "count"
+    },
+    {
+      "key": "identity",
+      "header": "Identity",
+      "align": "l",
+      "kind": "text",
+      "width": "4.6cm"
+    }
+  ],
+  "rows": [
+    {
+      "quantity": "correctness evidence owner full_ext_001",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 1584,
+      "composite": 1584,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_phase2_001",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 1249,
+      "composite": 1249,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_001__combined_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 467,
+      "composite": 467,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_001__test_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 121,
+      "composite": 121,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_001__test_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 49,
+      "composite": 49,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_002__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 114,
+      "composite": 114,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_003__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 158,
+      "composite": 158,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_004__combined_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 388,
+      "composite": 388,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_004__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 237,
+      "composite": 237,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_004__test_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 103,
+      "composite": 103,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner full_ext_recovery_004__test_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 47,
+      "composite": 47,
+      "identity": null
+    },
+    {
+      "quantity": "correctness evidence owner pilot_002",
+      "unit": "artifact (record)",
+      "pilot": 943,
+      "full_ext": 0,
+      "composite": 943,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_001",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 1584,
+      "composite": 1584,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_001__combined_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 467,
+      "composite": 467,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_001__static_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 437,
+      "composite": 437,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_001__test_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 121,
+      "composite": 121,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_001__test_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 49,
+      "composite": 49,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_002__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 114,
+      "composite": 114,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_002__static_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 91,
+      "composite": 91,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_003__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 158,
+      "composite": 158,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_003__static_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 148,
+      "composite": 148,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_004__combined_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 388,
+      "composite": 388,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_004__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 237,
+      "composite": 237,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_004__static_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 363,
+      "composite": 363,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_004__static_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 210,
+      "composite": 210,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_004__test_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 103,
+      "composite": 103,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner full_ext_recovery_004__test_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 47,
+      "composite": 47,
+      "identity": null
+    },
+    {
+      "quantity": "static evidence owner pilot_002",
+      "unit": "artifact (record)",
+      "pilot": 943,
+      "full_ext": 0,
+      "composite": 943,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_001",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 1584,
+      "composite": 1584,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_phase2_001",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 1249,
+      "composite": 1249,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_001__combined_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 467,
+      "composite": 467,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_001__test_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 121,
+      "composite": 121,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_001__test_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 49,
+      "composite": 49,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_002__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 114,
+      "composite": 114,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_003__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 158,
+      "composite": 158,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_004__combined_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 388,
+      "composite": 388,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_004__combined_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 237,
+      "composite": 237,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_004__test_feedback__iter1",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 103,
+      "composite": 103,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner full_ext_recovery_004__test_feedback__iter2",
+      "unit": "artifact (record)",
+      "pilot": 0,
+      "full_ext": 47,
+      "composite": 47,
+      "identity": null
+    },
+    {
+      "quantity": "dynamic evidence owner pilot_002",
+      "unit": "artifact (record)",
+      "pilot": 943,
+      "full_ext": 0,
+      "composite": 943,
+      "identity": null
+    },
+    {
+      "quantity": "enhanced evidence owner full_ext_phase2_001",
+      "unit": "artifact (pair set)",
+      "pilot": 0,
+      "full_ext": 4517,
+      "composite": 4517,
+      "identity": null
+    },
+    {
+      "quantity": "enhanced evidence owner pilot_002",
+      "unit": "artifact (pair set)",
+      "pilot": 943,
+      "full_ext": 0,
+      "composite": 943,
+      "identity": null
+    },
+    {
+      "quantity": "static tool entries supplemented by full_ext_phase2_001",
+      "unit": "artifact x tool",
+      "pilot": 0,
+      "full_ext": 1920,
+      "composite": 1920,
+      "identity": null
+    },
+    {
+      "quantity": "static tool entries supplemented by full_ext_recovery_002",
+      "unit": "artifact x tool",
+      "pilot": 0,
+      "full_ext": 329,
+      "composite": 329,
+      "identity": null
+    },
+    {
+      "quantity": "static tool entries supplemented by full_ext_recovery_003",
+      "unit": "artifact x tool",
+      "pilot": 0,
+      "full_ext": 1150,
+      "composite": 1150,
+      "identity": null
+    },
+    {
+      "quantity": "dataset input targets_sha256",
+      "unit": "identity",
+      "pilot": null,
+      "full_ext": null,
+      "composite": null,
+      "identity": "c836011f34ad8961aaf5ed46b325d9542bc6c22e5b01c6818e40fd216feacec7"
+    },
+    {
+      "quantity": "dataset input lineage_sha256",
+      "unit": "identity",
+      "pilot": null,
+      "full_ext": null,
+      "composite": null,
+      "identity": "81a5a18350cfd76c2b4b18a15cb97fabfa9594230729741c8a4b32b9c4317bb6"
+    },
+    {
+      "quantity": "dataset input census_digest",
+      "unit": "identity",
+      "pilot": null,
+      "full_ext": null,
+      "composite": null,
+      "identity": "f9dfa256ee18f70912680845a50415fffd71e8c6a0d4198cd7d0584c60054472"
+    },
+    {
+      "quantity": "methodology study_analysis_001 (canonical sha256)",
+      "unit": "identity",
+      "pilot": null,
+      "full_ext": null,
+      "composite": null,
+      "identity": "cb34143728ceaa08befe91100c741a6d95df9b39ebb8b44c4274a9d12acb20dc"
+    },
+    {
+      "quantity": "addendum study_analysis_001.addendum_1, DECLARED_AFTER_DRY_RUN (canonical sha256)",
+      "unit": "identity",
+      "pilot": null,
+      "full_ext": null,
+      "composite": null,
+      "identity": "348b1516b8c194012323b1fcc9b5fbd94604e9866a1b6fd5dcd8ea30af002486"
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

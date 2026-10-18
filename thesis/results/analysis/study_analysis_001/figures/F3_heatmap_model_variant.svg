@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 741" width="760" height="741" font-family="Helvetica, Arial, sans-serif" role="img">
+<title>Net correctness gain per model and variant (R04, Q06)</title>
+<rect x="0" y="0" width="760" height="741" fill="#ffffff"/>
+<text x="20.00" y="28.00" font-size="15" text-anchor="start" fill="#0b0b0b" font-weight="600">Net correctness gain per model and variant (R04, Q06)</text>
+<text x="255.00" y="60.00" font-size="12" text-anchor="middle" fill="#0b0b0b">static_feedback</text>
+<text x="385.00" y="60.00" font-size="12" text-anchor="middle" fill="#0b0b0b">test_feedback</text>
+<text x="515.00" y="60.00" font-size="12" text-anchor="middle" fill="#0b0b0b">combined_feedback</text>
+<text x="180.00" y="87.00" font-size="12" text-anchor="end" fill="#0b0b0b">claude_fable_5</text>
+<text x="180.00" y="113.00" font-size="12" text-anchor="end" fill="#0b0b0b">claude_opus_5</text>
+<text x="180.00" y="139.00" font-size="12" text-anchor="end" fill="#0b0b0b">deepseek_v4_flash</text>
+<text x="180.00" y="165.00" font-size="12" text-anchor="end" fill="#0b0b0b">deepseek_v4_pro</text>
+<text x="180.00" y="191.00" font-size="12" text-anchor="end" fill="#0b0b0b">gemini_31_pro</text>
+<text x="180.00" y="217.00" font-size="12" text-anchor="end" fill="#0b0b0b">gemini_36_flash</text>
+<text x="180.00" y="243.00" font-size="12" text-anchor="end" fill="#0b0b0b">openai_gpt55</text>
+<text x="180.00" y="269.00" font-size="12" text-anchor="end" fill="#0b0b0b">openai_gpt56_sol</text>
+<text x="180.00" y="295.00" font-size="12" text-anchor="end" fill="#0b0b0b">qwen36_35b_a3b</text>
+<text x="180.00" y="321.00" font-size="12" text-anchor="end" fill="#0b0b0b">qwen37_max</text>
+<text x="180.00" y="347.00" font-size="12" text-anchor="end" fill="#0b0b0b">qwen3_coder_api</text>
+<rect x="191.00" y="71.00" width="128.00" height="24.00" fill="#d4dee9"><title>claude_fable_5, static_feedback: +2.8 pp (5/180), 95% CI [-0.6, 7.2]</title></rect>
+<text x="255.00" y="87.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.8</text>
+<rect x="321.00" y="71.00" width="128.00" height="24.00" fill="#b9cee6"><title>claude_fable_5, test_feedback: +5.6 pp (10/180), 95% CI [1.7, 10.0]</title></rect>
+<text x="385.00" y="87.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+5.6</text>
+<rect x="451.00" y="71.00" width="128.00" height="24.00" fill="#c4d5e7"><title>claude_fable_5, combined_feedback: +4.4 pp (8/180), 95% CI [0.0, 9.4]</title></rect>
+<text x="515.00" y="87.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+4.4</text>
+<rect x="191.00" y="97.00" width="128.00" height="24.00" fill="#cad8e8"><title>claude_opus_5, static_feedback: +3.9 pp (7/180), 95% CI [0.0, 8.3]</title></rect>
+<text x="255.00" y="113.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+3.9</text>
+<rect x="321.00" y="97.00" width="128.00" height="24.00" fill="#aec7e5"><title>claude_opus_5, test_feedback: +6.7 pp (12/180), 95% CI [2.2, 11.1]</title></rect>
+<text x="385.00" y="113.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+6.7</text>
+<rect x="451.00" y="97.00" width="128.00" height="24.00" fill="#aec7e5"><title>claude_opus_5, combined_feedback: +6.7 pp (12/180), 95% CI [2.2, 11.1]</title></rect>
+<text x="515.00" y="113.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+6.7</text>
+<rect x="191.00" y="123.00" width="128.00" height="24.00" fill="#f0eae7"><title>deepseek_v4_flash, static_feedback: -0.6 pp (-1/180), 95% CI [-8.3, 6.1]</title></rect>
+<text x="255.00" y="139.00" font-size="11" text-anchor="middle" fill="#0b0b0b">−0.6</text>
+<rect x="321.00" y="123.00" width="128.00" height="24.00" fill="#88b0e0"><title>deepseek_v4_flash, test_feedback: +10.6 pp (19/180), 95% CI [5.0, 16.7]</title></rect>
+<text x="385.00" y="139.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+10.6</text>
+<rect x="451.00" y="123.00" width="128.00" height="24.00" fill="#b4cbe5"><title>deepseek_v4_flash, combined_feedback: +6.1 pp (11/180), 95% CI [0.0, 11.7]</title></rect>
+<text x="515.00" y="139.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+6.1</text>
+<rect x="191.00" y="149.00" width="128.00" height="24.00" fill="#e5e8eb"><title>deepseek_v4_pro, static_feedback: +1.1 pp (2/180), 95% CI [-5.6, 7.8]</title></rect>
+<text x="255.00" y="165.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+1.1</text>
+<rect x="321.00" y="149.00" width="128.00" height="24.00" fill="#82ade0"><title>deepseek_v4_pro, test_feedback: +11.1 pp (20/180), 95% CI [6.1, 16.7]</title></rect>
+<text x="385.00" y="165.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+11.1</text>
+<rect x="451.00" y="149.00" width="128.00" height="24.00" fill="#92b7e2"><title>deepseek_v4_pro, combined_feedback: +9.4 pp (17/180), 95% CI [3.9, 15.6]</title></rect>
+<text x="515.00" y="165.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+9.4</text>
+<rect x="191.00" y="175.00" width="128.00" height="24.00" fill="#dae2ea"><title>gemini_31_pro, static_feedback: +2.2 pp (4/180), 95% CI [0.0, 6.1]</title></rect>
+<text x="255.00" y="191.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.2</text>
+<rect x="321.00" y="175.00" width="128.00" height="24.00" fill="#d4dee9"><title>gemini_31_pro, test_feedback: +2.8 pp (5/180), 95% CI [0.0, 6.7]</title></rect>
+<text x="385.00" y="191.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.8</text>
+<rect x="451.00" y="175.00" width="128.00" height="24.00" fill="#dae2ea"><title>gemini_31_pro, combined_feedback: +2.2 pp (4/180), 95% CI [-1.1, 6.1]</title></rect>
+<text x="515.00" y="191.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.2</text>
+<rect x="191.00" y="201.00" width="128.00" height="24.00" fill="#dae2ea"><title>gemini_36_flash, static_feedback: +2.2 pp (4/180), 95% CI [-0.6, 5.6]</title></rect>
+<text x="255.00" y="217.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.2</text>
+<rect x="321.00" y="201.00" width="128.00" height="24.00" fill="#d4dee9"><title>gemini_36_flash, test_feedback: +2.8 pp (5/180), 95% CI [0.0, 6.7]</title></rect>
+<text x="385.00" y="217.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.8</text>
+<rect x="451.00" y="201.00" width="128.00" height="24.00" fill="#dae2ea"><title>gemini_36_flash, combined_feedback: +2.2 pp (4/180), 95% CI [-1.1, 6.1]</title></rect>
+<text x="515.00" y="217.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.2</text>
+<rect x="191.00" y="227.00" width="128.00" height="24.00" fill="#e0e5ea"><title>openai_gpt55, static_feedback: +1.7 pp (3/180), 95% CI [0.0, 5.0]</title></rect>
+<text x="255.00" y="243.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+1.7</text>
+<rect x="321.00" y="227.00" width="128.00" height="24.00" fill="#dae2ea"><title>openai_gpt55, test_feedback: +2.2 pp (4/180), 95% CI [0.0, 6.1]</title></rect>
+<text x="385.00" y="243.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.2</text>
+<rect x="451.00" y="227.00" width="128.00" height="24.00" fill="#e0e5ea"><title>openai_gpt55, combined_feedback: +1.7 pp (3/180), 95% CI [-1.1, 5.6]</title></rect>
+<text x="515.00" y="243.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+1.7</text>
+<rect x="191.00" y="253.00" width="128.00" height="24.00" fill="#dae2ea"><title>openai_gpt56_sol, static_feedback: +2.2 pp (4/180), 95% CI [0.0, 5.0]</title></rect>
+<text x="255.00" y="269.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.2</text>
+<rect x="321.00" y="253.00" width="128.00" height="24.00" fill="#cad8e8"><title>openai_gpt56_sol, test_feedback: +3.9 pp (7/180), 95% CI [0.6, 8.3]</title></rect>
+<text x="385.00" y="269.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+3.9</text>
+<rect x="451.00" y="253.00" width="128.00" height="24.00" fill="#d4dee9"><title>openai_gpt56_sol, combined_feedback: +2.8 pp (5/180), 95% CI [-0.6, 6.1]</title></rect>
+<text x="515.00" y="269.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+2.8</text>
+<rect x="191.00" y="279.00" width="128.00" height="24.00" fill="#f0eae7"><title>qwen36_35b_a3b, static_feedback: -0.6 pp (-1/180), 95% CI [-5.0, 3.9]</title></rect>
+<text x="255.00" y="295.00" font-size="11" text-anchor="middle" fill="#0b0b0b">−0.6</text>
+<rect x="321.00" y="279.00" width="128.00" height="24.00" fill="#77a6df"><title>qwen36_35b_a3b, test_feedback: +12.2 pp (22/180), 95% CI [8.3, 16.1]</title></rect>
+<text x="385.00" y="295.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+12.2</text>
+<rect x="451.00" y="279.00" width="128.00" height="24.00" fill="#8db4e1"><title>qwen36_35b_a3b, combined_feedback: +10.0 pp (18/180), 95% CI [5.0, 15.6]</title></rect>
+<text x="515.00" y="295.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+10.0</text>
+<rect x="191.00" y="305.00" width="128.00" height="24.00" fill="#c4d5e7"><title>qwen37_max, static_feedback: +4.4 pp (8/180), 95% CI [1.1, 8.9]</title></rect>
+<text x="255.00" y="321.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+4.4</text>
+<rect x="321.00" y="305.00" width="128.00" height="24.00" fill="#aec7e5"><title>qwen37_max, test_feedback: +6.7 pp (12/180), 95% CI [2.8, 11.7]</title></rect>
+<text x="385.00" y="321.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+6.7</text>
+<rect x="451.00" y="305.00" width="128.00" height="24.00" fill="#aec7e5"><title>qwen37_max, combined_feedback: +6.7 pp (12/180), 95% CI [2.8, 11.7]</title></rect>
+<text x="515.00" y="321.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+6.7</text>
+<rect x="191.00" y="331.00" width="128.00" height="24.00" fill="#bed1e6"><title>qwen3_coder_api, static_feedback: +5.0 pp (9/180), 95% CI [-2.2, 12.2]</title></rect>
+<text x="255.00" y="347.00" font-size="11" text-anchor="middle" fill="#0b0b0b">+5.0</text>
+<rect x="321.00" y="331.00" width="128.00" height="24.00" fill="#4689d9"><title>qwen3_coder_api, test_feedback: +17.2 pp (31/180), 95% CI [12.2, 22.8]</title></rect>
+<text x="385.00" y="347.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+17.2</text>
+<rect x="451.00" y="331.00" width="128.00" height="24.00" fill="#5692db"><title>qwen3_coder_api, combined_feedback: +15.6 pp (28/180), 95% CI [10.0, 21.1]</title></rect>
+<text x="515.00" y="347.00" font-size="11" text-anchor="middle" fill="#0b0b0b" font-weight="700">+15.6</text>
+<rect x="190.00" y="386.00" width="24.00" height="12.00" fill="#e34948"/>
+<rect x="214.00" y="386.00" width="24.00" height="12.00" fill="#e67271"/>
+<rect x="238.00" y="386.00" width="24.00" height="12.00" fill="#ea9c9a"/>
+<rect x="262.00" y="386.00" width="24.00" height="12.00" fill="#edc6c3"/>
+<rect x="286.00" y="386.00" width="24.00" height="12.00" fill="#f0efec"/>
+<rect x="310.00" y="386.00" width="24.00" height="12.00" fill="#bed1e6"/>
+<rect x="334.00" y="386.00" width="24.00" height="12.00" fill="#8db4e1"/>
+<rect x="358.00" y="386.00" width="24.00" height="12.00" fill="#5c96dc"/>
+<rect x="382.00" y="386.00" width="24.00" height="12.00" fill="#2a78d6"/>
+<text x="190.00" y="414.00" font-size="11" text-anchor="start" fill="#52514e">−20.0</text>
+<text x="298.00" y="414.00" font-size="11" text-anchor="middle" fill="#52514e">0</text>
+<text x="406.00" y="414.00" font-size="11" text-anchor="end" fill="#52514e">+20.0</text>
+<text x="422.00" y="396.00" font-size="12" text-anchor="start" fill="#52514e">R04 Q06 net gain (pp)</text>
+<text x="20.00" y="438.00" font-size="10" text-anchor="start" fill="#52514e">Population: BASE paired with FINAL[v] (identical base-cell cohort per model); unit: base cell; block: composite.</text>
+<text x="20.00" y="454.00" font-size="10" text-anchor="start" fill="#52514e">Composite block; cell = R04 net gain of Q06 correctness pass (FINAL[v] - BASE) in percentage points; blue = gain, red = loss,</text>
+<text x="20.00" y="467.00" font-size="10" text-anchor="start" fill="#52514e">gray midpoint = 0 (colour scale beside the plot); bold value = its 95% CI excludes 0 (a degenerate zero-width interval is</text>
+<text x="20.00" y="480.00" font-size="10" text-anchor="start" fill="#52514e">never bold; its value carries †); descriptive per model (unadjusted CIs, no test, no ranking).</text>
+<text x="20.00" y="496.00" font-size="10" text-anchor="start" fill="#52514e">CIs (in the data CSV): 95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks</text>
+<text x="20.00" y="509.00" font-size="10" text-anchor="start" fill="#52514e">resampled among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 2,000 replicates</text>
+<text x="20.00" y="522.00" font-size="10" text-anchor="start" fill="#52514e">(descriptive, unadjusted).</text>
+<text x="20.00" y="538.00" font-size="10" text-anchor="start" fill="#52514e">BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate);</text>
+<text x="20.00" y="551.00" font-size="10" text-anchor="start" fill="#52514e">sensitivity SA1 in T10.</text>
+<text x="20.00" y="567.00" font-size="10" text-anchor="start" fill="#52514e">REASONING: Reasoning settings differ between models and are not equalised (see the closure disclosure register, item</text>
+<text x="20.00" y="580.00" font-size="10" text-anchor="start" fill="#52514e">reasoning_policy_differences); some providers report no reasoning-token field.</text>
+<text x="20.00" y="596.00" font-size="10" text-anchor="start" fill="#52514e">IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it</text>
+<text x="20.00" y="609.00" font-size="10" text-anchor="start" fill="#52514e">passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is</text>
+<text x="20.00" y="622.00" font-size="10" text-anchor="start" fill="#52514e">out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules,</text>
+<text x="20.00" y="635.00" font-size="10" text-anchor="start" fill="#52514e">not only in feedback content; test_feedback cannot regress on Q06 by construction.</text>
+<text x="20.00" y="651.00" font-size="10" text-anchor="start" fill="#52514e">IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same</text>
+<text x="20.00" y="664.00" font-size="10" text-anchor="start" fill="#52514e">cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still</text>
+<text x="20.00" y="677.00" font-size="10" text-anchor="start" fill="#52514e">failing) and G01.</text>
+<text x="20.00" y="693.00" font-size="10" text-anchor="start" fill="#52514e">IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints</text>
+<text x="20.00" y="706.00" font-size="10" text-anchor="start" fill="#52514e">(design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set</text>
+<text x="20.00" y="719.00" font-size="10" text-anchor="start" fill="#52514e">configuration, not static analysis in general.</text>
+</svg>

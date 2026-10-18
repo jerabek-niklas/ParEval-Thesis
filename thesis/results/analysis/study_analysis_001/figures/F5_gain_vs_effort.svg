@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 728" width="760" height="728" font-family="Helvetica, Arial, sans-serif" role="img">
+<title>Net correctness gain vs repair output tokens</title>
+<rect x="0" y="0" width="760" height="728" fill="#ffffff"/>
+<text x="20.00" y="28.00" font-size="15" text-anchor="start" fill="#0b0b0b" font-weight="600">Net correctness gain vs repair output tokens</text>
+<line x1="80.00" y1="370.00" x2="560.00" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="374.00" font-size="11" text-anchor="end" fill="#52514e">−5</text>
+<line x1="80.00" y1="306.00" x2="560.00" y2="306.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="72.00" y="310.00" font-size="11" text-anchor="end" fill="#52514e">0</text>
+<line x1="80.00" y1="242.00" x2="560.00" y2="242.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="246.00" font-size="11" text-anchor="end" fill="#52514e">5</text>
+<line x1="80.00" y1="178.00" x2="560.00" y2="178.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="182.00" font-size="11" text-anchor="end" fill="#52514e">10</text>
+<line x1="80.00" y1="114.00" x2="560.00" y2="114.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="118.00" font-size="11" text-anchor="end" fill="#52514e">15</text>
+<line x1="80.00" y1="50.00" x2="560.00" y2="50.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="54.00" font-size="11" text-anchor="end" fill="#52514e">20</text>
+<line x1="80.00" y1="50.00" x2="80.00" y2="370.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="32.00" y="210.00" font-size="12" text-anchor="middle" fill="#52514e" transform="rotate(-90.00 32.00 210.00)">R04 Q06 net gain (pp)</text>
+<line x1="80.00" y1="50.00" x2="80.00" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="80.00" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.001</text>
+<line x1="128.16" y1="50.00" x2="128.16" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="128.16" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.002</text>
+<line x1="191.84" y1="50.00" x2="191.84" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="191.84" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.005</text>
+<line x1="240.00" y1="50.00" x2="240.00" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="240.00" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.01</text>
+<line x1="288.16" y1="50.00" x2="288.16" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="288.16" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.02</text>
+<line x1="351.84" y1="50.00" x2="351.84" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="351.84" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.05</text>
+<line x1="400.00" y1="50.00" x2="400.00" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="400.00" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.1</text>
+<line x1="448.16" y1="50.00" x2="448.16" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="448.16" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.2</text>
+<line x1="511.84" y1="50.00" x2="511.84" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="511.84" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">0.5</text>
+<line x1="560.00" y1="50.00" x2="560.00" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="560.00" y="388.00" font-size="10" text-anchor="middle" fill="#52514e">1</text>
+<line x1="80.00" y1="370.00" x2="560.00" y2="370.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="320.00" y="412.00" font-size="12" text-anchor="middle" fill="#52514e">Repair output tokens (millions, C02, log scale)</text>
+<circle cx="387.41" cy="270.44" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>claude_fable_5, static_feedback: +2.8 pp (5/180), 83,427 output tokens</title></circle>
+<text x="393.41" y="265.44" font-size="10" text-anchor="start" fill="#0b0b0b">1</text>
+<circle cx="392.08" cy="256.22" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>claude_opus_5, static_feedback: +3.9 pp (7/180), 89,229 output tokens</title></circle>
+<text x="398.08" y="251.22" font-size="10" text-anchor="start" fill="#0b0b0b">2</text>
+<circle cx="481.77" cy="313.11" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>deepseek_v4_flash, static_feedback: -0.6 pp (-1/180), 324,379 output tokens</title></circle>
+<text x="487.77" y="308.11" font-size="10" text-anchor="start" fill="#0b0b0b">3</text>
+<circle cx="519.41" cy="291.78" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>deepseek_v4_pro, static_feedback: +1.1 pp (2/180), 557,559 output tokens</title></circle>
+<text x="525.41" y="286.78" font-size="10" text-anchor="start" fill="#0b0b0b">4</text>
+<circle cx="380.05" cy="277.56" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>gemini_31_pro, static_feedback: +2.2 pp (4/180), 75,048 output tokens</title></circle>
+<text x="386.05" y="272.56" font-size="10" text-anchor="start" fill="#0b0b0b">5</text>
+<circle cx="381.48" cy="277.56" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>gemini_36_flash, static_feedback: +2.2 pp (4/180), 76,601 output tokens</title></circle>
+<text x="387.48" y="272.56" font-size="10" text-anchor="start" fill="#0b0b0b">6</text>
+<circle cx="440.96" cy="284.67" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>openai_gpt55, static_feedback: +1.7 pp (3/180), 180,298 output tokens</title></circle>
+<text x="446.96" y="279.67" font-size="10" text-anchor="start" fill="#0b0b0b">7</text>
+<circle cx="421.08" cy="277.56" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>openai_gpt56_sol, static_feedback: +2.2 pp (4/180), 135,438 output tokens</title></circle>
+<text x="427.08" y="272.56" font-size="10" text-anchor="start" fill="#0b0b0b">8</text>
+<circle cx="541.02" cy="313.11" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>qwen36_35b_a3b, static_feedback: -0.6 pp (-1/180), 760,932 output tokens</title></circle>
+<text x="547.02" y="308.11" font-size="10" text-anchor="start" fill="#0b0b0b">9</text>
+<circle cx="528.29" cy="249.11" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>qwen37_max, static_feedback: +4.4 pp (8/180), 633,589 output tokens</title></circle>
+<text x="534.29" y="244.11" font-size="10" text-anchor="start" fill="#0b0b0b">10</text>
+<circle cx="399.88" cy="242.00" r="5.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>qwen3_coder_api, static_feedback: +5.0 pp (9/180), 99,821 output tokens</title></circle>
+<text x="405.88" y="237.00" font-size="10" text-anchor="start" fill="#0b0b0b">11</text>
+<rect x="272.43" y="229.89" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>claude_fable_5, test_feedback: +5.6 pp (10/180), 17,136 output tokens</title></rect>
+<text x="283.43" y="229.89" font-size="10" text-anchor="start" fill="#0b0b0b">1</text>
+<rect x="301.95" y="215.67" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>claude_opus_5, test_feedback: +6.7 pp (12/180), 26,210 output tokens</title></rect>
+<text x="312.95" y="215.67" font-size="10" text-anchor="start" fill="#0b0b0b">2</text>
+<rect x="415.18" y="165.89" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>deepseek_v4_flash, test_feedback: +10.6 pp (19/180), 133,692 output tokens</title></rect>
+<text x="426.18" y="165.89" font-size="10" text-anchor="start" fill="#0b0b0b">3</text>
+<rect x="453.70" y="158.78" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>deepseek_v4_pro, test_feedback: +11.1 pp (20/180), 232,737 output tokens</title></rect>
+<text x="464.70" y="158.78" font-size="10" text-anchor="start" fill="#0b0b0b">4</text>
+<rect x="209.24" y="265.44" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>gemini_31_pro, test_feedback: +2.8 pp (5/180), 6,902 output tokens</title></rect>
+<text x="220.24" y="265.44" font-size="10" text-anchor="start" fill="#0b0b0b">5</text>
+<rect x="270.23" y="265.44" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>gemini_36_flash, test_feedback: +2.8 pp (5/180), 16,602 output tokens</title></rect>
+<text x="281.23" y="265.44" font-size="10" text-anchor="start" fill="#0b0b0b">6</text>
+<rect x="299.72" y="272.56" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>openai_gpt55, test_feedback: +2.2 pp (4/180), 25,382 output tokens</title></rect>
+<text x="310.72" y="272.56" font-size="10" text-anchor="start" fill="#0b0b0b">7</text>
+<rect x="275.31" y="251.22" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>openai_gpt56_sol, test_feedback: +3.9 pp (7/180), 17,862 output tokens</title></rect>
+<text x="286.31" y="251.22" font-size="10" text-anchor="start" fill="#0b0b0b">8</text>
+<rect x="481.06" y="144.56" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>qwen36_35b_a3b, test_feedback: +12.2 pp (22/180), 345,041 output tokens</title></rect>
+<text x="492.06" y="144.56" font-size="10" text-anchor="start" fill="#0b0b0b">9</text>
+<rect x="403.57" y="215.67" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>qwen37_max, test_feedback: +6.7 pp (12/180), 113,123 output tokens</title></rect>
+<text x="414.57" y="215.67" font-size="10" text-anchor="start" fill="#0b0b0b">10</text>
+<rect x="369.68" y="80.56" width="10.00" height="10.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>qwen3_coder_api, test_feedback: +17.2 pp (31/180), 69,461 output tokens</title></rect>
+<text x="380.68" y="80.56" font-size="10" text-anchor="start" fill="#0b0b0b">11</text>
+<polygon points="390.29,243.11 395.79,253.61 384.79,253.61" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>claude_fable_5, combined_feedback: +4.4 pp (8/180), 86,957 output tokens</title></polygon>
+<text x="396.29" y="244.11" font-size="10" text-anchor="start" fill="#0b0b0b">1</text>
+<polygon points="396.64,214.67 402.14,225.17 391.14,225.17" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>claude_opus_5, combined_feedback: +6.7 pp (12/180), 95,284 output tokens</title></polygon>
+<text x="402.64" y="215.67" font-size="10" text-anchor="start" fill="#0b0b0b">2</text>
+<polygon points="497.45,221.78 502.95,232.28 491.95,232.28" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>deepseek_v4_flash, combined_feedback: +6.1 pp (11/180), 406,490 output tokens</title></polygon>
+<text x="503.45" y="222.78" font-size="10" text-anchor="start" fill="#0b0b0b">3</text>
+<polygon points="522.20,179.11 527.70,189.61 516.70,189.61" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>deepseek_v4_pro, combined_feedback: +9.4 pp (17/180), 580,419 output tokens</title></polygon>
+<text x="528.20" y="180.11" font-size="10" text-anchor="start" fill="#0b0b0b">4</text>
+<polygon points="380.18,271.56 385.68,282.06 374.68,282.06" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>gemini_31_pro, combined_feedback: +2.2 pp (4/180), 75,182 output tokens</title></polygon>
+<text x="386.18" y="272.56" font-size="10" text-anchor="start" fill="#0b0b0b">5</text>
+<polygon points="385.41,271.56 390.91,282.06 379.91,282.06" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>gemini_36_flash, combined_feedback: +2.2 pp (4/180), 81,057 output tokens</title></polygon>
+<text x="391.41" y="272.56" font-size="10" text-anchor="start" fill="#0b0b0b">6</text>
+<polygon points="449.92,278.67 455.42,289.17 444.42,289.17" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>openai_gpt55, combined_feedback: +1.7 pp (3/180), 205,103 output tokens</title></polygon>
+<text x="455.92" y="279.67" font-size="10" text-anchor="start" fill="#0b0b0b">7</text>
+<polygon points="426.44,264.44 431.94,274.94 420.94,274.94" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>openai_gpt56_sol, combined_feedback: +2.8 pp (5/180), 146,302 output tokens</title></polygon>
+<text x="432.44" y="265.44" font-size="10" text-anchor="start" fill="#0b0b0b">8</text>
+<polygon points="556.08,172.00 561.58,182.50 550.58,182.50" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>qwen36_35b_a3b, combined_feedback: +10.0 pp (18/180), 945,140 output tokens</title></polygon>
+<text x="562.08" y="173.00" font-size="10" text-anchor="start" fill="#0b0b0b">9</text>
+<polygon points="533.44,214.67 538.94,225.17 527.94,225.17" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>qwen37_max, combined_feedback: +6.7 pp (12/180), 682,301 output tokens</title></polygon>
+<text x="539.44" y="215.67" font-size="10" text-anchor="start" fill="#0b0b0b">10</text>
+<polygon points="406.79,100.89 412.29,111.39 401.29,111.39" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>qwen3_coder_api, combined_feedback: +15.6 pp (28/180), 110,267 output tokens</title></polygon>
+<text x="412.79" y="101.89" font-size="10" text-anchor="start" fill="#0b0b0b">11</text>
+<circle cx="591.00" cy="67.00" r="4.50" fill="#2a78d6" stroke="#ffffff" stroke-width="1"/>
+<text x="607.00" y="71.00" font-size="12" text-anchor="start" fill="#0b0b0b">static_feedback</text>
+<rect x="586.50" y="82.50" width="9.00" height="9.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"/>
+<text x="607.00" y="91.00" font-size="12" text-anchor="start" fill="#0b0b0b">test_feedback</text>
+<polygon points="591.00,101.60 595.95,111.05 586.05,111.05" fill="#1baf7a" stroke="#ffffff" stroke-width="1"/>
+<text x="607.00" y="111.00" font-size="12" text-anchor="start" fill="#0b0b0b">combined_feedback</text>
+<text x="20.00" y="438.00" font-size="10" text-anchor="start" fill="#52514e">Population: FINAL[v] vs BASE (R04) and REPAIR_CANDIDATES (C02 output tokens, diagnostic only); unit: model x variant; block:</text>
+<text x="20.00" y="451.00" font-size="10" text-anchor="start" fill="#52514e">composite.</text>
+<text x="20.00" y="467.00" font-size="10" text-anchor="start" fill="#52514e">Composite block; one point per (model, variant): repair output tokens of the variant's repair candidates vs net gain of Q06</text>
+<text x="20.00" y="480.00" font-size="10" text-anchor="start" fill="#52514e">correctness pass; descriptive only (no ranking, no test).</text>
+<text x="20.00" y="496.00" font-size="10" text-anchor="start" fill="#52514e">Point labels (model): 1 = claude_fable_5; 2 = claude_opus_5; 3 = deepseek_v4_flash; 4 = deepseek_v4_pro; 5 = gemini_31_pro; 6</text>
+<text x="20.00" y="509.00" font-size="10" text-anchor="start" fill="#52514e">= gemini_36_flash; 7 = openai_gpt55; 8 = openai_gpt56_sol; 9 = qwen36_35b_a3b; 10 = qwen37_max; 11 = qwen3_coder_api.</text>
+<text x="20.00" y="525.00" font-size="10" text-anchor="start" fill="#52514e">BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate);</text>
+<text x="20.00" y="538.00" font-size="10" text-anchor="start" fill="#52514e">sensitivity SA1 in T10.</text>
+<text x="20.00" y="554.00" font-size="10" text-anchor="start" fill="#52514e">REASONING: Reasoning settings differ between models and are not equalised (see the closure disclosure register, item</text>
+<text x="20.00" y="567.00" font-size="10" text-anchor="start" fill="#52514e">reasoning_policy_differences); some providers report no reasoning-token field.</text>
+<text x="20.00" y="583.00" font-size="10" text-anchor="start" fill="#52514e">IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it</text>
+<text x="20.00" y="596.00" font-size="10" text-anchor="start" fill="#52514e">passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is</text>
+<text x="20.00" y="609.00" font-size="10" text-anchor="start" fill="#52514e">out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules,</text>
+<text x="20.00" y="622.00" font-size="10" text-anchor="start" fill="#52514e">not only in feedback content; test_feedback cannot regress on Q06 by construction.</text>
+<text x="20.00" y="638.00" font-size="10" text-anchor="start" fill="#52514e">IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same</text>
+<text x="20.00" y="651.00" font-size="10" text-anchor="start" fill="#52514e">cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still</text>
+<text x="20.00" y="664.00" font-size="10" text-anchor="start" fill="#52514e">failing) and G01.</text>
+<text x="20.00" y="680.00" font-size="10" text-anchor="start" fill="#52514e">IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints</text>
+<text x="20.00" y="693.00" font-size="10" text-anchor="start" fill="#52514e">(design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set</text>
+<text x="20.00" y="706.00" font-size="10" text-anchor="start" fill="#52514e">configuration, not static analysis in general.</text>
+</svg>

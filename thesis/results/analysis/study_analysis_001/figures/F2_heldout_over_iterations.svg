@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 730" width="760" height="730" font-family="Helvetica, Arial, sans-serif" role="img">
+<title>ParEval vs held-out pass rate over repair steps</title>
+<rect x="0" y="0" width="760" height="730" fill="#ffffff"/>
+<text x="20.00" y="28.00" font-size="15" text-anchor="start" fill="#0b0b0b" font-weight="600">ParEval vs held-out pass rate over repair steps</text>
+<line x1="80.00" y1="370.00" x2="540.00" y2="370.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="374.00" font-size="11" text-anchor="end" fill="#52514e">80</text>
+<line x1="80.00" y1="290.00" x2="540.00" y2="290.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="294.00" font-size="11" text-anchor="end" fill="#52514e">85</text>
+<line x1="80.00" y1="210.00" x2="540.00" y2="210.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="214.00" font-size="11" text-anchor="end" fill="#52514e">90</text>
+<line x1="80.00" y1="130.00" x2="540.00" y2="130.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="134.00" font-size="11" text-anchor="end" fill="#52514e">95</text>
+<line x1="80.00" y1="50.00" x2="540.00" y2="50.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="54.00" font-size="11" text-anchor="end" fill="#52514e">100</text>
+<line x1="80.00" y1="50.00" x2="80.00" y2="370.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="32.00" y="210.00" font-size="12" text-anchor="middle" fill="#52514e" transform="rotate(-90.00 32.00 210.00)">Rate (%)</text>
+<text x="110.00" y="390.00" font-size="12" text-anchor="middle" fill="#0b0b0b">0</text>
+<text x="310.00" y="390.00" font-size="12" text-anchor="middle" fill="#0b0b0b">1</text>
+<text x="510.00" y="390.00" font-size="12" text-anchor="middle" fill="#0b0b0b">2</text>
+<line x1="80.00" y1="370.00" x2="540.00" y2="370.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="310.00" y="414.00" font-size="12" text-anchor="middle" fill="#52514e">Repair step k (STEP[v][k]; last artifact carried forward)</text>
+<text x="84.00" y="364.00" font-size="10" text-anchor="start" fill="#52514e">axis truncated</text>
+<polyline points="90.00,200.30 290.00,168.79 490.00,164.75" fill="none" stroke="#2a78d6" stroke-width="2.00" stroke-linejoin="round"/>
+<line x1="90.00" y1="263.35" x2="90.00" y2="152.61" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="87.00" y1="263.35" x2="93.00" y2="263.35" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="87.00" y1="152.61" x2="93.00" y2="152.61" stroke="#2a78d6" stroke-width="1.20"/>
+<circle cx="90.00" cy="200.30" r="4.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>Q06 static_feedback step 0: 90.6% (1794/1980), 95% CI [86.7, 93.6]</title></circle>
+<line x1="290.00" y1="209.19" x2="290.00" y2="134.85" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="287.00" y1="209.19" x2="293.00" y2="209.19" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="287.00" y1="134.85" x2="293.00" y2="134.85" stroke="#2a78d6" stroke-width="1.20"/>
+<circle cx="290.00" cy="168.79" r="4.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>Q06 static_feedback step 1: 92.6% (1833/1980), 95% CI [90.1, 94.7]</title></circle>
+<line x1="490.00" y1="202.73" x2="490.00" y2="133.23" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="487.00" y1="202.73" x2="493.00" y2="202.73" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="487.00" y1="133.23" x2="493.00" y2="133.23" stroke="#2a78d6" stroke-width="1.20"/>
+<circle cx="490.00" cy="164.75" r="4.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>Q06 static_feedback step 2: 92.8% (1838/1980), 95% CI [90.5, 94.8]</title></circle>
+<polyline points="98.00,200.30 298.00,104.14 498.00,81.52" fill="none" stroke="#eb6834" stroke-width="2.00" stroke-linejoin="round"/>
+<line x1="98.00" y1="263.35" x2="98.00" y2="152.61" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="95.00" y1="263.35" x2="101.00" y2="263.35" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="95.00" y1="152.61" x2="101.00" y2="152.61" stroke="#eb6834" stroke-width="1.20"/>
+<circle cx="98.00" cy="200.30" r="4.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>Q06 test_feedback step 0: 90.6% (1794/1980), 95% CI [86.7, 93.6]</title></circle>
+<line x1="298.00" y1="130.02" x2="298.00" y2="83.13" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="295.00" y1="130.02" x2="301.00" y2="130.02" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="295.00" y1="83.13" x2="301.00" y2="83.13" stroke="#eb6834" stroke-width="1.20"/>
+<circle cx="298.00" cy="104.14" r="4.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>Q06 test_feedback step 1: 96.6% (1913/1980), 95% CI [95.0, 97.9]</title></circle>
+<line x1="498.00" y1="95.25" x2="498.00" y2="69.39" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="495.00" y1="95.25" x2="501.00" y2="95.25" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="495.00" y1="69.39" x2="501.00" y2="69.39" stroke="#eb6834" stroke-width="1.20"/>
+<circle cx="498.00" cy="81.52" r="4.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>Q06 test_feedback step 2: 98.0% (1941/1980), 95% CI [97.2, 98.8]</title></circle>
+<polyline points="106.00,200.30 306.00,125.96 506.00,101.72" fill="none" stroke="#1baf7a" stroke-width="2.00" stroke-linejoin="round"/>
+<line x1="106.00" y1="263.35" x2="106.00" y2="152.61" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="103.00" y1="263.35" x2="109.00" y2="263.35" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="103.00" y1="152.61" x2="109.00" y2="152.61" stroke="#1baf7a" stroke-width="1.20"/>
+<circle cx="106.00" cy="200.30" r="4.00" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>Q06 combined_feedback step 0: 90.6% (1794/1980), 95% CI [86.7, 93.6]</title></circle>
+<line x1="306.00" y1="151.03" x2="306.00" y2="104.95" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="303.00" y1="151.03" x2="309.00" y2="151.03" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="303.00" y1="104.95" x2="309.00" y2="104.95" stroke="#1baf7a" stroke-width="1.20"/>
+<circle cx="306.00" cy="125.96" r="4.00" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>Q06 combined_feedback step 1: 95.3% (1886/1980), 95% CI [93.7, 96.6]</title></circle>
+<line x1="506.00" y1="117.88" x2="506.00" y2="86.36" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="503.00" y1="117.88" x2="509.00" y2="117.88" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="503.00" y1="86.36" x2="509.00" y2="86.36" stroke="#1baf7a" stroke-width="1.20"/>
+<circle cx="506.00" cy="101.72" r="4.00" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>Q06 combined_feedback step 2: 96.8% (1916/1980), 95% CI [95.8, 97.7]</title></circle>
+<polyline points="114.00,227.78 314.00,200.30 514.00,193.84" fill="none" stroke="#2a78d6" stroke-width="2.00" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<line x1="114.00" y1="290.81" x2="114.00" y2="176.87" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="111.00" y1="290.81" x2="117.00" y2="290.81" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="111.00" y1="176.87" x2="117.00" y2="176.87" stroke="#2a78d6" stroke-width="1.20"/>
+<rect x="110.00" y="223.78" width="8.00" height="8.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>E02 static_feedback step 0: 88.9% (1760/1980), 95% CI [84.9, 92.1]</title></rect>
+<line x1="314.00" y1="241.52" x2="314.00" y2="162.32" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="311.00" y1="241.52" x2="317.00" y2="241.52" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="311.00" y1="162.32" x2="317.00" y2="162.32" stroke="#2a78d6" stroke-width="1.20"/>
+<rect x="310.00" y="196.30" width="8.00" height="8.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>E02 static_feedback step 1: 90.6% (1794/1980), 95% CI [88.0, 93.0]</title></rect>
+<line x1="514.00" y1="233.43" x2="514.00" y2="158.28" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="511.00" y1="233.43" x2="517.00" y2="233.43" stroke="#2a78d6" stroke-width="1.20"/>
+<line x1="511.00" y1="158.28" x2="517.00" y2="158.28" stroke="#2a78d6" stroke-width="1.20"/>
+<rect x="510.00" y="189.84" width="8.00" height="8.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>E02 static_feedback step 2: 91.0% (1802/1980), 95% CI [88.5, 93.2]</title></rect>
+<polyline points="122.00,227.78 322.00,136.46 522.00,123.54" fill="none" stroke="#eb6834" stroke-width="2.00" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<line x1="122.00" y1="290.81" x2="122.00" y2="176.87" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="119.00" y1="290.81" x2="125.00" y2="290.81" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="119.00" y1="176.87" x2="125.00" y2="176.87" stroke="#eb6834" stroke-width="1.20"/>
+<rect x="118.00" y="223.78" width="8.00" height="8.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>E02 test_feedback step 0: 88.9% (1760/1980), 95% CI [84.9, 92.1]</title></rect>
+<line x1="322.00" y1="167.17" x2="322.00" y2="109.80" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="319.00" y1="167.17" x2="325.00" y2="167.17" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="319.00" y1="109.80" x2="325.00" y2="109.80" stroke="#eb6834" stroke-width="1.20"/>
+<rect x="318.00" y="132.46" width="8.00" height="8.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>E02 test_feedback step 1: 94.6% (1873/1980), 95% CI [92.7, 96.3]</title></rect>
+<line x1="522.00" y1="149.39" x2="522.00" y2="100.10" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="519.00" y1="149.39" x2="525.00" y2="149.39" stroke="#eb6834" stroke-width="1.20"/>
+<line x1="519.00" y1="100.10" x2="525.00" y2="100.10" stroke="#eb6834" stroke-width="1.20"/>
+<rect x="518.00" y="119.54" width="8.00" height="8.00" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>E02 test_feedback step 2: 95.4% (1889/1980), 95% CI [93.8, 96.9]</title></rect>
+<polyline points="130.00,227.78 330.00,160.71 530.00,140.51" fill="none" stroke="#1baf7a" stroke-width="2.00" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<line x1="130.00" y1="290.81" x2="130.00" y2="176.87" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="127.00" y1="290.81" x2="133.00" y2="290.81" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="127.00" y1="176.87" x2="133.00" y2="176.87" stroke="#1baf7a" stroke-width="1.20"/>
+<rect x="126.00" y="223.78" width="8.00" height="8.00" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>E02 combined_feedback step 0: 88.9% (1760/1980), 95% CI [84.9, 92.1]</title></rect>
+<line x1="330.00" y1="192.22" x2="330.00" y2="132.42" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="327.00" y1="192.22" x2="333.00" y2="192.22" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="327.00" y1="132.42" x2="333.00" y2="132.42" stroke="#1baf7a" stroke-width="1.20"/>
+<rect x="326.00" y="156.71" width="8.00" height="8.00" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>E02 combined_feedback step 1: 93.1% (1843/1980), 95% CI [91.1, 94.8]</title></rect>
+<line x1="530.00" y1="167.17" x2="530.00" y2="116.26" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="527.00" y1="167.17" x2="533.00" y2="167.17" stroke="#1baf7a" stroke-width="1.20"/>
+<line x1="527.00" y1="116.26" x2="533.00" y2="116.26" stroke="#1baf7a" stroke-width="1.20"/>
+<rect x="526.00" y="136.51" width="8.00" height="8.00" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>E02 combined_feedback step 2: 94.3% (1868/1980), 95% CI [92.7, 95.9]</title></rect>
+<line x1="563.00" y1="67.00" x2="581.00" y2="67.00" stroke="#2a78d6" stroke-width="2.00"/>
+<text x="587.00" y="71.00" font-size="12" text-anchor="start" fill="#0b0b0b">Q06 static_feedback</text>
+<line x1="563.00" y1="87.00" x2="581.00" y2="87.00" stroke="#eb6834" stroke-width="2.00"/>
+<text x="587.00" y="91.00" font-size="12" text-anchor="start" fill="#0b0b0b">Q06 test_feedback</text>
+<line x1="563.00" y1="107.00" x2="581.00" y2="107.00" stroke="#1baf7a" stroke-width="2.00"/>
+<text x="587.00" y="111.00" font-size="12" text-anchor="start" fill="#0b0b0b">Q06 combined_feedback</text>
+<line x1="563.00" y1="127.00" x2="581.00" y2="127.00" stroke="#2a78d6" stroke-width="2.00" stroke-dasharray="6 4"/>
+<text x="587.00" y="131.00" font-size="12" text-anchor="start" fill="#0b0b0b">E02 static_feedback</text>
+<line x1="563.00" y1="147.00" x2="581.00" y2="147.00" stroke="#eb6834" stroke-width="2.00" stroke-dasharray="6 4"/>
+<text x="587.00" y="151.00" font-size="12" text-anchor="start" fill="#0b0b0b">E02 test_feedback</text>
+<line x1="563.00" y1="167.00" x2="581.00" y2="167.00" stroke="#1baf7a" stroke-width="2.00" stroke-dasharray="6 4"/>
+<text x="587.00" y="171.00" font-size="12" text-anchor="start" fill="#0b0b0b">E02 combined_feedback</text>
+<text x="20.00" y="440.00" font-size="10" text-anchor="start" fill="#52514e">Population: STEP[v][k], k = 0, 1, 2 (identical base-cell cohort); unit: base cell; block: composite.</text>
+<text x="20.00" y="456.00" font-size="10" text-anchor="start" fill="#52514e">Composite block; Q06 correctness pass (solid) and E02 enhanced all-pass (dashed) on the identical base-cell cohort per step</text>
+<text x="20.00" y="469.00" font-size="10" text-anchor="start" fill="#52514e">(G02 overfitting check); STEP[v][0] == BASE and STEP[v][2] == FINAL[v] (checked).</text>
+<text x="20.00" y="485.00" font-size="10" text-anchor="start" fill="#52514e">y axis truncated: it starts at 80%, not at 0 (data-driven lower bound floor((min - 2) / 5) * 5 over the plotted values and CI</text>
+<text x="20.00" y="498.00" font-size="10" text-anchor="start" fill="#52514e">bounds); the series are dodged horizontally by 0.04 steps so that the error bars do not overlap.</text>
+<text x="20.00" y="514.00" font-size="10" text-anchor="start" fill="#52514e">error bars: 95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks resampled</text>
+<text x="20.00" y="527.00" font-size="10" text-anchor="start" fill="#52514e">among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 2,000 replicates (descriptive,</text>
+<text x="20.00" y="540.00" font-size="10" text-anchor="start" fill="#52514e">unadjusted).</text>
+<text x="20.00" y="556.00" font-size="10" text-anchor="start" fill="#52514e">BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate);</text>
+<text x="20.00" y="569.00" font-size="10" text-anchor="start" fill="#52514e">sensitivity SA1 in T10.</text>
+<text x="20.00" y="585.00" font-size="10" text-anchor="start" fill="#52514e">IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it</text>
+<text x="20.00" y="598.00" font-size="10" text-anchor="start" fill="#52514e">passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is</text>
+<text x="20.00" y="611.00" font-size="10" text-anchor="start" fill="#52514e">out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules,</text>
+<text x="20.00" y="624.00" font-size="10" text-anchor="start" fill="#52514e">not only in feedback content; test_feedback cannot regress on Q06 by construction.</text>
+<text x="20.00" y="640.00" font-size="10" text-anchor="start" fill="#52514e">IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same</text>
+<text x="20.00" y="653.00" font-size="10" text-anchor="start" fill="#52514e">cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still</text>
+<text x="20.00" y="666.00" font-size="10" text-anchor="start" fill="#52514e">failing) and G01.</text>
+<text x="20.00" y="682.00" font-size="10" text-anchor="start" fill="#52514e">IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints</text>
+<text x="20.00" y="695.00" font-size="10" text-anchor="start" fill="#52514e">(design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set</text>
+<text x="20.00" y="708.00" font-size="10" text-anchor="start" fill="#52514e">configuration, not static analysis in general.</text>
+</svg>

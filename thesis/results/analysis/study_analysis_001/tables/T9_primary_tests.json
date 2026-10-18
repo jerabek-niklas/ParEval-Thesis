@@ -1,0 +1,819 @@
+{
+  "id": "T9_primary_tests",
+  "title": "Primary hypotheses (Holm-adjusted)",
+  "population": "BASE paired with FINAL[v]; FINAL[v1] vs FINAL[v2] (composite)",
+  "unit": "base cell",
+  "notes": [
+    "Composite cohort (pilot + full_ext); R04 net_gain (3 variants) and R05 variant_difference (3 pairs) for the endpoints Q06 and E02 on the composite cohort: 12 hypotheses H0: difference = 0",
+    "Every hypothesis rests on the methodology's primary replicate count (B = 10,000 drawn, checked; resamples skipped for a zero denominator, if any, are counted in the CI note); everything outside this table is descriptive (unadjusted CIs, no tests); the per-block estimates of the same hypotheses are in T9b.",
+    "Resolution (B = 10,000 replicates; a p below its resolution is shown as '<resolution'): p_resolution = 2/B = 0.0002 (primary family only: the smallest positive two-sided bootstrap p-value, 2 / replicates_primary; a p_value of 0 means p < p_resolution); p_holm_resolution = 0.0024 (primary family only: the Holm-adjusted resolution, the running maximum over the Holm order of (m - rank + 1) * p_resolution; a p_holm of 0 means p_holm < p_holm_resolution).",
+    "Denominator exclusions (methodology missingness rules; JSON key excluded): no unit is excluded in this table by R04 (base cell(s) outside the paired cohort); R05 (base cell(s) outside the paired cohort).",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still failing) and G01.",
+    "IC5: The composite primary estimates pool the pilot (12 clusters) and full_ext (48 clusters) blocks; the per-block estimates (T9b) are descriptive, the pilot ones approximate; a composite difference need not hold in both blocks.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "R04 net_gain",
+      "text": "R04 net_gain: numerator = improved - regressed; denominator = cells; unit = base cell."
+    },
+    {
+      "ref": "R05 variant_difference",
+      "text": "R05 variant_difference: numerator = sum over cells of (y_v1 - y_v2); denominator = cells; unit = base cell."
+    }
+  ],
+  "ci_note": "95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks resampled among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 10,000 replicates for the primary-family estimates (R04 composite with strata endpoint+variant, R05 composite with strata comparison+endpoint; Holm-adjusted tests in T9); p-values: two-sided bootstrap p = min(1, 2 * min(share of replicate differences <= 0, share >= 0)) with replicates_primary; Holm step-down at alpha 0.05 over the 12 primary hypotheses",
+  "columns": [
+    {
+      "key": "endpoint",
+      "header": "Endpoint",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "metric",
+      "header": "Metric",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "hypothesis",
+      "header": "Hypothesis (H0: difference = 0)",
+      "align": "l",
+      "kind": "text",
+      "width": "3.4cm"
+    },
+    {
+      "key": "estimate",
+      "header": "Difference pp (n/N)",
+      "align": "r",
+      "kind": "diff",
+      "group": "difference",
+      "sub": "pp (n/N)"
+    },
+    {
+      "key": "ci",
+      "header": "Difference 95% CI (pp)",
+      "align": "r",
+      "kind": "ci_pp",
+      "group": "difference",
+      "sub": "95% CI"
+    },
+    {
+      "key": "p_value",
+      "header": "Bootstrap p",
+      "align": "r",
+      "kind": "p"
+    },
+    {
+      "key": "p_holm",
+      "header": "Holm-adjusted p",
+      "align": "r",
+      "kind": "p",
+      "group": "Holm step-down",
+      "sub": "adjusted p"
+    },
+    {
+      "key": "reject",
+      "header": "Reject H0 (Holm)",
+      "align": "r",
+      "kind": "flag",
+      "group": "Holm step-down",
+      "sub": "reject H0"
+    }
+  ],
+  "rows": [
+    {
+      "endpoint": "Q06",
+      "metric": "R04",
+      "hypothesis": "FINAL[static_feedback] - BASE",
+      "estimate": {
+        "numerator": 44,
+        "denominator": 1980,
+        "value": 0.022222222222222223,
+        "ci_low": -0.0065656565656565654,
+        "ci_high": 0.05656565656565657,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 44,
+        "denominator": 1980,
+        "value": 0.022222222222222223,
+        "ci_low": -0.0065656565656565654,
+        "ci_high": 0.05656565656565657,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.1462,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.2924,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": false
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R04",
+      "hypothesis": "FINAL[test_feedback] - BASE",
+      "estimate": {
+        "numerator": 147,
+        "denominator": 1980,
+        "value": 0.07424242424242425,
+        "ci_low": 0.04898989898989899,
+        "ci_high": 0.10757575757575757,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 147,
+        "denominator": 1980,
+        "value": 0.07424242424242425,
+        "ci_low": 0.04898989898989899,
+        "ci_high": 0.10757575757575757,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R04",
+      "hypothesis": "FINAL[combined_feedback] - BASE",
+      "estimate": {
+        "numerator": 122,
+        "denominator": 1980,
+        "value": 0.06161616161616162,
+        "ci_low": 0.03433080808080819,
+        "ci_high": 0.09545454545454546,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 122,
+        "denominator": 1980,
+        "value": 0.06161616161616162,
+        "ci_low": 0.03433080808080819,
+        "ci_high": 0.09545454545454546,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[test_feedback]",
+      "estimate": {
+        "numerator": -103,
+        "denominator": 1980,
+        "value": -0.05202020202020202,
+        "ci_low": -0.0696969696969697,
+        "ci_high": -0.03585858585858586,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "ci": {
+        "numerator": -103,
+        "denominator": 1980,
+        "value": -0.05202020202020202,
+        "ci_low": -0.0696969696969697,
+        "ci_high": -0.03585858585858586,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[combined_feedback]",
+      "estimate": {
+        "numerator": -78,
+        "denominator": 1980,
+        "value": -0.03939393939393939,
+        "ci_low": -0.05555555555555555,
+        "ci_high": -0.025252525252525252,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "ci": {
+        "numerator": -78,
+        "denominator": 1980,
+        "value": -0.03939393939393939,
+        "ci_low": -0.05555555555555555,
+        "ci_high": -0.025252525252525252,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R05",
+      "hypothesis": "FINAL[test_feedback] - FINAL[combined_feedback]",
+      "estimate": {
+        "numerator": 25,
+        "denominator": 1980,
+        "value": 0.012626262626262626,
+        "ci_low": 0.005555555555555556,
+        "ci_high": 0.02070707070707071,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 25,
+        "denominator": 1980,
+        "value": 0.012626262626262626,
+        "ci_low": 0.005555555555555556,
+        "ci_high": 0.02070707070707071,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0004,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0016,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R04",
+      "hypothesis": "FINAL[static_feedback] - BASE",
+      "estimate": {
+        "numerator": 42,
+        "denominator": 1980,
+        "value": 0.021212121212121213,
+        "ci_low": -0.007575757575757576,
+        "ci_high": 0.05505050505050505,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 42,
+        "denominator": 1980,
+        "value": 0.021212121212121213,
+        "ci_low": -0.007575757575757576,
+        "ci_high": 0.05505050505050505,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.1664,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.2924,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": false
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R04",
+      "hypothesis": "FINAL[test_feedback] - BASE",
+      "estimate": {
+        "numerator": 129,
+        "denominator": 1980,
+        "value": 0.06515151515151515,
+        "ci_low": 0.04242424242424243,
+        "ci_high": 0.09646464646464646,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 129,
+        "denominator": 1980,
+        "value": 0.06515151515151515,
+        "ci_low": 0.04242424242424243,
+        "ci_high": 0.09646464646464646,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R04",
+      "hypothesis": "FINAL[combined_feedback] - BASE",
+      "estimate": {
+        "numerator": 108,
+        "denominator": 1980,
+        "value": 0.05454545454545454,
+        "ci_low": 0.02878787878787879,
+        "ci_high": 0.08737373737373737,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 108,
+        "denominator": 1980,
+        "value": 0.05454545454545454,
+        "ci_low": 0.02878787878787879,
+        "ci_high": 0.08737373737373737,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[test_feedback]",
+      "estimate": {
+        "numerator": -87,
+        "denominator": 1980,
+        "value": -0.04393939393939394,
+        "ci_low": -0.0601010101010101,
+        "ci_high": -0.029292929292929294,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "ci": {
+        "numerator": -87,
+        "denominator": 1980,
+        "value": -0.04393939393939394,
+        "ci_low": -0.0601010101010101,
+        "ci_high": -0.029292929292929294,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[combined_feedback]",
+      "estimate": {
+        "numerator": -66,
+        "denominator": 1980,
+        "value": -0.03333333333333333,
+        "ci_low": -0.04595959595959596,
+        "ci_high": -0.021717171717171718,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "ci": {
+        "numerator": -66,
+        "denominator": 1980,
+        "value": -0.03333333333333333,
+        "ci_low": -0.04595959595959596,
+        "ci_high": -0.021717171717171718,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.0,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.0,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R05",
+      "hypothesis": "FINAL[test_feedback] - FINAL[combined_feedback]",
+      "estimate": {
+        "numerator": 21,
+        "denominator": 1980,
+        "value": 0.010606060606060607,
+        "ci_low": 0.0035353535353535356,
+        "ci_high": 0.01818181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "ci": {
+        "numerator": 21,
+        "denominator": 1980,
+        "value": 0.010606060606060607,
+        "ci_low": 0.0035353535353535356,
+        "ci_high": 0.01818181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 10000,
+        "primary": true,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "primary family (Holm over 12 hypotheses, alpha 0.05)",
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "p_value": {
+        "value": 0.002,
+        "resolution": 0.0002
+      },
+      "p_holm": {
+        "value": 0.006,
+        "resolution": 0.0024000000000000002
+      },
+      "reject": true
+    }
+  ],
+  "footnotes": [],
+  "latex": {}
+}

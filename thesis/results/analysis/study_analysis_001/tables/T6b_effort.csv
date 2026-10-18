@@ -1,0 +1,100 @@
+Variant,Block,Metric,Population,Quantity / strata,Numerator,Denominator,Value,Further statistics
+(base generation),pilot [a],C02,BASE,input_tokens,97829,396,247,coverage=1; generations=396; median=229; statistic=mean
+(base generation),pilot [a],C02,BASE,output_tokens,615391,396,1554,coverage=1; generations=396; median=636; statistic=mean
+(base generation),pilot [a],C02,BASE,reasoning_tokens,618154,360,1717,coverage=0.9091; generations=396; median=992.5; statistic=mean
+(base generation),full_ext,C02,BASE,input_tokens,410713,1584,259,coverage=1; generations=1584; median=245; statistic=mean
+(base generation),full_ext,C02,BASE,output_tokens,2332817,1584,1473,coverage=1; generations=1584; median=581; statistic=mean
+(base generation),full_ext,C02,BASE,reasoning_tokens,2363000,1440,1641,coverage=0.9091; generations=1584; median=873; statistic=mean
+(base generation),composite,C02,BASE,input_tokens,508542,1980,257,coverage=1; generations=1980; median=242.5; statistic=mean
+(base generation),composite,C02,BASE,output_tokens,2948208,1980,1489,coverage=1; generations=1980; median=589; statistic=mean
+(base generation),composite,C02,BASE,reasoning_tokens,2981154,1800,1656,coverage=0.9091; generations=1980; median=897; statistic=mean
+static_feedback,pilot [a],C01,REPAIR_CAND.,records_per_improved_cell,236,16,14.75,statistic=mean
+static_feedback,pilot [a],C01,REPAIR_CAND.,records_per_trajectory,236,396,0.60,statistic=mean
+static_feedback,pilot [a],C01,REPAIR_CAND.,request_rounds_per_improved_cell,236,16,14.75,statistic=mean
+static_feedback,pilot [a],C01,REPAIR_CAND.,request_rounds_per_trajectory,236,396,0.60,statistic=mean
+static_feedback,pilot [a],C02,REPAIR_CAND.,input_tokens,621783,236,2635,coverage=1; generations=236; median=1994; statistic=mean
+static_feedback,pilot [a],C02,REPAIR_CAND.,output_tokens,526665,236,2232,coverage=1; generations=236; median=1256; statistic=mean
+static_feedback,pilot [a],C02,REPAIR_CAND.,reasoning_tokens,467164,208,2246,coverage=0.8814; generations=236; median=1678; statistic=mean
+static_feedback,pilot [a],C03,REPAIR_CAND.,,--,236,22.6,excluded_not_direct=0; excluded_null=0; n=236; p95=78.95; statistic=median
+static_feedback,pilot [a],C05,FINAL,per_100_requests,16,236,6.780,statistic=scaled_rate
+static_feedback,pilot [a],C05,FINAL,per_1M_output_tokens,16,526665,30.380,statistic=scaled_rate
+static_feedback,full_ext,C01,REPAIR_CAND.,records_per_improved_cell,1249,78,16.01,statistic=mean
+static_feedback,full_ext,C01,REPAIR_CAND.,records_per_trajectory,1249,1584,0.79,statistic=mean
+static_feedback,full_ext,C01,REPAIR_CAND.,request_rounds_per_improved_cell,1249,78,16.01,statistic=mean
+static_feedback,full_ext,C01,REPAIR_CAND.,request_rounds_per_trajectory,1249,1584,0.79,statistic=mean
+static_feedback,full_ext,C02,REPAIR_CAND.,input_tokens,2458803,1249,1969,coverage=1; generations=1249; median=1412; statistic=mean
+static_feedback,full_ext,C02,REPAIR_CAND.,output_tokens,2489656,1249,1993,coverage=1; generations=1249; median=1045; statistic=mean
+static_feedback,full_ext,C02,REPAIR_CAND.,reasoning_tokens,2366453,1116,2120,coverage=0.8935; generations=1249; median=1552; statistic=mean
+static_feedback,full_ext,C03,REPAIR_CAND.,,--,1249,46.0,excluded_not_direct=0; excluded_null=0; n=1249; p95=583.3; statistic=median
+static_feedback,full_ext,C05,FINAL,per_100_requests,78,1249,6.245,statistic=scaled_rate
+static_feedback,full_ext,C05,FINAL,per_1M_output_tokens,78,2489656,31.330,statistic=scaled_rate
+static_feedback,composite,C01,REPAIR_CAND.,records_per_improved_cell,1485,94,15.80,statistic=mean
+static_feedback,composite,C01,REPAIR_CAND.,records_per_trajectory,1485,1980,0.75,statistic=mean
+static_feedback,composite,C01,REPAIR_CAND.,request_rounds_per_improved_cell,1485,94,15.80,statistic=mean
+static_feedback,composite,C01,REPAIR_CAND.,request_rounds_per_trajectory,1485,1980,0.75,statistic=mean
+static_feedback,composite,C02,REPAIR_CAND.,input_tokens,3080586,1485,2074,coverage=1; generations=1485; median=1478; statistic=mean
+static_feedback,composite,C02,REPAIR_CAND.,output_tokens,3016321,1485,2031,coverage=1; generations=1485; median=1085; statistic=mean
+static_feedback,composite,C02,REPAIR_CAND.,reasoning_tokens,2833617,1324,2140,coverage=0.8916; generations=1485; median=1554; statistic=mean
+static_feedback,composite,C03,REPAIR_CAND.,,--,1485,39.6,excluded_not_direct=0; excluded_null=0; n=1485; p95=567.9; statistic=median
+static_feedback,composite,C05,FINAL,per_100_requests,94,1485,6.330,statistic=scaled_rate
+static_feedback,composite,C05,FINAL,per_1M_output_tokens,94,3016321,31.164,statistic=scaled_rate
+test_feedback,pilot [a],C01,REPAIR_CAND.,records_per_improved_cell,52,20,2.60,statistic=mean
+test_feedback,pilot [a],C01,REPAIR_CAND.,records_per_trajectory,52,396,0.13,statistic=mean
+test_feedback,pilot [a],C01,REPAIR_CAND.,request_rounds_per_improved_cell,52,20,2.60,statistic=mean
+test_feedback,pilot [a],C01,REPAIR_CAND.,request_rounds_per_trajectory,52,396,0.13,statistic=mean
+test_feedback,pilot [a],C02,REPAIR_CAND.,input_tokens,90533,52,1741,coverage=1; generations=52; median=1464; statistic=mean
+test_feedback,pilot [a],C02,REPAIR_CAND.,output_tokens,132447,52,2547,coverage=1; generations=52; median=1428; statistic=mean
+test_feedback,pilot [a],C02,REPAIR_CAND.,reasoning_tokens,104895,33,3179,coverage=0.6346; generations=52; median=2231; statistic=mean
+test_feedback,pilot [a],C03,REPAIR_CAND.,,--,52,21.2,excluded_not_direct=0; excluded_null=0; n=52; p95=86.45; statistic=median
+test_feedback,pilot [a],C05,FINAL,per_100_requests,20,52,38.462,statistic=scaled_rate
+test_feedback,pilot [a],C05,FINAL,per_1M_output_tokens,20,132447,151.004,statistic=scaled_rate
+test_feedback,full_ext,C01,REPAIR_CAND.,records_per_improved_cell,320,127,2.52,statistic=mean
+test_feedback,full_ext,C01,REPAIR_CAND.,records_per_trajectory,320,1584,0.20,statistic=mean
+test_feedback,full_ext,C01,REPAIR_CAND.,request_rounds_per_improved_cell,320,127,2.52,statistic=mean
+test_feedback,full_ext,C01,REPAIR_CAND.,request_rounds_per_trajectory,320,1584,0.20,statistic=mean
+test_feedback,full_ext,C02,REPAIR_CAND.,input_tokens,419687,320,1312,coverage=1; generations=320; median=1125; statistic=mean
+test_feedback,full_ext,C02,REPAIR_CAND.,output_tokens,871701,320,2724,coverage=1; generations=320; median=1287; statistic=mean
+test_feedback,full_ext,C02,REPAIR_CAND.,reasoning_tokens,791952,256,3094,coverage=0.8; generations=320; median=2458; statistic=mean
+test_feedback,full_ext,C03,REPAIR_CAND.,,--,320,466.2,excluded_not_direct=0; excluded_null=0; n=320; p95=620.5; statistic=median
+test_feedback,full_ext,C05,FINAL,per_100_requests,127,320,39.688,statistic=scaled_rate
+test_feedback,full_ext,C05,FINAL,per_1M_output_tokens,127,871701,145.692,statistic=scaled_rate
+test_feedback,composite,C01,REPAIR_CAND.,records_per_improved_cell,372,147,2.53,statistic=mean
+test_feedback,composite,C01,REPAIR_CAND.,records_per_trajectory,372,1980,0.19,statistic=mean
+test_feedback,composite,C01,REPAIR_CAND.,request_rounds_per_improved_cell,372,147,2.53,statistic=mean
+test_feedback,composite,C01,REPAIR_CAND.,request_rounds_per_trajectory,372,1980,0.19,statistic=mean
+test_feedback,composite,C02,REPAIR_CAND.,input_tokens,510220,372,1372,coverage=1; generations=372; median=1148; statistic=mean
+test_feedback,composite,C02,REPAIR_CAND.,output_tokens,1004148,372,2699,coverage=1; generations=372; median=1298; statistic=mean
+test_feedback,composite,C02,REPAIR_CAND.,reasoning_tokens,896847,289,3103,coverage=0.7769; generations=372; median=2457; statistic=mean
+test_feedback,composite,C03,REPAIR_CAND.,,--,372,120.5,excluded_not_direct=0; excluded_null=0; n=372; p95=619.7; statistic=median
+test_feedback,composite,C05,FINAL,per_100_requests,147,372,39.516,statistic=scaled_rate
+test_feedback,composite,C05,FINAL,per_1M_output_tokens,147,1004148,146.393,statistic=scaled_rate
+combined_feedback,pilot [a],C01,REPAIR_CAND.,records_per_improved_cell,259,22,11.77,statistic=mean
+combined_feedback,pilot [a],C01,REPAIR_CAND.,records_per_trajectory,259,396,0.65,statistic=mean
+combined_feedback,pilot [a],C01,REPAIR_CAND.,request_rounds_per_improved_cell,259,22,11.77,statistic=mean
+combined_feedback,pilot [a],C01,REPAIR_CAND.,request_rounds_per_trajectory,259,396,0.65,statistic=mean
+combined_feedback,pilot [a],C02,REPAIR_CAND.,input_tokens,688656,259,2659,coverage=1; generations=259; median=1969; statistic=mean
+combined_feedback,pilot [a],C02,REPAIR_CAND.,output_tokens,611704,259,2362,coverage=1; generations=259; median=1398; statistic=mean
+combined_feedback,pilot [a],C02,REPAIR_CAND.,reasoning_tokens,523173,225,2325,coverage=0.8687; generations=259; median=1813; statistic=mean
+combined_feedback,pilot [a],C03,REPAIR_CAND.,,--,259,21.8,excluded_not_direct=0; excluded_null=0; n=259; p95=72.54; statistic=median
+combined_feedback,pilot [a],C05,FINAL,per_100_requests,22,259,8.494,statistic=scaled_rate
+combined_feedback,pilot [a],C05,FINAL,per_1M_output_tokens,22,611704,35.965,statistic=scaled_rate
+combined_feedback,full_ext,C01,REPAIR_CAND.,records_per_improved_cell,1364,119,11.46,statistic=mean
+combined_feedback,full_ext,C01,REPAIR_CAND.,records_per_trajectory,1364,1584,0.86,statistic=mean
+combined_feedback,full_ext,C01,REPAIR_CAND.,request_rounds_per_improved_cell,1364,119,11.46,statistic=mean
+combined_feedback,full_ext,C01,REPAIR_CAND.,request_rounds_per_trajectory,1364,1584,0.86,statistic=mean
+combined_feedback,full_ext,C02,REPAIR_CAND.,input_tokens,2693024,1364,1974,coverage=1; generations=1364; median=1387; statistic=mean
+combined_feedback,full_ext,C02,REPAIR_CAND.,output_tokens,2802798,1364,2055,coverage=1; generations=1364; median=1044; statistic=mean
+combined_feedback,full_ext,C02,REPAIR_CAND.,reasoning_tokens,2625251,1210,2170,coverage=0.8871; generations=1364; median=1544; statistic=mean
+combined_feedback,full_ext,C03,REPAIR_CAND.,,--,1364,44.9,excluded_not_direct=0; excluded_null=0; n=1364; p95=582.1; statistic=median
+combined_feedback,full_ext,C05,FINAL,per_100_requests,119,1364,8.724,statistic=scaled_rate
+combined_feedback,full_ext,C05,FINAL,per_1M_output_tokens,119,2802798,42.458,statistic=scaled_rate
+combined_feedback,composite,C01,REPAIR_CAND.,records_per_improved_cell,1623,141,11.51,statistic=mean
+combined_feedback,composite,C01,REPAIR_CAND.,records_per_trajectory,1623,1980,0.82,statistic=mean
+combined_feedback,composite,C01,REPAIR_CAND.,request_rounds_per_improved_cell,1623,141,11.51,statistic=mean
+combined_feedback,composite,C01,REPAIR_CAND.,request_rounds_per_trajectory,1623,1980,0.82,statistic=mean
+combined_feedback,composite,C02,REPAIR_CAND.,input_tokens,3381680,1623,2084,coverage=1; generations=1623; median=1464; statistic=mean
+combined_feedback,composite,C02,REPAIR_CAND.,output_tokens,3414502,1623,2104,coverage=1; generations=1623; median=1120; statistic=mean
+combined_feedback,composite,C02,REPAIR_CAND.,reasoning_tokens,3148424,1435,2194,coverage=0.8842; generations=1623; median=1552; statistic=mean
+combined_feedback,composite,C03,REPAIR_CAND.,,--,1623,39.0,excluded_not_direct=0; excluded_null=0; n=1623; p95=566; statistic=median
+combined_feedback,composite,C05,FINAL,per_100_requests,141,1623,8.688,statistic=scaled_rate
+combined_feedback,composite,C05,FINAL,per_1M_output_tokens,141,3414502,41.294,statistic=scaled_rate

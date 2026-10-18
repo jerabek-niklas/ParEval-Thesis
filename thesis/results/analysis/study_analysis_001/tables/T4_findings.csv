@@ -1,0 +1,94 @@
+Tool,Finding family,Block,BASE reported_blocking findings (artifacts n/N) [c],BASE low_confidence findings (artifacts n/N) [c],BASE non_blocking findings (artifacts n/N) [c],GENERATED reported_blocking findings (artifacts n/N) [c],GENERATED low_confidence findings (artifacts n/N) [c],GENERATED non_blocking findings (artifacts n/N) [c]
+compiler,arithmetic,pilot [a],--,--,38 (21/396),--,--,64 (36/943)
+compiler,arithmetic,full_ext,--,--,95 (49/1584),--,--,236 (114/4517)
+compiler,arithmetic,composite,--,--,133 (70/1980),--,--,300 (150/5460)
+compiler,build,pilot [a],141 (16/396),--,--,234 (31/943),--,--
+compiler,build,full_ext,287 (83/1584),--,--,1566 (297/4517),--,--
+compiler,build,composite,428 (99/1980),--,--,1800 (328/5460),--,--
+compiler,other,pilot [a],--,--,92 (17/396),--,--,103 (24/943)
+compiler,other,full_ext,--,--,124 (81/1584),--,--,1515 (292/4517)
+compiler,other,composite,--,--,216 (98/1980),--,--,1618 (316/5460)
+compiler,uninitialized,pilot [a],--,--,0 (0/396),--,--,0 (0/943)
+compiler,uninitialized,full_ext,--,--,4 (2/1584),--,--,8 (3/4517)
+compiler,uninitialized,composite,--,--,4 (2/1980),--,--,8 (3/5460)
+gcc_analyzer,memory,pilot [a],4 (4/396),6 (4/396),--,7 (7/943),47 (19/943),--
+gcc_analyzer,memory,full_ext,0 (0/1584),31 (16/1584),--,10 (9/4517),111 (60/4517),--
+gcc_analyzer,memory,composite,4 (4/1980),37 (20/1980),--,17 (16/5460),158 (79/5460),--
+gcc_analyzer,null_deref,pilot [a],0 (0/396),163 (59/396),--,1 (1/943),591 (238/943),--
+gcc_analyzer,null_deref,full_ext,6 (5/1584),683 (271/1584),--,30 (26/4517),2678 (1142/4517),--
+gcc_analyzer,null_deref,composite,6 (5/1980),846 (330/1980),--,31 (27/5460),3269 (1380/5460),--
+gcc_analyzer,other,pilot [a],--,--,962 (108/396),--,--,4607 (433/943)
+gcc_analyzer,other,full_ext,--,--,4234 (474/1584),--,--,20016 (1861/4517)
+gcc_analyzer,other,composite,--,--,5196 (582/1980),--,--,24623 (2294/5460)
+gcc_analyzer,uninitialized,pilot [a],2 (2/396),33 (19/396),--,7 (6/943),104 (58/943),--
+gcc_analyzer,uninitialized,full_ext,7 (5/1584),95 (81/1584),--,29 (26/4517),369 (272/4517),--
+gcc_analyzer,uninitialized,composite,9 (7/1980),128 (100/1980),--,36 (32/5460),473 (330/5460),--
+clang_tidy,arithmetic,pilot [a],144 (76/396),--,--,307 (144/943),--,--
+clang_tidy,arithmetic,full_ext,602 (351/1584),--,--,1041 (588/4517),--,--
+clang_tidy,arithmetic,composite,746 (427/1980),--,--,1348 (732/5460),--,--
+clang_tidy,build,pilot [a],--,--,73 (16/396),--,--,205 (31/943)
+clang_tidy,build,full_ext,--,--,345 (81/1584),--,--,825 (294/4517)
+clang_tidy,build,composite,--,--,418 (97/1980),--,--,1030 (325/5460)
+clang_tidy,memory,pilot [a],0 (0/396),--,--,3 (1/943),--,--
+clang_tidy,memory,full_ext,0 (0/1584),--,--,1 (1/4517),--,--
+clang_tidy,memory,composite,0 (0/1980),--,--,4 (2/5460),--,--
+clang_tidy,mpi_usage,pilot [a],2 (1/396),--,--,2 (1/943),--,--
+clang_tidy,mpi_usage,full_ext,6 (3/1584),--,--,16 (8/4517),--,--
+clang_tidy,mpi_usage,composite,8 (4/1980),--,--,18 (9/5460),--,--
+clang_tidy,other,pilot [a],9 (7/396),--,1118 (306/396),13 (11/943),--,3810 (773/943)
+clang_tidy,other,full_ext,296 (239/1584),--,4307 (1235/1584),1117 (911/4517),--,15480 (3632/4517)
+clang_tidy,other,composite,305 (246/1980),--,5425 (1541/1980),1130 (922/5460),--,19290 (4405/5460)
+clang_tidy,uninitialized,pilot [a],0 (0/396),--,--,1 (1/943),--,--
+clang_tidy,uninitialized,full_ext,1 (1/1584),--,--,2 (2/4517),--,--
+clang_tidy,uninitialized,composite,1 (1/1980),--,--,3 (3/5460),--,--
+cppcheck,arithmetic,pilot [a],--,--,0 (0/396),--,--,0 (0/943)
+cppcheck,arithmetic,full_ext,--,--,0 (0/1584),--,--,2 (1/4517)
+cppcheck,arithmetic,composite,--,--,0 (0/1980),--,--,2 (1/5460)
+cppcheck,null_deref,pilot [a],--,--,0 (0/396),--,--,0 (0/943)
+cppcheck,null_deref,full_ext,--,--,0 (0/1584),--,--,1 (1/4517)
+cppcheck,null_deref,composite,--,--,0 (0/1980),--,--,1 (1/5460)
+cppcheck,other,pilot [a],0 (0/396),--,4 (4/396),3 (2/943),--,12 (12/943)
+cppcheck,other,full_ext,0 (0/1584),--,28 (26/1584),1 (1/4517),--,97 (89/4517)
+cppcheck,other,composite,0 (0/1980),--,32 (30/1980),4 (3/5460),--,109 (101/5460)
+cppcheck,uninitialized,pilot [a],--,--,0 (0/396),--,--,0 (0/943)
+cppcheck,uninitialized,full_ext,--,--,2 (2/1584),--,--,3 (3/4517)
+cppcheck,uninitialized,composite,--,--,2 (2/1980),--,--,3 (3/5460)
+infer,arithmetic,pilot [a],46 (32/264),--,--,105 (70/631),--,--
+infer,arithmetic,full_ext,42 (29/1056),--,--,84 (56/2941),--,--
+infer,arithmetic,composite,88 (61/1320),--,--,189 (126/3572),--,--
+infer,memory,pilot [a],0 (0/264),--,--,11 (4/631),--,--
+infer,memory,full_ext,17 (10/1056),--,--,78 (47/2941),--,--
+infer,memory,composite,17 (10/1320),--,--,89 (51/3572),--,--
+infer,other,pilot [a],2 (2/264),--,--,14 (10/631),--,--
+infer,other,full_ext,16 (8/1056),--,--,45 (23/2941),--,--
+infer,other,composite,18 (10/1320),--,--,59 (33/3572),--,--
+infer,uninitialized,pilot [a],0 (0/264),--,--,0 (0/631),--,--
+infer,uninitialized,full_ext,7 (2/1056),--,--,15 (6/2941),--,--
+infer,uninitialized,composite,7 (2/1320),--,--,15 (6/3572),--,--
+parcoach,deadlock,pilot [a],--,6 (1/132),--,--,24 (8/417),--
+parcoach,deadlock,full_ext,--,4 (3/528),--,--,50 (42/1871),--
+parcoach,deadlock,composite,--,10 (4/660),--,--,74 (50/2288),--
+llov,other,pilot [a],--,--,31 (27/132),--,--,87 (70/312)
+llov,other,full_ext,--,--,136 (112/528),--,--,414 (338/1576)
+llov,other,composite,--,--,167 (139/660),--,--,501 (408/1888)
+llov,race,pilot [a],29 (22/132),--,--,82 (65/312),--,--
+llov,race,full_ext,109 (95/528),--,--,338 (299/1576),--,--
+llov,race,composite,138 (117/660),--,--,420 (364/1888),--,--
+asan_ubsan,arithmetic,pilot [a],0 (0/396),--,--,0 (0/943),--,--
+asan_ubsan,arithmetic,full_ext,2 (1/1584),--,--,4 (2/4517),--,--
+asan_ubsan,arithmetic,composite,2 (1/1980),--,--,4 (2/5460),--,--
+asan_ubsan,memory,pilot [a],0 (0/396),--,--,2 (2/943),--,--
+asan_ubsan,memory,full_ext,2 (2/1584),--,--,10 (9/4517),--,--
+asan_ubsan,memory,composite,2 (2/1980),--,--,12 (11/5460),--,--
+tsan,race,pilot [a],3 (3/132),--,--,47 (30/312),--,--
+tsan,race,full_ext,102 (57/528),--,--,341 (235/1576),--,--
+tsan,race,composite,105 (60/660),--,--,388 (265/1888),--,--
+memcheck,memory,pilot [a],0 (0/264),--,--,1 (1/526),--,--
+memcheck,memory,full_ext,0 (0/1056),--,--,0 (0/2646),--,--
+memcheck,memory,composite,0 (0/1320),--,--,1 (1/3172),--,--
+must,deadlock,pilot [a],1 (1/132),--,--,4 (4/417),--,--
+must,deadlock,full_ext,1 (1/528),--,--,11 (11/1871),--,--
+must,deadlock,composite,2 (2/660),--,--,15 (15/2288),--,--
+must,mpi_usage,pilot [a],9 (7/132),--,3 (2/132),58 (32/417),--,18 (14/417)
+must,mpi_usage,full_ext,18 (17/528),--,15 (11/528),83 (67/1871),--,62 (46/1871)
+must,mpi_usage,composite,27 (24/660),--,18 (13/660),141 (99/2288),--,80 (60/2288)

@@ -1,0 +1,2214 @@
+{
+  "id": "T12b_dirty_checks",
+  "title": "POST-FREEZE (addendum_1, descriptive): Composition of the static DIRTY verdicts (X03)",
+  "population": "BASE",
+  "unit": "artifact (shares) / finding (counts)",
+  "notes": [
+    "Per static analysis tool: the first row is the share of BASE DIRTY artifacts (F01 frozen rule) that are DIRTY only through this tool (denominator = F01 BASE DIRTY, checked); then its check ids with the most reported blocking findings on the composite BASE (at most 10 per tool, selected once there and reused for the blocks, checked): reported blocking findings and BASE artifacts with >= 1 such finding / BASE artifacts to which the tool applies (= the S02 BASE denominator, checked). Findings of different tools are never added.",
+    "POST-FREEZE (study_analysis_001.addendum_1, DECLARED_AFTER_DRY_RUN, declared 2026-10-17; descriptive, not part of the frozen methodology): X03 dirty_composition - post-freeze descriptive; DIRTY means at least one finding the frozen tool configuration marks blocking, not a confirmed defect",
+    "IC4: DIRTY means at least one finding the frozen tool configuration marks blocking (dominated by clang-tidy bugprone heuristics, see X03), not a confirmed defect; under the frozen rule findings of entries in analysis-gap states count (sensitivity X02)."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "X03 dirty_composition",
+      "text": "X03 dirty_composition: numerator = artifacts / findings; denominator = DIRTY artifacts (only-via share); BASE artifacts to which the tool applies (check-id artifact share); unit = artifact / finding."
+    },
+    {
+      "ref": "F01 static_verdict_three_state",
+      "text": "F01 static_verdict_three_state: numerator = artifacts per state; denominator = artifacts; unit = artifact."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "tool",
+      "header": "Tool",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "check_id",
+      "header": "Check id",
+      "align": "l",
+      "kind": "text",
+      "width": "4.2cm"
+    },
+    {
+      "key": "pilot_findings",
+      "header": "pilot reported blocking findings",
+      "align": "r",
+      "kind": "count",
+      "group": "pilot",
+      "sub": "findings",
+      "mark": "a"
+    },
+    {
+      "key": "pilot_artifacts",
+      "header": "pilot artifacts % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "pilot",
+      "sub": "artifacts % (n/N)"
+    },
+    {
+      "key": "full_ext_findings",
+      "header": "full_ext reported blocking findings",
+      "align": "r",
+      "kind": "count",
+      "group": "full_ext",
+      "sub": "findings"
+    },
+    {
+      "key": "full_ext_artifacts",
+      "header": "full_ext artifacts % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "full_ext",
+      "sub": "artifacts % (n/N)"
+    },
+    {
+      "key": "composite_findings",
+      "header": "composite reported blocking findings",
+      "align": "r",
+      "kind": "count",
+      "group": "composite",
+      "sub": "findings"
+    },
+    {
+      "key": "composite_artifacts",
+      "header": "composite artifacts % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "composite",
+      "sub": "artifacts % (n/N)"
+    }
+  ],
+  "rows": [
+    {
+      "tool": "gcc_analyzer",
+      "check_id": "(any check) DIRTY only via this tool",
+      "pilot_findings": null,
+      "pilot_artifacts": {
+        "numerator": 2,
+        "denominator": 120,
+        "value": 0.016666666666666666,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "full_ext_findings": null,
+      "full_ext_artifacts": {
+        "numerator": 5,
+        "denominator": 640,
+        "value": 0.0078125,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "composite_findings": null,
+      "composite_artifacts": {
+        "numerator": 7,
+        "denominator": 760,
+        "value": 0.009210526315789473,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "gcc_analyzer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "gcc_analyzer",
+      "check_id": "-Wanalyzer-use-of-uninitialized-value",
+      "pilot_findings": 2,
+      "pilot_artifacts": {
+        "numerator": 2,
+        "denominator": 396,
+        "value": 0.005050505050505051,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "-Wanalyzer-use-of-uninitialized-value",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "full_ext_findings": 7,
+      "full_ext_artifacts": {
+        "numerator": 5,
+        "denominator": 1584,
+        "value": 0.0031565656565656565,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "-Wanalyzer-use-of-uninitialized-value",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "composite_findings": 9,
+      "composite_artifacts": {
+        "numerator": 7,
+        "denominator": 1980,
+        "value": 0.0035353535353535356,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "-Wanalyzer-use-of-uninitialized-value",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "gcc_analyzer",
+      "check_id": "-Wanalyzer-out-of-bounds",
+      "pilot_findings": 4,
+      "pilot_artifacts": {
+        "numerator": 4,
+        "denominator": 396,
+        "value": 0.010101010101010102,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "-Wanalyzer-out-of-bounds",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "full_ext_findings": 0,
+      "full_ext_artifacts": {
+        "numerator": 0,
+        "denominator": 1584,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "-Wanalyzer-out-of-bounds",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "composite_findings": 4,
+      "composite_artifacts": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "-Wanalyzer-out-of-bounds",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "gcc_analyzer",
+      "check_id": "-Wanalyzer-null-dereference",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "-Wanalyzer-null-dereference",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "full_ext_findings": 3,
+      "full_ext_artifacts": {
+        "numerator": 3,
+        "denominator": 1584,
+        "value": 0.001893939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "-Wanalyzer-null-dereference",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "composite_findings": 3,
+      "composite_artifacts": {
+        "numerator": 3,
+        "denominator": 1980,
+        "value": 0.0015151515151515152,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "-Wanalyzer-null-dereference",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "gcc_analyzer",
+      "check_id": "-Wanalyzer-possible-null-dereference",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "-Wanalyzer-possible-null-dereference",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "full_ext_findings": 2,
+      "full_ext_artifacts": {
+        "numerator": 2,
+        "denominator": 1584,
+        "value": 0.0012626262626262627,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "-Wanalyzer-possible-null-dereference",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "composite_findings": 2,
+      "composite_artifacts": {
+        "numerator": 2,
+        "denominator": 1980,
+        "value": 0.00101010101010101,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "-Wanalyzer-possible-null-dereference",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "gcc_analyzer",
+      "check_id": "-Wanalyzer-null-argument",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "-Wanalyzer-null-argument",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "full_ext_findings": 1,
+      "full_ext_artifacts": {
+        "numerator": 1,
+        "denominator": 1584,
+        "value": 0.0006313131313131314,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "-Wanalyzer-null-argument",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      },
+      "composite_findings": 1,
+      "composite_artifacts": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "-Wanalyzer-null-argument",
+            "quantity": "artifacts_with_check",
+            "tool": "gcc_analyzer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "(any check) DIRTY only via this tool",
+      "pilot_findings": null,
+      "pilot_artifacts": {
+        "numerator": 61,
+        "denominator": 120,
+        "value": 0.5083333333333333,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": null,
+      "full_ext_artifacts": {
+        "numerator": 489,
+        "denominator": 640,
+        "value": 0.7640625,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": null,
+      "composite_artifacts": {
+        "numerator": 550,
+        "denominator": 760,
+        "value": 0.7236842105263158,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "bugprone-narrowing-conversions",
+      "pilot_findings": 127,
+      "pilot_artifacts": {
+        "numerator": 70,
+        "denominator": 396,
+        "value": 0.17676767676767677,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "bugprone-narrowing-conversions",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 566,
+      "full_ext_artifacts": {
+        "numerator": 339,
+        "denominator": 1584,
+        "value": 0.21401515151515152,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "bugprone-narrowing-conversions",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 693,
+      "composite_artifacts": {
+        "numerator": 409,
+        "denominator": 1980,
+        "value": 0.20656565656565656,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "bugprone-narrowing-conversions",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "bugprone-easily-swappable-parameters",
+      "pilot_findings": 6,
+      "pilot_artifacts": {
+        "numerator": 4,
+        "denominator": 396,
+        "value": 0.010101010101010102,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "bugprone-easily-swappable-parameters",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 252,
+      "full_ext_artifacts": {
+        "numerator": 211,
+        "denominator": 1584,
+        "value": 0.13320707070707072,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "bugprone-easily-swappable-parameters",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 258,
+      "composite_artifacts": {
+        "numerator": 215,
+        "denominator": 1980,
+        "value": 0.10858585858585859,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "bugprone-easily-swappable-parameters",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "bugprone-implicit-widening-of-multiplication-result",
+      "pilot_findings": 15,
+      "pilot_artifacts": {
+        "numerator": 11,
+        "denominator": 396,
+        "value": 0.027777777777777776,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "bugprone-implicit-widening-of-multiplication-result",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 32,
+      "full_ext_artifacts": {
+        "numerator": 18,
+        "denominator": 1584,
+        "value": 0.011363636363636364,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "bugprone-implicit-widening-of-multiplication-result",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 47,
+      "composite_artifacts": {
+        "numerator": 29,
+        "denominator": 1980,
+        "value": 0.014646464646464647,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "bugprone-implicit-widening-of-multiplication-result",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "clang-analyzer-deadcode.DeadStores",
+      "pilot_findings": 2,
+      "pilot_artifacts": {
+        "numerator": 2,
+        "denominator": 396,
+        "value": 0.005050505050505051,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "clang-analyzer-deadcode.DeadStores",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 22,
+      "full_ext_artifacts": {
+        "numerator": 17,
+        "denominator": 1584,
+        "value": 0.010732323232323232,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "clang-analyzer-deadcode.DeadStores",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 24,
+      "composite_artifacts": {
+        "numerator": 19,
+        "denominator": 1980,
+        "value": 0.009595959595959595,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "clang-analyzer-deadcode.DeadStores",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "bugprone-branch-clone",
+      "pilot_findings": 1,
+      "pilot_artifacts": {
+        "numerator": 1,
+        "denominator": 396,
+        "value": 0.0025252525252525255,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "bugprone-branch-clone",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 22,
+      "full_ext_artifacts": {
+        "numerator": 15,
+        "denominator": 1584,
+        "value": 0.00946969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "bugprone-branch-clone",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 23,
+      "composite_artifacts": {
+        "numerator": 16,
+        "denominator": 1980,
+        "value": 0.00808080808080808,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "bugprone-branch-clone",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "mpi-type-mismatch",
+      "pilot_findings": 2,
+      "pilot_artifacts": {
+        "numerator": 1,
+        "denominator": 396,
+        "value": 0.0025252525252525255,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "mpi-type-mismatch",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 6,
+      "full_ext_artifacts": {
+        "numerator": 3,
+        "denominator": 1584,
+        "value": 0.001893939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "mpi-type-mismatch",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 8,
+      "composite_artifacts": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "mpi-type-mismatch",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "bugprone-misplaced-widening-cast",
+      "pilot_findings": 2,
+      "pilot_artifacts": {
+        "numerator": 2,
+        "denominator": 396,
+        "value": 0.005050505050505051,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "bugprone-misplaced-widening-cast",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 3,
+      "full_ext_artifacts": {
+        "numerator": 2,
+        "denominator": 1584,
+        "value": 0.0012626262626262627,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "bugprone-misplaced-widening-cast",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 5,
+      "composite_artifacts": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "bugprone-misplaced-widening-cast",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "clang-analyzer-core.DivideZero",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "clang-analyzer-core.DivideZero",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 1,
+      "full_ext_artifacts": {
+        "numerator": 1,
+        "denominator": 1584,
+        "value": 0.0006313131313131314,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "clang-analyzer-core.DivideZero",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 1,
+      "composite_artifacts": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "clang-analyzer-core.DivideZero",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "clang_tidy",
+      "check_id": "clang-analyzer-core.uninitialized.Assign",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "clang-analyzer-core.uninitialized.Assign",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "full_ext_findings": 1,
+      "full_ext_artifacts": {
+        "numerator": 1,
+        "denominator": 1584,
+        "value": 0.0006313131313131314,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "clang-analyzer-core.uninitialized.Assign",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      },
+      "composite_findings": 1,
+      "composite_artifacts": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "clang-analyzer-core.uninitialized.Assign",
+            "quantity": "artifacts_with_check",
+            "tool": "clang_tidy"
+          }
+        }
+      }
+    },
+    {
+      "tool": "cppcheck",
+      "check_id": "(any check) DIRTY only via this tool",
+      "pilot_findings": null,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 120,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "cppcheck"
+          }
+        }
+      },
+      "full_ext_findings": null,
+      "full_ext_artifacts": {
+        "numerator": 0,
+        "denominator": 640,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "cppcheck"
+          }
+        }
+      },
+      "composite_findings": null,
+      "composite_artifacts": {
+        "numerator": 0,
+        "denominator": 760,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "cppcheck"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "(any check) DIRTY only via this tool",
+      "pilot_findings": null,
+      "pilot_artifacts": {
+        "numerator": 19,
+        "denominator": 120,
+        "value": 0.15833333333333333,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": null,
+      "full_ext_artifacts": {
+        "numerator": 16,
+        "denominator": 640,
+        "value": 0.025,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": null,
+      "composite_artifacts": {
+        "numerator": 35,
+        "denominator": 760,
+        "value": 0.046052631578947366,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "INTEGER_OVERFLOW_L2",
+      "pilot_findings": 46,
+      "pilot_artifacts": {
+        "numerator": 32,
+        "denominator": 264,
+        "value": 0.12121212121212122,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "INTEGER_OVERFLOW_L2",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": 42,
+      "full_ext_artifacts": {
+        "numerator": 29,
+        "denominator": 1056,
+        "value": 0.027462121212121212,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "INTEGER_OVERFLOW_L2",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": 88,
+      "composite_artifacts": {
+        "numerator": 61,
+        "denominator": 1320,
+        "value": 0.04621212121212121,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "INTEGER_OVERFLOW_L2",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "BUFFER_OVERRUN_L1",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 264,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "BUFFER_OVERRUN_L1",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": 16,
+      "full_ext_artifacts": {
+        "numerator": 9,
+        "denominator": 1056,
+        "value": 0.008522727272727272,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "BUFFER_OVERRUN_L1",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": 16,
+      "composite_artifacts": {
+        "numerator": 9,
+        "denominator": 1320,
+        "value": 0.006818181818181818,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "BUFFER_OVERRUN_L1",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "DEAD_STORE",
+      "pilot_findings": 1,
+      "pilot_artifacts": {
+        "numerator": 1,
+        "denominator": 264,
+        "value": 0.003787878787878788,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "DEAD_STORE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": 12,
+      "full_ext_artifacts": {
+        "numerator": 6,
+        "denominator": 1056,
+        "value": 0.005681818181818182,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "DEAD_STORE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": 13,
+      "composite_artifacts": {
+        "numerator": 7,
+        "denominator": 1320,
+        "value": 0.005303030303030303,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "DEAD_STORE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "UNINITIALIZED_VALUE",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 264,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "UNINITIALIZED_VALUE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": 7,
+      "full_ext_artifacts": {
+        "numerator": 2,
+        "denominator": 1056,
+        "value": 0.001893939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "UNINITIALIZED_VALUE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": 7,
+      "composite_artifacts": {
+        "numerator": 2,
+        "denominator": 1320,
+        "value": 0.0015151515151515152,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "UNINITIALIZED_VALUE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "UNREACHABLE_CODE",
+      "pilot_findings": 1,
+      "pilot_artifacts": {
+        "numerator": 1,
+        "denominator": 264,
+        "value": 0.003787878787878788,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "UNREACHABLE_CODE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": 4,
+      "full_ext_artifacts": {
+        "numerator": 2,
+        "denominator": 1056,
+        "value": 0.001893939393939394,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "UNREACHABLE_CODE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": 5,
+      "composite_artifacts": {
+        "numerator": 3,
+        "denominator": 1320,
+        "value": 0.0022727272727272726,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "UNREACHABLE_CODE",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "infer",
+      "check_id": "BUFFER_OVERRUN_L2",
+      "pilot_findings": 0,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 264,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "BUFFER_OVERRUN_L2",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "full_ext_findings": 1,
+      "full_ext_artifacts": {
+        "numerator": 1,
+        "denominator": 1056,
+        "value": 0.000946969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "BUFFER_OVERRUN_L2",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      },
+      "composite_findings": 1,
+      "composite_artifacts": {
+        "numerator": 1,
+        "denominator": 1320,
+        "value": 0.0007575757575757576,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "BUFFER_OVERRUN_L2",
+            "quantity": "artifacts_with_check",
+            "tool": "infer"
+          }
+        }
+      }
+    },
+    {
+      "tool": "parcoach",
+      "check_id": "(any check) DIRTY only via this tool",
+      "pilot_findings": null,
+      "pilot_artifacts": {
+        "numerator": 0,
+        "denominator": 120,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "parcoach"
+          }
+        }
+      },
+      "full_ext_findings": null,
+      "full_ext_artifacts": {
+        "numerator": 0,
+        "denominator": 640,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "parcoach"
+          }
+        }
+      },
+      "composite_findings": null,
+      "composite_artifacts": {
+        "numerator": 0,
+        "denominator": 760,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "parcoach"
+          }
+        }
+      }
+    },
+    {
+      "tool": "llov",
+      "check_id": "(any check) DIRTY only via this tool",
+      "pilot_findings": null,
+      "pilot_artifacts": {
+        "numerator": 17,
+        "denominator": 120,
+        "value": 0.14166666666666666,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "llov"
+          }
+        }
+      },
+      "full_ext_findings": null,
+      "full_ext_artifacts": {
+        "numerator": 66,
+        "denominator": 640,
+        "value": 0.103125,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "llov"
+          }
+        }
+      },
+      "composite_findings": null,
+      "composite_artifacts": {
+        "numerator": 83,
+        "denominator": 760,
+        "value": 0.10921052631578948,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); DIRTY artifacts whose reported blocking findings come from this tool only; denominator: DIRTY artifacts; DIRTY = >= 1 finding the frozen tool configuration marks blocking, not a confirmed defect",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "quantity": "dirty_only_via_tool",
+            "tool": "llov"
+          }
+        }
+      }
+    },
+    {
+      "tool": "llov",
+      "check_id": "llov-data-race",
+      "pilot_findings": 29,
+      "pilot_artifacts": {
+        "numerator": 22,
+        "denominator": 132,
+        "value": 0.16666666666666666,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "check_id": "llov-data-race",
+            "quantity": "artifacts_with_check",
+            "tool": "llov"
+          }
+        }
+      },
+      "full_ext_findings": 109,
+      "full_ext_artifacts": {
+        "numerator": 95,
+        "denominator": 528,
+        "value": 0.17992424242424243,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "check_id": "llov-data-race",
+            "quantity": "artifacts_with_check",
+            "tool": "llov"
+          }
+        }
+      },
+      "composite_findings": 138,
+      "composite_artifacts": {
+        "numerator": 117,
+        "denominator": 660,
+        "value": 0.17727272727272728,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): composition of the BASE F01 DIRTY verdicts (frozen rule); artifacts with >= 1 reported blocking finding of this check id; denominator: artifacts to which the tool applies; check id among the top 10 of the tool by composite BASE reported blocking findings (ties by check id; selected on the composite, reused per block)",
+        "source": {
+          "metric_id": "X03",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "check_id": "llov-data-race",
+            "quantity": "artifacts_with_check",
+            "tool": "llov"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

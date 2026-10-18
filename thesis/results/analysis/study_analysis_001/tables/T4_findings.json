@@ -1,0 +1,2022 @@
+{
+  "id": "T4_findings",
+  "title": "Recorded findings per tool and finding family",
+  "population": "BASE and GENERATED (GENERATED: diagnostic only; never mixed with FINAL or STEP rates)",
+  "unit": "finding (artifacts n/N applicable in parentheses)",
+  "notes": [
+    "Cells: recorded findings of the tool (artifacts with >= 1 such finding / artifacts to which the tool applies; F05 sub-quantities findings and artifacts_with_finding); findings of different tools are never added (no cross-tool sum); kinds per the methodology finding_rules; GENERATED counts are diagnostic."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "GENERATED",
+      "text": "GENERATED: all 5,460 artifacts (1,980 base + 3,480 repair candidates) (use: diagnostic only; never mixed with FINAL or STEP rates)"
+    },
+    {
+      "ref": "F05 findings_by_tool_family",
+      "text": "F05 findings_by_tool_family: numerator = findings; denominator = - (counts); additionally artifacts with >= 1 finding of the family per tool; unit = finding."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "tool",
+      "header": "Tool",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "family",
+      "header": "Finding family",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "BASE_reported_blocking",
+      "header": "BASE reported_blocking findings (artifacts n/N)",
+      "align": "r",
+      "kind": "count_pair",
+      "group": "BASE",
+      "sub": "reported_blocking",
+      "mark": "c"
+    },
+    {
+      "key": "BASE_low_confidence",
+      "header": "BASE low_confidence findings (artifacts n/N)",
+      "align": "r",
+      "kind": "count_pair",
+      "group": "BASE",
+      "sub": "low_confidence",
+      "mark": "c"
+    },
+    {
+      "key": "BASE_non_blocking",
+      "header": "BASE non_blocking findings (artifacts n/N)",
+      "align": "r",
+      "kind": "count_pair",
+      "group": "BASE",
+      "sub": "non_blocking",
+      "mark": "c"
+    },
+    {
+      "key": "GENERATED_reported_blocking",
+      "header": "GENERATED reported_blocking findings (artifacts n/N)",
+      "align": "r",
+      "kind": "count_pair",
+      "group": "GENERATED",
+      "sub": "reported_blocking",
+      "mark": "c"
+    },
+    {
+      "key": "GENERATED_low_confidence",
+      "header": "GENERATED low_confidence findings (artifacts n/N)",
+      "align": "r",
+      "kind": "count_pair",
+      "group": "GENERATED",
+      "sub": "low_confidence",
+      "mark": "c"
+    },
+    {
+      "key": "GENERATED_non_blocking",
+      "header": "GENERATED non_blocking findings (artifacts n/N)",
+      "align": "r",
+      "kind": "count_pair",
+      "group": "GENERATED",
+      "sub": "non_blocking",
+      "mark": "c"
+    }
+  ],
+  "rows": [
+    {
+      "tool": "compiler",
+      "family": "arithmetic",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        38,
+        21,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        64,
+        36,
+        943
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "arithmetic",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        95,
+        49,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        236,
+        114,
+        4517
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "arithmetic",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        133,
+        70,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        300,
+        150,
+        5460
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "build",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        141,
+        16,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        234,
+        31,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "compiler",
+      "family": "build",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        287,
+        83,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1566,
+        297,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "compiler",
+      "family": "build",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        428,
+        99,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1800,
+        328,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "compiler",
+      "family": "other",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        92,
+        17,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        103,
+        24,
+        943
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "other",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        124,
+        81,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        1515,
+        292,
+        4517
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "other",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        216,
+        98,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        1618,
+        316,
+        5460
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "uninitialized",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        0,
+        0,
+        943
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "uninitialized",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        4,
+        2,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        8,
+        3,
+        4517
+      ]
+    },
+    {
+      "tool": "compiler",
+      "family": "uninitialized",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        4,
+        2,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        8,
+        3,
+        5460
+      ]
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "memory",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        4,
+        4,
+        396
+      ],
+      "BASE_low_confidence": [
+        6,
+        4,
+        396
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        7,
+        7,
+        943
+      ],
+      "GENERATED_low_confidence": [
+        47,
+        19,
+        943
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "memory",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1584
+      ],
+      "BASE_low_confidence": [
+        31,
+        16,
+        1584
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        10,
+        9,
+        4517
+      ],
+      "GENERATED_low_confidence": [
+        111,
+        60,
+        4517
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "memory",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        4,
+        4,
+        1980
+      ],
+      "BASE_low_confidence": [
+        37,
+        20,
+        1980
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        17,
+        16,
+        5460
+      ],
+      "GENERATED_low_confidence": [
+        158,
+        79,
+        5460
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "null_deref",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        396
+      ],
+      "BASE_low_confidence": [
+        163,
+        59,
+        396
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1,
+        1,
+        943
+      ],
+      "GENERATED_low_confidence": [
+        591,
+        238,
+        943
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "null_deref",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        6,
+        5,
+        1584
+      ],
+      "BASE_low_confidence": [
+        683,
+        271,
+        1584
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        30,
+        26,
+        4517
+      ],
+      "GENERATED_low_confidence": [
+        2678,
+        1142,
+        4517
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "null_deref",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        6,
+        5,
+        1980
+      ],
+      "BASE_low_confidence": [
+        846,
+        330,
+        1980
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        31,
+        27,
+        5460
+      ],
+      "GENERATED_low_confidence": [
+        3269,
+        1380,
+        5460
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "other",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        962,
+        108,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        4607,
+        433,
+        943
+      ]
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "other",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        4234,
+        474,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        20016,
+        1861,
+        4517
+      ]
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "other",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        5196,
+        582,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        24623,
+        2294,
+        5460
+      ]
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "uninitialized",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        2,
+        2,
+        396
+      ],
+      "BASE_low_confidence": [
+        33,
+        19,
+        396
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        7,
+        6,
+        943
+      ],
+      "GENERATED_low_confidence": [
+        104,
+        58,
+        943
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "uninitialized",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        7,
+        5,
+        1584
+      ],
+      "BASE_low_confidence": [
+        95,
+        81,
+        1584
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        29,
+        26,
+        4517
+      ],
+      "GENERATED_low_confidence": [
+        369,
+        272,
+        4517
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "gcc_analyzer",
+      "family": "uninitialized",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        9,
+        7,
+        1980
+      ],
+      "BASE_low_confidence": [
+        128,
+        100,
+        1980
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        36,
+        32,
+        5460
+      ],
+      "GENERATED_low_confidence": [
+        473,
+        330,
+        5460
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "arithmetic",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        144,
+        76,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        307,
+        144,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "arithmetic",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        602,
+        351,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1041,
+        588,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "arithmetic",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        746,
+        427,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1348,
+        732,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "build",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        73,
+        16,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        205,
+        31,
+        943
+      ]
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "build",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        345,
+        81,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        825,
+        294,
+        4517
+      ]
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "build",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        418,
+        97,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        1030,
+        325,
+        5460
+      ]
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "memory",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        3,
+        1,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "memory",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1,
+        1,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "memory",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        4,
+        2,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "mpi_usage",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        2,
+        1,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        2,
+        1,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "mpi_usage",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        6,
+        3,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        16,
+        8,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "mpi_usage",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        8,
+        4,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        18,
+        9,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "other",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        9,
+        7,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        1118,
+        306,
+        396
+      ],
+      "GENERATED_reported_blocking": [
+        13,
+        11,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        3810,
+        773,
+        943
+      ]
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "other",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        296,
+        239,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        4307,
+        1235,
+        1584
+      ],
+      "GENERATED_reported_blocking": [
+        1117,
+        911,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        15480,
+        3632,
+        4517
+      ]
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "other",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        305,
+        246,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        5425,
+        1541,
+        1980
+      ],
+      "GENERATED_reported_blocking": [
+        1130,
+        922,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        19290,
+        4405,
+        5460
+      ]
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "uninitialized",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1,
+        1,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "uninitialized",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        1,
+        1,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        2,
+        2,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "clang_tidy",
+      "family": "uninitialized",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        1,
+        1,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        3,
+        3,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "cppcheck",
+      "family": "arithmetic",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        0,
+        0,
+        943
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "arithmetic",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        2,
+        1,
+        4517
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "arithmetic",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        2,
+        1,
+        5460
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "null_deref",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        0,
+        0,
+        943
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "null_deref",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        1,
+        1,
+        4517
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "null_deref",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        1,
+        1,
+        5460
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "other",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        4,
+        4,
+        396
+      ],
+      "GENERATED_reported_blocking": [
+        3,
+        2,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        12,
+        12,
+        943
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "other",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        28,
+        26,
+        1584
+      ],
+      "GENERATED_reported_blocking": [
+        1,
+        1,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        97,
+        89,
+        4517
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "other",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        32,
+        30,
+        1980
+      ],
+      "GENERATED_reported_blocking": [
+        4,
+        3,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        109,
+        101,
+        5460
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "uninitialized",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        0,
+        0,
+        396
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        0,
+        0,
+        943
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "uninitialized",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        2,
+        2,
+        1584
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        3,
+        3,
+        4517
+      ]
+    },
+    {
+      "tool": "cppcheck",
+      "family": "uninitialized",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        2,
+        2,
+        1980
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        3,
+        3,
+        5460
+      ]
+    },
+    {
+      "tool": "infer",
+      "family": "arithmetic",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        46,
+        32,
+        264
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        105,
+        70,
+        631
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "arithmetic",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        42,
+        29,
+        1056
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        84,
+        56,
+        2941
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "arithmetic",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        88,
+        61,
+        1320
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        189,
+        126,
+        3572
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "memory",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        264
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        11,
+        4,
+        631
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "memory",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        17,
+        10,
+        1056
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        78,
+        47,
+        2941
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "memory",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        17,
+        10,
+        1320
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        89,
+        51,
+        3572
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "other",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        2,
+        2,
+        264
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        14,
+        10,
+        631
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "other",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        16,
+        8,
+        1056
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        45,
+        23,
+        2941
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "other",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        18,
+        10,
+        1320
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        59,
+        33,
+        3572
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "uninitialized",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        264
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        0,
+        0,
+        631
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "uninitialized",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        7,
+        2,
+        1056
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        15,
+        6,
+        2941
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "infer",
+      "family": "uninitialized",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        7,
+        2,
+        1320
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        15,
+        6,
+        3572
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "parcoach",
+      "family": "deadlock",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": [
+        6,
+        1,
+        132
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": [
+        24,
+        8,
+        417
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "parcoach",
+      "family": "deadlock",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": [
+        4,
+        3,
+        528
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": [
+        50,
+        42,
+        1871
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "parcoach",
+      "family": "deadlock",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": [
+        10,
+        4,
+        660
+      ],
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": [
+        74,
+        50,
+        2288
+      ],
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "llov",
+      "family": "other",
+      "block": "pilot",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        31,
+        27,
+        132
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        87,
+        70,
+        312
+      ]
+    },
+    {
+      "tool": "llov",
+      "family": "other",
+      "block": "full_ext",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        136,
+        112,
+        528
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        414,
+        338,
+        1576
+      ]
+    },
+    {
+      "tool": "llov",
+      "family": "other",
+      "block": "composite",
+      "BASE_reported_blocking": null,
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        167,
+        139,
+        660
+      ],
+      "GENERATED_reported_blocking": null,
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        501,
+        408,
+        1888
+      ]
+    },
+    {
+      "tool": "llov",
+      "family": "race",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        29,
+        22,
+        132
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        82,
+        65,
+        312
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "llov",
+      "family": "race",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        109,
+        95,
+        528
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        338,
+        299,
+        1576
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "llov",
+      "family": "race",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        138,
+        117,
+        660
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        420,
+        364,
+        1888
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "asan_ubsan",
+      "family": "arithmetic",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        0,
+        0,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "asan_ubsan",
+      "family": "arithmetic",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        2,
+        1,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        4,
+        2,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "asan_ubsan",
+      "family": "arithmetic",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        2,
+        1,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        4,
+        2,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "asan_ubsan",
+      "family": "memory",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        396
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        2,
+        2,
+        943
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "asan_ubsan",
+      "family": "memory",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        2,
+        2,
+        1584
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        10,
+        9,
+        4517
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "asan_ubsan",
+      "family": "memory",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        2,
+        2,
+        1980
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        12,
+        11,
+        5460
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "tsan",
+      "family": "race",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        3,
+        3,
+        132
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        47,
+        30,
+        312
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "tsan",
+      "family": "race",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        102,
+        57,
+        528
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        341,
+        235,
+        1576
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "tsan",
+      "family": "race",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        105,
+        60,
+        660
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        388,
+        265,
+        1888
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "memcheck",
+      "family": "memory",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        264
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1,
+        1,
+        526
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "memcheck",
+      "family": "memory",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1056
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        0,
+        0,
+        2646
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "memcheck",
+      "family": "memory",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        0,
+        0,
+        1320
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        1,
+        1,
+        3172
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "must",
+      "family": "deadlock",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        1,
+        1,
+        132
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        4,
+        4,
+        417
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "must",
+      "family": "deadlock",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        1,
+        1,
+        528
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        11,
+        11,
+        1871
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "must",
+      "family": "deadlock",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        2,
+        2,
+        660
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": null,
+      "GENERATED_reported_blocking": [
+        15,
+        15,
+        2288
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": null
+    },
+    {
+      "tool": "must",
+      "family": "mpi_usage",
+      "block": "pilot",
+      "BASE_reported_blocking": [
+        9,
+        7,
+        132
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        3,
+        2,
+        132
+      ],
+      "GENERATED_reported_blocking": [
+        58,
+        32,
+        417
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        18,
+        14,
+        417
+      ]
+    },
+    {
+      "tool": "must",
+      "family": "mpi_usage",
+      "block": "full_ext",
+      "BASE_reported_blocking": [
+        18,
+        17,
+        528
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        15,
+        11,
+        528
+      ],
+      "GENERATED_reported_blocking": [
+        83,
+        67,
+        1871
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        62,
+        46,
+        1871
+      ]
+    },
+    {
+      "tool": "must",
+      "family": "mpi_usage",
+      "block": "composite",
+      "BASE_reported_blocking": [
+        27,
+        24,
+        660
+      ],
+      "BASE_low_confidence": null,
+      "BASE_non_blocking": [
+        18,
+        13,
+        660
+      ],
+      "GENERATED_reported_blocking": [
+        141,
+        99,
+        2288
+      ],
+      "GENERATED_low_confidence": null,
+      "GENERATED_non_blocking": [
+        80,
+        60,
+        2288
+      ]
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    },
+    {
+      "mark": "c",
+      "text": "--: no finding of this tool / family / kind is recorded in any block or population (the producer emits no F05 estimate for it)"
+    }
+  ],
+  "latex": {}
+}

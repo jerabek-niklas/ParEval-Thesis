@@ -1,0 +1,13 @@
+Endpoint,Metric,Hypothesis (H0: difference = 0),Difference pp (n/N),Difference 95% CI (pp),Bootstrap p,Holm-adjusted p,Reject H0 (Holm)
+Q06,R04,FINAL[static_feedback] - BASE,+2.2 (+44/1980),"[-0.7, 5.7]",0.1462,0.2924,no
+Q06,R04,FINAL[test_feedback] - BASE,+7.4 (+147/1980),"[4.9, 10.8]",<0.0002,<0.0024,yes
+Q06,R04,FINAL[combined_feedback] - BASE,+6.2 (+122/1980),"[3.4, 9.5]",<0.0002,<0.0024,yes
+Q06,R05,FINAL[static_feedback] - FINAL[test_feedback],-5.2 (-103/1980),"[-7.0, -3.6]",<0.0002,<0.0024,yes
+Q06,R05,FINAL[static_feedback] - FINAL[combined_feedback],-3.9 (-78/1980),"[-5.6, -2.5]",<0.0002,<0.0024,yes
+Q06,R05,FINAL[test_feedback] - FINAL[combined_feedback],+1.3 (+25/1980),"[0.6, 2.1]",0.0004,<0.0024,yes
+E02,R04,FINAL[static_feedback] - BASE,+2.1 (+42/1980),"[-0.8, 5.5]",0.1664,0.2924,no
+E02,R04,FINAL[test_feedback] - BASE,+6.5 (+129/1980),"[4.2, 9.6]",<0.0002,<0.0024,yes
+E02,R04,FINAL[combined_feedback] - BASE,+5.5 (+108/1980),"[2.9, 8.7]",<0.0002,<0.0024,yes
+E02,R05,FINAL[static_feedback] - FINAL[test_feedback],-4.4 (-87/1980),"[-6.0, -2.9]",<0.0002,<0.0024,yes
+E02,R05,FINAL[static_feedback] - FINAL[combined_feedback],-3.3 (-66/1980),"[-4.6, -2.2]",<0.0002,<0.0024,yes
+E02,R05,FINAL[test_feedback] - FINAL[combined_feedback],+1.1 (+21/1980),"[0.4, 1.8]",0.0020,0.0060,yes

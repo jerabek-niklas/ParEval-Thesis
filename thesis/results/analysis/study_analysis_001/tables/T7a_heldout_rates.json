@@ -1,0 +1,1845 @@
+{
+  "id": "T7a_heldout_rates",
+  "title": "Held-out (enhanced) and ParEval pass rates over the repair steps",
+  "population": "BASE, STEP[v][k], FINAL[v]; E01: ENH_PAIRS(BASE) / ENH_PAIRS(FINAL)",
+  "unit": "base cell; E01: enhanced pair",
+  "notes": [
+    "E01 counts valid enhanced pairs, all other columns base cells; the step columns are the G02 estimates (checked equal to the endpoint's STEP[v][k]; step 0 == BASE and step 2 == FINAL[v], checked).",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still failing) and G01.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "STEP",
+      "text": "STEP: for variant v and step k in {0,1,2}: per base cell the artifact of iteration min(k, final_iteration) of its v trajectory (last artifact carried forward); STEP[v][0] == BASE (use: quality after iteration k; identical cohort for every v and k)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "ENH_PAIRS",
+      "text": "ENH_PAIRS: the enhanced pairs of the artifacts of a population; VALID pairs = status not in GATED (use: held-out evaluation)"
+    },
+    {
+      "ref": "E01 enhanced_pair_pass",
+      "text": "E01 enhanced_pair_pass: numerator = valid pairs with status pass; denominator = valid pairs; unit = enhanced pair (inference: benchmark cluster)."
+    },
+    {
+      "ref": "E02 enhanced_all_pass",
+      "text": "E02 enhanced_all_pass: numerator = artifacts with >= 1 valid pair and every valid pair pass; denominator = artifacts with >= 1 valid pair; unit = artifact."
+    },
+    {
+      "ref": "Q06 correctness_pass",
+      "text": "Q06 correctness_pass: numerator = verdict == pass; denominator = artifacts with a correctness verdict other than baseline_incompatible; unit = artifact."
+    },
+    {
+      "ref": "G02 trajectory_parEval_vs_heldout",
+      "text": "G02 trajectory_parEval_vs_heldout: numerator = per step; denominator = identical cohort; unit = base cell."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "e01_base",
+      "header": "E01 BASE % (n/N pairs)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E01 pair pass",
+      "sub": "BASE"
+    },
+    {
+      "key": "e01_final",
+      "header": "E01 FINAL % (n/N pairs)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E01 pair pass",
+      "sub": "FINAL"
+    },
+    {
+      "key": "e02_step0",
+      "header": "E02 step 0 BASE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 all-pass (G02)",
+      "sub": "step 0 BASE"
+    },
+    {
+      "key": "e02_step1",
+      "header": "E02 step 1 % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 all-pass (G02)",
+      "sub": "step 1"
+    },
+    {
+      "key": "e02_step2",
+      "header": "E02 step 2 FINAL % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 all-pass (G02)",
+      "sub": "step 2 FINAL"
+    },
+    {
+      "key": "q06_step0",
+      "header": "Q06 step 0 BASE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "Q06 pass (G02)",
+      "sub": "step 0 BASE"
+    },
+    {
+      "key": "q06_step1",
+      "header": "Q06 step 1 % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "Q06 pass (G02)",
+      "sub": "step 1"
+    },
+    {
+      "key": "q06_step2",
+      "header": "Q06 step 2 FINAL % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "Q06 pass (G02)",
+      "sub": "step 2 FINAL"
+    }
+  ],
+  "rows": [
+    {
+      "block": "pilot",
+      "variant": "static_feedback",
+      "e01_base": {
+        "numerator": 6936,
+        "denominator": 7623,
+        "value": 0.9098780007870917,
+        "ci_low": 0.8700914037106575,
+        "ci_high": 0.9455415205415205,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "pilot",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 7206,
+        "denominator": 7623,
+        "value": 0.9452971271153089,
+        "ci_low": 0.9092155319428047,
+        "ci_high": 0.9726209463051568,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 344,
+        "denominator": 396,
+        "value": 0.8686868686868687,
+        "ci_low": 0.8131313131313131,
+        "ci_high": 0.9191919191919192,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 355,
+        "denominator": 396,
+        "value": 0.8964646464646465,
+        "ci_low": 0.8434343434343434,
+        "ci_high": 0.9419823232323229,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 358,
+        "denominator": 396,
+        "value": 0.9040404040404041,
+        "ci_low": 0.8535353535353535,
+        "ci_high": 0.946969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 367,
+        "denominator": 396,
+        "value": 0.9267676767676768,
+        "ci_low": 0.9015151515151515,
+        "ci_high": 0.952020202020202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 381,
+        "denominator": 396,
+        "value": 0.9621212121212122,
+        "ci_low": 0.9368686868686869,
+        "ci_high": 0.9848484848484849,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 382,
+        "denominator": 396,
+        "value": 0.9646464646464646,
+        "ci_low": 0.9419191919191919,
+        "ci_high": 0.9848484848484849,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "variant": "test_feedback",
+      "e01_base": {
+        "numerator": 6936,
+        "denominator": 7623,
+        "value": 0.9098780007870917,
+        "ci_low": 0.8700914037106575,
+        "ci_high": 0.9455415205415205,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "pilot",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 7249,
+        "denominator": 7623,
+        "value": 0.950937950937951,
+        "ci_low": 0.9143455098934552,
+        "ci_high": 0.9779070263445264,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 344,
+        "denominator": 396,
+        "value": 0.8686868686868687,
+        "ci_low": 0.8131313131313131,
+        "ci_high": 0.9191919191919192,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 358,
+        "denominator": 396,
+        "value": 0.9040404040404041,
+        "ci_low": 0.8509469696969698,
+        "ci_high": 0.9494949494949495,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 360,
+        "denominator": 396,
+        "value": 0.9090909090909091,
+        "ci_low": 0.8535353535353535,
+        "ci_high": 0.9570707070707071,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 367,
+        "denominator": 396,
+        "value": 0.9267676767676768,
+        "ci_low": 0.9015151515151515,
+        "ci_high": 0.952020202020202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 385,
+        "denominator": 396,
+        "value": 0.9722222222222222,
+        "ci_low": 0.9545454545454546,
+        "ci_high": 0.9873737373737373,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 387,
+        "denominator": 396,
+        "value": 0.9772727272727273,
+        "ci_low": 0.9595959595959596,
+        "ci_high": 0.9924242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "variant": "combined_feedback",
+      "e01_base": {
+        "numerator": 6936,
+        "denominator": 7623,
+        "value": 0.9098780007870917,
+        "ci_low": 0.8700914037106575,
+        "ci_high": 0.9455415205415205,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "pilot",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 7300,
+        "denominator": 7623,
+        "value": 0.957628230355503,
+        "ci_low": 0.9186528296665283,
+        "ci_high": 0.9864045864045864,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 344,
+        "denominator": 396,
+        "value": 0.8686868686868687,
+        "ci_low": 0.8131313131313131,
+        "ci_high": 0.9191919191919192,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 362,
+        "denominator": 396,
+        "value": 0.9141414141414141,
+        "ci_low": 0.8585227272727274,
+        "ci_high": 0.9621212121212122,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 364,
+        "denominator": 396,
+        "value": 0.9191919191919192,
+        "ci_low": 0.86104797979798,
+        "ci_high": 0.9696969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 367,
+        "denominator": 396,
+        "value": 0.9267676767676768,
+        "ci_low": 0.9015151515151515,
+        "ci_high": 0.952020202020202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 386,
+        "denominator": 396,
+        "value": 0.9747474747474747,
+        "ci_low": 0.952020202020202,
+        "ci_high": 0.9924242424242424,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 388,
+        "denominator": 396,
+        "value": 0.9797979797979798,
+        "ci_low": 0.9545454545454546,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "static_feedback",
+      "e01_base": {
+        "numerator": 28799,
+        "denominator": 31449,
+        "value": 0.915736589398709,
+        "ci_low": 0.8683685043642088,
+        "ci_high": 0.9499868942904914,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "full_ext",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 29369,
+        "denominator": 31449,
+        "value": 0.9338611720563452,
+        "ci_low": 0.9102880366161616,
+        "ci_high": 0.9549868014207571,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 1416,
+        "denominator": 1584,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8459595959595959,
+        "ci_high": 0.9318181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 1439,
+        "denominator": 1584,
+        "value": 0.9084595959595959,
+        "ci_low": 0.8787720959595959,
+        "ci_high": 0.9349747474747475,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 1444,
+        "denominator": 1584,
+        "value": 0.9116161616161617,
+        "ci_low": 0.8838383838383839,
+        "ci_high": 0.9362373737373737,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 1427,
+        "denominator": 1584,
+        "value": 0.9008838383838383,
+        "ci_low": 0.8535353535353535,
+        "ci_high": 0.9381313131313131,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 1452,
+        "denominator": 1584,
+        "value": 0.9166666666666666,
+        "ci_low": 0.8857323232323232,
+        "ci_high": 0.9425662878787878,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 1456,
+        "denominator": 1584,
+        "value": 0.9191919191919192,
+        "ci_low": 0.889520202020202,
+        "ci_high": 0.9431818181818182,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "test_feedback",
+      "e01_base": {
+        "numerator": 28799,
+        "denominator": 31449,
+        "value": 0.915736589398709,
+        "ci_low": 0.8683685043642088,
+        "ci_high": 0.9499868942904914,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "full_ext",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 30870,
+        "denominator": 31449,
+        "value": 0.9815892397214537,
+        "ci_low": 0.9718265194880111,
+        "ci_high": 0.9895257420915312,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 1416,
+        "denominator": 1584,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8459595959595959,
+        "ci_high": 0.9318181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 1515,
+        "denominator": 1584,
+        "value": 0.9564393939393939,
+        "ci_low": 0.9362215909090909,
+        "ci_high": 0.9734848484848485,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 1529,
+        "denominator": 1584,
+        "value": 0.9652777777777778,
+        "ci_low": 0.9501262626262627,
+        "ci_high": 0.9785353535353535,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 1427,
+        "denominator": 1584,
+        "value": 0.9008838383838383,
+        "ci_low": 0.8535353535353535,
+        "ci_high": 0.9381313131313131,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 1528,
+        "denominator": 1584,
+        "value": 0.9646464646464646,
+        "ci_low": 0.9450757575757576,
+        "ci_high": 0.9798137626262625,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 1554,
+        "denominator": 1584,
+        "value": 0.9810606060606061,
+        "ci_low": 0.9709595959595959,
+        "ci_high": 0.98989898989899,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "combined_feedback",
+      "e01_base": {
+        "numerator": 28799,
+        "denominator": 31449,
+        "value": 0.915736589398709,
+        "ci_low": 0.8683685043642088,
+        "ci_high": 0.9499868942904914,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "full_ext",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 30397,
+        "denominator": 31449,
+        "value": 0.9665490158669592,
+        "ci_low": 0.9548137112865274,
+        "ci_high": 0.9768318458101096,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 1416,
+        "denominator": 1584,
+        "value": 0.8939393939393939,
+        "ci_low": 0.8459595959595959,
+        "ci_high": 0.9318181818181818,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 1481,
+        "denominator": 1584,
+        "value": 0.9349747474747475,
+        "ci_low": 0.9141414141414141,
+        "ci_high": 0.9532828282828283,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 1504,
+        "denominator": 1584,
+        "value": 0.9494949494949495,
+        "ci_low": 0.9343276515151515,
+        "ci_high": 0.9633838383838383,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 1427,
+        "denominator": 1584,
+        "value": 0.9008838383838383,
+        "ci_low": 0.8535353535353535,
+        "ci_high": 0.9381313131313131,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 1500,
+        "denominator": 1584,
+        "value": 0.946969696969697,
+        "ci_low": 0.9273832070707071,
+        "ci_high": 0.9633838383838383,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 1528,
+        "denominator": 1584,
+        "value": 0.9646464646464646,
+        "ci_low": 0.9526357323232323,
+        "ci_high": 0.9753787878787878,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "static_feedback",
+      "e01_base": {
+        "numerator": 35735,
+        "denominator": 39072,
+        "value": 0.9145935708435708,
+        "ci_low": 0.8761820446479538,
+        "ci_high": 0.9434550077791031,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "composite",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 36575,
+        "denominator": 39072,
+        "value": 0.9360923423423423,
+        "ci_low": 0.9154567854234743,
+        "ci_high": 0.9541396927868788,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 1760,
+        "denominator": 1980,
+        "value": 0.8888888888888888,
+        "ci_low": 0.8494949494949495,
+        "ci_high": 0.9207070707070707,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 1794,
+        "denominator": 1980,
+        "value": 0.906060606060606,
+        "ci_low": 0.8803030303030303,
+        "ci_high": 0.9297979797979798,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 1802,
+        "denominator": 1980,
+        "value": 0.9101010101010101,
+        "ci_low": 0.8853535353535353,
+        "ci_high": 0.9323232323232323,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 1794,
+        "denominator": 1980,
+        "value": 0.906060606060606,
+        "ci_low": 0.8666540404040405,
+        "ci_high": 0.935871212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 1833,
+        "denominator": 1980,
+        "value": 0.9257575757575758,
+        "ci_low": 0.9005050505050505,
+        "ci_high": 0.946969696969697,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 1838,
+        "denominator": 1980,
+        "value": 0.9282828282828283,
+        "ci_low": 0.9045454545454545,
+        "ci_high": 0.947979797979798,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "test_feedback",
+      "e01_base": {
+        "numerator": 35735,
+        "denominator": 39072,
+        "value": 0.9145935708435708,
+        "ci_low": 0.8761820446479538,
+        "ci_high": 0.9434550077791031,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "composite",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 38119,
+        "denominator": 39072,
+        "value": 0.9756091318591319,
+        "ci_low": 0.9654771966330615,
+        "ci_high": 0.9842688727729557,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 1760,
+        "denominator": 1980,
+        "value": 0.8888888888888888,
+        "ci_low": 0.8494949494949495,
+        "ci_high": 0.9207070707070707,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 1873,
+        "denominator": 1980,
+        "value": 0.945959595959596,
+        "ci_low": 0.9267676767676768,
+        "ci_high": 0.9626262626262626,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 1889,
+        "denominator": 1980,
+        "value": 0.954040404040404,
+        "ci_low": 0.9378787878787879,
+        "ci_high": 0.9686868686868687,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 1794,
+        "denominator": 1980,
+        "value": 0.906060606060606,
+        "ci_low": 0.8666540404040405,
+        "ci_high": 0.935871212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 1913,
+        "denominator": 1980,
+        "value": 0.9661616161616161,
+        "ci_low": 0.9499873737373737,
+        "ci_high": 0.9792929292929293,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 1941,
+        "denominator": 1980,
+        "value": 0.9803030303030303,
+        "ci_low": 0.9717171717171718,
+        "ci_high": 0.9878787878787879,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "combined_feedback",
+      "e01_base": {
+        "numerator": 35735,
+        "denominator": 39072,
+        "value": 0.9145935708435708,
+        "ci_low": 0.8761820446479538,
+        "ci_high": 0.9434550077791031,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(BASE)",
+          "block": "composite",
+          "strata": {}
+        }
+      },
+      "e01_final": {
+        "numerator": 37697,
+        "denominator": 39072,
+        "value": 0.9648085585585585,
+        "ci_low": 0.9530644895928987,
+        "ci_high": 0.9753609802356616,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E01",
+          "population": "ENH_PAIRS(FINAL)",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step0": {
+        "numerator": 1760,
+        "denominator": 1980,
+        "value": 0.8888888888888888,
+        "ci_low": 0.8494949494949495,
+        "ci_high": 0.9207070707070707,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step1": {
+        "numerator": 1843,
+        "denominator": 1980,
+        "value": 0.9308080808080809,
+        "ci_low": 0.9111111111111111,
+        "ci_high": 0.9484848484848485,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_step2": {
+        "numerator": 1868,
+        "denominator": 1980,
+        "value": 0.9434343434343434,
+        "ci_low": 0.9267676767676768,
+        "ci_high": 0.9585858585858585,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "step": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step0": {
+        "numerator": 1794,
+        "denominator": 1980,
+        "value": 0.906060606060606,
+        "ci_low": 0.8666540404040405,
+        "ci_high": 0.935871212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step1": {
+        "numerator": 1886,
+        "denominator": 1980,
+        "value": 0.9525252525252526,
+        "ci_low": 0.9368560606060606,
+        "ci_high": 0.9656565656565657,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "q06_step2": {
+        "numerator": 1916,
+        "denominator": 1980,
+        "value": 0.9676767676767677,
+        "ci_low": 0.9575757575757575,
+        "ci_high": 0.9772727272727273,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "identical base-cell cohort per step (goal G3)",
+        "source": {
+          "metric_id": "G02",
+          "population": "STEP",
+          "block": "composite",
+          "strata": {
+            "endpoint": "Q06",
+            "step": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

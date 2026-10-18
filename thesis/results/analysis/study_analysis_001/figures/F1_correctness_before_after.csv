@@ -1,0 +1,13 @@
+block,series,population,numerator,denominator,value_pct,ci_low_pct,ci_high_pct,replicates,excluded,ci_degenerate
+pilot,BASE,BASE,367,396,92.676768,90.151515,95.202020,2000,0,0
+pilot,static_feedback,FINAL,382,396,96.464646,94.191919,98.484848,2000,0,0
+pilot,test_feedback,FINAL,387,396,97.727273,95.959596,99.242424,2000,0,0
+pilot,combined_feedback,FINAL,388,396,97.979798,95.454545,100.000000,2000,0,0
+full_ext,BASE,BASE,1427,1584,90.088384,85.353535,93.813131,2000,0,0
+full_ext,static_feedback,FINAL,1456,1584,91.919192,88.952020,94.318182,2000,0,0
+full_ext,test_feedback,FINAL,1554,1584,98.106061,97.095960,98.989899,2000,0,0
+full_ext,combined_feedback,FINAL,1528,1584,96.464646,95.263573,97.537879,2000,0,0
+composite,BASE,BASE,1794,1980,90.606061,86.665404,93.587121,2000,0,0
+composite,static_feedback,FINAL,1838,1980,92.828283,90.454545,94.797980,2000,0,0
+composite,test_feedback,FINAL,1941,1980,98.030303,97.171717,98.787879,2000,0,0
+composite,combined_feedback,FINAL,1916,1980,96.767677,95.757576,97.727273,2000,0,0

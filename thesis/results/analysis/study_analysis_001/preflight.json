@@ -1,0 +1,231 @@
+{
+  "analysis_id": "study_analysis_001",
+  "write_mode": true,
+  "deep": true,
+  "status": "PASS",
+  "failing": [],
+  "checks": [
+    {
+      "check": "git",
+      "status": "PASS",
+      "detail": {
+        "head": "afc60c2e332374c9aae1d5cc94195b50c096c88d",
+        "branch": "thesis-static-analysis",
+        "clean": true,
+        "uncommitted_count": 0,
+        "uncommitted_paths": [],
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "package_committed",
+      "status": "PASS",
+      "detail": {
+        "files": 26,
+        "untracked": [],
+        "changed": [],
+        "required": true,
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "closure",
+      "status": "PASS",
+      "detail": {
+        "relative": "thesis/evaluation/closure/study_closure_001/global_verification.json",
+        "raw_sha256": "729b597615a714be1e9b41280bae68d23fd40a5bdb6a6c475b7aaeadd99d28b9",
+        "bytes": 763258,
+        "closure_sha256": "c880da4144dc980ea8b6fc9ce66c3dbc04c2fa4f37be71b9dfeae81216c825c5",
+        "closure_head": "69ee4f390134ba78e3a332bebcea54202de1feba",
+        "flags": {
+          "MEASUREMENTS_COMPLETE": "YES",
+          "COMPOSITE_VERIFICATION_COMPLETE": "YES",
+          "FORMAL_GLOBAL_VERIFICATION_COMPLETE": "YES",
+          "PILOT_ACCEPTANCE_COMPLETE": "NO",
+          "PUBLICATION_READY": "NO",
+          "READY_FOR_SCIENTIFIC_ANALYSIS": "YES"
+        },
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "composite",
+      "status": "PASS",
+      "detail": {
+        "relative": "thesis/results/intermediate/full_ext_phase2_001/phase2_composite.json",
+        "raw_sha256": "4553fa16c71d176d03dca3e56041462e72f96d04c3f615aaa64b42d2e4c56f45",
+        "bytes": 8356,
+        "composite_sha256": "953ce41b7f050559b1af875139c626995c562c43cba2fc632096c22d45e3e2b0",
+        "expected": "953ce41b7f050559b1af875139c626995c562c43cba2fc632096c22d45e3e2b0",
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "acceptance",
+      "status": "PASS",
+      "detail": {
+        "relative": "thesis/evaluation/pilot_002_result_acceptance.json",
+        "raw_sha256": "d7cc68aab03385caccf33fdfe43432d8db20324bb497dd7dffb14bc6a492577f",
+        "status": "ACCEPTED",
+        "valid_for_gate": true,
+        "publication_allowed": true,
+        "label_required": "pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt)",
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "phase2_lineage",
+      "status": "PASS",
+      "detail": {
+        "lineage_sha256": "81a5a18350cfd76c2b4b18a15cb97fabfa9594230729741c8a4b32b9c4317bb6",
+        "targets_sha256": "c836011f34ad8961aaf5ed46b325d9542bc6c22e5b01c6818e40fd216feacec7",
+        "targets": 77,
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "phase2_lineage_verify",
+      "status": "PASS",
+      "detail": {
+        "protected_file_counts": {
+          "pilot_002": 3258,
+          "full_ext_001": 1832,
+          "full_ext_recovery_001": 1506,
+          "full_ext_recovery_002": 334,
+          "full_ext_recovery_003": 571,
+          "full_ext_recovery_004": 1984
+        }
+      }
+    },
+    {
+      "check": "census",
+      "status": "PASS",
+      "detail": {
+        "census_digest": "f9dfa256ee18f70912680845a50415fffd71e8c6a0d4198cd7d0584c60054472",
+        "total_repair_loops_done": "66/66",
+        "base_cells": {
+          "pilot": 396,
+          "full_ext": 1584,
+          "total": 1980
+        },
+        "sample_states": {
+          "pilot": {
+            "stopped_analysis_incomplete": 357,
+            "stopped_budget": 123,
+            "stopped_clean": 324,
+            "stopped_tests_pass": 384
+          },
+          "full_ext": {
+            "stopped_analysis_incomplete": 1539,
+            "stopped_budget": 725,
+            "stopped_clean": 959,
+            "stopped_tests_pass": 1529
+          }
+        },
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "provider_isolation_scan",
+      "status": "PASS",
+      "detail": {
+        "modules_scanned": 22,
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "provider_environment",
+      "status": "PASS",
+      "detail": {
+        "provider_variables": 0,
+        "dotenv_import": "DISABLED",
+        "provider_modules": [],
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "methodology",
+      "status": "PASS",
+      "detail": {
+        "metrics": 44,
+        "identity": {
+          "relative": "thesis/study_analysis/methodology.json",
+          "raw_sha256": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+          "lf_sha256": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+          "canonical_sha256": "cb34143728ceaa08befe91100c741a6d95df9b39ebb8b44c4274a9d12acb20dc"
+        },
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "addendum",
+      "status": "PASS",
+      "detail": {
+        "metrics": [
+          "X01",
+          "X02",
+          "X03",
+          "X04",
+          "X05",
+          "X06"
+        ],
+        "identity": {
+          "relative": "thesis/study_analysis/methodology_addendum.json",
+          "raw_sha256": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+          "lf_sha256": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+          "canonical_sha256": "348b1516b8c194012323b1fcc9b5fbd94604e9866a1b6fd5dcd8ea30af002486",
+          "status": "DECLARED_AFTER_DRY_RUN"
+        },
+        "required_committed": true,
+        "methodology_canonical_sha256": "cb34143728ceaa08befe91100c741a6d95df9b39ebb8b44c4274a9d12acb20dc",
+        "problems": [],
+        "problem_count": 0
+      }
+    },
+    {
+      "check": "output_target",
+      "status": "PASS",
+      "detail": {
+        "relative": "thesis/results/analysis/study_analysis_001",
+        "exists": false,
+        "required_absent": true,
+        "problems": [],
+        "problem_count": 0
+      }
+    }
+  ],
+  "facts": {
+    "git_head": "afc60c2e332374c9aae1d5cc94195b50c096c88d",
+    "closure_sha256": "c880da4144dc980ea8b6fc9ce66c3dbc04c2fa4f37be71b9dfeae81216c825c5",
+    "closure_raw_sha256": "729b597615a714be1e9b41280bae68d23fd40a5bdb6a6c475b7aaeadd99d28b9",
+    "composite_sha256": "953ce41b7f050559b1af875139c626995c562c43cba2fc632096c22d45e3e2b0",
+    "composite_raw_sha256": "4553fa16c71d176d03dca3e56041462e72f96d04c3f615aaa64b42d2e4c56f45",
+    "acceptance_raw_sha256": "d7cc68aab03385caccf33fdfe43432d8db20324bb497dd7dffb14bc6a492577f",
+    "lineage_sha256": "81a5a18350cfd76c2b4b18a15cb97fabfa9594230729741c8a4b32b9c4317bb6",
+    "targets_sha256": "c836011f34ad8961aaf5ed46b325d9542bc6c22e5b01c6818e40fd216feacec7",
+    "census_digest": "f9dfa256ee18f70912680845a50415fffd71e8c6a0d4198cd7d0584c60054472",
+    "methodology": {
+      "relative": "thesis/study_analysis/methodology.json",
+      "raw_sha256": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+      "lf_sha256": "ef7efe92de84cd2b1f4d2762045d8fa681fca992ba063c03ddce1c69d6f5501d",
+      "canonical_sha256": "cb34143728ceaa08befe91100c741a6d95df9b39ebb8b44c4274a9d12acb20dc"
+    },
+    "addendum": {
+      "relative": "thesis/study_analysis/methodology_addendum.json",
+      "raw_sha256": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+      "lf_sha256": "7c419791091c9590f7d2c984c7b0a5c628cb6b113464e8d5bf3fdea3fea32ba9",
+      "canonical_sha256": "348b1516b8c194012323b1fcc9b5fbd94604e9866a1b6fd5dcd8ea30af002486",
+      "status": "DECLARED_AFTER_DRY_RUN"
+    }
+  }
+}

@@ -1,0 +1,1355 @@
+{
+  "id": "T7b_heldout_transitions",
+  "title": "Held-out (enhanced) transitions of the repairs",
+  "population": "BASE paired with FINAL[v]; G01: base cells improved on Q06",
+  "unit": "base cell",
+  "notes": [
+    "E02 transitions of the same base cell (identical cohort, checked); G01 vs the E05 BASE reference (all-pass share of cells passing Q06 at baseline): difference in pp; joint Q06 / E02 transitions (X06): T7c.",
+    "Denominator exclusions (methodology missingness rules; JSON key excluded): no unit is excluded in this table by R02 (base cell(s) outside the paired cohort); R03 (base cell(s) outside the paired cohort); G01 (improved cell(s) without a valid pair).",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still failing) and G01.",
+    "IC3: G01 compares Q06-repaired cells (cells that failed at baseline and are harder) with cells that passed at baseline (E05 BASE); its differences mix cell difficulty with overfitting, and its cohorts differ per variant.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "R02 repair_success_rate",
+      "text": "R02 repair_success_rate: numerator = improved cells; denominator = cells failing the endpoint at baseline; unit = base cell."
+    },
+    {
+      "ref": "R03 regression_rate",
+      "text": "R03 regression_rate: numerator = regressed cells; denominator = cells passing the endpoint at baseline; unit = base cell."
+    },
+    {
+      "ref": "G01 heldout_robustness_of_repairs",
+      "text": "G01 heldout_robustness_of_repairs: numerator = improved cells with final E02 all-pass; denominator = improved cells with >= 1 valid pair; unit = base cell."
+    },
+    {
+      "ref": "E05 enhanced_all_pass_given_correctness_pass",
+      "text": "E05 enhanced_all_pass_given_correctness_pass: numerator = E02 all-pass among correctness-pass artifacts; denominator = correctness-pass artifacts with >= 1 valid pair; unit = artifact."
+    }
+  ],
+  "ci_note": "95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks resampled among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 2,000 replicates (descriptive, unadjusted)",
+  "columns": [
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "e02_improved",
+      "header": "E02 R02 improved % (n/base-fail)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 transitions",
+      "sub": "R02 improved"
+    },
+    {
+      "key": "e02_regressed",
+      "header": "E02 R03 regressed % (n/base-pass)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 transitions",
+      "sub": "R03 regressed"
+    },
+    {
+      "key": "g01",
+      "header": "G01 repaired cells all-pass % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "G01",
+      "sub": "% (n/N)"
+    },
+    {
+      "key": "e05_base",
+      "header": "E05 BASE reference % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "G01",
+      "sub": "reference E05"
+    },
+    {
+      "key": "g01_diff",
+      "header": "G01 minus reference pp",
+      "align": "r",
+      "kind": "pp",
+      "group": "G01",
+      "sub": "difference pp"
+    },
+    {
+      "key": "g01_diff_ci",
+      "header": "G01 minus reference 95% CI",
+      "align": "r",
+      "kind": "ci_pp",
+      "group": "G01",
+      "sub": "95% CI"
+    }
+  ],
+  "rows": [
+    {
+      "block": "pilot",
+      "variant": "static_feedback",
+      "e02_improved": {
+        "numerator": 16,
+        "denominator": 52,
+        "value": 0.3076923076923077,
+        "ci_low": 0.1363329238329239,
+        "ci_high": 0.5143596059113296,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 2,
+        "denominator": 344,
+        "value": 0.005813953488372093,
+        "ci_low": 0.0,
+        "ci_high": 0.014084507042253521,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 15,
+        "denominator": 16,
+        "value": 0.9375,
+        "ci_low": 0.8571428571428571,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 340,
+        "denominator": 367,
+        "value": 0.9264305177111717,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 15,
+        "denominator": 16,
+        "value": 0.011069482288828314,
+        "ci_low": -0.09723173515981733,
+        "ci_high": 0.12466142632248604,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 15,
+        "denominator": 16,
+        "value": 0.011069482288828314,
+        "ci_low": -0.09723173515981733,
+        "ci_high": 0.12466142632248604,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "variant": "test_feedback",
+      "e02_improved": {
+        "numerator": 16,
+        "denominator": 52,
+        "value": 0.3076923076923077,
+        "ci_low": 0.15381355932203397,
+        "ci_high": 0.5151515151515151,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 0,
+        "denominator": 344,
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": true,
+        "post_freeze": false,
+        "note": "degenerate percentile interval (zero width): every supporting cluster has the same value",
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 17,
+        "denominator": 20,
+        "value": 0.85,
+        "ci_low": 0.625,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 340,
+        "denominator": 367,
+        "value": 0.9264305177111717,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 17,
+        "denominator": 20,
+        "value": -0.07643051771117171,
+        "ci_low": -0.30015446729623124,
+        "ci_high": 0.09893655809431202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 17,
+        "denominator": 20,
+        "value": -0.07643051771117171,
+        "ci_low": -0.30015446729623124,
+        "ci_high": 0.09893655809431202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "variant": "combined_feedback",
+      "e02_improved": {
+        "numerator": 20,
+        "denominator": 52,
+        "value": 0.38461538461538464,
+        "ci_low": 0.19992424242424256,
+        "ci_high": 0.6579107830551989,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 0,
+        "denominator": 344,
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": true,
+        "post_freeze": false,
+        "note": "degenerate percentile interval (zero width): every supporting cluster has the same value",
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 19,
+        "denominator": 22,
+        "value": 0.8636363636363636,
+        "ci_low": 0.6470588235294118,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 340,
+        "denominator": 367,
+        "value": 0.9264305177111717,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 19,
+        "denominator": 22,
+        "value": -0.06279415407480804,
+        "ci_low": -0.2774090132827323,
+        "ci_high": 0.09893655809431202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 19,
+        "denominator": 22,
+        "value": -0.06279415407480804,
+        "ci_low": -0.2774090132827323,
+        "ci_high": 0.09893655809431202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "static_feedback",
+      "e02_improved": {
+        "numerator": 78,
+        "denominator": 168,
+        "value": 0.4642857142857143,
+        "ci_low": 0.2969607087827427,
+        "ci_high": 0.5966015094979646,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 50,
+        "denominator": 1416,
+        "value": 0.03531073446327684,
+        "ci_low": 0.018438959044903332,
+        "ci_high": 0.05595963717358521,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 76,
+        "denominator": 78,
+        "value": 0.9743589743589743,
+        "ci_low": 0.9166666666666666,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 1410,
+        "denominator": 1427,
+        "value": 0.9880868955851436,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 76,
+        "denominator": 78,
+        "value": -0.013727921226169282,
+        "ci_low": -0.07191069556368791,
+        "ci_high": 0.014997334292066337,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 76,
+        "denominator": 78,
+        "value": -0.013727921226169282,
+        "ci_low": -0.07191069556368791,
+        "ci_high": 0.014997334292066337,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "test_feedback",
+      "e02_improved": {
+        "numerator": 114,
+        "denominator": 168,
+        "value": 0.6785714285714286,
+        "ci_low": 0.574992816091954,
+        "ci_high": 0.7631578947368421,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 1,
+        "denominator": 1416,
+        "value": 0.0007062146892655367,
+        "ci_low": 0.0,
+        "ci_high": 0.002178649237472767,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 116,
+        "denominator": 127,
+        "value": 0.9133858267716536,
+        "ci_low": 0.8240079365079366,
+        "ci_high": 0.9772727272727273,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 1410,
+        "denominator": 1427,
+        "value": 0.9880868955851436,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 116,
+        "denominator": 127,
+        "value": -0.07470106881349003,
+        "ci_low": -0.16389527342201915,
+        "ci_high": -0.011494983965990033,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 116,
+        "denominator": 127,
+        "value": -0.07470106881349003,
+        "ci_low": -0.16389527342201915,
+        "ci_high": -0.011494983965990033,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "combined_feedback",
+      "e02_improved": {
+        "numerator": 109,
+        "denominator": 168,
+        "value": 0.6488095238095238,
+        "ci_low": 0.5419287634408603,
+        "ci_high": 0.7298756231122461,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 21,
+        "denominator": 1416,
+        "value": 0.014830508474576272,
+        "ci_low": 0.007102272727272727,
+        "ci_high": 0.02423864707451965,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 110,
+        "denominator": 119,
+        "value": 0.9243697478991597,
+        "ci_low": 0.8285642135642136,
+        "ci_high": 0.9866666666666667,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 1410,
+        "denominator": 1427,
+        "value": 0.9880868955851436,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 110,
+        "denominator": 119,
+        "value": -0.06371714768598391,
+        "ci_low": -0.16054070712102728,
+        "ci_high": -0.0016521148814065845,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 110,
+        "denominator": 119,
+        "value": -0.06371714768598391,
+        "ci_low": -0.16054070712102728,
+        "ci_high": -0.0016521148814065845,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "static_feedback",
+      "e02_improved": {
+        "numerator": 94,
+        "denominator": 220,
+        "value": 0.42727272727272725,
+        "ci_low": 0.28909128925159033,
+        "ci_high": 0.5458487021857922,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 52,
+        "denominator": 1760,
+        "value": 0.029545454545454545,
+        "ci_low": 0.01581682647867432,
+        "ci_high": 0.04632321814714128,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 91,
+        "denominator": 94,
+        "value": 0.9680851063829787,
+        "ci_low": 0.9189051296194154,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 1750,
+        "denominator": 1794,
+        "value": 0.9754738015607581,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 91,
+        "denominator": 94,
+        "value": -0.007388695177779403,
+        "ci_low": -0.05948195189482728,
+        "ci_high": 0.026955079131429218,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 91,
+        "denominator": 94,
+        "value": -0.007388695177779403,
+        "ci_low": -0.05948195189482728,
+        "ci_high": 0.026955079131429218,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "test_feedback",
+      "e02_improved": {
+        "numerator": 130,
+        "denominator": 220,
+        "value": 0.5909090909090909,
+        "ci_low": 0.4821263227513228,
+        "ci_high": 0.6850470065164268,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 1,
+        "denominator": 1760,
+        "value": 0.0005681818181818182,
+        "ci_low": 0.0,
+        "ci_high": 0.0017381480175323691,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 133,
+        "denominator": 147,
+        "value": 0.9047619047619048,
+        "ci_low": 0.8235294117647058,
+        "ci_high": 0.9632352941176471,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 1750,
+        "denominator": 1794,
+        "value": 0.9754738015607581,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 133,
+        "denominator": 147,
+        "value": -0.07071189679885337,
+        "ci_low": -0.15280527295521468,
+        "ci_high": -0.010805672929364489,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 133,
+        "denominator": 147,
+        "value": -0.07071189679885337,
+        "ci_low": -0.15280527295521468,
+        "ci_high": -0.010805672929364489,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "combined_feedback",
+      "e02_improved": {
+        "numerator": 129,
+        "denominator": 220,
+        "value": 0.5863636363636363,
+        "ci_low": 0.47483716804786996,
+        "ci_high": 0.6792472733062653,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e02_regressed": {
+        "numerator": 21,
+        "denominator": 1760,
+        "value": 0.011931818181818182,
+        "ci_low": 0.005714285714285714,
+        "ci_high": 0.019531423456927176,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R03",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "g01": {
+        "numerator": 129,
+        "denominator": 141,
+        "value": 0.9148936170212766,
+        "ci_low": 0.8275862068965517,
+        "ci_high": 0.974364406779661,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "Q06-improved cells: final artifact enhanced all-pass",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "e05_base": {
+        "numerator": 1750,
+        "denominator": 1794,
+        "value": 0.9754738015607581,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "E05",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {}
+        }
+      },
+      "g01_diff": {
+        "numerator": 129,
+        "denominator": 141,
+        "value": -0.06058018453948155,
+        "ci_low": -0.14845760491248133,
+        "ci_high": 0.0007349909158537724,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "g01_diff_ci": {
+        "numerator": 129,
+        "denominator": 141,
+        "value": -0.06058018453948155,
+        "ci_low": -0.14845760491248133,
+        "ci_high": 0.0007349909158537724,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": "difference to the enhanced all-pass share of baseline-pass cells (E05 BASE)",
+        "source": {
+          "metric_id": "G01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "comparison": "G01-E05(BASE)",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

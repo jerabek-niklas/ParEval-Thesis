@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 539" width="760" height="539" font-family="Helvetica, Arial, sans-serif" role="img">
+<title>Analysis tool states (S01/D01, GENERATED - diagnostic)</title>
+<rect x="0" y="0" width="760" height="539" fill="#ffffff"/>
+<text x="20.00" y="28.00" font-size="15" text-anchor="start" fill="#0b0b0b" font-weight="600">Analysis tool states (S01/D01, GENERATED - diagnostic)</text>
+<line x1="80.00" y1="350.00" x2="560.00" y2="350.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="72.00" y="354.00" font-size="11" text-anchor="end" fill="#52514e">0</text>
+<line x1="80.00" y1="290.00" x2="560.00" y2="290.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="294.00" font-size="11" text-anchor="end" fill="#52514e">20</text>
+<line x1="80.00" y1="230.00" x2="560.00" y2="230.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="234.00" font-size="11" text-anchor="end" fill="#52514e">40</text>
+<line x1="80.00" y1="170.00" x2="560.00" y2="170.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="174.00" font-size="11" text-anchor="end" fill="#52514e">60</text>
+<line x1="80.00" y1="110.00" x2="560.00" y2="110.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="114.00" font-size="11" text-anchor="end" fill="#52514e">80</text>
+<line x1="80.00" y1="50.00" x2="560.00" y2="50.00" stroke="#e4e3df" stroke-width="1.00"/>
+<text x="72.00" y="54.00" font-size="11" text-anchor="end" fill="#52514e">100</text>
+<line x1="80.00" y1="50.00" x2="80.00" y2="350.00" stroke="#8a8984" stroke-width="1.00"/>
+<text x="32.00" y="200.00" font-size="12" text-anchor="middle" fill="#52514e" transform="rotate(-90.00 32.00 200.00)">Share of GENERATED artifacts (%, diagnostic)</text>
+<rect x="87.85" y="50.00" width="27.93" height="300.00" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>compiler COMPLETED: 100.0% (5460/5460)</title></rect>
+<text x="101.82" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 101.82 364.00)">compiler</text>
+<rect x="131.49" y="235.11" width="27.93" height="114.89" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>gcc_analyzer COMPLETED: 38.3% (2091/5460)</title></rect>
+<rect x="131.49" y="70.93" width="27.93" height="164.18" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>gcc_analyzer PARTIAL: 54.7% (2988/5460)</title></rect>
+<rect x="131.49" y="68.02" width="27.93" height="2.91" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>gcc_analyzer TOOL_ERROR: 1.0% (53/5460)</title></rect>
+<rect x="131.49" y="50.00" width="27.93" height="18.02" fill="#e87ba4" stroke="#ffffff" stroke-width="1"><title>gcc_analyzer NOT_ANALYZED: 6.0% (328/5460)</title></rect>
+<text x="145.45" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 145.45 364.00)">gcc_analyzer</text>
+<rect x="175.13" y="67.91" width="27.93" height="282.09" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>clang_tidy COMPLETED: 94.0% (5134/5460)</title></rect>
+<rect x="175.13" y="50.00" width="27.93" height="17.91" fill="#e87ba4" stroke="#ffffff" stroke-width="1"><title>clang_tidy NOT_ANALYZED: 6.0% (326/5460)</title></rect>
+<text x="189.09" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 189.09 364.00)">clang_tidy</text>
+<rect x="218.76" y="51.43" width="27.93" height="298.57" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>cppcheck COMPLETED: 99.5% (5434/5460)</title></rect>
+<rect x="218.76" y="50.00" width="27.93" height="1.43" fill="#e87ba4" stroke="#ffffff" stroke-width="1"><title>cppcheck NOT_ANALYZED: 0.5% (26/5460)</title></rect>
+<text x="232.73" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 232.73 364.00)">cppcheck</text>
+<rect x="262.40" y="165.16" width="27.93" height="184.84" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>infer COMPLETED: 61.6% (3364/5460)</title></rect>
+<rect x="262.40" y="163.79" width="27.93" height="1.37" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>infer TOOL_ERROR: 0.5% (25/5460)</title></rect>
+<rect x="262.40" y="153.74" width="27.93" height="10.05" fill="#e87ba4" stroke="#ffffff" stroke-width="1"><title>infer NOT_ANALYZED: 3.4% (183/5460)</title></rect>
+<rect x="262.40" y="50.00" width="27.93" height="103.74" fill="#d2d1cc" stroke="#ffffff" stroke-width="1"><title>infer NOT_APPLICABLE: 34.6% (1888/5460)</title></rect>
+<text x="276.36" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 276.36 364.00)">infer</text>
+<rect x="306.04" y="255.66" width="27.93" height="94.34" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>parcoach COMPLETED: 31.4% (1717/5460)</title></rect>
+<rect x="306.04" y="232.14" width="27.93" height="23.52" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>parcoach TIMEOUT: 7.8% (428/5460)</title></rect>
+<rect x="306.04" y="229.73" width="27.93" height="2.42" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>parcoach TOOL_ERROR: 0.8% (44/5460)</title></rect>
+<rect x="306.04" y="224.29" width="27.93" height="5.44" fill="#e87ba4" stroke="#ffffff" stroke-width="1"><title>parcoach NOT_ANALYZED: 1.8% (99/5460)</title></rect>
+<rect x="306.04" y="50.44" width="27.93" height="173.85" fill="#d2d1cc" stroke="#ffffff" stroke-width="1"><title>parcoach NOT_APPLICABLE: 57.9% (3164/5460)</title></rect>
+<rect x="306.04" y="50.00" width="27.93" height="0.44" fill="#8c8b85" stroke="#ffffff" stroke-width="1"><title>parcoach ABSENT_INAPPLICABLE: 0.1% (8/5460)</title></rect>
+<text x="320.00" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 320.00 364.00)">parcoach</text>
+<rect x="349.67" y="326.54" width="27.93" height="23.46" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>llov COMPLETED: 7.8% (427/5460)</title></rect>
+<rect x="349.67" y="311.81" width="27.93" height="14.73" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>llov PARTIAL: 4.9% (268/5460)</title></rect>
+<rect x="349.67" y="297.58" width="27.93" height="14.23" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>llov TOOL_ERROR: 4.7% (259/5460)</title></rect>
+<rect x="349.67" y="246.26" width="27.93" height="51.32" fill="#e87ba4" stroke="#ffffff" stroke-width="1"><title>llov NOT_ANALYZED: 17.1% (934/5460)</title></rect>
+<rect x="349.67" y="50.33" width="27.93" height="195.93" fill="#d2d1cc" stroke="#ffffff" stroke-width="1"><title>llov NOT_APPLICABLE: 65.3% (3566/5460)</title></rect>
+<rect x="349.67" y="50.00" width="27.93" height="0.33" fill="#8c8b85" stroke="#ffffff" stroke-width="1"><title>llov ABSENT_INAPPLICABLE: 0.1% (6/5460)</title></rect>
+<text x="363.64" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 363.64 364.00)">llov</text>
+<rect x="393.31" y="69.51" width="27.93" height="280.49" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>asan_ubsan COMPLETED: 93.5% (5105/5460)</title></rect>
+<rect x="393.31" y="68.46" width="27.93" height="1.04" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>asan_ubsan TIMEOUT: 0.3% (19/5460)</title></rect>
+<rect x="393.31" y="50.00" width="27.93" height="18.46" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>asan_ubsan TOOL_ERROR: 6.2% (336/5460)</title></rect>
+<text x="407.27" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 407.27 364.00)">asan_ubsan</text>
+<rect x="436.95" y="254.56" width="27.93" height="95.44" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>tsan COMPLETED: 31.8% (1737/5460)</title></rect>
+<rect x="436.95" y="254.51" width="27.93" height="0.05" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>tsan PARTIAL: 0.0% (1/5460)</title></rect>
+<rect x="436.95" y="254.12" width="27.93" height="0.38" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>tsan TIMEOUT: 0.1% (7/5460)</title></rect>
+<rect x="436.95" y="246.26" width="27.93" height="7.86" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>tsan TOOL_ERROR: 2.6% (143/5460)</title></rect>
+<rect x="436.95" y="50.00" width="27.93" height="196.26" fill="#d2d1cc" stroke="#ffffff" stroke-width="1"><title>tsan NOT_APPLICABLE: 65.4% (3572/5460)</title></rect>
+<text x="450.91" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 450.91 364.00)">tsan</text>
+<rect x="480.58" y="188.79" width="27.93" height="161.21" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>memcheck COMPLETED: 53.7% (2934/5460)</title></rect>
+<rect x="480.58" y="188.74" width="27.93" height="0.05" fill="#eb6834" stroke="#ffffff" stroke-width="1"><title>memcheck PARTIAL: 0.0% (1/5460)</title></rect>
+<rect x="480.58" y="188.30" width="27.93" height="0.44" fill="#1baf7a" stroke="#ffffff" stroke-width="1"><title>memcheck TIMEOUT: 0.1% (8/5460)</title></rect>
+<rect x="480.58" y="175.71" width="27.93" height="12.58" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>memcheck TOOL_ERROR: 4.2% (229/5460)</title></rect>
+<rect x="480.58" y="50.00" width="27.93" height="125.71" fill="#d2d1cc" stroke="#ffffff" stroke-width="1"><title>memcheck NOT_APPLICABLE: 41.9% (2288/5460)</title></rect>
+<text x="494.55" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 494.55 364.00)">memcheck</text>
+<rect x="524.22" y="229.73" width="27.93" height="120.27" fill="#2a78d6" stroke="#ffffff" stroke-width="1"><title>must COMPLETED: 40.1% (2189/5460)</title></rect>
+<rect x="524.22" y="224.29" width="27.93" height="5.44" fill="#eda100" stroke="#ffffff" stroke-width="1"><title>must TOOL_ERROR: 1.8% (99/5460)</title></rect>
+<rect x="524.22" y="50.00" width="27.93" height="174.29" fill="#d2d1cc" stroke="#ffffff" stroke-width="1"><title>must NOT_APPLICABLE: 58.1% (3172/5460)</title></rect>
+<text x="538.18" y="364.00" font-size="11" text-anchor="end" fill="#0b0b0b" transform="rotate(-40.00 538.18 364.00)">must</text>
+<line x1="80.00" y1="350.00" x2="560.00" y2="350.00" stroke="#8a8984" stroke-width="1.00"/>
+<rect x="585.00" y="61.00" width="12.00" height="12.00" fill="#2a78d6"/>
+<text x="607.00" y="71.00" font-size="12" text-anchor="start" fill="#0b0b0b">COMPLETED</text>
+<rect x="585.00" y="81.00" width="12.00" height="12.00" fill="#eb6834"/>
+<text x="607.00" y="91.00" font-size="12" text-anchor="start" fill="#0b0b0b">PARTIAL</text>
+<rect x="585.00" y="101.00" width="12.00" height="12.00" fill="#1baf7a"/>
+<text x="607.00" y="111.00" font-size="12" text-anchor="start" fill="#0b0b0b">TIMEOUT</text>
+<rect x="585.00" y="121.00" width="12.00" height="12.00" fill="#eda100"/>
+<text x="607.00" y="131.00" font-size="12" text-anchor="start" fill="#0b0b0b">TOOL_ERROR</text>
+<rect x="585.00" y="141.00" width="12.00" height="12.00" fill="#e87ba4"/>
+<text x="607.00" y="151.00" font-size="12" text-anchor="start" fill="#0b0b0b">NOT_ANALYZED</text>
+<rect x="585.00" y="161.00" width="12.00" height="12.00" fill="#d2d1cc"/>
+<text x="607.00" y="171.00" font-size="12" text-anchor="start" fill="#0b0b0b">NOT_APPLICABLE</text>
+<rect x="585.00" y="181.00" width="12.00" height="12.00" fill="#8c8b85"/>
+<text x="607.00" y="191.00" font-size="12" text-anchor="start" fill="#0b0b0b">ABSENT_INAPPLICABLE</text>
+<text x="20.00" y="446.00" font-size="10" text-anchor="start" fill="#52514e">Population: GENERATED (diagnostic only; never mixed with FINAL or STEP rates); unit: artifact x tool; block: composite.</text>
+<text x="20.00" y="462.00" font-size="10" text-anchor="start" fill="#52514e">Composite block, GENERATED (diagnostic only; never mixed with FINAL or STEP rates); S01 (static) / D01 (dynamic) analysis</text>
+<text x="20.00" y="475.00" font-size="10" text-anchor="start" fill="#52514e">state per tool; COMPLETED does not imply defect-free code; inapplicable states are not analysis gaps.</text>
+<text x="20.00" y="491.00" font-size="10" text-anchor="start" fill="#52514e">EFFECTIVE_STATES: Tool states are the effective states (framework.effective_tool_state): a front-end TOOL_ERROR or PARTIAL</text>
+<text x="20.00" y="504.00" font-size="10" text-anchor="start" fill="#52514e">entry of an artifact whose build failed counts as NOT_ANALYZED (dataset_disclosures.effective_state_overrides); the closure</text>
+<text x="20.00" y="517.00" font-size="10" text-anchor="start" fill="#52514e">register reports the raw states.</text>
+</svg>

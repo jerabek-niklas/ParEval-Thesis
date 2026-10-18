@@ -1,0 +1,1473 @@
+{
+  "id": "T7c_joint_transitions",
+  "title": "POST-FREEZE (addendum_1, descriptive): Joint Q06 / E02 transitions of the same base cell (X06)",
+  "population": "BASE paired with FINAL[v] (cells in both paired cohorts)",
+  "unit": "base cell",
+  "notes": [
+    "Block: composite; cell = base cells with this Q06 (row) and E02 (column) transition; Q06 not_pass->pass with E02 not_all_pass->not_all_pass = repaired on ParEval, not on the held-out specs; the cohort lies within both R04 paired cohorts and the row / column sums within the R01 Q06 / E02 transition counts (checked).",
+    "POST-FREEZE (study_analysis_001.addendum_1, DECLARED_AFTER_DRY_RUN, declared 2026-10-17; descriptive, not part of the frozen methodology): X06 joint_parEval_heldout_transitions - post-freeze descriptive; E02 counts build failures, so E02 and Q06 changes are largely the same cells",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still failing) and G01.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "X06 joint_parEval_heldout_transitions",
+      "text": "X06 joint_parEval_heldout_transitions: numerator = cells per (Q06 transition, E02 transition); denominator = paired cohort cells with >= 1 valid enhanced pair; unit = base cell."
+    },
+    {
+      "ref": "R01 repair_transition",
+      "text": "R01 repair_transition: numerator = cells per (base state, final state); denominator = base cells (E02: cells with >= 1 valid pair; identical for base and final because gates are spec-level); unit = base cell."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "q06",
+      "header": "Q06 transition",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "h_not_all_pass->all_pass",
+      "header": "E02 not_all_pass->all_pass % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 transition (held-out)",
+      "sub": "not_all_pass->all_pass"
+    },
+    {
+      "key": "h_all_pass->not_all_pass",
+      "header": "E02 all_pass->not_all_pass % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 transition (held-out)",
+      "sub": "all_pass->not_all_pass"
+    },
+    {
+      "key": "h_not_all_pass->not_all_pass",
+      "header": "E02 not_all_pass->not_all_pass % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 transition (held-out)",
+      "sub": "not_all_pass->not_all_pass"
+    },
+    {
+      "key": "h_all_pass->all_pass",
+      "header": "E02 all_pass->all_pass % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "E02 transition (held-out)",
+      "sub": "all_pass->all_pass"
+    },
+    {
+      "key": "total",
+      "header": "Q06 transition total % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "all E02",
+      "sub": "total"
+    }
+  ],
+  "rows": [
+    {
+      "variant": "static_feedback",
+      "q06": "not_pass->pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 91,
+        "denominator": 1980,
+        "value": 0.04595959595959596,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "not_pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "not_pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 3,
+        "denominator": 1980,
+        "value": 0.0015151515151515152,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "not_pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "not_pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 94,
+        "denominator": 1980,
+        "value": 0.047474747474747475,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "q06": "pass->not_pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 48,
+        "denominator": 1980,
+        "value": 0.024242424242424242,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 50,
+        "denominator": 1980,
+        "value": 0.025252525252525252,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "q06": "not_pass->not_pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 82,
+        "denominator": 1980,
+        "value": 0.04141414141414142,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 10,
+        "denominator": 1980,
+        "value": 0.005050505050505051,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 92,
+        "denominator": 1980,
+        "value": 0.046464646464646465,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "q06": "pass->pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 3,
+        "denominator": 1980,
+        "value": 0.0015151515151515152,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 40,
+        "denominator": 1980,
+        "value": 0.020202020202020204,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 1697,
+        "denominator": 1980,
+        "value": 0.8570707070707071,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "pass->pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 1744,
+        "denominator": 1980,
+        "value": 0.8808080808080808,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "q06": "not_pass->pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 128,
+        "denominator": 1980,
+        "value": 0.06464646464646465,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "not_pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "not_pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 14,
+        "denominator": 1980,
+        "value": 0.007070707070707071,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "not_pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 5,
+        "denominator": 1980,
+        "value": 0.0025252525252525255,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "not_pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 147,
+        "denominator": 1980,
+        "value": 0.07424242424242425,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "q06": "pass->not_pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "q06": "not_pass->not_pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 34,
+        "denominator": 1980,
+        "value": 0.01717171717171717,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 5,
+        "denominator": 1980,
+        "value": 0.0025252525252525255,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 39,
+        "denominator": 1980,
+        "value": 0.019696969696969695,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "q06": "pass->pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 2,
+        "denominator": 1980,
+        "value": 0.00101010101010101,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 42,
+        "denominator": 1980,
+        "value": 0.021212121212121213,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 1749,
+        "denominator": 1980,
+        "value": 0.8833333333333333,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "pass->pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 1794,
+        "denominator": 1980,
+        "value": 0.906060606060606,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "q06": "not_pass->pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 125,
+        "denominator": 1980,
+        "value": 0.06313131313131314,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "not_pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "not_pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 12,
+        "denominator": 1980,
+        "value": 0.006060606060606061,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "not_pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "not_pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 141,
+        "denominator": 1980,
+        "value": 0.07121212121212121,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "q06": "pass->not_pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 18,
+        "denominator": 1980,
+        "value": 0.00909090909090909,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 1,
+        "denominator": 1980,
+        "value": 0.000505050505050505,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 19,
+        "denominator": 1980,
+        "value": 0.009595959595959595,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "q06": "not_pass->not_pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 39,
+        "denominator": 1980,
+        "value": 0.019696969696969695,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 6,
+        "denominator": 1980,
+        "value": 0.0030303030303030303,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "not_pass->not_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 45,
+        "denominator": 1980,
+        "value": 0.022727272727272728,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "q06": "pass->pass",
+      "h_not_all_pass->all_pass": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->all_pass",
+            "transition": "pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->not_all_pass": {
+        "numerator": 3,
+        "denominator": 1980,
+        "value": 0.0015151515151515152,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->not_all_pass",
+            "transition": "pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_not_all_pass->not_all_pass": {
+        "numerator": 39,
+        "denominator": 1980,
+        "value": 0.019696969696969695,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "not_all_pass->not_all_pass",
+            "transition": "pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "h_all_pass->all_pass": {
+        "numerator": 1729,
+        "denominator": 1980,
+        "value": 0.8732323232323232,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): joint transition of the same base cell on Q06 (transition) and E02 (heldout_transition); denominator: cells in both paired cohorts (>= 1 valid enhanced pair)",
+        "source": {
+          "metric_id": "X06",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "heldout_transition": "all_pass->all_pass",
+            "transition": "pass->pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "total": {
+        "numerator": 1775,
+        "denominator": 1980,
+        "value": 0.8964646464646465,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X06 summed over the E02 transitions",
+        "source": null
+      }
+    }
+  ],
+  "footnotes": [],
+  "latex": {
+    "size": "scriptsize"
+  }
+}

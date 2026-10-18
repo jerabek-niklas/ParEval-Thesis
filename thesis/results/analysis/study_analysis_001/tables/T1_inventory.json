@@ -1,0 +1,217 @@
+{
+  "id": "T1_inventory",
+  "title": "Study inventory per block",
+  "population": "BASE, REPAIR_CANDIDATES, GENERATED, TRAJECTORIES, ENH_PAIRS(GENERATED) (counts)",
+  "unit": "count; the observation unit of each row is in column Unit",
+  "notes": [
+    "Counts of the normalized dataset per block; composite = pilot + full_ext (distinct counts: union); evidence owners and input identities in T1b.",
+    "Terminal statuses are trajectory facts, not success metrics (R06).",
+    "Cross-checked: R06 sums == trajectories per status, E04 == enhanced pairs/gated, Q01 BASE denominator == base cells."
+  ],
+  "definitions": [],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "quantity",
+      "header": "Quantity",
+      "align": "l",
+      "kind": "text",
+      "width": "6.5cm"
+    },
+    {
+      "key": "unit",
+      "header": "Unit",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "pilot",
+      "header": "pilot",
+      "align": "r",
+      "kind": "count",
+      "mark": "a"
+    },
+    {
+      "key": "full_ext",
+      "header": "full_ext",
+      "align": "r",
+      "kind": "count"
+    },
+    {
+      "key": "composite",
+      "header": "composite",
+      "align": "r",
+      "kind": "count"
+    }
+  ],
+  "rows": [
+    {
+      "quantity": "models",
+      "unit": "model",
+      "pilot": 11,
+      "full_ext": 11,
+      "composite": 11
+    },
+    {
+      "quantity": "benchmarks (resampling clusters)",
+      "unit": "benchmark",
+      "pilot": 12,
+      "full_ext": 48,
+      "composite": 60
+    },
+    {
+      "quantity": "benchmark families (problem types)",
+      "unit": "family",
+      "pilot": 12,
+      "full_ext": 12,
+      "composite": 12
+    },
+    {
+      "quantity": "base cells (BASE)",
+      "unit": "base cell",
+      "pilot": 396,
+      "full_ext": 1584,
+      "composite": 1980
+    },
+    {
+      "quantity": "base cells of the BL-01 benchmark dense_la/00_dense_la_lu_decomp (removed by SA1)",
+      "unit": "base cell",
+      "pilot": 33,
+      "full_ext": 0,
+      "composite": 33
+    },
+    {
+      "quantity": "repair candidates, iteration 1",
+      "unit": "artifact",
+      "pilot": 358,
+      "full_ext": 1879,
+      "composite": 2237
+    },
+    {
+      "quantity": "repair candidates, iteration 2",
+      "unit": "artifact",
+      "pilot": 189,
+      "full_ext": 1054,
+      "composite": 1243
+    },
+    {
+      "quantity": "repair candidates (REPAIR_CANDIDATES)",
+      "unit": "artifact",
+      "pilot": 547,
+      "full_ext": 2933,
+      "composite": 3480
+    },
+    {
+      "quantity": "artifacts (GENERATED)",
+      "unit": "artifact",
+      "pilot": 943,
+      "full_ext": 4517,
+      "composite": 5460
+    },
+    {
+      "quantity": "trajectories (base cells x variants)",
+      "unit": "trajectory",
+      "pilot": 1188,
+      "full_ext": 4752,
+      "composite": 5940
+    },
+    {
+      "quantity": "terminal status stopped_clean (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 324,
+      "full_ext": 959,
+      "composite": 1283
+    },
+    {
+      "quantity": "terminal status stopped_tests_pass (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 384,
+      "full_ext": 1529,
+      "composite": 1913
+    },
+    {
+      "quantity": "terminal status stopped_budget (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 123,
+      "full_ext": 725,
+      "composite": 848
+    },
+    {
+      "quantity": "terminal status stopped_analysis_incomplete (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 357,
+      "full_ext": 1539,
+      "composite": 1896
+    },
+    {
+      "quantity": "terminal status repair_unusable (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 0,
+      "full_ext": 0,
+      "composite": 0
+    },
+    {
+      "quantity": "terminal status stopped_baseline_incompatible (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 0,
+      "full_ext": 0,
+      "composite": 0
+    },
+    {
+      "quantity": "terminal status stopped_api_exhausted (R06 sum over variants)",
+      "unit": "trajectory",
+      "pilot": 0,
+      "full_ext": 0,
+      "composite": 0
+    },
+    {
+      "quantity": "enhanced pairs, all (ENH_PAIRS(GENERATED))",
+      "unit": "enhanced pair",
+      "pilot": 18860,
+      "full_ext": 90340,
+      "composite": 109200
+    },
+    {
+      "quantity": "enhanced pairs, valid",
+      "unit": "enhanced pair",
+      "pilot": 18053,
+      "full_ext": 89857,
+      "composite": 107910
+    },
+    {
+      "quantity": "enhanced pairs, gated (E04 numerator)",
+      "unit": "enhanced pair",
+      "pilot": 807,
+      "full_ext": 483,
+      "composite": 1290
+    },
+    {
+      "quantity": "gated (benchmark, spec, execution model) groups",
+      "unit": "group",
+      "pilot": 27,
+      "full_ext": 21,
+      "composite": 48
+    },
+    {
+      "quantity": "generation records, base",
+      "unit": "generation",
+      "pilot": 396,
+      "full_ext": 1584,
+      "composite": 1980
+    },
+    {
+      "quantity": "generation records, repair",
+      "unit": "generation",
+      "pilot": 547,
+      "full_ext": 2933,
+      "composite": 3480
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

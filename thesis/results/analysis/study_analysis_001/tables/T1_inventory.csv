@@ -1,0 +1,24 @@
+Quantity,Unit,pilot [a],full_ext,composite
+models,model,11,11,11
+benchmarks (resampling clusters),benchmark,12,48,60
+benchmark families (problem types),family,12,12,12
+base cells (BASE),base cell,396,1584,1980
+base cells of the BL-01 benchmark dense_la/00_dense_la_lu_decomp (removed by SA1),base cell,33,0,33
+"repair candidates, iteration 1",artifact,358,1879,2237
+"repair candidates, iteration 2",artifact,189,1054,1243
+repair candidates (REPAIR_CANDIDATES),artifact,547,2933,3480
+artifacts (GENERATED),artifact,943,4517,5460
+trajectories (base cells x variants),trajectory,1188,4752,5940
+terminal status stopped_clean (R06 sum over variants),trajectory,324,959,1283
+terminal status stopped_tests_pass (R06 sum over variants),trajectory,384,1529,1913
+terminal status stopped_budget (R06 sum over variants),trajectory,123,725,848
+terminal status stopped_analysis_incomplete (R06 sum over variants),trajectory,357,1539,1896
+terminal status repair_unusable (R06 sum over variants),trajectory,0,0,0
+terminal status stopped_baseline_incompatible (R06 sum over variants),trajectory,0,0,0
+terminal status stopped_api_exhausted (R06 sum over variants),trajectory,0,0,0
+"enhanced pairs, all (ENH_PAIRS(GENERATED))",enhanced pair,18860,90340,109200
+"enhanced pairs, valid",enhanced pair,18053,89857,107910
+"enhanced pairs, gated (E04 numerator)",enhanced pair,807,483,1290
+"gated (benchmark, spec, execution model) groups",group,27,21,48
+"generation records, base",generation,396,1584,1980
+"generation records, repair",generation,547,2933,3480

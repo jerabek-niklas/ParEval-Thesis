@@ -1,0 +1,1839 @@
+{
+  "id": "T6b_effort",
+  "title": "Repair effort per variant and block",
+  "population": "REPAIR_CANDIDATES (diagnostic only; C02 also BASE, C05 FINAL[v] vs BASE)",
+  "unit": "generation / repair request (see metric)",
+  "notes": [
+    "One row per effort estimate (all models); value = the estimate's point value (C01 per trajectory or per improved cell as given by its strata, C02 tokens per generation, C03 median seconds, C05 improved cells per effort unit); descriptive only, no ranking.",
+    "Abbreviation in column Population: REPAIR_CAND. = REPAIR_CANDIDATES (the JSON form keeps the full name).",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "REPAIR_CANDIDATES",
+      "text": "REPAIR_CANDIDATES: the 3,480 repair candidates (iteration >= 1) (use: diagnostic only)"
+    },
+    {
+      "ref": "C01 repair_requests",
+      "text": "C01 repair_requests: numerator = records / rounds; denominator = - (counts); per trajectory and per improved cell; unit = repair generation."
+    },
+    {
+      "ref": "C02 tokens",
+      "text": "C02 tokens: numerator = token sums; denominator = generations (per-request means); reasoning tokens only over generations where the provider reports the field; unit = generation."
+    },
+    {
+      "ref": "C03 repair_latency",
+      "text": "C03 repair_latency: numerator = -; denominator = direct-mode generations; unit = generation."
+    },
+    {
+      "ref": "C05 gain_per_effort",
+      "text": "C05 gain_per_effort: numerator = improved cells; denominator = repair output tokens / requests of the variant; unit = variant x model."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "metric",
+      "header": "Metric",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "population",
+      "header": "Population",
+      "align": "l",
+      "kind": "text",
+      "width": "1.9cm",
+      "display": {
+        "REPAIR_CANDIDATES": "REPAIR_CAND."
+      }
+    },
+    {
+      "key": "quantity",
+      "header": "Quantity / strata",
+      "align": "l",
+      "kind": "text",
+      "width": "2.6cm"
+    },
+    {
+      "key": "numerator",
+      "header": "Numerator",
+      "align": "r",
+      "kind": "count"
+    },
+    {
+      "key": "denominator",
+      "header": "Denominator",
+      "align": "r",
+      "kind": "count"
+    },
+    {
+      "key": "value",
+      "header": "Value",
+      "align": "r",
+      "kind": "dnumber"
+    },
+    {
+      "key": "extra",
+      "header": "Further statistics",
+      "align": "l",
+      "kind": "mapping",
+      "width": "3.8cm"
+    }
+  ],
+  "rows": [
+    {
+      "variant": "(base generation)",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "input_tokens",
+      "numerator": 97829,
+      "denominator": 396,
+      "value": {
+        "value": 247.0429292929293,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 396,
+        "median": 229.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "output_tokens",
+      "numerator": 615391,
+      "denominator": 396,
+      "value": {
+        "value": 1554.0176767676767,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 396,
+        "median": 636.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "reasoning_tokens",
+      "numerator": 618154,
+      "denominator": 360,
+      "value": {
+        "value": 1717.0944444444444,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.9090909090909091,
+        "generations": 396,
+        "median": 992.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "input_tokens",
+      "numerator": 410713,
+      "denominator": 1584,
+      "value": {
+        "value": 259.2885101010101,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1584,
+        "median": 245.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "output_tokens",
+      "numerator": 2332817,
+      "denominator": 1584,
+      "value": {
+        "value": 1472.738005050505,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1584,
+        "median": 581.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "reasoning_tokens",
+      "numerator": 2363000,
+      "denominator": 1440,
+      "value": {
+        "value": 1640.9722222222222,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.9090909090909091,
+        "generations": 1584,
+        "median": 873.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "composite",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "input_tokens",
+      "numerator": 508542,
+      "denominator": 1980,
+      "value": {
+        "value": 256.8393939393939,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1980,
+        "median": 242.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "composite",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "output_tokens",
+      "numerator": 2948208,
+      "denominator": 1980,
+      "value": {
+        "value": 1488.9939393939394,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1980,
+        "median": 589.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "(base generation)",
+      "block": "composite",
+      "metric": "C02",
+      "population": "BASE",
+      "quantity": "reasoning_tokens",
+      "numerator": 2981154,
+      "denominator": 1800,
+      "value": {
+        "value": 1656.1966666666667,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.9090909090909091,
+        "generations": 1980,
+        "median": 897.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 236,
+      "denominator": 16,
+      "value": {
+        "value": 14.75,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 236,
+      "denominator": 396,
+      "value": {
+        "value": 0.5959595959595959,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 236,
+      "denominator": 16,
+      "value": {
+        "value": 14.75,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 236,
+      "denominator": 396,
+      "value": {
+        "value": 0.5959595959595959,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 621783,
+      "denominator": 236,
+      "value": {
+        "value": 2634.673728813559,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 236,
+        "median": 1994.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 526665,
+      "denominator": 236,
+      "value": {
+        "value": 2231.6313559322034,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 236,
+        "median": 1256.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 467164,
+      "denominator": 208,
+      "value": {
+        "value": 2245.980769230769,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8813559322033898,
+        "generations": 236,
+        "median": 1677.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 236,
+      "value": {
+        "value": 22.5865,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 236,
+        "p95": 78.94725,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 16,
+      "denominator": 236,
+      "value": {
+        "value": 6.779661016949152,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 16,
+      "denominator": 526665,
+      "value": {
+        "value": 30.379842974186626,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 1249,
+      "denominator": 78,
+      "value": {
+        "value": 16.012820512820515,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 1249,
+      "denominator": 1584,
+      "value": {
+        "value": 0.788510101010101,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 1249,
+      "denominator": 78,
+      "value": {
+        "value": 16.012820512820515,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 1249,
+      "denominator": 1584,
+      "value": {
+        "value": 0.788510101010101,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 2458803,
+      "denominator": 1249,
+      "value": {
+        "value": 1968.617293835068,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1249,
+        "median": 1412.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 2489656,
+      "denominator": 1249,
+      "value": {
+        "value": 1993.3194555644516,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1249,
+        "median": 1045.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 2366453,
+      "denominator": 1116,
+      "value": {
+        "value": 2120.477598566308,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8935148118494796,
+        "generations": 1249,
+        "median": 1552.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 1249,
+      "value": {
+        "value": 45.95,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 1249,
+        "p95": 583.2619999999996,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 78,
+      "denominator": 1249,
+      "value": {
+        "value": 6.244995996797438,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 78,
+      "denominator": 2489656,
+      "value": {
+        "value": 31.32962947491541,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 1485,
+      "denominator": 94,
+      "value": {
+        "value": 15.797872340425531,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 1485,
+      "denominator": 1980,
+      "value": {
+        "value": 0.75,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 1485,
+      "denominator": 94,
+      "value": {
+        "value": 15.797872340425531,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 1485,
+      "denominator": 1980,
+      "value": {
+        "value": 0.75,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 3080586,
+      "denominator": 1485,
+      "value": {
+        "value": 2074.4686868686867,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1485,
+        "median": 1478.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 3016321,
+      "denominator": 1485,
+      "value": {
+        "value": 2031.1925925925925,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1485,
+        "median": 1085.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 2833617,
+      "denominator": 1324,
+      "value": {
+        "value": 2140.1941087613295,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8915824915824916,
+        "generations": 1485,
+        "median": 1553.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 1485,
+      "value": {
+        "value": 39.628,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 1485,
+        "p95": 567.8609999999999,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 94,
+      "denominator": 1485,
+      "value": {
+        "value": 6.32996632996633,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 94,
+      "denominator": 3016321,
+      "value": {
+        "value": 31.16379191737219,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 52,
+      "denominator": 20,
+      "value": {
+        "value": 2.6,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 52,
+      "denominator": 396,
+      "value": {
+        "value": 0.13131313131313133,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 52,
+      "denominator": 20,
+      "value": {
+        "value": 2.6,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 52,
+      "denominator": 396,
+      "value": {
+        "value": 0.13131313131313133,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 90533,
+      "denominator": 52,
+      "value": {
+        "value": 1741.0192307692307,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 52,
+        "median": 1464.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 132447,
+      "denominator": 52,
+      "value": {
+        "value": 2547.0576923076924,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 52,
+        "median": 1427.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 104895,
+      "denominator": 33,
+      "value": {
+        "value": 3178.6363636363635,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.6346153846153846,
+        "generations": 52,
+        "median": 2231.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 52,
+      "value": {
+        "value": 21.206,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 52,
+        "p95": 86.44584999999988,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 20,
+      "denominator": 52,
+      "value": {
+        "value": 38.46153846153846,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 20,
+      "denominator": 132447,
+      "value": {
+        "value": 151.0037977455133,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 320,
+      "denominator": 127,
+      "value": {
+        "value": 2.5196850393700787,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 320,
+      "denominator": 1584,
+      "value": {
+        "value": 0.20202020202020202,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 320,
+      "denominator": 127,
+      "value": {
+        "value": 2.5196850393700787,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 320,
+      "denominator": 1584,
+      "value": {
+        "value": 0.20202020202020202,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 419687,
+      "denominator": 320,
+      "value": {
+        "value": 1311.521875,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 320,
+        "median": 1125.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 871701,
+      "denominator": 320,
+      "value": {
+        "value": 2724.065625,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 320,
+        "median": 1287.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 791952,
+      "denominator": 256,
+      "value": {
+        "value": 3093.5625,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8,
+        "generations": 320,
+        "median": 2457.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 320,
+      "value": {
+        "value": 466.236,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 320,
+        "p95": 620.49415,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 127,
+      "denominator": 320,
+      "value": {
+        "value": 39.6875,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 127,
+      "denominator": 871701,
+      "value": {
+        "value": 145.69215820562326,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 372,
+      "denominator": 147,
+      "value": {
+        "value": 2.5306122448979593,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 372,
+      "denominator": 1980,
+      "value": {
+        "value": 0.18787878787878787,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 372,
+      "denominator": 147,
+      "value": {
+        "value": 2.5306122448979593,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 372,
+      "denominator": 1980,
+      "value": {
+        "value": 0.18787878787878787,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 510220,
+      "denominator": 372,
+      "value": {
+        "value": 1371.5591397849462,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 372,
+        "median": 1148.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 1004148,
+      "denominator": 372,
+      "value": {
+        "value": 2699.3225806451615,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 372,
+        "median": 1298.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 896847,
+      "denominator": 289,
+      "value": {
+        "value": 3103.2768166089963,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.7768817204301075,
+        "generations": 372,
+        "median": 2457.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 372,
+      "value": {
+        "value": 120.467,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 372,
+        "p95": 619.6514,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 147,
+      "denominator": 372,
+      "value": {
+        "value": 39.516129032258064,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 147,
+      "denominator": 1004148,
+      "value": {
+        "value": 146.39276281982336,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 259,
+      "denominator": 22,
+      "value": {
+        "value": 11.772727272727273,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 259,
+      "denominator": 396,
+      "value": {
+        "value": 0.6540404040404041,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 259,
+      "denominator": 22,
+      "value": {
+        "value": 11.772727272727273,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 259,
+      "denominator": 396,
+      "value": {
+        "value": 0.6540404040404041,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 688656,
+      "denominator": 259,
+      "value": {
+        "value": 2658.903474903475,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 259,
+        "median": 1969.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 611704,
+      "denominator": 259,
+      "value": {
+        "value": 2361.7915057915056,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 259,
+        "median": 1398.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 523173,
+      "denominator": 225,
+      "value": {
+        "value": 2325.213333333333,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8687258687258688,
+        "generations": 259,
+        "median": 1813.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 259,
+      "value": {
+        "value": 21.76,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 259,
+        "p95": 72.5401,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 22,
+      "denominator": 259,
+      "value": {
+        "value": 8.494208494208495,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 22,
+      "denominator": 611704,
+      "value": {
+        "value": 35.96510730680198,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 1364,
+      "denominator": 119,
+      "value": {
+        "value": 11.46218487394958,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 1364,
+      "denominator": 1584,
+      "value": {
+        "value": 0.8611111111111112,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 1364,
+      "denominator": 119,
+      "value": {
+        "value": 11.46218487394958,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 1364,
+      "denominator": 1584,
+      "value": {
+        "value": 0.8611111111111112,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 2693024,
+      "denominator": 1364,
+      "value": {
+        "value": 1974.357771260997,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1364,
+        "median": 1387.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 2802798,
+      "denominator": 1364,
+      "value": {
+        "value": 2054.8372434017597,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1364,
+        "median": 1044.5,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 2625251,
+      "denominator": 1210,
+      "value": {
+        "value": 2169.6289256198347,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8870967741935484,
+        "generations": 1364,
+        "median": 1544.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 1364,
+      "value": {
+        "value": 44.8635,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 1364,
+        "p95": 582.1375499999998,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 119,
+      "denominator": 1364,
+      "value": {
+        "value": 8.72434017595308,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 119,
+      "denominator": 2802798,
+      "value": {
+        "value": 42.4575727540836,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_improved_cell",
+      "numerator": 1623,
+      "denominator": 141,
+      "value": {
+        "value": 11.51063829787234,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "records_per_trajectory",
+      "numerator": 1623,
+      "denominator": 1980,
+      "value": {
+        "value": 0.8196969696969697,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_improved_cell",
+      "numerator": 1623,
+      "denominator": 141,
+      "value": {
+        "value": 11.51063829787234,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C01",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "request_rounds_per_trajectory",
+      "numerator": 1623,
+      "denominator": 1980,
+      "value": {
+        "value": 0.8196969696969697,
+        "digits": 2
+      },
+      "extra": {
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "input_tokens",
+      "numerator": 3381680,
+      "denominator": 1623,
+      "value": {
+        "value": 2083.5982747997537,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1623,
+        "median": 1464.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "output_tokens",
+      "numerator": 3414502,
+      "denominator": 1623,
+      "value": {
+        "value": 2103.8213185459026,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 1.0,
+        "generations": 1623,
+        "median": 1120.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C02",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "reasoning_tokens",
+      "numerator": 3148424,
+      "denominator": 1435,
+      "value": {
+        "value": 2194.023693379791,
+        "digits": 0
+      },
+      "extra": {
+        "coverage": 0.8841651263093038,
+        "generations": 1623,
+        "median": 1552.0,
+        "statistic": "mean"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C03",
+      "population": "REPAIR_CANDIDATES",
+      "quantity": "",
+      "numerator": null,
+      "denominator": 1623,
+      "value": {
+        "value": 38.979,
+        "digits": 1
+      },
+      "extra": {
+        "excluded_not_direct": 0,
+        "excluded_null": 0,
+        "n": 1623,
+        "p95": 565.9861999999999,
+        "statistic": "median"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_100_requests",
+      "numerator": 141,
+      "denominator": 1623,
+      "value": {
+        "value": 8.687615526802219,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "metric": "C05",
+      "population": "FINAL",
+      "quantity": "per_1M_output_tokens",
+      "numerator": 141,
+      "denominator": 3414502,
+      "value": {
+        "value": 41.294455238274864,
+        "digits": 3
+      },
+      "extra": {
+        "statistic": "scaled_rate"
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

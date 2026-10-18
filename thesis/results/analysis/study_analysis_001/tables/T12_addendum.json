@@ -1,0 +1,2270 @@
+{
+  "id": "T12_addendum",
+  "title": "POST-FREEZE (addendum_1, descriptive): Static DIRTY under the tool-verdict reading (X02 vs F01) and statically clean but incorrect artifacts (X04)",
+  "population": "BASE / FINAL[v]",
+  "unit": "artifact",
+  "notes": [
+    "F01 only = artifacts DIRTY under the frozen rule (findings of any entry state) but not under X02 (only COMPLETED / PARTIAL entries count): X02 DIRTY = F01 DIRTY - F01 only (checked); X04 denominator = the artifacts failing Q06 of the same population (Q06 denominator - pass, checked); the DIRTY composition per tool is T12b, X05 is T12c.",
+    "POST-FREEZE (study_analysis_001.addendum_1, DECLARED_AFTER_DRY_RUN, declared 2026-10-17; descriptive, not part of the frozen methodology): X02 three_state_tool_verdict_reading - post-freeze sensitivity of the F01 rule conflict documented in normalize.py (170 artifacts in the dry run, all build_failed, clang_tidy NOT_ANALYZED entries); X04 statically_clean_but_incorrect - post-freeze descriptive (the frozen methodology named the goal but defined no metric)",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC4: DIRTY means at least one finding the frozen tool configuration marks blocking (dominated by clang-tidy bugprone heuristics, see X03), not a confirmed defect; under the frozen rule findings of entries in analysis-gap states count (sensitivity X02).",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "F01 static_verdict_three_state",
+      "text": "F01 static_verdict_three_state: numerator = artifacts per state; denominator = artifacts; unit = artifact."
+    },
+    {
+      "ref": "X02 three_state_tool_verdict_reading",
+      "text": "X02 three_state_tool_verdict_reading: numerator = artifacts per state (DIRTY, CLEAN_COMPLETE, NO_FINDING_INCOMPLETE); denominator = artifacts; unit = artifact."
+    },
+    {
+      "ref": "X04 statically_clean_but_incorrect",
+      "text": "X04 statically_clean_but_incorrect: numerator = FINAL artifacts with Q06 not pass and F01 == CLEAN_COMPLETE (resp. NO_FINDING_INCOMPLETE); denominator = FINAL artifacts with Q06 not pass (verdict not baseline_incompatible); unit = artifact."
+    }
+  ],
+  "ci_note": "95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks resampled among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 2,000 replicates (descriptive, unadjusted); 2 interval(s) rest on fewer usable replicates (resamples with a zero denominator skipped and counted in the estimate note; at least 1,939 used); 1 interval(s) of zero width marked †",
+  "columns": [
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "population",
+      "header": "Population",
+      "align": "l",
+      "kind": "text",
+      "width": "2.3cm"
+    },
+    {
+      "key": "f01",
+      "header": "F01 DIRTY frozen % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "static DIRTY: frozen F01 vs X02 tool-verdict reading",
+      "sub": "F01 frozen"
+    },
+    {
+      "key": "x02",
+      "header": "X02 DIRTY tool-verdict % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "static DIRTY: frozen F01 vs X02 tool-verdict reading",
+      "sub": "X02"
+    },
+    {
+      "key": "x02_ci",
+      "header": "X02 DIRTY 95% CI",
+      "align": "r",
+      "kind": "ci",
+      "group": "static DIRTY: frozen F01 vs X02 tool-verdict reading",
+      "sub": "X02 95% CI"
+    },
+    {
+      "key": "x02_only",
+      "header": "DIRTY only under the frozen rule % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "static DIRTY: frozen F01 vs X02 tool-verdict reading",
+      "sub": "F01 only"
+    },
+    {
+      "key": "x04_clean",
+      "header": "X04 CLEAN_COMPLETE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "X04 among Q06-failing artifacts",
+      "sub": "CLEAN_COMPLETE"
+    },
+    {
+      "key": "x04_clean_ci",
+      "header": "X04 CLEAN_COMPLETE 95% CI",
+      "align": "r",
+      "kind": "ci",
+      "group": "X04 among Q06-failing artifacts",
+      "sub": "95% CI"
+    },
+    {
+      "key": "x04_nfi",
+      "header": "X04 NO_FINDING_INCOMPLETE % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "X04 among Q06-failing artifacts",
+      "sub": "NO_FINDING_INCOMPLETE"
+    },
+    {
+      "key": "x04_nfi_ci",
+      "header": "X04 NO_FINDING_INCOMPLETE 95% CI",
+      "align": "r",
+      "kind": "ci",
+      "group": "X04 among Q06-failing artifacts",
+      "sub": "95% CI"
+    }
+  ],
+  "rows": [
+    {
+      "block": "pilot",
+      "population": "BASE",
+      "f01": {
+        "numerator": 120,
+        "denominator": 396,
+        "value": 0.30303030303030304,
+        "ci_low": 0.16666666666666666,
+        "ci_high": 0.44955808080808046,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 113,
+        "denominator": 396,
+        "value": 0.28535353535353536,
+        "ci_low": 0.15397727272727282,
+        "ci_high": 0.4292929292929293,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 113,
+        "denominator": 396,
+        "value": 0.28535353535353536,
+        "ci_low": 0.15397727272727282,
+        "ci_high": 0.4292929292929293,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 7,
+        "denominator": 396,
+        "value": 0.017676767676767676,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 4,
+        "denominator": 29,
+        "value": 0.13793103448275862,
+        "ci_low": 0.026298920377867775,
+        "ci_high": 0.31822727272727247,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 4,
+        "denominator": 29,
+        "value": 0.13793103448275862,
+        "ci_low": 0.026298920377867775,
+        "ci_high": 0.31822727272727247,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 13,
+        "denominator": 29,
+        "value": 0.4482758620689655,
+        "ci_low": 0.2222222222222222,
+        "ci_high": 0.594610682110682,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 13,
+        "denominator": 29,
+        "value": 0.4482758620689655,
+        "ci_low": 0.2222222222222222,
+        "ci_high": 0.594610682110682,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "population": "FINAL[static_feedback]",
+      "f01": {
+        "numerator": 18,
+        "denominator": 396,
+        "value": 0.045454545454545456,
+        "ci_low": 0.015151515151515152,
+        "ci_high": 0.07828282828282829,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 18,
+        "denominator": 396,
+        "value": 0.045454545454545456,
+        "ci_low": 0.015151515151515152,
+        "ci_high": 0.07828282828282829,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 18,
+        "denominator": 396,
+        "value": 0.045454545454545456,
+        "ci_low": 0.015151515151515152,
+        "ci_high": 0.07828282828282829,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 4,
+        "denominator": 14,
+        "value": 0.2857142857142857,
+        "ci_low": 0.05555555555555555,
+        "ci_high": 0.6,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 4,
+        "denominator": 14,
+        "value": 0.2857142857142857,
+        "ci_low": 0.05555555555555555,
+        "ci_high": 0.6,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 8,
+        "denominator": 14,
+        "value": 0.5714285714285714,
+        "ci_low": 0.25,
+        "ci_high": 0.7777777777777778,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 8,
+        "denominator": 14,
+        "value": 0.5714285714285714,
+        "ci_low": 0.25,
+        "ci_high": 0.7777777777777778,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "population": "FINAL[test_feedback]",
+      "f01": {
+        "numerator": 124,
+        "denominator": 396,
+        "value": 0.31313131313131315,
+        "ci_low": 0.1717171717171717,
+        "ci_high": 0.46464646464646464,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 124,
+        "denominator": 396,
+        "value": 0.31313131313131315,
+        "ci_low": 0.1717171717171717,
+        "ci_high": 0.46464646464646464,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 124,
+        "denominator": 396,
+        "value": 0.31313131313131315,
+        "ci_low": 0.1717171717171717,
+        "ci_high": 0.46464646464646464,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 0,
+        "denominator": 9,
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": true,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity; degenerate percentile interval (zero width): every supporting cluster has the same value",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 0,
+        "denominator": 9,
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": true,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity; degenerate percentile interval (zero width): every supporting cluster has the same value",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 4,
+        "denominator": 9,
+        "value": 0.4444444444444444,
+        "ci_low": 0.0,
+        "ci_high": 0.8,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 4,
+        "denominator": 9,
+        "value": 0.4444444444444444,
+        "ci_low": 0.0,
+        "ci_high": 0.8,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "population": "FINAL[combined_feedback]",
+      "f01": {
+        "numerator": 23,
+        "denominator": 396,
+        "value": 0.05808080808080808,
+        "ci_low": 0.020202020202020204,
+        "ci_high": 0.10606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 23,
+        "denominator": 396,
+        "value": 0.05808080808080808,
+        "ci_low": 0.020202020202020204,
+        "ci_high": 0.10606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 23,
+        "denominator": 396,
+        "value": 0.05808080808080808,
+        "ci_low": 0.020202020202020204,
+        "ci_high": 0.10606060606060606,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 1,
+        "denominator": 8,
+        "value": 0.125,
+        "ci_low": 0.0,
+        "ci_high": 0.25,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 1939,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity; 61 of 2000 bootstrap replicates skipped (denominator 0)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 1,
+        "denominator": 8,
+        "value": 0.125,
+        "ci_low": 0.0,
+        "ci_high": 0.25,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 1939,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity; 61 of 2000 bootstrap replicates skipped (denominator 0)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 7,
+        "denominator": 8,
+        "value": 0.875,
+        "ci_low": 0.75,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 1939,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share); 61 of 2000 bootstrap replicates skipped (denominator 0)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 7,
+        "denominator": 8,
+        "value": 0.875,
+        "ci_low": 0.75,
+        "ci_high": 1.0,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 1939,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share); 61 of 2000 bootstrap replicates skipped (denominator 0)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "population": "BASE",
+      "f01": {
+        "numerator": 640,
+        "denominator": 1584,
+        "value": 0.40404040404040403,
+        "ci_low": 0.3327020202020202,
+        "ci_high": 0.4880050505050505,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 609,
+        "denominator": 1584,
+        "value": 0.38446969696969696,
+        "ci_low": 0.31374684343434345,
+        "ci_high": 0.4684343434343434,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 609,
+        "denominator": 1584,
+        "value": 0.38446969696969696,
+        "ci_low": 0.31374684343434345,
+        "ci_high": 0.4684343434343434,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 31,
+        "denominator": 1584,
+        "value": 0.019570707070707072,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 14,
+        "denominator": 157,
+        "value": 0.08917197452229299,
+        "ci_low": 0.03418560606060607,
+        "ci_high": 0.17391304347826086,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 14,
+        "denominator": 157,
+        "value": 0.08917197452229299,
+        "ci_low": 0.03418560606060607,
+        "ci_high": 0.17391304347826086,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 67,
+        "denominator": 157,
+        "value": 0.4267515923566879,
+        "ci_low": 0.256,
+        "ci_high": 0.5500140449438202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 67,
+        "denominator": 157,
+        "value": 0.4267515923566879,
+        "ci_low": 0.256,
+        "ci_high": 0.5500140449438202,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "population": "FINAL[static_feedback]",
+      "f01": {
+        "numerator": 190,
+        "denominator": 1584,
+        "value": 0.11994949494949494,
+        "ci_low": 0.0643781565656566,
+        "ci_high": 0.18562184343434335,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 152,
+        "denominator": 1584,
+        "value": 0.09595959595959595,
+        "ci_low": 0.05303030303030303,
+        "ci_high": 0.14583333333333334,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 152,
+        "denominator": 1584,
+        "value": 0.09595959595959595,
+        "ci_low": 0.05303030303030303,
+        "ci_high": 0.14583333333333334,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 38,
+        "denominator": 1584,
+        "value": 0.023989898989898988,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 21,
+        "denominator": 128,
+        "value": 0.1640625,
+        "ci_low": 0.07029887354651165,
+        "ci_high": 0.2793316628327308,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 21,
+        "denominator": 128,
+        "value": 0.1640625,
+        "ci_low": 0.07029887354651165,
+        "ci_high": 0.2793316628327308,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 57,
+        "denominator": 128,
+        "value": 0.4453125,
+        "ci_low": 0.27348484848484855,
+        "ci_high": 0.6174739491345813,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 57,
+        "denominator": 128,
+        "value": 0.4453125,
+        "ci_low": 0.27348484848484855,
+        "ci_high": 0.6174739491345813,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "population": "FINAL[test_feedback]",
+      "f01": {
+        "numerator": 641,
+        "denominator": 1584,
+        "value": 0.4046717171717172,
+        "ci_low": 0.3333333333333333,
+        "ci_high": 0.48926767676767674,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 637,
+        "denominator": 1584,
+        "value": 0.40214646464646464,
+        "ci_low": 0.33080808080808083,
+        "ci_high": 0.48674242424242425,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 637,
+        "denominator": 1584,
+        "value": 0.40214646464646464,
+        "ci_low": 0.33080808080808083,
+        "ci_high": 0.48674242424242425,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 4,
+        "denominator": 1584,
+        "value": 0.0025252525252525255,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 3,
+        "denominator": 30,
+        "value": 0.1,
+        "ci_low": 0.0,
+        "ci_high": 0.21212121212121213,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 3,
+        "denominator": 30,
+        "value": 0.1,
+        "ci_low": 0.0,
+        "ci_high": 0.21212121212121213,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 10,
+        "denominator": 30,
+        "value": 0.3333333333333333,
+        "ci_low": 0.09090909090909091,
+        "ci_high": 0.5833333333333334,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 10,
+        "denominator": 30,
+        "value": 0.3333333333333333,
+        "ci_low": 0.09090909090909091,
+        "ci_high": 0.5833333333333334,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "population": "FINAL[combined_feedback]",
+      "f01": {
+        "numerator": 199,
+        "denominator": 1584,
+        "value": 0.12563131313131312,
+        "ci_low": 0.0726010101010101,
+        "ci_high": 0.18876262626262627,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 182,
+        "denominator": 1584,
+        "value": 0.1148989898989899,
+        "ci_low": 0.06691919191919192,
+        "ci_high": 0.17110164141414133,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 182,
+        "denominator": 1584,
+        "value": 0.1148989898989899,
+        "ci_low": 0.06691919191919192,
+        "ci_high": 0.17110164141414133,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 17,
+        "denominator": 1584,
+        "value": 0.010732323232323232,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 6,
+        "denominator": 56,
+        "value": 0.10714285714285714,
+        "ci_low": 0.01818181818181818,
+        "ci_high": 0.21314402810304434,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 6,
+        "denominator": 56,
+        "value": 0.10714285714285714,
+        "ci_low": 0.01818181818181818,
+        "ci_high": 0.21314402810304434,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 26,
+        "denominator": 56,
+        "value": 0.4642857142857143,
+        "ci_low": 0.29411764705882354,
+        "ci_high": 0.6415094339622641,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 26,
+        "denominator": 56,
+        "value": 0.4642857142857143,
+        "ci_low": 0.29411764705882354,
+        "ci_high": 0.6415094339622641,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "population": "BASE",
+      "f01": {
+        "numerator": 760,
+        "denominator": 1980,
+        "value": 0.3838383838383838,
+        "ci_low": 0.320189393939394,
+        "ci_high": 0.45607323232323227,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 722,
+        "denominator": 1980,
+        "value": 0.36464646464646466,
+        "ci_low": 0.302020202020202,
+        "ci_high": 0.43686868686868685,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 722,
+        "denominator": 1980,
+        "value": 0.36464646464646466,
+        "ci_low": 0.302020202020202,
+        "ci_high": 0.43686868686868685,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 38,
+        "denominator": 1980,
+        "value": 0.01919191919191919,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 18,
+        "denominator": 186,
+        "value": 0.0967741935483871,
+        "ci_low": 0.044325502084122795,
+        "ci_high": 0.1728587962962962,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 18,
+        "denominator": 186,
+        "value": 0.0967741935483871,
+        "ci_low": 0.044325502084122795,
+        "ci_high": 0.1728587962962962,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 80,
+        "denominator": 186,
+        "value": 0.43010752688172044,
+        "ci_low": 0.2856926406926407,
+        "ci_high": 0.5370390587093644,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 80,
+        "denominator": 186,
+        "value": 0.43010752688172044,
+        "ci_low": 0.2856926406926407,
+        "ci_high": 0.5370390587093644,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "BASE",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "population": "FINAL[static_feedback]",
+      "f01": {
+        "numerator": 208,
+        "denominator": 1980,
+        "value": 0.10505050505050505,
+        "ci_low": 0.060593434343434366,
+        "ci_high": 0.15708333333333327,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 170,
+        "denominator": 1980,
+        "value": 0.08585858585858586,
+        "ci_low": 0.05101010101010101,
+        "ci_high": 0.12626262626262627,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 170,
+        "denominator": 1980,
+        "value": 0.08585858585858586,
+        "ci_low": 0.05101010101010101,
+        "ci_high": 0.12626262626262627,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 38,
+        "denominator": 1980,
+        "value": 0.01919191919191919,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 25,
+        "denominator": 142,
+        "value": 0.176056338028169,
+        "ci_low": 0.08887755102040819,
+        "ci_high": 0.2844845107933838,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 25,
+        "denominator": 142,
+        "value": 0.176056338028169,
+        "ci_low": 0.08887755102040819,
+        "ci_high": 0.2844845107933838,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 65,
+        "denominator": 142,
+        "value": 0.45774647887323944,
+        "ci_low": 0.3034378265412748,
+        "ci_high": 0.611969171997157,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 65,
+        "denominator": 142,
+        "value": 0.45774647887323944,
+        "ci_low": 0.3034378265412748,
+        "ci_high": 0.611969171997157,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "population": "FINAL[test_feedback]",
+      "f01": {
+        "numerator": 765,
+        "denominator": 1980,
+        "value": 0.38636363636363635,
+        "ci_low": 0.32271464646464654,
+        "ci_high": 0.4580934343434343,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 761,
+        "denominator": 1980,
+        "value": 0.3843434343434343,
+        "ci_low": 0.3212121212121212,
+        "ci_high": 0.4565782828282828,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 761,
+        "denominator": 1980,
+        "value": 0.3843434343434343,
+        "ci_low": 0.3212121212121212,
+        "ci_high": 0.4565782828282828,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 4,
+        "denominator": 1980,
+        "value": 0.00202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 3,
+        "denominator": 39,
+        "value": 0.07692307692307693,
+        "ci_low": 0.0,
+        "ci_high": 0.16131211857018296,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 3,
+        "denominator": 39,
+        "value": 0.07692307692307693,
+        "ci_low": 0.0,
+        "ci_high": 0.16131211857018296,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 14,
+        "denominator": 39,
+        "value": 0.358974358974359,
+        "ci_low": 0.13886494252873569,
+        "ci_high": 0.5714285714285714,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 14,
+        "denominator": 39,
+        "value": 0.358974358974359,
+        "ci_low": 0.13886494252873569,
+        "ci_high": 0.5714285714285714,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "population": "FINAL[combined_feedback]",
+      "f01": {
+        "numerator": 222,
+        "denominator": 1980,
+        "value": 0.11212121212121212,
+        "ci_low": 0.06818181818181818,
+        "ci_high": 0.1631439393939393,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "F01",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02": {
+        "numerator": 205,
+        "denominator": 1980,
+        "value": 0.10353535353535354,
+        "ci_low": 0.06363636363636363,
+        "ci_high": 0.1494949494949495,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02_ci": {
+        "numerator": 205,
+        "denominator": 1980,
+        "value": 0.10353535353535354,
+        "ci_low": 0.06363636363636363,
+        "ci_high": 0.1494949494949495,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): static three-state F01 recomputed under the tool-verdict reading: reported blocking findings count only from applicable tools in state COMPLETED or PARTIAL (findings of TIMEOUT / TOOL_ERROR / NOT_ANALYZED entries do not make an artifact DIRTY)",
+        "source": {
+          "metric_id": "X02",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "DIRTY",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x02_only": {
+        "numerator": 17,
+        "denominator": 1980,
+        "value": 0.008585858585858586,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "X02 dirty_only_under_frozen_rule",
+        "source": null
+      },
+      "x04_clean": {
+        "numerator": 7,
+        "denominator": 64,
+        "value": 0.109375,
+        "ci_low": 0.028169014084507043,
+        "ci_high": 0.20588235294117646,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_clean_ci": {
+        "numerator": 7,
+        "denominator": 64,
+        "value": 0.109375,
+        "ci_low": 0.028169014084507043,
+        "ci_high": 0.20588235294117646,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is CLEAN_COMPLETE: statically clean (every applicable static analysis tool COMPLETED, no reported blocking finding) but incorrect: the goal G4 quantity",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "CLEAN_COMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_nfi": {
+        "numerator": 33,
+        "denominator": 64,
+        "value": 0.515625,
+        "ci_low": 0.35294117647058826,
+        "ci_high": 0.6718814036885246,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "x04_nfi_ci": {
+        "numerator": 33,
+        "denominator": 64,
+        "value": 0.515625,
+        "ci_low": 0.35294117647058826,
+        "ci_high": 0.6718814036885246,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": false,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): artifacts failing Q06 (verdict not pass, baseline_incompatible excluded) whose static verdict F01 is NO_FINDING_INCOMPLETE: no reported blocking finding but >= 1 applicable static analysis tool in an analysis-gap state (PARTIAL / TIMEOUT / TOOL_ERROR / NOT_ANALYZED), so the static verdict is incomplete, NOT clean; shown separately as a contrast to the G4 quantity (the CLEAN_COMPLETE share)",
+        "source": {
+          "metric_id": "X04",
+          "population": "FINAL",
+          "block": "composite",
+          "strata": {
+            "state": "NO_FINDING_INCOMPLETE",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    },
+    {
+      "mark": "†",
+      "text": "Degenerate percentile interval (zero width): every supporting cluster has the same value (a share at 0% or 100%, or a difference of 0); the bootstrap cannot express the sampling uncertainty."
+    }
+  ],
+  "latex": {
+    "longtable": true
+  }
+}

@@ -1,0 +1,1261 @@
+{
+  "id": "T9b_primary_by_block",
+  "title": "Primary hypotheses per block (descriptive)",
+  "population": "BASE paired with FINAL[v]; FINAL[v1] vs FINAL[v2] (per block)",
+  "unit": "base cell",
+  "notes": [
+    "The 12 primary hypotheses of T9 per block (methodology SA3: every headline estimate per block next to the composite, which is T9); descriptive (descriptive replicate count, unadjusted, no test); the block numerators and denominators add up to the composite of T9 (checked).",
+    "Denominator exclusions (methodology missingness rules; JSON key excluded): no unit is excluded in this table by R04 (base cell(s) outside the paired cohort); R05 (base cell(s) outside the paired cohort).",
+    "BL01: Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.",
+    "IC1: Q06 is in-sample for test_feedback and combined_feedback: their loops see the ParEval test verdict and stop when it passes (every stopped_tests_pass trajectory is a Q06 pass), so they optimise the endpoint; for static_feedback Q06 is out-of-sample (measured once in phase 2, never seen by the loop). The variants therefore differ in trigger and stop rules, not only in feedback content; test_feedback cannot regress on Q06 by construction.",
+    "IC2: E02 is not an independent confirmation of Q06 gains: it counts build failures, and most E02 improvements are the same cells as the Q06 improvements; the held-out signal proper is the joint transition X06 (e.g. Q06 repaired but E02 still failing) and G01.",
+    "IC5: The composite primary estimates pool the pilot (12 clusters) and full_ext (48 clusters) blocks; the per-block estimates (T9b) are descriptive, the pilot ones approximate; a composite difference need not hold in both blocks.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "BASE",
+      "text": "BASE: the 1,980 base cells (pilot_002 396 + full_ext_001 1,584), iteration-0 artifacts (use: initial code quality)"
+    },
+    {
+      "ref": "FINAL",
+      "text": "FINAL: for variant v: per base cell the artifact of the trajectory's terminal iteration (== STEP[v][2]); for trajectories terminal at iteration 0 the final artifact IS the base artifact (use: repair outcome per strategy on the identical 1,980-cell cohort)"
+    },
+    {
+      "ref": "R04 net_gain",
+      "text": "R04 net_gain: numerator = improved - regressed; denominator = cells; unit = base cell."
+    },
+    {
+      "ref": "R05 variant_difference",
+      "text": "R05 variant_difference: numerator = sum over cells of (y_v1 - y_v2); denominator = cells; unit = base cell."
+    }
+  ],
+  "ci_note": "95% CI: nonparametric cluster bootstrap, percentile intervals, stratified by block (pilot benchmarks resampled among the 12 pilot benchmarks, full_ext among its 48); seed 20261017; cluster = benchmark; 2,000 replicates (descriptive, unadjusted)",
+  "columns": [
+    {
+      "key": "endpoint",
+      "header": "Endpoint",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "metric",
+      "header": "Metric",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "hypothesis",
+      "header": "Hypothesis",
+      "align": "l",
+      "kind": "text",
+      "width": "3.4cm"
+    },
+    {
+      "key": "pilot",
+      "header": "pilot difference pp (n/N)",
+      "align": "r",
+      "kind": "diff",
+      "group": "pilot",
+      "sub": "pp (n/N)",
+      "mark": "a"
+    },
+    {
+      "key": "pilot_ci",
+      "header": "pilot 95% CI",
+      "align": "r",
+      "kind": "ci_pp",
+      "group": "pilot",
+      "sub": "95% CI"
+    },
+    {
+      "key": "full_ext",
+      "header": "full_ext difference pp (n/N)",
+      "align": "r",
+      "kind": "diff",
+      "group": "full_ext",
+      "sub": "pp (n/N)"
+    },
+    {
+      "key": "full_ext_ci",
+      "header": "full_ext 95% CI",
+      "align": "r",
+      "kind": "ci_pp",
+      "group": "full_ext",
+      "sub": "95% CI"
+    }
+  ],
+  "rows": [
+    {
+      "endpoint": "Q06",
+      "metric": "R04",
+      "hypothesis": "FINAL[static_feedback] - BASE",
+      "pilot": {
+        "numerator": 15,
+        "denominator": 396,
+        "value": 0.03787878787878788,
+        "ci_low": 0.012626262626262626,
+        "ci_high": 0.06565656565656566,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": 15,
+        "denominator": 396,
+        "value": 0.03787878787878788,
+        "ci_low": 0.012626262626262626,
+        "ci_high": 0.06565656565656566,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 29,
+        "denominator": 1584,
+        "value": 0.018308080808080808,
+        "ci_low": -0.017676767676767676,
+        "ci_high": 0.059343434343434344,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 29,
+        "denominator": 1584,
+        "value": 0.018308080808080808,
+        "ci_low": -0.017676767676767676,
+        "ci_high": 0.059343434343434344,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R04",
+      "hypothesis": "FINAL[test_feedback] - BASE",
+      "pilot": {
+        "numerator": 20,
+        "denominator": 396,
+        "value": 0.050505050505050504,
+        "ci_low": 0.03282828282828283,
+        "ci_high": 0.07323232323232323,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": 20,
+        "denominator": 396,
+        "value": 0.050505050505050504,
+        "ci_low": 0.03282828282828283,
+        "ci_high": 0.07323232323232323,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 127,
+        "denominator": 1584,
+        "value": 0.08017676767676768,
+        "ci_low": 0.04924242424242424,
+        "ci_high": 0.11994949494949494,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 127,
+        "denominator": 1584,
+        "value": 0.08017676767676768,
+        "ci_low": 0.04924242424242424,
+        "ci_high": 0.11994949494949494,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R04",
+      "hypothesis": "FINAL[combined_feedback] - BASE",
+      "pilot": {
+        "numerator": 21,
+        "denominator": 396,
+        "value": 0.05303030303030303,
+        "ci_low": 0.030303030303030304,
+        "ci_high": 0.08080808080808081,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": 21,
+        "denominator": 396,
+        "value": 0.05303030303030303,
+        "ci_low": 0.030303030303030304,
+        "ci_high": 0.08080808080808081,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 101,
+        "denominator": 1584,
+        "value": 0.06376262626262626,
+        "ci_low": 0.030303030303030304,
+        "ci_high": 0.10418244949494941,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 101,
+        "denominator": 1584,
+        "value": 0.06376262626262626,
+        "ci_low": 0.030303030303030304,
+        "ci_high": 0.10418244949494941,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "Q06",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[test_feedback]",
+      "pilot": {
+        "numerator": -5,
+        "denominator": 396,
+        "value": -0.012626262626262626,
+        "ci_low": -0.027777777777777776,
+        "ci_high": 0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": -5,
+        "denominator": 396,
+        "value": -0.012626262626262626,
+        "ci_low": -0.027777777777777776,
+        "ci_high": 0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": -98,
+        "denominator": 1584,
+        "value": -0.06186868686868687,
+        "ci_low": -0.0845959595959596,
+        "ci_high": -0.0422979797979798,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": -98,
+        "denominator": 1584,
+        "value": -0.06186868686868687,
+        "ci_low": -0.0845959595959596,
+        "ci_high": -0.0422979797979798,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[combined_feedback]",
+      "pilot": {
+        "numerator": -6,
+        "denominator": 396,
+        "value": -0.015151515151515152,
+        "ci_low": -0.03282828282828283,
+        "ci_high": 0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": -6,
+        "denominator": 396,
+        "value": -0.015151515151515152,
+        "ci_low": -0.03282828282828283,
+        "ci_high": 0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": -72,
+        "denominator": 1584,
+        "value": -0.045454545454545456,
+        "ci_low": -0.06502525252525253,
+        "ci_high": -0.028409090909090908,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": -72,
+        "denominator": 1584,
+        "value": -0.045454545454545456,
+        "ci_low": -0.06502525252525253,
+        "ci_high": -0.028409090909090908,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "Q06",
+      "metric": "R05",
+      "hypothesis": "FINAL[test_feedback] - FINAL[combined_feedback]",
+      "pilot": {
+        "numerator": -1,
+        "denominator": 396,
+        "value": -0.0025252525252525255,
+        "ci_low": -0.012626262626262626,
+        "ci_high": 0.007575757575757576,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": -1,
+        "denominator": 396,
+        "value": -0.0025252525252525255,
+        "ci_low": -0.012626262626262626,
+        "ci_high": 0.007575757575757576,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 26,
+        "denominator": 1584,
+        "value": 0.016414141414141416,
+        "ci_low": 0.008207070707070708,
+        "ci_high": 0.026515151515151516,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 26,
+        "denominator": 1584,
+        "value": 0.016414141414141416,
+        "ci_low": 0.008207070707070708,
+        "ci_high": 0.026515151515151516,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "Q06"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R04",
+      "hypothesis": "FINAL[static_feedback] - BASE",
+      "pilot": {
+        "numerator": 14,
+        "denominator": 396,
+        "value": 0.03535353535353535,
+        "ci_low": 0.007575757575757576,
+        "ci_high": 0.06565656565656566,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": 14,
+        "denominator": 396,
+        "value": 0.03535353535353535,
+        "ci_low": 0.007575757575757576,
+        "ci_high": 0.06565656565656566,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 28,
+        "denominator": 1584,
+        "value": 0.017676767676767676,
+        "ci_low": -0.018308080808080808,
+        "ci_high": 0.05744949494949495,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 28,
+        "denominator": 1584,
+        "value": 0.017676767676767676,
+        "ci_low": -0.018308080808080808,
+        "ci_high": 0.05744949494949495,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R04",
+      "hypothesis": "FINAL[test_feedback] - BASE",
+      "pilot": {
+        "numerator": 16,
+        "denominator": 396,
+        "value": 0.04040404040404041,
+        "ci_low": 0.020202020202020204,
+        "ci_high": 0.06060606060606061,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": 16,
+        "denominator": 396,
+        "value": 0.04040404040404041,
+        "ci_low": 0.020202020202020204,
+        "ci_high": 0.06060606060606061,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 113,
+        "denominator": 1584,
+        "value": 0.07133838383838384,
+        "ci_low": 0.04292929292929293,
+        "ci_high": 0.10984848484848485,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 113,
+        "denominator": 1584,
+        "value": 0.07133838383838384,
+        "ci_low": 0.04292929292929293,
+        "ci_high": 0.10984848484848485,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R04",
+      "hypothesis": "FINAL[combined_feedback] - BASE",
+      "pilot": {
+        "numerator": 20,
+        "denominator": 396,
+        "value": 0.050505050505050504,
+        "ci_low": 0.027777777777777776,
+        "ci_high": 0.07323232323232323,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": 20,
+        "denominator": 396,
+        "value": 0.050505050505050504,
+        "ci_low": 0.027777777777777776,
+        "ci_high": 0.07323232323232323,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 88,
+        "denominator": 1584,
+        "value": 0.05555555555555555,
+        "ci_low": 0.023989898989898988,
+        "ci_high": 0.09471275252525244,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 88,
+        "denominator": 1584,
+        "value": 0.05555555555555555,
+        "ci_low": 0.023989898989898988,
+        "ci_high": 0.09471275252525244,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R04",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "endpoint": "E02",
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[test_feedback]",
+      "pilot": {
+        "numerator": -2,
+        "denominator": 396,
+        "value": -0.005050505050505051,
+        "ci_low": -0.022727272727272728,
+        "ci_high": 0.012626262626262626,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": -2,
+        "denominator": 396,
+        "value": -0.005050505050505051,
+        "ci_low": -0.022727272727272728,
+        "ci_high": 0.012626262626262626,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": -85,
+        "denominator": 1584,
+        "value": -0.05366161616161616,
+        "ci_low": -0.07386363636363637,
+        "ci_high": -0.036600378787878876,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": -85,
+        "denominator": 1584,
+        "value": -0.05366161616161616,
+        "ci_low": -0.07386363636363637,
+        "ci_high": -0.036600378787878876,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-test_feedback",
+            "endpoint": "E02"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R05",
+      "hypothesis": "FINAL[static_feedback] - FINAL[combined_feedback]",
+      "pilot": {
+        "numerator": -6,
+        "denominator": 396,
+        "value": -0.015151515151515152,
+        "ci_low": -0.03282828282828283,
+        "ci_high": 0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": -6,
+        "denominator": 396,
+        "value": -0.015151515151515152,
+        "ci_low": -0.03282828282828283,
+        "ci_high": 0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": -60,
+        "denominator": 1584,
+        "value": -0.03787878787878788,
+        "ci_low": -0.05366161616161616,
+        "ci_high": -0.02462121212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": -60,
+        "denominator": 1584,
+        "value": -0.03787878787878788,
+        "ci_low": -0.05366161616161616,
+        "ci_high": -0.02462121212121212,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "static_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "E02",
+      "metric": "R05",
+      "hypothesis": "FINAL[test_feedback] - FINAL[combined_feedback]",
+      "pilot": {
+        "numerator": -4,
+        "denominator": 396,
+        "value": -0.010101010101010102,
+        "ci_low": -0.01773989898989888,
+        "ci_high": -0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "pilot_ci": {
+        "numerator": -4,
+        "denominator": 396,
+        "value": -0.010101010101010102,
+        "ci_low": -0.01773989898989888,
+        "ci_high": -0.0025252525252525255,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "pilot",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "full_ext": {
+        "numerator": 25,
+        "denominator": 1584,
+        "value": 0.015782828282828284,
+        "ci_low": 0.007575757575757576,
+        "ci_high": 0.025268308080807995,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      },
+      "full_ext_ci": {
+        "numerator": 25,
+        "denominator": 1584,
+        "value": 0.015782828282828284,
+        "ci_low": 0.007575757575757576,
+        "ci_high": 0.025268308080807995,
+        "ci_method": "cluster_bootstrap_percentile",
+        "replicates": 2000,
+        "primary": false,
+        "excluded": 0,
+        "ci_degenerate": false,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R05",
+          "population": "FINAL",
+          "block": "full_ext",
+          "strata": {
+            "comparison": "test_feedback-combined_feedback",
+            "endpoint": "E02"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

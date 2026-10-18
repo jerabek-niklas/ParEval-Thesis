@@ -1,0 +1,930 @@
+{
+  "id": "T12c_iterations_to_clean",
+  "title": "POST-FREEZE (addendum_1, descriptive): Iterations to a clean stop (X05)",
+  "population": "TRAJECTORIES (ending stopped_clean / stopped_tests_pass)",
+  "unit": "trajectory",
+  "notes": [
+    "TRAJECTORIES: the repair trajectory of one base cell under one variant: iterations 0..final_iteration, terminal status from the loop's own state ledger.",
+    "Trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric): mean final iteration (sum / trajectories) and its distribution over the iterations (mean = sum of k x n_k, checked).",
+    "POST-FREEZE (study_analysis_001.addendum_1, DECLARED_AFTER_DRY_RUN, declared 2026-10-17; descriptive, not part of the frozen methodology): X05 iterations_to_clean - post-freeze descriptive; a clean stop is the loop's own criterion, not a success metric",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "X05 iterations_to_clean",
+      "text": "X05 iterations_to_clean: numerator = sum of final_iteration (mean) / trajectories per iteration (distribution); denominator = trajectories ending stopped_clean or stopped_tests_pass; unit = trajectory."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "mean",
+      "header": "X05 mean final iteration (sum/N)",
+      "align": "r",
+      "kind": "mean",
+      "group": "X05 clean stops",
+      "sub": "mean iteration",
+      "digits": 2
+    },
+    {
+      "key": "it0",
+      "header": "X05 final iteration 0 % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "X05 clean stops",
+      "sub": "iteration 0"
+    },
+    {
+      "key": "it1",
+      "header": "X05 final iteration 1 % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "X05 clean stops",
+      "sub": "iteration 1"
+    },
+    {
+      "key": "it2",
+      "header": "X05 final iteration 2 % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "X05 clean stops",
+      "sub": "iteration 2"
+    }
+  ],
+  "rows": [
+    {
+      "block": "pilot",
+      "variant": "static_feedback",
+      "mean": {
+        "numerator": 16,
+        "denominator": 162,
+        "value": 0.09876543209876543,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 147,
+        "denominator": 162,
+        "value": 0.9074074074074074,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 14,
+        "denominator": 162,
+        "value": 0.08641975308641975,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 1,
+        "denominator": 162,
+        "value": 0.006172839506172839,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 2,
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "variant": "test_feedback",
+      "mean": {
+        "numerator": 28,
+        "denominator": 384,
+        "value": 0.07291666666666667,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 361,
+        "denominator": 384,
+        "value": 0.9401041666666666,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 18,
+        "denominator": 384,
+        "value": 0.046875,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 5,
+        "denominator": 384,
+        "value": 0.013020833333333334,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 2,
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "pilot",
+      "variant": "combined_feedback",
+      "mean": {
+        "numerator": 22,
+        "denominator": 162,
+        "value": 0.13580246913580246,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 143,
+        "denominator": 162,
+        "value": 0.8827160493827161,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 16,
+        "denominator": 162,
+        "value": 0.09876543209876543,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 3,
+        "denominator": 162,
+        "value": 0.018518518518518517,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "iteration": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "static_feedback",
+      "mean": {
+        "numerator": 117,
+        "denominator": 484,
+        "value": 0.24173553719008264,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 384,
+        "denominator": 484,
+        "value": 0.7933884297520661,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 83,
+        "denominator": 484,
+        "value": 0.17148760330578514,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 17,
+        "denominator": 484,
+        "value": 0.03512396694214876,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 2,
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "test_feedback",
+      "mean": {
+        "numerator": 210,
+        "denominator": 1529,
+        "value": 0.13734466971877043,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 1360,
+        "denominator": 1529,
+        "value": 0.8894702419882276,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 128,
+        "denominator": 1529,
+        "value": 0.08371484630477437,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 41,
+        "denominator": 1529,
+        "value": 0.026814911706998037,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 2,
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "full_ext",
+      "variant": "combined_feedback",
+      "mean": {
+        "numerator": 126,
+        "denominator": 475,
+        "value": 0.26526315789473687,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 368,
+        "denominator": 475,
+        "value": 0.7747368421052632,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 88,
+        "denominator": 475,
+        "value": 0.18526315789473685,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 19,
+        "denominator": 475,
+        "value": 0.04,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "iteration": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "static_feedback",
+      "mean": {
+        "numerator": 133,
+        "denominator": 646,
+        "value": 0.20588235294117646,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 531,
+        "denominator": 646,
+        "value": 0.8219814241486069,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 0,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 97,
+        "denominator": 646,
+        "value": 0.15015479876160992,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 1,
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 18,
+        "denominator": 646,
+        "value": 0.02786377708978328,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 2,
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "test_feedback",
+      "mean": {
+        "numerator": 238,
+        "denominator": 1913,
+        "value": 0.1244119184526921,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 1721,
+        "denominator": 1913,
+        "value": 0.8996340825927862,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 0,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 146,
+        "denominator": 1913,
+        "value": 0.07631991636173549,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 1,
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 46,
+        "denominator": 1913,
+        "value": 0.024046001045478306,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 2,
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "block": "composite",
+      "variant": "combined_feedback",
+      "mean": {
+        "numerator": 148,
+        "denominator": 637,
+        "value": 0.23233908948194662,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); mean iterations",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it0": {
+        "numerator": 511,
+        "denominator": 637,
+        "value": 0.8021978021978022,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 0,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it1": {
+        "numerator": 104,
+        "denominator": 637,
+        "value": 0.16326530612244897,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 1,
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "it2": {
+        "numerator": 22,
+        "denominator": 637,
+        "value": 0.03453689167974882,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": true,
+        "note": "POST-FREEZE addendum_1 (descriptive): final_iteration of the trajectories ending stopped_clean or stopped_tests_pass (the loop's own clean stop, not a success metric); share ending at this iteration",
+        "source": {
+          "metric_id": "X05",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "iteration": 2,
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    }
+  ],
+  "latex": {}
+}

@@ -1,0 +1,1780 @@
+{
+  "id": "T6_stops_effort",
+  "title": "Loop stops per variant and block",
+  "population": "TRAJECTORIES",
+  "unit": "trajectory",
+  "notes": [
+    "TRAJECTORIES: the repair trajectory of one base cell under one variant: iterations 0..final_iteration, terminal status from the loop's own state ledger.",
+    "Stop statuses are trajectory facts, NOT success metrics; R09 counts trajectories that requested a repair, not successful repairs (R02 in T5/T5b).",
+    "R07 equals the R06 stopped_budget share and R08 the R06 stopped_analysis_incomplete share (identical counts, checked); both are shown under their own metric ids.",
+    "R09 repaired_share: meaning = trajectories that requested at least one repair (final_iteration >= 1); numerator = trajectories; denominator = trajectories; unit = trajectory.",
+    "IC6: static_feedback repair triggers are dominated by clang-tidy bugprone findings and, on MPI, by low-confidence hints (design document: no trustworthy static MPI tool exists); static_feedback results measure this frozen blocking-set configuration, not static analysis in general."
+  ],
+  "definitions": [
+    {
+      "ref": "R06 stop_status_distribution",
+      "text": "R06 stop_status_distribution: numerator = trajectories; denominator = trajectories; unit = trajectory."
+    },
+    {
+      "ref": "R07 budget_exhaustion_rate",
+      "text": "R07 budget_exhaustion_rate: numerator = stopped_budget; denominator = trajectories; unit = trajectory."
+    },
+    {
+      "ref": "R08 analysis_incomplete_stop_rate",
+      "text": "R08 analysis_incomplete_stop_rate: numerator = stopped_analysis_incomplete; denominator = trajectories; unit = trajectory."
+    },
+    {
+      "ref": "R10 iterations_used",
+      "text": "R10 iterations_used: numerator = sum of final_iteration; denominator = trajectories; unit = trajectory."
+    }
+  ],
+  "ci_note": null,
+  "columns": [
+    {
+      "key": "variant",
+      "header": "Variant",
+      "align": "l",
+      "kind": "text"
+    },
+    {
+      "key": "block",
+      "header": "Block",
+      "align": "l",
+      "kind": "block"
+    },
+    {
+      "key": "r06_stopped_clean",
+      "header": "R06 stopped_clean % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R06 terminal status (stopped_...)",
+      "sub": "clean"
+    },
+    {
+      "key": "r06_stopped_tests_pass",
+      "header": "R06 stopped_tests_pass % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R06 terminal status (stopped_...)",
+      "sub": "tests_pass"
+    },
+    {
+      "key": "r06_stopped_budget",
+      "header": "R06 stopped_budget % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R06 terminal status (stopped_...)",
+      "sub": "budget"
+    },
+    {
+      "key": "r06_stopped_analysis_incomplete",
+      "header": "R06 stopped_analysis_incomplete % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R06 terminal status (stopped_...)",
+      "sub": "analysis_incomplete"
+    },
+    {
+      "key": "r07",
+      "header": "R07 budget exhausted % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R07",
+      "sub": "budget"
+    },
+    {
+      "key": "r08",
+      "header": "R08 analysis-incomplete stop % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R08",
+      "sub": "analysis incomplete"
+    },
+    {
+      "key": "r09",
+      "header": "R09 >=1 repair requested % (n/N)",
+      "align": "r",
+      "kind": "rate",
+      "group": "R09",
+      "sub": ">=1 repair requested"
+    },
+    {
+      "key": "r10",
+      "header": "R10 mean iterations (sum/N)",
+      "align": "r",
+      "kind": "mean",
+      "group": "R10",
+      "sub": "mean iterations",
+      "digits": 2
+    }
+  ],
+  "rows": [
+    {
+      "variant": "static_feedback",
+      "block": "pilot",
+      "r06_stopped_clean": {
+        "numerator": 162,
+        "denominator": 396,
+        "value": 0.4090909090909091,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 50,
+        "denominator": 396,
+        "value": 0.12626262626262627,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 184,
+        "denominator": 396,
+        "value": 0.46464646464646464,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 50,
+        "denominator": 396,
+        "value": 0.12626262626262627,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 184,
+        "denominator": 396,
+        "value": 0.46464646464646464,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 157,
+        "denominator": 396,
+        "value": 0.39646464646464646,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 236,
+        "denominator": 396,
+        "value": 0.5959595959595959,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "full_ext",
+      "r06_stopped_clean": {
+        "numerator": 484,
+        "denominator": 1584,
+        "value": 0.3055555555555556,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 0,
+        "denominator": 1584,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 308,
+        "denominator": 1584,
+        "value": 0.19444444444444445,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 792,
+        "denominator": 1584,
+        "value": 0.5,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 308,
+        "denominator": 1584,
+        "value": 0.19444444444444445,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 792,
+        "denominator": 1584,
+        "value": 0.5,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 800,
+        "denominator": 1584,
+        "value": 0.5050505050505051,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 1249,
+        "denominator": 1584,
+        "value": 0.788510101010101,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "static_feedback",
+      "block": "composite",
+      "r06_stopped_clean": {
+        "numerator": 646,
+        "denominator": 1980,
+        "value": 0.32626262626262625,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 358,
+        "denominator": 1980,
+        "value": 0.1808080808080808,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 976,
+        "denominator": 1980,
+        "value": 0.49292929292929294,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 358,
+        "denominator": 1980,
+        "value": 0.1808080808080808,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 976,
+        "denominator": 1980,
+        "value": 0.49292929292929294,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 957,
+        "denominator": 1980,
+        "value": 0.48333333333333334,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 1485,
+        "denominator": 1980,
+        "value": 0.75,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "static_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "pilot",
+      "r06_stopped_clean": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 384,
+        "denominator": 396,
+        "value": 0.9696969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 12,
+        "denominator": 396,
+        "value": 0.030303030303030304,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 12,
+        "denominator": 396,
+        "value": 0.030303030303030304,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 35,
+        "denominator": 396,
+        "value": 0.08838383838383838,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 52,
+        "denominator": 396,
+        "value": 0.13131313131313133,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "full_ext",
+      "r06_stopped_clean": {
+        "numerator": 0,
+        "denominator": 1584,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 1529,
+        "denominator": 1584,
+        "value": 0.9652777777777778,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 55,
+        "denominator": 1584,
+        "value": 0.034722222222222224,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 0,
+        "denominator": 1584,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 55,
+        "denominator": 1584,
+        "value": 0.034722222222222224,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 0,
+        "denominator": 1584,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 224,
+        "denominator": 1584,
+        "value": 0.1414141414141414,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 320,
+        "denominator": 1584,
+        "value": 0.20202020202020202,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "test_feedback",
+      "block": "composite",
+      "r06_stopped_clean": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 1913,
+        "denominator": 1980,
+        "value": 0.9661616161616161,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 67,
+        "denominator": 1980,
+        "value": 0.03383838383838384,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 67,
+        "denominator": 1980,
+        "value": 0.03383838383838384,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 259,
+        "denominator": 1980,
+        "value": 0.13080808080808082,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 372,
+        "denominator": 1980,
+        "value": 0.18787878787878787,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "test_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "pilot",
+      "r06_stopped_clean": {
+        "numerator": 162,
+        "denominator": 396,
+        "value": 0.4090909090909091,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 0,
+        "denominator": 396,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 61,
+        "denominator": 396,
+        "value": 0.15404040404040403,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 173,
+        "denominator": 396,
+        "value": 0.43686868686868685,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 61,
+        "denominator": 396,
+        "value": 0.15404040404040403,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 173,
+        "denominator": 396,
+        "value": 0.43686868686868685,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 166,
+        "denominator": 396,
+        "value": 0.41919191919191917,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 259,
+        "denominator": 396,
+        "value": 0.6540404040404041,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "pilot",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "full_ext",
+      "r06_stopped_clean": {
+        "numerator": 475,
+        "denominator": 1584,
+        "value": 0.29987373737373735,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 0,
+        "denominator": 1584,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 362,
+        "denominator": 1584,
+        "value": 0.22853535353535354,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 747,
+        "denominator": 1584,
+        "value": 0.4715909090909091,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 362,
+        "denominator": 1584,
+        "value": 0.22853535353535354,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 747,
+        "denominator": 1584,
+        "value": 0.4715909090909091,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 855,
+        "denominator": 1584,
+        "value": 0.5397727272727273,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 1364,
+        "denominator": 1584,
+        "value": 0.8611111111111112,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "full_ext",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    },
+    {
+      "variant": "combined_feedback",
+      "block": "composite",
+      "r06_stopped_clean": {
+        "numerator": 637,
+        "denominator": 1980,
+        "value": 0.32171717171717173,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_clean",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_tests_pass": {
+        "numerator": 0,
+        "denominator": 1980,
+        "value": 0.0,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_tests_pass",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_budget": {
+        "numerator": 423,
+        "denominator": 1980,
+        "value": 0.21363636363636362,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_budget",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r06_stopped_analysis_incomplete": {
+        "numerator": 920,
+        "denominator": 1980,
+        "value": 0.46464646464646464,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": "terminal statuses are trajectory facts, not success metrics",
+        "source": {
+          "metric_id": "R06",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "status": "stopped_analysis_incomplete",
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r07": {
+        "numerator": 423,
+        "denominator": 1980,
+        "value": 0.21363636363636362,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R07",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r08": {
+        "numerator": 920,
+        "denominator": 1980,
+        "value": 0.46464646464646464,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R08",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r09": {
+        "numerator": 1021,
+        "denominator": 1980,
+        "value": 0.5156565656565657,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R09",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      },
+      "r10": {
+        "numerator": 1623,
+        "denominator": 1980,
+        "value": 0.8196969696969697,
+        "ci_low": null,
+        "ci_high": null,
+        "ci_method": null,
+        "replicates": null,
+        "primary": false,
+        "excluded": null,
+        "ci_degenerate": null,
+        "post_freeze": false,
+        "note": null,
+        "source": {
+          "metric_id": "R10",
+          "population": "TRAJECTORIES",
+          "block": "composite",
+          "strata": {
+            "variant": "combined_feedback"
+          }
+        }
+      }
+    }
+  ],
+  "footnotes": [
+    {
+      "mark": "a",
+      "text": "pilot: pilot_002 / Pilotexperiment (12 benchmarks x 3 execution models x 11 models, 1 sample per prompt); pilot block has 12 clusters: percentile intervals are approximate; flagged in every pilot table"
+    },
+    {
+      "mark": "c",
+      "text": "terminal statuses with 0 trajectories in every row (not shown): repair_unusable, stopped_baseline_incompatible, stopped_api_exhausted"
+    }
+  ],
+  "latex": {}
+}
