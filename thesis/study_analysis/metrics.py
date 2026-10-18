@@ -187,7 +187,7 @@ ADDENDUM_METRICS = OrderedDict([
     ("X03", "dirty_composition"), ("X04", "statically_clean_but_incorrect"), ("X05", "iterations_to_clean"),
     ("X06", "joint_parEval_heldout_transitions")])
 ESTIMATE_FIELDS = ("ci_degenerate", "p_resolution", "p_holm_resolution")
-DEGENERATE_NOTE = "degenerate percentile interval (zero width): every supporting cluster at the boundary"
+DEGENERATE_NOTE = "degenerate percentile interval (zero width): every supporting cluster has the same value"
 CLEAN_STOPS = ("stopped_clean", "stopped_tests_pass")          # X05 (checked against the addendum text)
 X04_STATES = (CLEAN_COMPLETE, NO_FINDING_INCOMPLETE)
 

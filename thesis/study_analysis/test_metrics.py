@@ -37,7 +37,7 @@ OWNER = OrderedDict([("pilot", core.PILOT), ("full_ext", "full_ext_recovery_004"
 PRIMARY, DESCRIPTIVE = 200, 40
 # the addendum_1 contract wording (DESIGN2 section 1), spelled out here instead of imported from metrics.py
 POST_FREEZE = "POST-FREEZE addendum_1 (descriptive): "
-DEGENERATE = "degenerate percentile interval (zero width): every supporting cluster at the boundary"
+DEGENERATE = "degenerate percentile interval (zero width): every supporting cluster has the same value"
 NEW_KEYS = ("post_freeze", "ci_degenerate", "p_resolution", "p_holm_resolution")
 
 

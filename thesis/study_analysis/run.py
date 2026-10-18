@@ -134,7 +134,7 @@ def readme_markdown(results, tables, figures, addendum):
              "(R02).",
              "- 95% intervals are stratified benchmark-cluster bootstrap percentile intervals; pilot intervals rest "
              "on 12 clusters (approximate); intervals marked as degenerate have zero width because every supporting "
-             "cluster is at 0% or 100%.", "",
+             "cluster has the same value (a share at 0% or 100%, or a difference of 0).", "",
              "## Mandatory disclosures", ""]
     for note in addendum.get("table_notes") or []:
         lines.append("- **%s** (%s): %s" % (note["id"], note["applies_to"], note["text"]))

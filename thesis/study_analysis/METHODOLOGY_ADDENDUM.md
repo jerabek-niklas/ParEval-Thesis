@@ -94,7 +94,7 @@ Trigger: independent verification of the dry run (raw recomputation PASS; statis
 
 ## Estimate fields
 
-- **ci_degenerate**: true for every estimate whose percentile interval has zero width (ci_low == ci_high): every supporting cluster sits at the boundary, so the bootstrap cannot express sampling uncertainty; tables mark such intervals and never present them as evidence of certainty
+- **ci_degenerate**: true for every estimate whose percentile interval has zero width (ci_low == ci_high): every supporting cluster has the same value (a share at 0% or 100%, or a difference of 0), so the bootstrap cannot express sampling uncertainty; tables mark such intervals and never present them as evidence of certainty
 - **p_resolution**: primary family only: the smallest positive two-sided bootstrap p-value, 2 / replicates_primary; a p_value of 0 means p < p_resolution
 - **p_holm_resolution**: primary family only: the Holm-adjusted resolution, the running maximum over the Holm order of (m - rank + 1) * p_resolution; a p_holm of 0 means p_holm < p_holm_resolution
 
@@ -113,7 +113,7 @@ Trigger: independent verification of the dry run (raw recomputation PASS; statis
 - **BL01** (every table or figure with a pilot or composite Q06 / E02 aggregate): Includes dense_la/00 (BL-01 tolerance convention: possible false FAIL verdicts; disclosure-bearing aggregate); sensitivity SA1 in T10.
 - **REASONING** (every per-model table and figure): Reasoning settings differ between models and are not equalised (see the closure disclosure register, item reasoning_policy_differences); some providers report no reasoning-token field.
 - **EFFECTIVE_STATES** (T3_tool_coverage, F4_tool_states): Tool states are the effective states (framework.effective_tool_state): a front-end TOOL_ERROR or PARTIAL entry of an artifact whose build failed counts as NOT_ANALYZED (dataset_disclosures.effective_state_overrides); the closure register reports the raw states.
-- **DEGENERATE_CI** (every table whose CI is degenerate): Degenerate percentile interval (zero width): every supporting cluster is at 0% or 100%; the bootstrap cannot express the sampling uncertainty.
+- **DEGENERATE_CI** (every table whose CI is degenerate): Degenerate percentile interval (zero width): every supporting cluster has the same value (a share at 0% or 100%, or a difference of 0); the bootstrap cannot express the sampling uncertainty.
 
 ## Disclosures outside the analysis outputs
 

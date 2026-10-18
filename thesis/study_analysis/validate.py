@@ -329,7 +329,7 @@ ADDENDUM_NAMES = OrderedDict([("X01", "paired_auto_closed_sensitivity"), ("X02",
 ADDENDUM_CI_METRICS = ("X01", "X02", "X04")
 ADDENDUM_SHARE_METRICS = ("X02", "X03", "X04", "X05", "X06")
 POST_FREEZE_PREFIX = "POST-FREEZE %s (descriptive): "       # % the addendum id's last component (addendum_1)
-DEGENERATE_NOTE = "degenerate percentile interval (zero width): every supporting cluster at the boundary"
+DEGENERATE_NOTE = "degenerate percentile interval (zero width): every supporting cluster has the same value"
 # the states in which framework.tool_verdict can turn a blocking finding into a defect verdict (X02)
 VERDICT_STATES = (COMPLETED, "PARTIAL")
 X03_ONLY, X03_FINDINGS, X03_ARTIFACTS = "dirty_only_via_tool", "blocking_findings", "artifacts_with_check"
